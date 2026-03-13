@@ -2,6 +2,7 @@
 
 ## 2026-03-13
 
+- **harness: scaffold a cross-platform Go-based wazero N-API module** Add a standalone `harness/wazero` Go project with a Node-API registration shim, cross-platform build/test scripts, Windows `node.lib` resolution, smoke coverage, and package-level docs so the wazero harness now compiles to a real `.node` addon. GitHub: *@jtenner*
 - **assembly: clarify the exports placeholder entrypoint** Remove the internal test import from `assembly/assembly/exports.ts`, document that the file is intentionally empty until a CLI-driven export path exists, and regenerate the bundled virtual source copy. GitHub: *@jtenner*
 - **cli: bundle virtual assembly sources into the compiler wrapper** Add generated bundled AssemblyScript source text for `~/.as-harness`, regenerate it during CLI builds, and update the compiler wrapper to serve virtual files from the bundled module instead of scanning the repo at runtime. GitHub: *@jtenner*
 - **assembly: add exports entrypoint for future test modules** Add `assembly/assembly/exports.ts` as a dedicated Wasm-export entrypoint and update `assembly/README.md` to distinguish it from the current internal test barrel workflow. GitHub: *@jtenner*
