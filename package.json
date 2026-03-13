@@ -2,6 +2,7 @@
   "name": "as-harness",
   "private": true,
   "scripts": {
+    "test": "bun run ./scripts/test.ts",
     "validate": "bun run ./scripts/validate.ts"
   }
 }
