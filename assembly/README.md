@@ -20,7 +20,9 @@ Implemented today:
 
 - a shared internal ABI import for `write_event`
 - internal event serialization helpers in `assembly/assembly/internal/events.ts`
+- an internal `Node` class with lazy child discovery in `assembly/assembly/internal/node.ts`
 - serializer-shape tests in `assembly/assembly/test/internal/events.ts`
+- `Node` metadata/discovery tests in `assembly/assembly/test/internal/node.ts`
 - a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint with a
   host-callable `allocateNodeIndexBuffer(length)` export for NodeIndex writes
 - framework adapter folder skeletons for planned `--lib` entry points
@@ -52,6 +54,8 @@ Current files:
 
 - `imports.ts`: imported ABI declarations and shared enums
 - `events.ts`: event payload serialization and event-sender helpers
+- `node.ts`: structural node metadata, the global `rootNode` / `currentNode`,
+  and lazy child discovery
 
 `assembly/assembly/exports.ts`
 : Wasm-export-oriented entrypoint for test modules that need explicit Wasm exports. It currently exposes `allocateNodeIndexBuffer(length)` so host runtimes can allocate guest memory for a `StaticArray<u32>` NodeIndex before future traversal calls exist.
@@ -107,7 +111,7 @@ The AssemblyScript package is being organized around these internal module bound
 - `abi`
 - `state`
 
-Only the earliest `events` and import-boundary pieces exist right now.
+Only the earliest `events`, node metadata, and import-boundary pieces exist right now.
 
 ## Event Model
 
@@ -125,6 +129,12 @@ Event kinds currently modeled:
 The current `NodeIndex` representation is `StaticArray<u32>`.
 
 Serialization currently lives in `assembly/assembly/internal/events.ts` and writes directly into `StaticArray<u8>` buffers using AssemblyScript memory primitives.
+
+The current structural node model lives in `assembly/assembly/internal/node.ts`.
+It stores `kind`, `name`, `declarationMode`, parent linkage, and the callback
+used to lazily rediscover children through `getChildren()`. It also exposes a
+global `rootNode`, a mutable `currentNode`, and parent-bound child creation via
+`currentNode.createChild(...)` or `node.createChild(...)`.
 
 ## Testing
 
@@ -146,7 +156,10 @@ Relevant files:
 - `scripts/test.ts`
 - `scripts/test-bootstrap.ts`
 
-The serializer tests currently execute as top-level AssemblyScript assertions inside `assembly/assembly/test/internal/events.ts`.
+The internal tests currently execute as top-level AssemblyScript assertions inside:
+
+- `assembly/assembly/test/internal/events.ts`
+- `assembly/assembly/test/internal/node.ts`
 
 ## Build Notes
 

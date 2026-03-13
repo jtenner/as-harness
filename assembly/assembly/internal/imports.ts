@@ -3,6 +3,7 @@
 // docs/primary-buildout.md.
 
 export const enum NodeKind {
+  Root = 0,
   Test = 1,
   Describe = 2,
 }
