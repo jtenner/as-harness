@@ -12,6 +12,7 @@
 - Validation deliverables: run `bun validate`, confirm zero diagnostics, run all primary test suites.
 - Every commit needs a title and detailed body with changed files and reasons.
 - Every commit must update `CHANGELOG.md`.
+- Mark completed items in `agent-todo.md` before commit when the corresponding work is actually done.
 - Update relevant `README.md` files when surface API or user-facing project info changes.
 - Write commit text to a temp file, commit with `git commit -F`, then delete the temp file.
 - Changelog entries must include: date, bold title, short description, emphasized GitHub username of the changer.
