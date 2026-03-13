@@ -21,7 +21,8 @@ Implemented today:
 - a shared internal ABI import for `write_event`
 - internal event serialization helpers in `assembly/assembly/internal/events.ts`
 - serializer-shape tests in `assembly/assembly/test/internal/events.ts`
-- a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint for future CLI-driven test module compilation
+- a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint with a
+  host-callable `allocateNodeIndexBuffer(length)` export for NodeIndex writes
 - framework adapter folder skeletons for planned `--lib` entry points
 - a root-driven Bun test workflow that compiles and instantiates the AssemblyScript test entrypoint
 
@@ -53,7 +54,7 @@ Current files:
 - `events.ts`: event payload serialization and event-sender helpers
 
 `assembly/assembly/exports.ts`
-: Wasm-export-oriented entrypoint reserved for test modules that need explicit Wasm exports. It is intentionally empty today because the current root test workflow uses `assembly/assembly/test/index.ts` instead.
+: Wasm-export-oriented entrypoint for test modules that need explicit Wasm exports. It currently exposes `allocateNodeIndexBuffer(length)` so host runtimes can allocate guest memory for a `StaticArray<u32>` NodeIndex before future traversal calls exist.
 
 `assembly/assembly/test/`
 : Internal AssemblyScript test entrypoint and test modules.
@@ -186,7 +187,7 @@ The structure goal is:
 If you are working in this package now:
 
 - use `assembly/assembly/internal/` for shared runtime primitives
-- use `assembly/assembly/exports.ts` when a test module needs explicit Wasm exports for future CLI-driven execution; keep it empty unless that CLI path needs a dedicated entrypoint
+- use `assembly/assembly/exports.ts` when a test module needs explicit Wasm exports for future CLI-driven execution; keep exports narrow and host-oriented
 - use `assembly/assembly/test/` for internal AssemblyScript tests
 - use the root `bun run test` workflow to compile and execute those tests
 - treat the framework adapter folders as planned `--lib` entry points, not as general-purpose source folders

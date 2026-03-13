@@ -6,7 +6,7 @@ export const bundledVirtualRoot = "~/.as-harness";
 export const bundledVirtualFiles = new Map<string, string>([
 	[
 		"~/.as-harness/exports.ts",
-		"// Placeholder entrypoint for future CLI-compiled test modules that need\n// explicit Wasm exports. The current internal test workflow uses\n// `assembly/test/index.ts`, so this file intentionally stays empty.\n",
+		"let nodeIndexScratch: StaticArray<u32> | null = null;\n\n/**\n * Allocates a `StaticArray<u32>` in guest memory for a host-provided NodeIndex\n * and returns the linear-memory pointer to its first element.\n */\nexport function allocateNodeIndexBuffer(length: u32): usize {\n  nodeIndexScratch = new StaticArray<u32>(length);\n  return changetype<usize>(nodeIndexScratch);\n}\n",
 	],
 	[
 		"~/.as-harness/internal/events.ts",

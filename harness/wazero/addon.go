@@ -1,14 +1,59 @@
 package main
 
 /*
+#include <stdint.h>
 #include <stdlib.h>
 #include <node_api.h>
 
-extern napi_value GoHello(napi_env env, napi_callback_info info);
+extern napi_value GoCreateHarness(napi_env env, napi_callback_info info);
+extern napi_value GoOnNodeFound(napi_env env, napi_callback_info info);
+extern napi_value GoOnNodeStart(napi_env env, napi_callback_info info);
+extern napi_value GoOnNodePass(napi_env env, napi_callback_info info);
+extern napi_value GoOnFailMessage(napi_env env, napi_callback_info info);
+extern napi_value GoOnCallbackStart(napi_env env, napi_callback_info info);
+extern napi_value GoOnCallbackPass(napi_env env, napi_callback_info info);
+extern napi_value GoRunHarness(napi_env env, napi_callback_info info);
+extern void GoFinalizeHarness(node_api_basic_env env, void* data, void* hint);
 */
 import "C"
 
-import "unsafe"
+import (
+	"context"
+	"sync"
+	"unsafe"
+
+	"github.com/tetratelabs/wazero"
+)
+
+const harnessIDProperty = "__asHarnessId"
+const allocateNodeIndexBufferExport = "allocateNodeIndexBuffer"
+const abortModuleName = "env"
+const writeEventModuleName = "as-harness"
+const uint32ByteLength = 4
+
+type callbackSlot int
+
+const (
+	nodeFoundSlot callbackSlot = iota
+	nodeStartSlot
+	nodePassSlot
+	failMessageSlot
+	callbackStartSlot
+	callbackPassSlot
+	callbackSlotCount
+)
+
+type harnessState struct {
+	runtime   wazero.Runtime
+	compiled  wazero.CompiledModule
+	callbacks [callbackSlotCount]C.napi_ref
+}
+
+var (
+	harnessMu     sync.Mutex
+	nextHarnessID int64 = 1
+	harnesses           = map[int64]*harnessState{}
+)
 
 func main() {}
 
@@ -24,6 +69,14 @@ func must(status C.napi_status, env C.napi_env, message string) bool {
 	return false
 }
 
+func throwTypeError(env C.napi_env, message string) bool {
+	cause := C.CString(message)
+	defer C.free(unsafe.Pointer(cause))
+
+	C.napi_throw_type_error(env, nil, cause)
+	return false
+}
+
 func createString(env C.napi_env, value string) C.napi_value {
 	cValue := C.CString(value)
 	defer C.free(unsafe.Pointer(cValue))
@@ -36,36 +89,547 @@ func createString(env C.napi_env, value string) C.napi_value {
 	return result
 }
 
-//export GoHello
-func GoHello(env C.napi_env, info C.napi_callback_info) C.napi_value {
-	return createString(env, "hello from go")
+func createBoolean(env C.napi_env, value bool) C.napi_value {
+	var result C.napi_value
+	boolValue := C.bool(false)
+	if value {
+		boolValue = C.bool(true)
+	}
+
+	if !must(C.napi_get_boolean(env, boolValue, &result), env, "failed to create boolean") {
+		return nil
+	}
+
+	return result
+}
+
+func throwError(env C.napi_env, message string) bool {
+	cause := C.CString(message)
+	defer C.free(unsafe.Pointer(cause))
+
+	C.napi_throw_error(env, nil, cause)
+	return false
+}
+
+func undefined(env C.napi_env) C.napi_value {
+	var result C.napi_value
+	if !must(C.napi_get_undefined(env, &result), env, "failed to get undefined") {
+		return nil
+	}
+
+	return result
+}
+
+func createFunction(env C.napi_env, name string, callback C.napi_callback) C.napi_value {
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+
+	var result C.napi_value
+	if !must(C.napi_create_function(env, cName, C.NAPI_AUTO_LENGTH, callback, nil, &result), env, "failed to create function") {
+		return nil
+	}
+
+	return result
+}
+
+func setNamedProperty(env C.napi_env, target C.napi_value, name string, value C.napi_value) bool {
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+
+	return must(C.napi_set_named_property(env, target, cName, value), env, "failed to set property")
+}
+
+func createInt64(env C.napi_env, value int64) C.napi_value {
+	var result C.napi_value
+	if !must(C.napi_create_int64(env, C.int64_t(value), &result), env, "failed to create int64") {
+		return nil
+	}
+
+	return result
+}
+
+func getCallbackArguments(env C.napi_env, info C.napi_callback_info, argc C.size_t) ([]C.napi_value, C.napi_value, bool) {
+	if argc == 0 {
+		var thisArg C.napi_value
+		if !must(C.napi_get_cb_info(env, info, nil, nil, &thisArg, nil), env, "failed to read callback receiver") {
+			return nil, nil, false
+		}
+
+		return nil, thisArg, true
+	}
+
+	args := make([]C.napi_value, int(argc))
+	actual := argc
+	var thisArg C.napi_value
+
+	var argv *C.napi_value
+	if len(args) > 0 {
+		argv = &args[0]
+	}
+
+	if !must(C.napi_get_cb_info(env, info, &actual, argv, &thisArg, nil), env, "failed to read callback arguments") {
+		return nil, nil, false
+	}
+
+	return args[:int(actual)], thisArg, true
+}
+
+func typedArrayByteLength(arrayType C.napi_typedarray_type, length C.size_t) C.size_t {
+	switch arrayType {
+	case C.napi_int8_array, C.napi_uint8_array, C.napi_uint8_clamped_array:
+		return length
+	case C.napi_int16_array, C.napi_uint16_array, C.napi_float16_array:
+		return length * 2
+	case C.napi_int32_array, C.napi_uint32_array, C.napi_float32_array:
+		return length * 4
+	case C.napi_float64_array, C.napi_bigint64_array, C.napi_biguint64_array:
+		return length * 8
+	default:
+		return 0
+	}
+}
+
+func copyBytes(ptr unsafe.Pointer, length C.size_t) []byte {
+	if ptr == nil || length == 0 {
+		return []byte{}
+	}
+
+	source := unsafe.Slice((*byte)(ptr), int(length))
+	bytes := make([]byte, len(source))
+	copy(bytes, source)
+	return bytes
+}
+
+func bytesFromValue(env C.napi_env, value C.napi_value) ([]byte, bool) {
+	var isBuffer C.bool
+	if !must(C.napi_is_buffer(env, value, &isBuffer), env, "failed to test buffer input") {
+		return nil, false
+	}
+
+	if isBuffer {
+		var data unsafe.Pointer
+		var length C.size_t
+		if !must(C.napi_get_buffer_info(env, value, &data, &length), env, "failed to read buffer bytes") {
+			return nil, false
+		}
+
+		return copyBytes(data, length), true
+	}
+
+	var isTypedArray C.bool
+	if !must(C.napi_is_typedarray(env, value, &isTypedArray), env, "failed to test typed array input") {
+		return nil, false
+	}
+
+	if isTypedArray {
+		var arrayType C.napi_typedarray_type
+		var length C.size_t
+		var data unsafe.Pointer
+		var arrayBuffer C.napi_value
+		var byteOffset C.size_t
+		if !must(C.napi_get_typedarray_info(env, value, &arrayType, &length, &data, &arrayBuffer, &byteOffset), env, "failed to read typed array bytes") {
+			return nil, false
+		}
+
+		_ = arrayBuffer
+		_ = byteOffset
+
+		return copyBytes(data, typedArrayByteLength(arrayType, length)), true
+	}
+
+	var isArrayBuffer C.bool
+	if !must(C.napi_is_arraybuffer(env, value, &isArrayBuffer), env, "failed to test array buffer input") {
+		return nil, false
+	}
+
+	if isArrayBuffer {
+		var data unsafe.Pointer
+		var length C.size_t
+		if !must(C.napi_get_arraybuffer_info(env, value, &data, &length), env, "failed to read array buffer bytes") {
+			return nil, false
+		}
+
+		return copyBytes(data, length), true
+	}
+
+	return nil, throwTypeError(env, "createHarness expects a Buffer, Uint8Array, or ArrayBuffer")
+}
+
+func compileHarness(bytes []byte) (*harnessState, error) {
+	ctx := context.Background()
+	runtime := wazero.NewRuntime(ctx)
+
+	_, err := runtime.NewHostModuleBuilder(abortModuleName).
+		NewFunctionBuilder().
+		WithFunc(func(context.Context, uint32, uint32, uint32, uint32) {}).
+		Export("abort").
+		Instantiate(ctx)
+	if err != nil {
+		_ = runtime.Close(ctx)
+		return nil, err
+	}
+
+	_, err = runtime.NewHostModuleBuilder(writeEventModuleName).
+		NewFunctionBuilder().
+		WithFunc(func(context.Context, uint32, uint32, uint32) {}).
+		Export("write_event").
+		Instantiate(ctx)
+	if err != nil {
+		_ = runtime.Close(ctx)
+		return nil, err
+	}
+
+	compiled, err := runtime.CompileModule(ctx, bytes)
+	if err != nil {
+		_ = runtime.Close(ctx)
+		return nil, err
+	}
+
+	return &harnessState{
+		runtime:  runtime,
+		compiled: compiled,
+	}, nil
+}
+
+func storeHarness(state *harnessState) int64 {
+	harnessMu.Lock()
+	defer harnessMu.Unlock()
+
+	id := nextHarnessID
+	nextHarnessID++
+	harnesses[id] = state
+	return id
+}
+
+func getHarness(id int64) *harnessState {
+	harnessMu.Lock()
+	defer harnessMu.Unlock()
+
+	return harnesses[id]
+}
+
+func deleteHarness(id int64, env C.node_api_basic_env) {
+	harnessMu.Lock()
+	state := harnesses[id]
+	delete(harnesses, id)
+	harnessMu.Unlock()
+
+	if state == nil {
+		return
+	}
+
+	for index, callback := range state.callbacks {
+		if callback == nil {
+			continue
+		}
+
+		C.napi_delete_reference(env, callback)
+		state.callbacks[index] = nil
+	}
+
+	if state.runtime != nil {
+		_ = state.runtime.Close(context.Background())
+		state.runtime = nil
+		state.compiled = nil
+	}
+}
+
+func getHarnessID(env C.napi_env, harness C.napi_value) (int64, bool) {
+	cName := C.CString(harnessIDProperty)
+	defer C.free(unsafe.Pointer(cName))
+
+	var idValue C.napi_value
+	if !must(C.napi_get_named_property(env, harness, cName, &idValue), env, "failed to read harness id") {
+		return 0, false
+	}
+
+	var id C.int64_t
+	if !must(C.napi_get_value_int64(env, idValue, &id), env, "failed to decode harness id") {
+		return 0, false
+	}
+
+	return int64(id), true
+}
+
+func requireHarness(env C.napi_env, harness C.napi_value) (*harnessState, bool) {
+	id, ok := getHarnessID(env, harness)
+	if !ok {
+		return nil, false
+	}
+
+	state := getHarness(id)
+	if state == nil {
+		return nil, throwTypeError(env, "harness instance has already been released")
+	}
+
+	return state, true
+}
+
+func registerCallback(env C.napi_env, info C.napi_callback_info, slot callbackSlot) C.napi_value {
+	args, thisArg, ok := getCallbackArguments(env, info, 1)
+	if !ok {
+		return nil
+	}
+
+	if len(args) < 1 {
+		throwTypeError(env, "expected a callback function")
+		return nil
+	}
+
+	var valueType C.napi_valuetype
+	if !must(C.napi_typeof(env, args[0], &valueType), env, "failed to read callback type") {
+		return nil
+	}
+
+	if valueType != C.napi_function {
+		throwTypeError(env, "expected a callback function")
+		return nil
+	}
+
+	state, ok := requireHarness(env, thisArg)
+	if !ok {
+		return nil
+	}
+
+	if state.callbacks[slot] != nil {
+		C.napi_delete_reference(C.node_api_basic_env(env), state.callbacks[slot])
+		state.callbacks[slot] = nil
+	}
+
+	var ref C.napi_ref
+	if !must(C.napi_create_reference(env, args[0], 1, &ref), env, "failed to retain callback") {
+		return nil
+	}
+
+	state.callbacks[slot] = ref
+	return undefined(env)
+}
+
+func createHarnessObject(env C.napi_env, id int64) C.napi_value {
+	var harness C.napi_value
+	if !must(C.napi_create_object(env, &harness), env, "failed to create harness object") {
+		return nil
+	}
+
+	if !setNamedProperty(env, harness, harnessIDProperty, createInt64(env, id)) {
+		return nil
+	}
+
+	finalizerData := C.malloc(C.size_t(unsafe.Sizeof(C.uint64_t(0))))
+	if finalizerData == nil {
+		message := C.CString("failed to allocate finalizer state")
+		defer C.free(unsafe.Pointer(message))
+
+		C.napi_throw_error(env, nil, message)
+		return nil
+	}
+
+	*(*C.uint64_t)(finalizerData) = C.uint64_t(id)
+	if !must(
+		C.napi_add_finalizer(
+			env,
+			harness,
+			finalizerData,
+			(C.node_api_basic_finalize)(C.GoFinalizeHarness),
+			nil,
+			nil,
+		),
+		env,
+		"failed to attach harness finalizer",
+	) {
+		C.free(finalizerData)
+		return nil
+	}
+
+	if !setNamedProperty(env, harness, "onNodeFound", createFunction(env, "onNodeFound", (C.napi_callback)(C.GoOnNodeFound))) {
+		return nil
+	}
+	if !setNamedProperty(env, harness, "onNodeStart", createFunction(env, "onNodeStart", (C.napi_callback)(C.GoOnNodeStart))) {
+		return nil
+	}
+	if !setNamedProperty(env, harness, "onNodePass", createFunction(env, "onNodePass", (C.napi_callback)(C.GoOnNodePass))) {
+		return nil
+	}
+	if !setNamedProperty(env, harness, "onFailMessage", createFunction(env, "onFailMessage", (C.napi_callback)(C.GoOnFailMessage))) {
+		return nil
+	}
+	if !setNamedProperty(env, harness, "onCallbackStart", createFunction(env, "onCallbackStart", (C.napi_callback)(C.GoOnCallbackStart))) {
+		return nil
+	}
+	if !setNamedProperty(env, harness, "onCallbackPass", createFunction(env, "onCallbackPass", (C.napi_callback)(C.GoOnCallbackPass))) {
+		return nil
+	}
+	if !setNamedProperty(env, harness, "run", createFunction(env, "run", (C.napi_callback)(C.GoRunHarness))) {
+		return nil
+	}
+
+	return harness
+}
+
+//export GoCreateHarness
+func GoCreateHarness(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	args, _, ok := getCallbackArguments(env, info, 1)
+	if !ok {
+		return nil
+	}
+
+	if len(args) < 1 {
+		throwTypeError(env, "createHarness expects wasm bytes")
+		return nil
+	}
+
+	wasmBytes, ok := bytesFromValue(env, args[0])
+	if !ok {
+		return nil
+	}
+
+	state, err := compileHarness(wasmBytes)
+	if err != nil {
+		throwError(env, err.Error())
+		return nil
+	}
+
+	return createHarnessObject(env, storeHarness(state))
+}
+
+func nodeIndexFromValue(env C.napi_env, value C.napi_value) ([]uint32, bool) {
+	var isArray C.bool
+	if C.napi_is_array(env, value, &isArray) != C.napi_ok || !isArray {
+		return nil, false
+	}
+
+	var length C.uint32_t
+	if C.napi_get_array_length(env, value, &length) != C.napi_ok {
+		return nil, false
+	}
+
+	nodeIndex := make([]uint32, int(length))
+	for index := C.uint32_t(0); index < length; index++ {
+		var element C.napi_value
+		if C.napi_get_element(env, value, index, &element) != C.napi_ok {
+			return nil, false
+		}
+
+		var value C.uint32_t
+		if C.napi_get_value_uint32(env, element, &value) != C.napi_ok {
+			return nil, false
+		}
+
+		nodeIndex[int(index)] = uint32(value)
+	}
+
+	return nodeIndex, true
+}
+
+func runNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) bool {
+	module, err := state.runtime.InstantiateModule(
+		ctx,
+		state.compiled,
+		wazero.NewModuleConfig().WithName("").WithStartFunctions("__start"),
+	)
+	if err != nil {
+		return false
+	}
+	defer module.Close(ctx)
+
+	allocateBuffer := module.ExportedFunction(allocateNodeIndexBufferExport)
+	if allocateBuffer == nil {
+		return false
+	}
+
+	results, err := allocateBuffer.Call(ctx, uint64(len(nodeIndex)))
+	if err != nil || len(results) != 1 {
+		return false
+	}
+
+	memory := module.Memory()
+	if memory == nil {
+		return false
+	}
+
+	bufferPtr := uint32(results[0])
+	for index, value := range nodeIndex {
+		offset := bufferPtr + uint32(index*uint32ByteLength)
+		if !memory.WriteUint32Le(offset, value) {
+			return false
+		}
+	}
+
+	// TODO: Call into the AssemblyScript traversal/runtime entrypoint for the
+	// provided NodeIndex once the guest-side navigation ABI exists.
+	return true
+}
+
+//export GoOnNodeFound
+func GoOnNodeFound(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	return registerCallback(env, info, nodeFoundSlot)
+}
+
+//export GoOnNodeStart
+func GoOnNodeStart(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	return registerCallback(env, info, nodeStartSlot)
+}
+
+//export GoOnNodePass
+func GoOnNodePass(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	return registerCallback(env, info, nodePassSlot)
+}
+
+//export GoOnFailMessage
+func GoOnFailMessage(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	return registerCallback(env, info, failMessageSlot)
+}
+
+//export GoOnCallbackStart
+func GoOnCallbackStart(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	return registerCallback(env, info, callbackStartSlot)
+}
+
+//export GoOnCallbackPass
+func GoOnCallbackPass(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	return registerCallback(env, info, callbackPassSlot)
+}
+
+//export GoRunHarness
+func GoRunHarness(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	args, thisArg, ok := getCallbackArguments(env, info, 1)
+	if !ok {
+		return nil
+	}
+
+	if len(args) < 1 {
+		return createBoolean(env, false)
+	}
+
+	state, ok := requireHarness(env, thisArg)
+	if !ok {
+		return createBoolean(env, false)
+	}
+
+	nodeIndex, ok := nodeIndexFromValue(env, args[0])
+	if !ok {
+		return createBoolean(env, false)
+	}
+
+	return createBoolean(env, runNodeIndex(context.Background(), state, nodeIndex))
+}
+
+//export GoFinalizeHarness
+func GoFinalizeHarness(env C.node_api_basic_env, data unsafe.Pointer, hint unsafe.Pointer) {
+	_ = hint
+
+	if data == nil {
+		return
+	}
+
+	id := int64(*(*C.uint64_t)(data))
+	deleteHarness(id, env)
+	C.free(data)
 }
 
 //export GoInit
 func GoInit(env C.napi_env, exports C.napi_value) C.napi_value {
-	var hello C.napi_value
-	if !must(C.napi_create_function(env, nil, 0, (C.napi_callback)(C.GoHello), nil, &hello), env, "failed to create hello function") {
-		return nil
-	}
-
-	helloName := C.CString("hello")
-	defer C.free(unsafe.Pointer(helloName))
-
-	if !must(C.napi_set_named_property(env, exports, helloName, hello), env, "failed to export hello") {
-		return nil
-	}
-
-	nameName := C.CString("name")
-	defer C.free(unsafe.Pointer(nameName))
-
-	if !must(C.napi_set_named_property(env, exports, nameName, createString(env, "wazero")), env, "failed to export name") {
-		return nil
-	}
-
-	languageName := C.CString("language")
-	defer C.free(unsafe.Pointer(languageName))
-
-	if !must(C.napi_set_named_property(env, exports, languageName, createString(env, "go")), env, "failed to export language") {
+	if !setNamedProperty(env, exports, "createHarness", createFunction(env, "createHarness", (C.napi_callback)(C.GoCreateHarness))) {
 		return nil
 	}
 
