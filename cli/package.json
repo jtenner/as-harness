@@ -1,0 +1,22 @@
+{
+  "name": "@as-harness/cli",
+  "version": "0.0.0",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "as-harness": "./index.ts"
+  },
+  "scripts": {
+    "dev": "bun run ./index.ts",
+    "clean": "bun run ./build.ts --clean",
+    "build": "bun run ./build.ts",
+    "build:list-targets": "bun run ./build.ts --list-targets"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "assemblyscript": "^0.28.10"
+  }
+}
