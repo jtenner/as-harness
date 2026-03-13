@@ -2,6 +2,7 @@
 
 ## 2026-03-13
 
+- **docs: expand scripts readme coverage** Update `scripts/README.md` to document the root validation script, the AssemblyScript test runner, and the generated-Wasm bootstrap script. GitHub: *@jtenner*
 - **assembly: add internal event serialization and test bootstrap** Add the `assembly/assembly/internal` runtime event modules, internal serializer tests, and a root Bun test script that compiles and bootstraps the AssemblyScript test entrypoint. GitHub: *@jtenner*
 - **docs: add assembly adapter entry-point skeletons** Add initial `assembly/assembly/*` library-entry folders plus per-adapter `TODO.md` files for the first set of framework and assertion adapters. GitHub: *@jtenner*
 - **docs: correct assembly adapter checklist structure** Update `agent-todo.md` so the API layer work is expressed as framework-specific `assembly/assembly/*` `--lib` entry points instead of a single generic front-facing API layer. GitHub: *@jtenner*
