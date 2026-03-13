@@ -2,6 +2,7 @@
 
 ## 2026-03-13
 
+- **assembly: add exports entrypoint for future test modules** Add `assembly/assembly/exports.ts` as a dedicated Wasm-export entrypoint and update `assembly/README.md` to distinguish it from the current internal test barrel workflow. GitHub: *@jtenner*
 - **docs: add assembly package readme** Add `assembly/README.md` describing the package layout, current internal runtime work, test workflow, and planned framework adapter structure. GitHub: *@jtenner*
 - **docs: expand scripts readme coverage** Update `scripts/README.md` to document the root validation script, the AssemblyScript test runner, and the generated-Wasm bootstrap script. GitHub: *@jtenner*
 - **assembly: add internal event serialization and test bootstrap** Add the `assembly/assembly/internal` runtime event modules, internal serializer tests, and a root Bun test script that compiles and bootstraps the AssemblyScript test entrypoint. GitHub: *@jtenner*
