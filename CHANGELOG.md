@@ -2,6 +2,8 @@
 
 ## 2026-03-13
 
+- **docs: add compact AGENTS guide and workflow rules** Add a concise project map plus validation, commit, and changelog rules in `AGENTS.md`. GitHub: `@jtenner`
+
 ### Added
 
 - Added `harness/` as a placeholder for the AssemblyScript harness work.
