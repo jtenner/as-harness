@@ -12,6 +12,8 @@ This lives inside the AssemblyScript-compiled Wasm binary in the `./assembly` pa
 Its job is to:
 
 * define the internal testing DSL/runtime behavior
+* expose internal declaration primitives backed by WebAssembly imports
+* provide front-facing APIs that lower into those internal primitives
 * register nodes
 * replay and traverse nodes
 * execute node callbacks and lifecycle callbacks
@@ -73,9 +75,9 @@ That is important because it gives `todo` a real scheduler meaning.
 
 This is the internal runtime inside the test module.
 
-## 1. Public test API façade
+## 1. Public test API façade and internal declaration layer
 
-This layer defines the normalized APIs or adapter-facing primitives for:
+This layer defines the front-facing APIs and the lower-level internal declaration primitives for:
 
 * `test`
 * `describe`
@@ -86,8 +88,11 @@ This layer defines the normalized APIs or adapter-facing primitives for:
 
 Responsibilities:
 
-* expose ergonomic APIs to test authors or adapter shims
-* lower all public declarations into one internal node registration system
+* expose ergonomic front-facing APIs to test authors or adapter shims
+* define internal representations for `test` / `describe` / `skip` / `todo`
+* have those internal representations call out through WebAssembly imports
+* make the front-facing APIs thin wrappers over those internal representations
+* lower all declarations into one internal node registration system
 * preserve enough metadata for deterministic rediscovery
 
 This layer should **not** own host policy.
@@ -472,7 +477,7 @@ Here is the cleanest practical split I would use.
 
 ### 1. `api`
 
-Public testing APIs and adapter-facing declarations.
+Front-facing testing APIs plus internal import-backed declaration primitives that those APIs call.
 
 ### 2. `registry`
 

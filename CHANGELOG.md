@@ -2,6 +2,7 @@
 
 ## 2026-03-13
 
+- **docs: clarify import-backed assembly declarations** Update `docs/primary-buildout.md` to separate front-facing test APIs from the internal `test` / `describe` / `skip` / `todo` declaration primitives that call through WebAssembly imports. GitHub: *@jtenner*
 - **tooling: add Biome-based validation workflow** Add Biome to `cli/`, initialize its config, add root `scripts/validate.ts` plus `bun validate`, and align `AGENTS.md` with the new validation command. GitHub: *@jtenner*
 - **docs: add compact AGENTS guide and workflow rules** Add a concise project map plus validation, commit, and changelog rules in `AGENTS.md`. GitHub: `@jtenner`
 
