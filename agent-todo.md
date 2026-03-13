@@ -4,7 +4,7 @@ Scope: `assembly/` only. This checklist covers the Wasm-side runtime defined in 
 
 ## Framework Library Entry Points and Declaration Adapters
 
-- [ ] Create framework-specific library entry-point folders under `assembly/assembly/` for:
+- [x] Create framework-specific library entry-point folders under `assembly/assembly/` for:
 - [ ] `node:test`
 - [ ] `jest`
 - [ ] `mocha`
@@ -16,7 +16,7 @@ Scope: `assembly/` only. This checklist covers the Wasm-side runtime defined in 
 - [ ] `jasmine`
 - [ ] `qnit`
 - [ ] `node:assert`
-- [ ] Treat each folder as an AssemblyScript `--lib` entry point rather than a generic public API surface.
+- [x] Treat each folder as an AssemblyScript `--lib` entry point rather than a generic public API surface.
 - [ ] Define the exported declarations each framework entry point must provide to match that framework's test-definition surface.
 - [ ] Map each framework's declaration surface onto shared internal representations for `test`, `describe`, `skip`, `todo`, hooks, and assertion integration.
 - [ ] Route the shared internal declaration representations through WebAssembly imports as required by the current design.
@@ -28,11 +28,11 @@ Scope: `assembly/` only. This checklist covers the Wasm-side runtime defined in 
 ## Registry and Discovery
 
 - [ ] Implement root registration during module initialization.
-- [ ] Implement active parent-scope tracking for nested declarations.
-- [ ] Attach child nodes to the correct parent deterministically.
-- [ ] Assign deterministic child ordinals within each scope.
+- [x] Implement active parent-scope tracking for nested declarations.
+- [x] Attach child nodes to the correct parent deterministically.
+- [x] Assign deterministic child ordinals within each scope.
 - [ ] Define and compute `NodeIndex` values for roots and descendants.
-- [ ] Preserve node kind, display name, declaration mode, and parent linkage for replay.
+- [x] Preserve node kind, display name, declaration mode, and parent linkage for replay.
 - [ ] Ensure nested declarations made during callback execution attach to the active traversal scope rather than a stale registration scope.
 
 ## Traversal and Replay
@@ -77,11 +77,11 @@ Scope: `assembly/` only. This checklist covers the Wasm-side runtime defined in 
 
 ## Events and Encoding
 
-- [ ] Define the binary wire format for `NodeFound`, `NodeStart`, `NodePass`, `FailMessage`, `CallbackStart`, and `CallbackPass`.
-- [ ] Define the packed encoding for `NodeIndex`.
-- [ ] Encode names and failure messages as UTF-8.
-- [ ] Implement event writing through imported host sinks or an equivalent shared transport boundary.
-- [ ] Keep the format flat, portable, and independent of AssemblyScript object layout.
+- [x] Define the binary wire format for `NodeFound`, `NodeStart`, `NodePass`, `FailMessage`, `CallbackStart`, and `CallbackPass`.
+- [x] Define the packed encoding for `NodeIndex`.
+- [x] Encode names and failure messages as UTF-8.
+- [x] Implement event writing through imported host sinks or an equivalent shared transport boundary.
+- [x] Keep the format flat, portable, and independent of AssemblyScript object layout.
 - [ ] Write protocol notes that the host can implement without AssemblyScript-specific knowledge.
 
 ## ABI Boundary
@@ -89,13 +89,13 @@ Scope: `assembly/` only. This checklist covers the Wasm-side runtime defined in 
 - [ ] Define exports for root discovery.
 - [ ] Define exports for targeted traversal.
 - [ ] Decide whether scheduler-step entrypoints are required now or deferred.
-- [ ] Define the imported host functions needed for event transport and runtime services.
+- [x] Define the imported host functions needed for event transport and runtime services.
 - [ ] Keep the ABI simple, flat, and language-agnostic.
-- [ ] Ensure no AssemblyScript object references leak across the Wasm boundary.
+- [x] Ensure no AssemblyScript object references leak across the Wasm boundary.
 
 ## Ephemeral Runtime State
 
-- [ ] Implement attempt-local tracking for active parent scope.
+- [x] Implement attempt-local tracking for active parent scope.
 - [ ] Implement attempt-local tracking for the active node path.
 - [ ] Track current hook phase during lifecycle execution.
 - [ ] Track the current traversal target.

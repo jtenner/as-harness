@@ -2,6 +2,7 @@
 
 ## 2026-03-13
 
+- **docs: audit assembly task checklist against implemented runtime work** Update `agent-todo.md` to mark only the AssemblyScript checklist items that are explicitly completed in the current codebase, leaving the remaining tasks unchecked instead of auto-completing inferred work. GitHub: *@jtenner*
 - **assembly: add a lazy-discovery Node runtime model** Add `assembly/assembly/internal/node.ts` with a `Node` class that stores core node metadata, parent linkage, the discovery callback, lazily discovered children via `getChildren()`, and a global `rootNode` / `currentNode` pair for parent-aware child creation directly through `node.createChild(...)`, add internal AssemblyScript coverage for the new behavior, regenerate the bundled virtual sources, and update assembly package docs. GitHub: *@jtenner*
 - **harness: instantiate wazero modules and copy NodeIndex input on run** Update the Go-based `harness/wazero` addon so `run(nodeIndex)` instantiates the compiled module, calls a new AssemblyScript `allocateNodeIndexBuffer(length)` export, copies the requested `NodeIndex` into guest memory, returns `true` or `false` for execution success, and documents the new host/guest ABI step. GitHub: *@jtenner*
 - **assembly: clarify the exports placeholder entrypoint** Remove the internal test import from `assembly/assembly/exports.ts`, document that the file is intentionally empty until a CLI-driven export path exists, and regenerate the bundled virtual source copy. GitHub: *@jtenner*
