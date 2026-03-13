@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { mkdir, readdir, writeFile } from "node:fs/promises";
-import { posix, relative, resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const OUTPUT_FILE = resolve(import.meta.dir, "virtual-files.generated.ts");

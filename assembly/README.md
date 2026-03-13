@@ -53,7 +53,7 @@ Current files:
 - `events.ts`: event payload serialization and event-sender helpers
 
 `assembly/assembly/exports.ts`
-: Wasm-export-oriented entrypoint reserved for test modules that need explicit Wasm exports. This is intended for the compiled CLI test runner path rather than the current root test script.
+: Wasm-export-oriented entrypoint reserved for test modules that need explicit Wasm exports. It is intentionally empty today because the current root test workflow uses `assembly/assembly/test/index.ts` instead.
 
 `assembly/assembly/test/`
 : Internal AssemblyScript test entrypoint and test modules.
@@ -186,7 +186,7 @@ The structure goal is:
 If you are working in this package now:
 
 - use `assembly/assembly/internal/` for shared runtime primitives
-- use `assembly/assembly/exports.ts` when a test module needs explicit Wasm exports for future CLI-driven execution
+- use `assembly/assembly/exports.ts` when a test module needs explicit Wasm exports for future CLI-driven execution; keep it empty unless that CLI path needs a dedicated entrypoint
 - use `assembly/assembly/test/` for internal AssemblyScript tests
 - use the root `bun run test` workflow to compile and execute those tests
 - treat the framework adapter folders as planned `--lib` entry points, not as general-purpose source folders

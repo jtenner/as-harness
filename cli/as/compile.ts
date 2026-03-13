@@ -136,10 +136,7 @@ function normalizeVirtualPath(path: string): string {
 	return posix.normalize(toPosixPath(path));
 }
 
-function resolveVirtualPath(
-	path: string,
-	baseDir: string,
-): string | null {
+function resolveVirtualPath(path: string, baseDir: string): string | null {
 	const normalizedPath = normalizeVirtualPath(path);
 	if (normalizedPath.startsWith(bundledVirtualRoot)) {
 		return normalizedPath;

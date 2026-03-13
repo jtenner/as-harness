@@ -2,6 +2,7 @@
 
 ## 2026-03-13
 
+- **assembly: clarify the exports placeholder entrypoint** Remove the internal test import from `assembly/assembly/exports.ts`, document that the file is intentionally empty until a CLI-driven export path exists, and regenerate the bundled virtual source copy. GitHub: *@jtenner*
 - **cli: bundle virtual assembly sources into the compiler wrapper** Add generated bundled AssemblyScript source text for `~/.as-harness`, regenerate it during CLI builds, and update the compiler wrapper to serve virtual files from the bundled module instead of scanning the repo at runtime. GitHub: *@jtenner*
 - **assembly: add exports entrypoint for future test modules** Add `assembly/assembly/exports.ts` as a dedicated Wasm-export entrypoint and update `assembly/README.md` to distinguish it from the current internal test barrel workflow. GitHub: *@jtenner*
 - **docs: add assembly package readme** Add `assembly/README.md` describing the package layout, current internal runtime work, test workflow, and planned framework adapter structure. GitHub: *@jtenner*
