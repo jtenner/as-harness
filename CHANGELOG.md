@@ -4,6 +4,7 @@
 
 ### Added
 
+- Added `harness/` as a placeholder for the AssemblyScript harness work.
 - Added a new standalone `cli/` Bun package for the AssemblyScript harness work.
 - Added Bun package metadata, scripts, and executable wiring for
   `@as-harness/cli`.
