@@ -2,6 +2,7 @@
 
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { generateBundledVirtualFiles } from "./as/generate-virtual-files";
 
 const EXECUTABLE_NAME = "as-harness";
 const ENTRYPOINT = "./index.ts";
@@ -113,6 +114,8 @@ async function main() {
 		console.log(`Removed ${DIST_DIR}/`);
 		return;
 	}
+
+	await generateBundledVirtualFiles();
 
 	for (const [index, target] of targets.entries()) {
 		const result = await buildTarget(target, index + 1, targets.length);

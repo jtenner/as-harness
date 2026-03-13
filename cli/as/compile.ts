@@ -1,8 +1,12 @@
 import { readdir, readFile as readFileFromDisk } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join, posix, resolve } from "node:path";
 import { createMemoryStream, main as runAsc } from "assemblyscript/asc";
 import type { Runtime as HarnessRuntime } from "../runtime/types";
 import { jsRuntime } from "../runtime/js";
+import {
+	bundledVirtualFiles,
+	bundledVirtualRoot,
+} from "./virtual-files.generated";
 
 export type Binding = "raw";
 
@@ -78,6 +82,13 @@ const DEFAULT_WASM_ARTIFACT_PATH = "output.wasm";
 const DEFAULT_TEXT_ARTIFACT_PATH = "output.wat";
 const SOURCE_FILE_PATTERN = /^(?!.*\.d\.ts$).*\.ts$/;
 
+type VirtualAssemblyFileSystem = {
+	files: Map<string, string>;
+	directories: Map<string, string[]>;
+};
+
+const virtualAssemblyFileSystem = createVirtualAssemblyFileSystem();
+
 function toUint8Array(contents: string | Uint8Array): Uint8Array {
 	return typeof contents === "string" ? textEncoder.encode(contents) : contents;
 }
@@ -117,10 +128,83 @@ function resolveFromBaseDir(path: string, baseDir: string): string {
 	return resolve(baseDir, path);
 }
 
+function toPosixPath(path: string): string {
+	return path.replaceAll("\\", "/");
+}
+
+function normalizeVirtualPath(path: string): string {
+	return posix.normalize(toPosixPath(path));
+}
+
+function resolveVirtualPath(
+	path: string,
+	baseDir: string,
+): string | null {
+	const normalizedPath = normalizeVirtualPath(path);
+	if (normalizedPath.startsWith(bundledVirtualRoot)) {
+		return normalizedPath;
+	}
+
+	const normalizedBaseDir = normalizeVirtualPath(baseDir);
+	if (normalizedBaseDir.startsWith(bundledVirtualRoot)) {
+		return posix.normalize(posix.join(normalizedBaseDir, normalizedPath));
+	}
+
+	return null;
+}
+
+function createVirtualAssemblyFileSystem(): VirtualAssemblyFileSystem {
+	const directories = new Map<string, string[]>();
+
+	for (const virtualPath of bundledVirtualFiles.keys()) {
+		let currentDirectory = posix.dirname(virtualPath);
+
+		while (currentDirectory.startsWith(bundledVirtualRoot)) {
+			if (!directories.has(currentDirectory)) {
+				directories.set(currentDirectory, []);
+			}
+
+			if (currentDirectory === bundledVirtualRoot) {
+				break;
+			}
+
+			currentDirectory = posix.dirname(currentDirectory);
+		}
+	}
+
+	if (!directories.has(bundledVirtualRoot)) {
+		directories.set(bundledVirtualRoot, []);
+	}
+
+	for (const virtualPath of bundledVirtualFiles.keys()) {
+		const directory = posix.dirname(virtualPath);
+		const entries = directories.get(directory);
+		if (!entries) {
+			continue;
+		}
+
+		entries.push(virtualPath);
+		entries.sort();
+	}
+
+	return {
+		files: bundledVirtualFiles,
+		directories,
+	};
+}
+
 async function readCompilerFile(
 	filename: string,
 	baseDir: string,
 ): Promise<string | null> {
+	const virtualPath = resolveVirtualPath(filename, baseDir);
+	if (virtualPath) {
+		const virtualFile = virtualAssemblyFileSystem.files.get(virtualPath);
+		if (virtualFile !== undefined) {
+			return virtualFile;
+		}
+	}
+
 	try {
 		return await readFileFromDisk(
 			resolveFromBaseDir(filename, baseDir),
@@ -135,6 +219,14 @@ async function listCompilerFiles(
 	dirname: string,
 	baseDir: string,
 ): Promise<string[] | null> {
+	const virtualDir = resolveVirtualPath(dirname, baseDir);
+	if (virtualDir) {
+		const virtualFiles = virtualAssemblyFileSystem.directories.get(virtualDir);
+		if (virtualFiles !== undefined) {
+			return virtualFiles;
+		}
+	}
+
 	try {
 		const entries = await readdir(resolveFromBaseDir(dirname, baseDir));
 		return entries

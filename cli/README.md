@@ -39,8 +39,16 @@ Key files and directories:
   compile target and also powers `clean` and target listing.
 - `as/compile.ts`
   The programmatic AssemblyScript compiler wrapper. It builds an `asc` argument
-  list, injects a runtime harness, reads files from disk, captures emitted
-  compiler artifacts in memory, and returns them as structured objects.
+  list, injects a runtime harness, overlays bundled virtual AssemblyScript
+  sources under `~/.as-harness`, captures emitted compiler artifacts in memory,
+  and returns them as structured objects.
+- `as/generate-virtual-files.ts`
+  Generates the bundled virtual-file module used by the compiler wrapper. It
+  scans `../assembly/assembly/**/*.ts`, builds a temporary text-import barrel,
+  and emits a TypeScript module containing the file contents as strings.
+- `as/virtual-files.generated.ts`
+  Generated source data for the bundled `~/.as-harness` virtual filesystem used
+  by the compiler wrapper.
 - `runtime/types.ts`
   Defines the `Runtime` interface used to mutate compiler arguments.
 - `runtime/js.ts`, `runtime/wasmtime.ts`, `runtime/wazero.ts`
@@ -85,6 +93,11 @@ bun run build:list-targets
 The package is set up so Bun can compile the CLI into standalone executables
 with `--compile`. The build script clears `dist/` first, then emits one binary
 per supported target into `dist/<target>/`.
+
+Before building executables, `build.ts` regenerates the bundled virtual
+AssemblyScript file module so the compiled CLI carries the current
+`assembly/assembly/**/*.ts` source text without depending on that repo path at
+runtime.
 
 The current target matrix is:
 
@@ -222,10 +235,15 @@ In practice, that means:
 The wrapper implements AssemblyScript’s programmatic `readFile`, `writeFile`,
 and `listFiles` hooks:
 
-- `readFile` resolves from the provided `baseDir` and reads UTF-8 source text
-- `listFiles` resolves a directory and returns `.ts` files while excluding
-  `.d.ts`
+- `readFile` first checks the bundled virtual `~/.as-harness` tree and then
+  falls back to disk reads from the provided `baseDir`
+- `listFiles` first checks the bundled virtual `~/.as-harness` tree and then
+  falls back to directory reads while excluding `.d.ts`
 - `writeFile` captures emitted outputs in memory instead of writing to disk
+
+The virtual `~/.as-harness` tree is populated from a generated TypeScript
+module, not from runtime filesystem scanning. That is what allows the standalone
+CLI binary to ship the AssemblyScript support sources as bundled text.
 
 ### Artifact model
 
