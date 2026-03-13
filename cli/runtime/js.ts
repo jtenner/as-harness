@@ -1,6 +1,6 @@
 import type { Runtime } from "./types";
 
 export const jsRuntime: Runtime = {
-  name: "js",
-  mutateCompilerArguments() {},
+	name: "js",
+	mutateCompilerArguments() {},
 };

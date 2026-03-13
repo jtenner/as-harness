@@ -1,4 +1,4 @@
 export interface Runtime {
-  name: string;
-  mutateCompilerArguments(compilerArguments: string[]): void;
+	name: string;
+	mutateCompilerArguments(compilerArguments: string[]): void;
 }

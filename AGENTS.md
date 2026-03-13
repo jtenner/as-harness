@@ -9,7 +9,7 @@
 ## Rules
 
 - Keep this file compact.
-- Validation deliverables: formatting, zero diagnostics, all primary test suites.
+- Validation deliverables: run `bun validate`, confirm zero diagnostics, run all primary test suites.
 - Every commit needs a title and detailed body with changed files and reasons.
 - Every commit must update `CHANGELOG.md`.
 - Update relevant `README.md` files when surface API or user-facing project info changes.

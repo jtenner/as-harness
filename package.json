@@ -1,0 +1,7 @@
+{
+  "name": "as-harness",
+  "private": true,
+  "scripts": {
+    "validate": "bun run ./scripts/validate.ts"
+  }
+}

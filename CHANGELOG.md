@@ -2,6 +2,7 @@
 
 ## 2026-03-13
 
+- **tooling: add Biome-based validation workflow** Add Biome to `cli/`, initialize its config, add root `scripts/validate.ts` plus `bun validate`, and align `AGENTS.md` with the new validation command. GitHub: *@jtenner*
 - **docs: add compact AGENTS guide and workflow rules** Add a concise project map plus validation, commit, and changelog rules in `AGENTS.md`. GitHub: `@jtenner`
 
 ### Added
