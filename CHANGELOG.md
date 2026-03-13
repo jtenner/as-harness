@@ -2,6 +2,7 @@
 
 ## 2026-03-13
 
+- **docs: correct assembly adapter checklist structure** Update `agent-todo.md` so the API layer work is expressed as framework-specific `assembly/assembly/*` `--lib` entry points instead of a single generic front-facing API layer. GitHub: *@jtenner*
 - **docs: add assembly buildout task checklist** Add `agent-todo.md` with grouped implementation tasks for the `assembly/` Wasm runtime based on `docs/primary-buildout.md`. GitHub: *@jtenner*
 - **docs: clarify import-backed assembly declarations** Update `docs/primary-buildout.md` to separate front-facing test APIs from the internal `test` / `describe` / `skip` / `todo` declaration primitives that call through WebAssembly imports. GitHub: *@jtenner*
 - **tooling: add Biome-based validation workflow** Add Biome to `cli/`, initialize its config, add root `scripts/validate.ts` plus `bun validate`, and align `AGENTS.md` with the new validation command. GitHub: *@jtenner*

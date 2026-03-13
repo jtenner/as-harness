@@ -2,14 +2,28 @@
 
 Scope: `assembly/` only. This checklist covers the Wasm-side runtime defined in `docs/primary-buildout.md` and excludes host orchestration work.
 
-## API and Declaration Layer
+## Framework Library Entry Points and Declaration Adapters
 
-- [ ] Define front-facing author APIs for `test`, `describe`, `skip`, `todo`, hook registration, and assertion integration.
-- [ ] Define the internal declaration representations that back `test`, `describe`, `skip`, and `todo`.
-- [ ] Make the front-facing APIs thin wrappers over the internal declaration representations.
-- [ ] Route the internal declaration representations through WebAssembly imports as required by the current design.
-- [ ] Standardize the metadata captured at declaration time: node kind, name, declaration mode, callback reference, and parent scope context.
-- [ ] Document which API behavior is owned by the Wasm runtime versus deferred to the host.
+- [ ] Create framework-specific library entry-point folders under `assembly/assembly/` for:
+- [ ] `node:test`
+- [ ] `jest`
+- [ ] `mocha`
+- [ ] `vitest`
+- [ ] `ava`
+- [ ] `tap`
+- [ ] `tape`
+- [ ] `uvu`
+- [ ] `jasmine`
+- [ ] `qnit`
+- [ ] `node:assert`
+- [ ] Treat each folder as an AssemblyScript `--lib` entry point rather than a generic public API surface.
+- [ ] Define the exported declarations each framework entry point must provide to match that framework's test-definition surface.
+- [ ] Map each framework's declaration surface onto shared internal representations for `test`, `describe`, `skip`, `todo`, hooks, and assertion integration.
+- [ ] Route the shared internal declaration representations through WebAssembly imports as required by the current design.
+- [ ] Standardize the metadata captured by every adapter at declaration time: node kind, name, declaration mode, callback reference, and parent scope context.
+- [ ] Keep framework-specific naming, overloads, and convenience signatures inside the adapter folders instead of spreading them into the shared runtime.
+- [ ] Define how assertion-oriented entry points such as `node:assert` integrate with the shared assertion bridge.
+- [ ] Document the boundary between framework adapter code and the shared Wasm runtime so the adapters stay thin and deterministic.
 
 ## Registry and Discovery
 
