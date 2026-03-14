@@ -147,8 +147,7 @@ view-typed fields, `Set`, and `Map`, direct `Set` / `Map` comparison helpers,
 function-reference identity comparison, managed-class recursion through
 generated hooks, and the first reflected-value runtime slice for primitive,
 string, and `ArrayBuffer` diagnostics plus the generated key/value collector.
-Fully generic nested `Set` / `Map` dispatch and recursive managed-class
-reflected-value construction are still pending.
+Recursive managed-class reflected-value construction is still pending.
 
 ## Event Model
 

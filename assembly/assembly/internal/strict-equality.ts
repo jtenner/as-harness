@@ -499,8 +499,18 @@ export function compareStrictEqualityValue<T>(
       return compareStrictEqualityFunctionReference(left, right);
     }
 
-    if (left instanceof Set || left instanceof Map) {
-      return StrictEqualityResult.Fail;
+    if (left instanceof Set) {
+      return compareStrictEqualitySet<indexof<T>>(
+        changetype<Set<indexof<T>> | null>(left),
+        changetype<Set<indexof<T>> | null>(right),
+      );
+    }
+
+    if (left instanceof Map) {
+      return compareStrictEqualityMap<indexof<T>, valueof<T>>(
+        changetype<Map<indexof<T>, valueof<T>> | null>(left),
+        changetype<Map<indexof<T>, valueof<T>> | null>(right),
+      );
     }
 
     if (isManaged<T>()) {

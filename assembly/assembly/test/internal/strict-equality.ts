@@ -215,6 +215,14 @@ function createIntArray(values: StaticArray<i32>): Array<i32> {
   return output;
 }
 
+function createReferenceArray<T>(values: Array<T>): Array<T> {
+  const output = new Array<T>(values.length);
+  for (let i = 0; i < values.length; i++) {
+    output[i] = unchecked(values[i]);
+  }
+  return output;
+}
+
 function createUint8Array(values: StaticArray<u8>): Uint8Array {
   const output = new Uint8Array(values.length);
   for (let i = 0; i < values.length; i++) {
@@ -594,6 +602,29 @@ function testStrictEqualitySetComparison(): void {
   assert(__asHarnessStrictEqualsSetMember("field:set", left, right));
   assert(!__asHarnessStrictEqualsSetMember("field:set", left, mismatch));
   assert(!__asHarnessStrictEqualsSetMember("field:set", left, reordered));
+  assert(
+    compareStrictEqualityValue<Set<i32>>(left, right) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityValue<Set<i32>>(left, mismatch) ==
+      StrictEqualityResult.Fail,
+  );
+
+  const nestedSetLeft = createReferenceArray<Set<i32>>([left, right]);
+  const nestedSetRight = createReferenceArray<Set<i32>>([right, left]);
+  const nestedSetMismatch = createReferenceArray<Set<i32>>([right, mismatch]);
+
+  assert(
+    compareStrictEqualityValue<Array<Set<i32>>>(nestedSetLeft, nestedSetRight) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityValue<Array<Set<i32>>>(
+      nestedSetLeft,
+      nestedSetMismatch,
+    ) == StrictEqualityResult.Fail,
+  );
 
   const recursiveLeft = new Set<StrictEqualityRecursiveNode>();
   recursiveLeft.add(createRecursiveCycle("root", "child"));
@@ -667,6 +698,34 @@ function testStrictEqualityMapComparison(): void {
   assert(!__asHarnessStrictEqualsMapMember("field:map", left, mismatchValue));
   assert(!__asHarnessStrictEqualsMapMember("field:map", left, mismatchKey));
   assert(!__asHarnessStrictEqualsMapMember("field:map", left, reordered));
+  assert(
+    compareStrictEqualityValue<Map<i32, string>>(left, right) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityValue<Map<i32, string>>(left, mismatchValue) ==
+      StrictEqualityResult.Fail,
+  );
+
+  const nestedMapLeft = createReferenceArray<Map<i32, string>>([left, right]);
+  const nestedMapRight = createReferenceArray<Map<i32, string>>([right, left]);
+  const nestedMapMismatch = createReferenceArray<Map<i32, string>>([
+    right,
+    mismatchValue,
+  ]);
+
+  assert(
+    compareStrictEqualityValue<Array<Map<i32, string>>>(
+      nestedMapLeft,
+      nestedMapRight,
+    ) == StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityValue<Array<Map<i32, string>>>(
+      nestedMapLeft,
+      nestedMapMismatch,
+    ) == StrictEqualityResult.Fail,
+  );
 
   const recursiveLeft = new Map<string, StrictEqualityRecursiveNode>();
   recursiveLeft.set("root", createRecursiveCycle("root", "child"));

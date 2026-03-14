@@ -376,12 +376,6 @@ The member-helper path now covers `ArrayBuffer` plus typed arrays /
 and recursive managed-class comparison are also routed through shared runtime
 helpers in Phase 3.
 
-The remaining collection gap is the generic `compareStrictEqualityValue(...)`
-dispatcher for nested `Set` and `Map` values. AssemblyScript does not expose a
-usable type-argument extraction mechanism for arbitrary `Set<T>` / `Map<K, V>`
-specializations here, so the current runtime supports those collections via
-their direct helpers and dedicated generated-member helpers first.
-
 The runtime-side responsibilities are:
 
 - primitive and nullable handling
@@ -403,6 +397,8 @@ The current runtime implementation now includes the first shared helpers for:
 - deferred-match handling for recursive reference cycles
 - `ArrayBuffer` bytewise comparison
 - ordered comparison for `Array<T>` and `StaticArray<T>`
+- generic nested `Set<T>` and `Map<K, V>` dispatch through
+  `compareStrictEqualityValue(...)`
 - managed-class recursion delegated back into transform-generated hooks
 - a reflected-value model plus primitive, string, and `ArrayBuffer`
   construction helpers
