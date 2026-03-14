@@ -28,6 +28,7 @@ export const enum EventKind {
   FailMessage = 4,
   CallbackStart = 5,
   CallbackPass = 6,
+  Diagnostic = 7,
 }
 
 /**

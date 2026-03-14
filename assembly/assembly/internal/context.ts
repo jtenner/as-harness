@@ -4,6 +4,7 @@
 
 import { DeclarationMode, HookKind } from "./imports";
 import { declareTestNode, registerHook } from "./api";
+import { diagnostic as emitDiagnostic } from "./events";
 import { HookCallback } from "./hooks";
 import { currentNode } from "./node";
 import {
@@ -204,6 +205,10 @@ export class TestContext {
 
   afterEach(callback: HookCallback | null = null): void {
     registerContextHook(HookKind.AfterEach, callback);
+  }
+
+  diagnostic(message: string): void {
+    emitDiagnostic(currentNode.getNodeIndex(), message);
   }
 
   skip(_message: string | null = null): void {

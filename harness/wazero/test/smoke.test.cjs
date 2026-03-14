@@ -82,6 +82,7 @@ test("creates a harness with per-event registration methods", () => {
 	assert.equal(typeof harness.onFailMessage, "function");
 	assert.equal(typeof harness.onCallbackStart, "function");
 	assert.equal(typeof harness.onCallbackPass, "function");
+	assert.equal(typeof harness.onDiagnostic, "function");
 	assert.equal(typeof harness.callI32, "function");
 	assert.equal(typeof harness.discover, "function");
 	assert.equal(typeof harness.run, "function");
@@ -92,6 +93,7 @@ test("creates a harness with per-event registration methods", () => {
 	harness.onFailMessage(() => {});
 	harness.onCallbackStart(() => {});
 	harness.onCallbackPass(() => {});
+	harness.onDiagnostic(() => {});
 	assert.equal(harness.run([]), true);
 	assert.equal(harness.run("bad"), false);
 });
@@ -123,6 +125,9 @@ test("run(nodeIndex) emits decoded node and lifecycle events for a passing test"
 	harness.onCallbackPass((event) => {
 		events.push(["callbackPass", event]);
 	});
+	harness.onDiagnostic((event) => {
+		events.push(["diagnostic", event]);
+	});
 
 	assert.equal(harness.run([0]), true);
 	assert.deepEqual(events, [
@@ -131,6 +136,7 @@ test("run(nodeIndex) emits decoded node and lifecycle events for a passing test"
 		["callbackPass", { hook: 1, nodeIndex: [] }],
 		["callbackStart", { hook: 2, nodeIndex: [] }],
 		["callbackPass", { hook: 2, nodeIndex: [] }],
+		["diagnostic", { nodeIndex: [0], message: "passing test diagnostic" }],
 		["callbackStart", { hook: 3, nodeIndex: [] }],
 		["callbackPass", { hook: 3, nodeIndex: [] }],
 		["callbackStart", { hook: 4, nodeIndex: [] }],

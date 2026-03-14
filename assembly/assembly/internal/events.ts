@@ -147,6 +147,43 @@ export function serializeFailMessage(message: string): StaticArray<u8> {
 }
 
 /**
+ * Serializes a `Diagnostic` payload into the wire-format byte buffer.
+ *
+ * Payload grammar:
+ * `[node_index_length: u32] [node_index: ...bytes] [message_byte_length: u32]
+ * [message: ...bytes]`
+ */
+export function serializeDiagnostic(
+  nodeIndex: NodeIndex,
+  message: string,
+): StaticArray<u8> {
+  const nodeIndexLength = <u32>nodeIndex.length;
+  const nodeIndexBytes = nodeIndexByteLength(nodeIndex);
+  const messageBytes = utf8ByteLength(message);
+  const totalByteLength =
+    U32_BYTE_LENGTH +
+    nodeIndexBytes +
+    U32_BYTE_LENGTH +
+    messageBytes;
+  const payload = new StaticArray<u8>(totalByteLength);
+  const payloadStart = changetype<usize>(payload);
+  let offset: usize = 0;
+
+  store<u32>(payloadStart + offset, nodeIndexLength);
+  offset += <usize>U32_BYTE_LENGTH;
+
+  copyNodeIndexBytes(payloadStart + offset, nodeIndex);
+  offset += <usize>nodeIndexBytes;
+
+  store<u32>(payloadStart + offset, messageBytes);
+  offset += <usize>U32_BYTE_LENGTH;
+
+  copyUtf8Bytes(payloadStart + offset, message);
+
+  return payload;
+}
+
+/**
  * Serializes a `CallbackStart` payload into the wire-format byte buffer.
  *
  * Payload grammar:
@@ -264,6 +301,16 @@ export function nodePass(nodeIndex: NodeIndex): void {
  */
 export function failMessage(message: string): void {
   sendEvent(EventKind.FailMessage, serializeFailMessage(message));
+}
+
+/**
+ * Emits a `Diagnostic` event.
+ */
+export function diagnostic(
+  nodeIndex: NodeIndex,
+  message: string,
+): void {
+  sendEvent(EventKind.Diagnostic, serializeDiagnostic(nodeIndex, message));
 }
 
 /**

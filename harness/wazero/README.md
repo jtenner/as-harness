@@ -16,6 +16,7 @@ The project currently proves out the Go-to-N-API build path:
   requested `NodeIndex`, so the host can execute a concrete target path
 - registered event callbacks now receive decoded event objects from the guest
   `write_event` sink, including `NodeFound` during the first discovery slice
+  and `Diagnostic` from `t.diagnostic(...)`
 - a tiny C shim registers the Node-API module
 - a local build script resolves the active Node installation headers and emits
   `dist/wazero.node`
@@ -35,6 +36,7 @@ type Harness = {
   onFailMessage(callback: (event: unknown) => void): void;
   onCallbackStart(callback: (event: unknown) => void): void;
   onCallbackPass(callback: (event: unknown) => void): void;
+  onDiagnostic(callback: (event: unknown) => void): void;
   callI32(exportName: string): number;
   discover(nodeIndex: Array<number>): boolean;
   run(nodeIndex: Array<number>): boolean;

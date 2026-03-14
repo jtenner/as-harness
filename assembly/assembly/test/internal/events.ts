@@ -1,6 +1,7 @@
 import {
   serializeCallbackPass,
   serializeCallbackStart,
+  serializeDiagnostic,
   serializeFailMessage,
   serializeNodeFound,
   serializeNodePass,
@@ -86,6 +87,18 @@ function testSerializeFailMessage(): void {
   assertUtf8Bytes(payload, 0, "failure");
 }
 
+function testSerializeDiagnostic(): void {
+  const nodeIndex = [7, 8] as StaticArray<u32>;
+  const payload = serializeDiagnostic(nodeIndex, "note");
+
+  assert(payload.length == 20);
+  assertU32(payload, 0, 2);
+  assertU32(payload, 4, 7);
+  assertU32(payload, 8, 8);
+  assertU32(payload, 12, 4);
+  assertUtf8Bytes(payload, 16, "note");
+}
+
 function testSerializeCallbackStart(): void {
   const nodeIndex = [2, 4, 6] as StaticArray<u32>;
   const payload = serializeCallbackStart(HookKind.AfterEach, nodeIndex);
@@ -119,5 +132,6 @@ testSerializeNodeFound();
 testSerializeNodeStart();
 testSerializeNodePass();
 testSerializeFailMessage();
+testSerializeDiagnostic();
 testSerializeCallbackStart();
 testSerializeCallbackPass();

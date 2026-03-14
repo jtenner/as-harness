@@ -15,6 +15,7 @@ afterEach((_context: TestContext): void => {});
 after((_context: TestContext): void => {});
 
 test("passing test", (context: TestContext): void => {
+  context.diagnostic("passing test diagnostic");
   context.assert.strictEqual<i32>(11, 11);
 });
 
