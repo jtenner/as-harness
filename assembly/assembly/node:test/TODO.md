@@ -12,14 +12,21 @@ The first declaration-registration slice now exists for the package-style
   `expectFailure(...)`
 - top-level hook registration: `before(...)`, `after(...)`, `beforeEach(...)`,
   and `afterEach(...)`
-- minimal declaration-time `SuiteContext` and `TestContext` types so callback
-  signatures compile
+- declaration-time `TestContext.test(...)`, `t.before(...)`, `t.after(...)`,
+  `t.beforeEach(...)`, and `t.afterEach(...)`
+- a first `t.assert` facade bound onto the current synchronous `node:assert`
+  bridge for `ok`, strict `equal` / `notEqual`, strict
+  `deepEqual` / `notDeepEqual`, `strictEqual`, `notStrictEqual`,
+  `deepStrictEqual`, `notDeepStrictEqual`, `throws`, `doesNotThrow`,
+  `ifError`, and `fail`
+- declaration-time `SuiteContext` and `TestContext` types
 - shared node registration, modifier metadata, hook storage, and `NodeIndex`
   derivation in the internal runtime
 
 This is still a declaration-only pass. Runnable callback execution, lifecycle
-ordering, `t.assert`, `t.test`, `t.skip`, `t.todo`, diagnostics, and traversal
-events remain open work.
+ordering, `t.skip`, `t.todo`, diagnostics, traversal events,
+assertion-call accounting, and the remaining deferred `t.assert` APIs remain
+open work.
 
 ## Current Explicit Non-Goal
 

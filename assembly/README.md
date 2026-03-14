@@ -39,6 +39,9 @@ Implemented today:
 - a first package-style `node:test` declaration adapter for `test(...)`,
   `suite(...)`, aliases/modifiers, and top-level hook registration, backed by
   shared node metadata, hook storage, and `NodeIndex` derivation
+- a first declaration-time `node:test` context layer with `t.test(...)`,
+  hook-registration aliases, and a partial `t.assert` facade bound onto the
+  current synchronous `node:assert` bridge
 - a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint with a
   host-callable `allocateNodeIndexBuffer(length)` export for NodeIndex writes
   plus the guest-side `invoke()` trampoline export
@@ -63,8 +66,10 @@ Not implemented yet:
 - host-facing ABI exports for traversal/discovery
 
 For the current scope, standalone `node:assert` work is otherwise complete, and
-the first `node:test` declaration layer now exists. The next assertion-related
-package work there is binding `t.assert` onto the existing bridge.
+the first `node:test` declaration layer now exists with a partial `t.assert`
+facade. The next work there is runnable execution, lifecycle ordering, and the
+remaining context APIs such as `t.skip(...)`, `t.todo(...)`, and assertion-call
+accounting for `t.plan(...)`.
 
 ## Package Layout
 
@@ -89,7 +94,8 @@ Current files:
   `NodeIndex` derivation
 - `api.ts`: shared declaration and hook registration helpers used by
   `node:test`
-- `context.ts`: minimal declaration-time `SuiteContext` / `TestContext` types
+- `context.ts`: declaration-time `SuiteContext` / `TestContext` plus the first
+  `t.assert` facade
 - `hooks.ts`: durable hook registration records
 - `assert-bridge.ts`: shared failure-to-`FailMessage` helpers plus the first
   synchronous `node:assert` bridge primitives and trap-backed callback helpers

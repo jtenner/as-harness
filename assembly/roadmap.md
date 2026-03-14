@@ -24,8 +24,9 @@ Current package milestone:
   through `t.assert`
 - the first `node:test` declaration-registration slice is in place for
   `test(...)`, `suite(...)`, aliases/modifiers, and top-level hook
-  registration; runnable execution and `t.assert` integration remain follow-up
-  work
+  registration; declaration-time `t.test(...)`, hook aliases, and a partial
+  `t.assert` facade now exist, while runnable execution and the remaining
+  context APIs remain follow-up work
 
 | Name          | Kind           | URL starting point                                                              |
 | ------------- | -------------- | ------------------------------------------------------------------------------- |

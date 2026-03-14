@@ -1,4 +1,8 @@
-export { SuiteContext, TestContext } from "../internal/context";
+export {
+  AssertionFacade,
+  SuiteContext,
+  TestContext,
+} from "../internal/context";
 import { SuiteContext, TestContext } from "../internal/context";
 
 export type TestFn = (context: TestContext) => void;

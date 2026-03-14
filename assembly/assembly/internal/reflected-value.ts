@@ -388,9 +388,14 @@ export function createCircularReferenceReflectedValue(
   return reflected;
 }
 
-export function createUnsupportedReflectedValue(reference: usize = 0): ReflectedValue {
+export function createUnsupportedReflectedValue(
+  reference: usize = 0,
+  isManagedReference: bool = true,
+): ReflectedValue {
   const reflected = new ReflectedValue(ReflectedValueKind.Unsupported);
-  reflected.runtimeTypeId = getReflectedValueRuntimeTypeId(reference);
+  reflected.runtimeTypeId = isManagedReference
+    ? getReflectedValueRuntimeTypeId(reference)
+    : 0;
   return reflected;
 }
 
@@ -424,7 +429,7 @@ export function createClassReflectedValue<T>(value: T): ReflectedValue {
   const keyValuePairs = finishReflectedValueKeyValuePairCollection();
   if (!invokedHook) {
     popActiveReflectedValueReference();
-    return createUnsupportedReflectedValue(reference);
+    return createUnsupportedReflectedValue(reference, isManaged<T>());
   }
 
   const reflected = new ReflectedValue(ReflectedValueKind.ManagedClass);
@@ -510,7 +515,7 @@ export function createReflectedValue<T>(value: T): ReflectedValue {
     }
 
     if (isFunction<T>()) {
-      return createUnsupportedReflectedValue(reference);
+      return createUnsupportedReflectedValue(reference, isManaged<T>());
     }
 
     return createClassReflectedValue(value);

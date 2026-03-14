@@ -29,6 +29,13 @@ function declareNestedSuite(_context: SuiteContext): void {
   it.only("nested only", noopTest);
 }
 
+function declareViaContext(context: TestContext): void {
+  context.assert.equal<i32>(1, 1);
+  context.assert.deepEqual<i32>(2, 2);
+  context.beforeEach(noopHook);
+  context.test("context nested", noopTest);
+}
+
 function testNodeTestDeclarationRegistration(): void {
   const localRoot = new Node(NodeKind.Root, "local root");
   setCurrentNode(localRoot);
@@ -103,5 +110,28 @@ function testNodeTestAnonymousNames(): void {
   resetCurrentNode();
 }
 
+function testNodeTestContextMethods(): void {
+  const localRoot = new Node(NodeKind.Root, "local root");
+  setCurrentNode(localRoot);
+
+  test("context parent", declareViaContext);
+
+  const children = localRoot.getChildren();
+  assert(children.length == 1);
+
+  const parent = unchecked(children[0]);
+  const nestedChildren = parent.getChildren();
+  const hooks = parent.getHooks(HookKind.BeforeEach);
+  assert(hooks.length == 1);
+  assert(nestedChildren.length == 1);
+
+  const nested = unchecked(nestedChildren[0]);
+  assert(nested.kind == NodeKind.Test);
+  assert(nested.name == "context nested");
+
+  resetCurrentNode();
+}
+
 testNodeTestDeclarationRegistration();
 testNodeTestAnonymousNames();
+testNodeTestContextMethods();
