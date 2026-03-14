@@ -1,3 +1,5 @@
+export { invoke } from "./internal/trampoline";
+
 let nodeIndexScratch: StaticArray<u32> | null = null;
 
 /**

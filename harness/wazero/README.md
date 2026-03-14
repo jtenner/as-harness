@@ -10,6 +10,8 @@ The project currently proves out the Go-to-N-API build path:
 - a Go `main` package exports a JS-facing `createHarness(bytes)` factory
 - `createHarness` compiles the wasm with wazero immediately and stores the
   compiled module for later `run()` use
+- the host import module now includes `invoke_staged()`, which calls back into
+  the guest `invoke()` export and converts trap vs normal return into `0` or `1`
 - a tiny C shim registers the Node-API module
 - a local build script resolves the active Node installation headers and emits
   `dist/wazero.node`
@@ -29,6 +31,7 @@ type Harness = {
   onFailMessage(callback: (event: unknown) => void): void;
   onCallbackStart(callback: (event: unknown) => void): void;
   onCallbackPass(callback: (event: unknown) => void): void;
+  callI32(exportName: string): number;
   run(nodeIndex: Array<number>): boolean;
 };
 
@@ -38,6 +41,10 @@ declare function createHarness(
 ```
 
 `createHarness(...)` rejects invalid wasm before returning a harness.
+
+`callI32(exportName)` instantiates the compiled module, runs `__start`, calls a
+zero-argument `i32` guest export, and returns the `u32` result to JS. This is
+currently used by the smoke test to probe the staged-callback trampoline ABI.
 
 `run(nodeIndex)` instantiates the compiled module, calls the guest-side
 `allocateNodeIndexBuffer(length)` export, writes each `u32` from the provided
@@ -72,6 +79,10 @@ npm test
 
 - The build is intended to work on Linux, macOS, and Windows.
 - The output is a real `.node` binary produced by `go build -buildmode=c-shared`.
+- The host-managed trampoline is intentionally minimal: guest code stages a
+  single `() => void`, the host import `invoke_staged()` re-enters guest
+  `invoke()`, and wazero treats an inner `unreachable` as a trap that returns
+  `0` to the outer guest assertion logic.
 - `NODE_API_INCLUDE_DIR`, `NODE_API_LIB_FILE`, and `npm_config_nodedir` can be
   used to point the build at a specific Node headers install.
 - Set `AS_HARNESS_SKIP_NODE_LIB_DOWNLOAD=1` to disable the fallback `node.lib`

@@ -19,12 +19,15 @@ This package is still in early buildout.
 Implemented today:
 
 - a shared internal ABI import for `write_event`
+- a shared host-managed trampoline ABI import for `invoke_staged() -> i32`
 - internal event serialization helpers in `assembly/assembly/internal/events.ts`
 - an internal `Node` class with lazy child discovery in `assembly/assembly/internal/node.ts`
+- an internal staged-callback trampoline in `assembly/assembly/internal/trampoline.ts`
 - serializer-shape tests in `assembly/assembly/test/internal/events.ts`
 - `Node` metadata/discovery tests in `assembly/assembly/test/internal/node.ts`
 - a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint with a
   host-callable `allocateNodeIndexBuffer(length)` export for NodeIndex writes
+  plus the guest-side `invoke()` trampoline export
 - framework adapter folder skeletons for planned `--lib` entry points
 - a root-driven Bun test workflow that compiles and instantiates the AssemblyScript test entrypoint
 
@@ -56,9 +59,11 @@ Current files:
 - `events.ts`: event payload serialization and event-sender helpers
 - `node.ts`: structural node metadata, the global `rootNode` / `currentNode`,
   and lazy child discovery
+- `trampoline.ts`: the staged `() => void` trap-observation boundary used for
+  host-mediated `toThrow()`-style assertions without Wasm exceptions
 
 `assembly/assembly/exports.ts`
-: Wasm-export-oriented entrypoint for test modules that need explicit Wasm exports. It currently exposes `allocateNodeIndexBuffer(length)` so host runtimes can allocate guest memory for a `StaticArray<u32>` NodeIndex before future traversal calls exist.
+: Wasm-export-oriented entrypoint for test modules that need explicit Wasm exports. It currently exposes `allocateNodeIndexBuffer(length)` so host runtimes can allocate guest memory for a `StaticArray<u32>` NodeIndex before future traversal calls exist, and it re-exports the guest-side `invoke()` trampoline entrypoint used by the host-managed trap boundary.
 
 `assembly/assembly/test/`
 : Internal AssemblyScript test entrypoint and test modules.
@@ -67,6 +72,8 @@ Current files:
 
 - `index.ts`: barrel entrypoint for internal tests
 - `internal/events.ts`: tests for serializer output shape
+- `trampoline-smoke.ts`: a host-runtime smoke fixture that probes the staged
+  callback trampoline with both normal-return and `unreachable` paths
 
 `assembly/assembly/<framework>/`
 : Planned AssemblyScript `--lib` entry points for framework adapters.
@@ -98,6 +105,19 @@ The important boundary is:
 
 - Wasm side: declaration lowering, traversal mechanics, callback execution, hook execution, event emission, and minimal ABI surface
 - Host side: decoding, canonical graph state, scheduling, failure interpretation, aggregation, and reporting
+
+For trap observation specifically, the current design is intentionally narrow:
+
+- the guest stages exactly one `() => void` callback in
+  `assembly/assembly/internal/trampoline.ts`
+- the guest exports `invoke()`, which loads that staged callback and calls it
+- the host import `invoke_staged()` calls back into guest `invoke()` and
+  returns `0` when the inner call trapped or `1` when it returned normally
+- the guest-side helper `didCallbackTrap(callback)` interprets `0` as logical
+  "threw" for future `expect(fn).toThrow()` assertions
+
+This is a host-mediated trap boundary, not guest-side exception handling, and
+it assumes only one staged callback is active at a time.
 
 The AssemblyScript package is being organized around these internal module boundaries:
 

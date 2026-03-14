@@ -12,6 +12,7 @@ extern napi_value GoOnNodePass(napi_env env, napi_callback_info info);
 extern napi_value GoOnFailMessage(napi_env env, napi_callback_info info);
 extern napi_value GoOnCallbackStart(napi_env env, napi_callback_info info);
 extern napi_value GoOnCallbackPass(napi_env env, napi_callback_info info);
+extern napi_value GoCallI32(napi_env env, napi_callback_info info);
 extern napi_value GoRunHarness(napi_env env, napi_callback_info info);
 extern void GoFinalizeHarness(node_api_basic_env env, void* data, void* hint);
 */
@@ -23,12 +24,15 @@ import (
 	"unsafe"
 
 	"github.com/tetratelabs/wazero"
+	"github.com/tetratelabs/wazero/api"
 )
 
 const harnessIDProperty = "__asHarnessId"
 const allocateNodeIndexBufferExport = "allocateNodeIndexBuffer"
 const abortModuleName = "env"
 const writeEventModuleName = "as-harness"
+const invokeExport = "invoke"
+const invokeStagedImport = "invoke_staged"
 const uint32ByteLength = 4
 
 type callbackSlot int
@@ -148,6 +152,15 @@ func createInt64(env C.napi_env, value int64) C.napi_value {
 	return result
 }
 
+func createUint32(env C.napi_env, value uint32) C.napi_value {
+	var result C.napi_value
+	if !must(C.napi_create_uint32(env, C.uint32_t(value), &result), env, "failed to create uint32") {
+		return nil
+	}
+
+	return result
+}
+
 func getCallbackArguments(env C.napi_env, info C.napi_callback_info, argc C.size_t) ([]C.napi_value, C.napi_value, bool) {
 	if argc == 0 {
 		var thisArg C.napi_value
@@ -255,6 +268,39 @@ func bytesFromValue(env C.napi_env, value C.napi_value) ([]byte, bool) {
 	return nil, throwTypeError(env, "createHarness expects a Buffer, Uint8Array, or ArrayBuffer")
 }
 
+func stringFromValue(env C.napi_env, value C.napi_value) (string, bool) {
+	var valueType C.napi_valuetype
+	if !must(C.napi_typeof(env, value, &valueType), env, "failed to read string type") {
+		return "", false
+	}
+
+	if valueType != C.napi_string {
+		return "", false
+	}
+
+	var length C.size_t
+	if !must(C.napi_get_value_string_utf8(env, value, nil, 0, &length), env, "failed to read string length") {
+		return "", false
+	}
+
+	buffer := make([]byte, int(length)+1)
+	if !must(
+		C.napi_get_value_string_utf8(
+			env,
+			value,
+			(*C.char)(unsafe.Pointer(&buffer[0])),
+			C.size_t(len(buffer)),
+			&length,
+		),
+		env,
+		"failed to read string bytes",
+	) {
+		return "", false
+	}
+
+	return string(buffer[:int(length)]), true
+}
+
 func compileHarness(bytes []byte) (*harnessState, error) {
 	ctx := context.Background()
 	runtime := wazero.NewRuntime(ctx)
@@ -269,11 +315,26 @@ func compileHarness(bytes []byte) (*harnessState, error) {
 		return nil, err
 	}
 
-	_, err = runtime.NewHostModuleBuilder(writeEventModuleName).
-		NewFunctionBuilder().
+	writeEventBuilder := runtime.NewHostModuleBuilder(writeEventModuleName)
+	writeEventBuilder.NewFunctionBuilder().
 		WithFunc(func(context.Context, uint32, uint32, uint32) {}).
-		Export("write_event").
-		Instantiate(ctx)
+		Export("write_event")
+	writeEventBuilder.NewFunctionBuilder().
+		WithFunc(func(ctx context.Context, module api.Module) uint32 {
+			invoke := module.ExportedFunction(invokeExport)
+			if invoke == nil {
+				return 0
+			}
+
+			if _, err := invoke.Call(ctx); err != nil {
+				return 0
+			}
+
+			return 1
+		}).
+		Export(invokeStagedImport)
+
+	_, err = writeEventBuilder.Instantiate(ctx)
 	if err != nil {
 		_ = runtime.Close(ctx)
 		return nil, err
@@ -459,6 +520,9 @@ func createHarnessObject(env C.napi_env, id int64) C.napi_value {
 	if !setNamedProperty(env, harness, "onCallbackPass", createFunction(env, "onCallbackPass", (C.napi_callback)(C.GoOnCallbackPass))) {
 		return nil
 	}
+	if !setNamedProperty(env, harness, "callI32", createFunction(env, "callI32", (C.napi_callback)(C.GoCallI32))) {
+		return nil
+	}
 	if !setNamedProperty(env, harness, "run", createFunction(env, "run", (C.napi_callback)(C.GoRunHarness))) {
 		return nil
 	}
@@ -560,6 +624,30 @@ func runNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) 
 	return true
 }
 
+func callExportI32(ctx context.Context, state *harnessState, exportName string) (uint32, bool) {
+	module, err := state.runtime.InstantiateModule(
+		ctx,
+		state.compiled,
+		wazero.NewModuleConfig().WithName("").WithStartFunctions("__start"),
+	)
+	if err != nil {
+		return 0, false
+	}
+	defer module.Close(ctx)
+
+	exported := module.ExportedFunction(exportName)
+	if exported == nil {
+		return 0, false
+	}
+
+	results, err := exported.Call(ctx)
+	if err != nil || len(results) != 1 {
+		return 0, false
+	}
+
+	return uint32(results[0]), true
+}
+
 //export GoOnNodeFound
 func GoOnNodeFound(env C.napi_env, info C.napi_callback_info) C.napi_value {
 	return registerCallback(env, info, nodeFoundSlot)
@@ -588,6 +676,38 @@ func GoOnCallbackStart(env C.napi_env, info C.napi_callback_info) C.napi_value {
 //export GoOnCallbackPass
 func GoOnCallbackPass(env C.napi_env, info C.napi_callback_info) C.napi_value {
 	return registerCallback(env, info, callbackPassSlot)
+}
+
+//export GoCallI32
+func GoCallI32(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	args, thisArg, ok := getCallbackArguments(env, info, 1)
+	if !ok {
+		return nil
+	}
+
+	if len(args) < 1 {
+		throwTypeError(env, "expected an export name")
+		return nil
+	}
+
+	state, ok := requireHarness(env, thisArg)
+	if !ok {
+		return nil
+	}
+
+	exportName, ok := stringFromValue(env, args[0])
+	if !ok {
+		throwTypeError(env, "expected an export name")
+		return nil
+	}
+
+	result, ok := callExportI32(context.Background(), state, exportName)
+	if !ok {
+		throwError(env, "failed to call zero-argument i32 export")
+		return nil
+	}
+
+	return createUint32(env, result)
 }
 
 //export GoRunHarness

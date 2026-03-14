@@ -44,3 +44,15 @@ export declare function writeEvent(
   payloadPtr: usize,
   payloadLen: u32,
 ): void;
+
+/**
+ * Calls back into the guest-side exported trampoline and returns whether the
+ * inner guest invocation completed without trapping.
+ *
+ * Return values:
+ * - `0`: the inner guest call trapped
+ * - `1`: the inner guest call returned normally
+ */
+// @ts-ignore AssemblyScript external decorator
+@external("as-harness", "invoke_staged")
+export declare function invokeStaged(): i32;

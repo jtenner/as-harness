@@ -69,7 +69,7 @@ Scope: `assembly/` only. This checklist covers the Wasm-side runtime defined in 
 
 ## Assertion Bridge
 
-- [ ] Define the minimal assertion primitive the runtime exposes to assertion libraries.
+- [x] Define the minimal assertion primitive the runtime exposes to assertion libraries.
 - [ ] Implement `FailMessage` emission before intentional failure when a message exists.
 - [ ] Support message-less assertion failure paths.
 - [ ] Ensure assertion failures behave the same inside node callbacks and lifecycle callbacks.

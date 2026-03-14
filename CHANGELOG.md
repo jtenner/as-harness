@@ -2,6 +2,7 @@
 
 ## 2026-03-13
 
+- **assembly: add a host-managed trap trampoline for callback assertions** Add a staged `() => void` guest trampoline plus the `invoke_staged()` imported ABI, wire wazero to re-enter the guest through `invoke()` and map trap vs normal return into `0` or `1`, add smoke coverage for both paths, update the assembly checklist to mark the new minimal assertion primitive as defined, and document the boundary in the assembly and wazero READMEs. GitHub: *@jtenner*
 - **docs: inventory node:test and node:assert adapter surfaces** Expand `assembly/assembly/node:test/TODO.md` and `assembly/assembly/node:assert/TODO.md` with Node `v25.8.x` API inventories, required function and type breakdowns, and an implementation-oriented design for the first `node:test` adapter pass so the Wasm runtime work can proceed from a concrete surface definition. GitHub: *@jtenner*
 - **docs: require checklist updates before commit** Update `AGENTS.md` to require marking completed `agent-todo.md` items before commit when the corresponding work is actually done. GitHub: *@jtenner*
 - **docs: audit assembly task checklist against implemented runtime work** Update `agent-todo.md` to mark only the AssemblyScript checklist items that are explicitly completed in the current codebase, leaving the remaining tasks unchecked instead of auto-completing inferred work. GitHub: *@jtenner*
