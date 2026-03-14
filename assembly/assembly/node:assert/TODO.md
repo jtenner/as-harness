@@ -141,6 +141,7 @@ Documented instance fields:
 
 Shared primitive candidates for the Wasm assertion bridge:
 
+- callable/default `assert(value[, message])`
 - `ok`
 - `equal`
 - `strictEqual`
@@ -160,6 +161,8 @@ the current synchronous bridge slices:
 
 - matcher-aware `throws(fn[, error][, message])`
 - matcher-aware `doesNotThrow(fn[, error][, message])`
+- `match`
+- `doesNotMatch`
 - `rejects`
 - `doesNotReject`
 - `partialDeepStrictEqual`
@@ -171,6 +174,7 @@ Practical first-pass split for this repo:
 - `node:assert`: expose the full exported names, but implement legacy-vs-strict differences only where meaningful for the adapter
 - `node:assert/strict`: same exported names, with `equal`/`deepEqual`/`notEqual`/`notDeepEqual` lowered as strict variants
 - keep `assert.strict` as the namespace alias for the strict entry point
+- keep the callable/default export as an alias of `assert.ok(value[, message])`
 - keep adapter code thin and push message emission and unreachable-failure behavior into the shared bridge
 - first shared structural-equality consumer: `deepStrictEqual`
 - keep legacy `deepEqual` out of the first bridge wave until its loose semantics are designed explicitly

@@ -1,7 +1,9 @@
+export { default } from "./node:assert/shared";
 export {
   deepStrictEqual,
   doesNotThrow,
   fail,
+  ifError,
   notDeepStrictEqual,
   notStrictEqual,
   ok,

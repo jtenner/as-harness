@@ -1,8 +1,10 @@
+export { default } from "./shared";
 export {
   deepStrictEqual,
   deepStrictEqual as deepEqual,
   doesNotThrow,
   fail,
+  ifError,
   notDeepStrictEqual,
   notDeepStrictEqual as notDeepEqual,
   notStrictEqual,

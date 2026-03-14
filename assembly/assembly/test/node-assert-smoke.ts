@@ -1,7 +1,9 @@
+import assert from "../node:assert";
 import {
   deepStrictEqual,
   doesNotThrow,
   fail,
+  ifError,
   notDeepStrictEqual,
   notStrictEqual,
   ok,
@@ -12,6 +14,10 @@ export { invoke } from "../internal/trampoline";
 
 export function runDeepStrictEqualPass(): void {
   deepStrictEqual<i32>(11, 11);
+}
+
+export function runDefaultAssertPass(): void {
+  assert("alpha");
 }
 
 export function runOkPass(): void {
@@ -46,12 +52,20 @@ export function runDoesNotThrowPass(): void {
   doesNotThrow((): void => {});
 }
 
+export function runIfErrorPass(): void {
+  ifError<string | null>(null);
+}
+
 export function runDeepStrictEqualFailWithMessage(): void {
   deepStrictEqual<i32>(11, 12, "deepStrictEqual mismatch");
 }
 
 export function runDeepStrictEqualFailWithoutMessage(): void {
   deepStrictEqual<i32>(11, 12);
+}
+
+export function runDefaultAssertFailWithMessage(): void {
+  assert("", "assert mismatch");
 }
 
 export function runOkFailWithMessage(): void {
@@ -81,6 +95,10 @@ export function runDoesNotThrowFailWithMessage(): void {
     },
     "doesNotThrow mismatch",
   );
+}
+
+export function runIfErrorFailWithoutMessage(): void {
+  ifError<string>("boom");
 }
 
 export function runFailWithMessage(): void {

@@ -64,6 +64,14 @@ function isTruthyAssertionValue<T>(value: T): bool {
   return value != 0;
 }
 
+function isNullishAssertionValue<T>(value: T): bool {
+  if (!isReference<T>()) {
+    return false;
+  }
+
+  return changetype<usize>(value) == 0;
+}
+
 export function failAssertion(message: string | null = null): void {
   if (message !== null) {
     failMessage(message);
@@ -86,6 +94,10 @@ export function assertTruthy<T>(
   message: string | null = null,
 ): void {
   assertCondition(isTruthyAssertionValue(value), message);
+}
+
+export function assertIfError<T>(value: T): void {
+  assertCondition(isNullishAssertionValue(value));
 }
 
 export function isDeepStrictlyEqual<T>(actual: T, expected: T): bool {

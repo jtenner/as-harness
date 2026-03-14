@@ -1,6 +1,7 @@
 import {
   assertDeepStrictEqual,
   assertDoesNotThrow,
+  assertIfError,
   assertNotDeepStrictEqual,
   assertNotStrictEqual,
   assertStrictEqual,
@@ -10,12 +11,19 @@ import {
 } from "../internal/assert-bridge";
 import { TrapCallback } from "../internal/trampoline";
 
+export default function assert<T>(
+  value: T,
+  message: string | null = null,
+): void {
+  assertTruthy(value, message);
+}
+
 export function fail(message: string | null = null): void {
   failAssertion(message);
 }
 
 export function ok<T>(value: T, message: string | null = null): void {
-  assertTruthy(value, message);
+  assert(value, message);
 }
 
 export function deepStrictEqual<T>(
@@ -62,4 +70,8 @@ export function doesNotThrow(
   message: string | null = null,
 ): void {
   assertDoesNotThrow(callback, message);
+}
+
+export function ifError<T>(value: T): void {
+  assertIfError(value);
 }

@@ -13,11 +13,15 @@ type SmokeModule = {
   runDeepStrictEqualPass(): void;
   runDeepStrictEqualFailWithMessage(): void;
   runDeepStrictEqualFailWithoutMessage(): void;
+  runDefaultAssertPass?(): void;
+  runDefaultAssertFailWithMessage?(): void;
   runThrowsPass?(): void;
   runThrowsPassWithInnerFailMessage?(): void;
   runDoesNotThrowPass?(): void;
   runThrowsFailWithMessage?(): void;
   runDoesNotThrowFailWithMessage?(): void;
+  runIfErrorPass?(): void;
+  runIfErrorFailWithoutMessage?(): void;
   runStrictEqualPass?(): void;
   runStrictEqualFailWithMessage?(): void;
   runNotStrictEqualPass?(): void;
@@ -178,6 +182,17 @@ async function verifySmokeModule(relativePath: string): Promise<void> {
     null,
     events,
   );
+  if (typeof exports.runDefaultAssertPass == "function") {
+    expectNamedPass(exports, "runDefaultAssertPass", events);
+  }
+  if (typeof exports.runDefaultAssertFailWithMessage == "function") {
+    expectNamedFailure(
+      exports,
+      "runDefaultAssertFailWithMessage",
+      "assert mismatch",
+      events,
+    );
+  }
   if (typeof exports.runThrowsPass == "function") {
     expectNamedPass(exports, "runThrowsPass", events);
   }
@@ -192,6 +207,9 @@ async function verifySmokeModule(relativePath: string): Promise<void> {
   if (typeof exports.runDoesNotThrowPass == "function") {
     expectNamedPass(exports, "runDoesNotThrowPass", events);
   }
+  if (typeof exports.runIfErrorPass == "function") {
+    expectNamedPass(exports, "runIfErrorPass", events);
+  }
   if (typeof exports.runThrowsFailWithMessage == "function") {
     expectNamedFailure(exports, "runThrowsFailWithMessage", "throws mismatch", events);
   }
@@ -202,6 +220,9 @@ async function verifySmokeModule(relativePath: string): Promise<void> {
       "doesNotThrow mismatch",
       events,
     );
+  }
+  if (typeof exports.runIfErrorFailWithoutMessage == "function") {
+    expectNamedFailure(exports, "runIfErrorFailWithoutMessage", null, events);
   }
 
   if (typeof exports.runStrictEqualPass == "function") {

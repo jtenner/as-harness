@@ -27,10 +27,11 @@ Implemented today:
 - serializer-shape tests in `assembly/assembly/test/internal/events.ts`
 - `Node` metadata/discovery tests in `assembly/assembly/test/internal/node.ts`
 - `node:assert` and `node:assert/strict` bridge entry points for `ok(...)`,
-  `fail(...)`, `strictEqual(...)`, `notStrictEqual(...)`,
-  `deepStrictEqual(...)`, `notDeepStrictEqual(...)`, `throws(...)`, and
-  `doesNotThrow(...)`, plus strict-mode aliases for `equal(...)`,
-  `notEqual(...)`, `deepEqual(...)`, and `notDeepEqual(...)`
+  callable/default `assert(...)`, `fail(...)`, `ifError(...)`,
+  `strictEqual(...)`, `notStrictEqual(...)`, `deepStrictEqual(...)`,
+  `notDeepStrictEqual(...)`, `throws(...)`, and `doesNotThrow(...)`, plus
+  strict-mode aliases for `equal(...)`, `notEqual(...)`, `deepEqual(...)`,
+  and `notDeepEqual(...)`
 - a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint with a
   host-callable `allocateNodeIndexBuffer(length)` export for NodeIndex writes
   plus the guest-side `invoke()` trampoline export
