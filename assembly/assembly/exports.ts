@@ -1,4 +1,5 @@
 export { invoke } from "./internal/trampoline";
+import { runNodeByIndex } from "./internal/traversal";
 
 let nodeIndexScratch: StaticArray<u32> | null = null;
 
@@ -9,4 +10,21 @@ let nodeIndexScratch: StaticArray<u32> | null = null;
 export function allocateNodeIndexBuffer(length: u32): usize {
   nodeIndexScratch = new StaticArray<u32>(length);
   return changetype<usize>(nodeIndexScratch);
+}
+
+/**
+ * Resolves the currently staged `NodeIndex` against the shared root tree and
+ * runs the targeted node when it exists.
+ *
+ * Return values:
+ * - `0`: no staged `NodeIndex` exists or the target node does not exist
+ * - `1`: the target node was found and completed without trapping
+ */
+export function run(): i32 {
+  if (nodeIndexScratch === null) {
+    return 0;
+  }
+
+  const nodeIndex = changetype<StaticArray<u32>>(nodeIndexScratch);
+  return runNodeByIndex(nodeIndex) ? 1 : 0;
 }

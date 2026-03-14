@@ -202,7 +202,7 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 ## ABI Boundary
 
 - [ ] Define exports for root discovery.
-- [ ] Define exports for targeted traversal.
+- [x] Define exports for targeted traversal.
 - [ ] Decide whether scheduler-step entrypoints are required now or deferred.
 - [x] Define the imported host functions needed for event transport and runtime services.
 - [ ] Keep the ABI simple, flat, and language-agnostic.

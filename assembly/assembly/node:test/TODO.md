@@ -31,11 +31,15 @@ executor for normal nodes. The currently implemented surface is:
 - a first internal executor that emits `NodeStart` / `NodePass`, runs normal
   node callbacks, and executes `beforeAll` / `beforeEach` in root-to-leaf
   order plus `afterEach` / `afterAll` in leaf-to-root order
+- a first targeted `NodeIndex` lookup and `run()` export path that resolves a
+  concrete node from the shared root tree and executes it through the internal
+  executor
 
 This is now beyond a declaration-only pass, but it is still an internal
 runtime slice rather than a complete `node:test` runner. Targeted traversal,
-`NodeFound` discovery, diagnostics, failure propagation, assertion-call
-accounting, and the remaining deferred `t.assert` APIs remain open work.
+`NodeFound` discovery, diagnostics, failure propagation, replay validation,
+assertion-call accounting, and the remaining deferred `t.assert` APIs remain
+open work.
 
 ## Current Explicit Non-Goal
 

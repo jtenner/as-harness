@@ -12,6 +12,8 @@ The project currently proves out the Go-to-N-API build path:
   compiled module for later `run()` use
 - the host import module now includes `invoke_staged()`, which calls back into
   the guest `invoke()` export and converts trap vs normal return into `0` or `1`
+- `run(nodeIndex)` now calls the guest-side `run()` export after staging the
+  requested `NodeIndex`, so the host can execute a concrete target path
 - a tiny C shim registers the Node-API module
 - a local build script resolves the active Node installation headers and emits
   `dist/wazero.node`
@@ -48,10 +50,12 @@ currently used by the smoke test to probe the staged-callback trampoline ABI.
 
 `run(nodeIndex)` instantiates the compiled module, calls the guest-side
 `allocateNodeIndexBuffer(length)` export, writes each `u32` from the provided
-NodeIndex into guest memory, and returns `true` on success or `false` on
-failure.
+NodeIndex into guest memory, calls the guest-side `run()` export, and returns
+`true` when that export returns `1` or `false` on trap, missing export, or a
+missing target path.
 
-The actual traversal/navigation step is still a TODO after the NodeIndex copy.
+This is still only a first targeted-run slice, not the full traversal host
+bridge. Discovery, `NodeFound`, and structural replay validation remain TODOs.
 
 ## Commands
 

@@ -9,6 +9,7 @@ const addon = require("../dist/wazero.node");
 const repoDir = path.resolve(__dirname, "..", "..", "..");
 const assemblyDir = path.join(repoDir, "assembly");
 const compiledFixturePath = path.join(repoDir, "harness", "wazero", ".cache", "exports-smoke.wasm");
+const compiledNodeTestPath = path.join(repoDir, "harness", "wazero", ".cache", "node-test-smoke.wasm");
 const compiledTrampolinePath = path.join(repoDir, "harness", "wazero", ".cache", "trampoline-smoke.wasm");
 
 mkdirSync(path.dirname(compiledFixturePath), { recursive: true });
@@ -30,6 +31,26 @@ execFileSync(
 );
 
 const compiledExportsWasm = readFileSync(compiledFixturePath);
+
+mkdirSync(path.dirname(compiledNodeTestPath), { recursive: true });
+execFileSync(
+	"npx",
+	[
+		"asc",
+		"assembly/test/node-test-smoke.ts",
+		"--debug",
+		"--exportStart",
+		"__start",
+		"--outFile",
+		compiledNodeTestPath,
+	],
+	{
+		cwd: assemblyDir,
+		stdio: "inherit",
+	},
+);
+
+const compiledNodeTestWasm = readFileSync(compiledNodeTestPath);
 
 mkdirSync(path.dirname(compiledTrampolinePath), { recursive: true });
 execFileSync(
@@ -70,8 +91,16 @@ test("creates a harness with per-event registration methods", () => {
 	harness.onFailMessage(() => {});
 	harness.onCallbackStart(() => {});
 	harness.onCallbackPass(() => {});
-	assert.equal(harness.run([3, 5, 8]), true);
+	assert.equal(harness.run([]), true);
 	assert.equal(harness.run("bad"), false);
+});
+
+test("run(nodeIndex) executes the targeted node:test path", () => {
+	const harness = addon.createHarness(compiledNodeTestWasm);
+
+	assert.equal(harness.run([0]), true);
+	assert.equal(harness.run([1]), false);
+	assert.equal(harness.run([2]), false);
 });
 
 test("observes trap status through the host-managed trampoline", () => {

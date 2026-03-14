@@ -29,6 +29,7 @@ import (
 
 const harnessIDProperty = "__asHarnessId"
 const allocateNodeIndexBufferExport = "allocateNodeIndexBuffer"
+const runExport = "run"
 const abortModuleName = "env"
 const writeEventModuleName = "as-harness"
 const invokeExport = "invoke"
@@ -619,9 +620,17 @@ func runNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) 
 		}
 	}
 
-	// TODO: Call into the AssemblyScript traversal/runtime entrypoint for the
-	// provided NodeIndex once the guest-side navigation ABI exists.
-	return true
+	run := module.ExportedFunction(runExport)
+	if run == nil {
+		return false
+	}
+
+	runResults, err := run.Call(ctx)
+	if err != nil || len(runResults) != 1 {
+		return false
+	}
+
+	return runResults[0] == 1
 }
 
 func callExportI32(ctx context.Context, state *harnessState, exportName string) (uint32, bool) {

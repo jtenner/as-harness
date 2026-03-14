@@ -6,3 +6,4 @@ import "./internal/node";
 import "./internal/node-test";
 import "./internal/reflected-value";
 import "./internal/strict-equality";
+import "./internal/traversal";
