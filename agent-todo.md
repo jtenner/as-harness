@@ -152,6 +152,10 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 
 ## Traversal and Replay
 
+Note: after the current `node:test` closeout, the remaining unchecked items in
+this section are deferred unless the project explicitly resumes fuller
+host-runner work.
+
 - [ ] Define the targeted traversal input contract for replaying toward a requested node path.
 - [x] Implement replay starting from roots and re-entering ancestors as needed.
 - [x] Rediscover nodes in deterministic order on every replay attempt.

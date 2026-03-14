@@ -60,7 +60,12 @@ This is now beyond a declaration-only pass, but it is still an internal
 runtime slice rather than a complete `node:test` runner. Targeted traversal,
 full-depth `NodeFound` discovery, failure propagation, replay validation past
 simple missing-target behavior, and the remaining deferred `t.assert` APIs
-remain open work.
+remain deferred follow-up work.
+
+For the current AssemblyScript package scope, the internal synchronous
+declaration/discovery/execution core above is the intended stopping point. The
+remaining documented surface below should be treated as deferred unless the
+project explicitly resumes full host-runner work for `node:test`.
 
 ## Current Explicit Non-Goal
 
@@ -79,6 +84,19 @@ helpers coherently, this adapter should treat the following as unsupported:
 - `t.assert.rejects(...)` and `t.assert.doesNotReject(...)`
 - `t.waitFor(condition[, options])`
 - any Promise-dependent helper layered on top of those APIs
+
+The current scope also explicitly defers:
+
+- deeper host-driven replay validation beyond the current root-to-target
+  replay path and immediate-child discovery contract
+- `todo` self-outcome suppression and richer callback/hook failure semantics
+- programmatic runner APIs such as `run([options])`, `TestsStream`, and the
+  related event stream surface
+- snapshot APIs, including `snapshot.setDefaultSnapshotSerializers(...)` and
+  `snapshot.setResolveSnapshotPath(...)`
+- `assert.register(name, fn)`
+- worker-oriented runtime metadata and execution controls such as real
+  `workerId`, timeout enforcement, concurrency scheduling, and abort signals
 
 ## Investigated Surface
 

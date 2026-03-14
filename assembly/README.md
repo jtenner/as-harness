@@ -84,7 +84,11 @@ Not implemented yet:
 - the remaining `node:assert` surface is intentionally deferred for now where
   it depends on loose deep equality, regex support, richer matcher-aware throw
   handling, or object-model APIs such as `Assert` and `AssertionError`
-- host-facing ABI exports for traversal/discovery
+- the remaining `node:test` surface is intentionally deferred for now where it
+  depends on deeper host-driven replay validation, todo self-outcome
+  suppression, richer callback/hook failure semantics, programmatic runner
+  streams, snapshots, `assert.register(...)`, or worker-style execution
+  controls
 
 For the current scope, standalone `node:assert` work is otherwise complete, and
 `node:test` now has declaration registration, declaration-time contexts, a
@@ -94,10 +98,10 @@ internal executor for normal callback and hook execution, including first
 execution-scoped `attempt` / `passed` metadata, first failure-message-backed
 `error` state, callback-scoped `t.runOnly(...)` for nested subtests, root-to-
 target replay through ancestor callbacks, and first immediate-scope `only`
-filtering during discovery and execution. The next work there is deeper
-traversal/discovery, richer replay validation, failure propagation, and the
-remaining execution-oriented context APIs such as richer host-facing error
-state.
+filtering during discovery and execution. For the current package scope, that
+internal synchronous `node:test` core is considered complete; the remaining
+runner- and host-oriented `node:test` work is explicitly deferred unless the
+project reopens full `node:test` host orchestration later.
 
 ## Package Layout
 

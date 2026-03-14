@@ -35,9 +35,11 @@ Current package milestone:
   discovery and execution, and host-observed diagnostic and plan-mismatch
   failure paths plus first execution-scoped `attempt` / `passed` metadata,
   first failure-message-backed `error` state, and callback-scoped
-  `t.runOnly(...)` handling for nested subtests; full discovery depth, richer
-  replay validation, and the remaining execution-oriented context APIs remain
-  follow-up work
+  `t.runOnly(...)` handling for nested subtests; for the current package
+  scope, that internal synchronous `node:test` core is considered complete,
+  while fuller runner semantics such as deeper replay validation, todo
+  suppression, richer callback/hook failure modeling, snapshots, programmatic
+  stream APIs, and worker-style execution controls are deferred
 
 | Name          | Kind           | URL starting point                                                              |
 | ------------- | -------------- | ------------------------------------------------------------------------------- |
