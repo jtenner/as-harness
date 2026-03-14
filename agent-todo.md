@@ -77,11 +77,11 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 
 ### Assembly Runtime Reflected Value Core
 
-- [ ] Add a shared AssemblyScript runtime module for reflected-value construction.
-- [ ] Define the reflected-value type model needed for assertion diagnostics.
-- [ ] Implement primitive reflected values.
-- [ ] Implement reflected values for strings.
-- [ ] Implement reflected values for `ArrayBuffer`.
+- [x] Add a shared AssemblyScript runtime module for reflected-value construction.
+- [x] Define the reflected-value type model needed for assertion diagnostics.
+- [x] Implement primitive reflected values.
+- [x] Implement reflected values for strings.
+- [x] Implement reflected values for `ArrayBuffer`.
 - [ ] Implement reflected values for arrays and arraylikes.
 - [ ] Implement reflected values for typed arrays / `ArrayBufferView`.
 - [ ] Implement reflected values for `Set`.

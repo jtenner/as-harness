@@ -404,6 +404,14 @@ The current runtime implementation now includes the first shared helpers for:
 - `ArrayBuffer` bytewise comparison
 - ordered comparison for `Array<T>` and `StaticArray<T>`
 - managed-class recursion delegated back into transform-generated hooks
+- a reflected-value model plus primitive, string, and `ArrayBuffer`
+  construction helpers
+- a live reflected key/value collector behind
+  `__asHarnessAddReflectedValueKeyValuePair(...)`
+
+Generic managed-class reflected-value construction is still pending. The
+generated reflection hook can now feed the shared collector, but the runtime
+does not yet build recursive managed-class reflected values automatically.
 
 ### Transform Activation Policy
 

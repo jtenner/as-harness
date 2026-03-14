@@ -1,5 +1,6 @@
 import { memory } from "memory";
 import { OBJECT, TOTAL_OVERHEAD } from "rt/common";
+import { addReflectedValueKeyValuePair } from "./reflected-value";
 
 /**
  * Tri-state result for one structural equality comparison step.
@@ -709,6 +710,8 @@ export function __asHarnessStrictEqualsManagedClassMember<T>(
 }
 
 export function __asHarnessAddReflectedValueKeyValuePair<T>(
-  _memberHash: string,
-  _value: T,
-): void {}
+  memberHash: string,
+  value: T,
+): void {
+  addReflectedValueKeyValuePair(memberHash, value);
+}

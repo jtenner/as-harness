@@ -35,5 +35,8 @@ Those generated methods are still scaffold-level at the runtime boundary. The
 shared AssemblyScript helpers now perform primitive, string, nullable,
 runtime-type, `ArrayBuffer`, typed-array / `ArrayBufferView`, ordered array /
 arraylike, direct `Set` / `Map`, function-reference identity, and managed-class
-recursive checks. Nested generic `Set` / `Map` dispatch outside dedicated
-member helpers is still pending.
+recursive checks. The reflected-value side now also has a live collector plus
+primitive, string, and `ArrayBuffer` construction helpers behind
+`__asHarnessAddReflectedValueKeyValuePair(...)`. Nested generic `Set` / `Map`
+dispatch and generic managed-class reflected-value construction are still
+pending.

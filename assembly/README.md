@@ -59,6 +59,8 @@ Current files:
 - `events.ts`: event payload serialization and event-sender helpers
 - `node.ts`: structural node metadata, the global `rootNode` / `currentNode`,
   and lazy child discovery
+- `reflected-value.ts`: the first reflected-diagnostics value model and
+  collector-backed construction helpers
 - `trampoline.ts`: the staged `() => void` trap-observation boundary used for
   host-mediated `toThrow()`-style assertions without Wasm exceptions
 
@@ -72,6 +74,8 @@ Current files:
 
 - `index.ts`: barrel entrypoint for internal tests
 - `internal/events.ts`: tests for serializer output shape
+- `internal/reflected-value.ts`: tests for the reflected-value runtime model
+  and collector helpers
 - `trampoline-smoke.ts`: a host-runtime smoke fixture that probes the staged
   callback trampoline with both normal-return and `unreachable` paths
 
@@ -140,9 +144,11 @@ helpers, `ArrayBuffer` bytewise comparison, ordered `Array<T>` /
 `StaticArray<T>` comparison, bytewise typed-array / `ArrayBufferView` /
 `DataView` comparison, dedicated generated-member helpers for `ArrayBuffer`,
 view-typed fields, `Set`, and `Map`, direct `Set` / `Map` comparison helpers,
-function-reference identity comparison, and managed-class recursion through
-generated hooks. Fully generic nested `Set` / `Map` dispatch plus the
-reflected-value runtime are still pending.
+function-reference identity comparison, managed-class recursion through
+generated hooks, and the first reflected-value runtime slice for primitive,
+string, and `ArrayBuffer` diagnostics plus the generated key/value collector.
+Fully generic nested `Set` / `Map` dispatch and recursive managed-class
+reflected-value construction are still pending.
 
 ## Event Model
 
