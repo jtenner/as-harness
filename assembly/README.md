@@ -48,6 +48,9 @@ Not implemented yet:
 - function mocking, spies, and call-tracking assertions such as
   `toBeCalled(...)` or `toHaveBeenCalledTimes(...)`; these stay unsupported
   until AssemblyScript has usable closure support
+- Promise-dependent assertion helpers such as `rejects(...)`,
+  `doesNotReject(...)`, `.resolves`, `.rejects`, or async polling helpers stay
+  unsupported until AssemblyScript has usable Promise support
 - host-facing ABI exports for traversal/discovery
 
 ## Package Layout

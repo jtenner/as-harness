@@ -9,6 +9,10 @@ Current explicit limitation:
   `toBeCalled(...)`, `toHaveBeenCalled(...)`, or `toHaveBeenCalledTimes(...)`
   are not planned until AssemblyScript has closure support that can model those
   APIs coherently
+- Promise-dependent assertion helpers and async polling APIs such as
+  `rejects(...)`, `doesNotReject(...)`, `.resolves`, `.rejects`, or
+  `waitFor(...)` are not planned until AssemblyScript has Promise support that
+  can model those APIs coherently
 
 | Name          | Kind           | URL starting point                                                              |
 | ------------- | -------------- | ------------------------------------------------------------------------------- |

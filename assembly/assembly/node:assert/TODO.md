@@ -7,6 +7,15 @@ Build the first assertion-library adapter pair under:
 - `assembly/assembly/node:assert`
 - `assembly/assembly/node:assert/strict`
 
+## Current Explicit Non-Goal
+
+Until AssemblyScript has Promise support strong enough to model async assertion
+helpers coherently, this adapter should treat the following as unsupported:
+
+- `assert.rejects(asyncFn[, error][, message])`
+- `assert.doesNotReject(asyncFn[, error][, message])`
+- any Promise-based matcher or wrapper shape layered above those APIs
+
 ## Investigated Surface
 
 Baseline used for this inventory:

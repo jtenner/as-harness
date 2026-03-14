@@ -10,6 +10,14 @@ unsupported:
 - `MockTracker`, `MockFunctionContext`, `MockPropertyContext`, `MockModuleContext`, and `MockTimers`
 - assertion surfaces that depend on function-call recording rather than direct value checks
 
+Until AssemblyScript also has Promise support strong enough to model async test
+helpers coherently, this adapter should treat the following as unsupported:
+
+- Promise-returning test or hook callbacks as a supported execution mode
+- `t.assert.rejects(...)` and `t.assert.doesNotReject(...)`
+- `t.waitFor(condition[, options])`
+- any Promise-dependent helper layered on top of those APIs
+
 ## Investigated Surface
 
 Baseline used for this inventory:
