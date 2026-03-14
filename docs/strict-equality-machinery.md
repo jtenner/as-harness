@@ -349,7 +349,10 @@ The current generated-body scaffold already performs inheritance delegation:
 - derived `__asHarnessAddReflectedValueKeyValuePairs(...)` methods call the
   generated `super` hook before subclass-local work
 - participating subclass members emit
-  `__asHarnessStrictEqualsMember("<member-hash>", this.<member>, changetype<Class>(other).<member>)`
+  `__asHarnessStrictEqualsMember(...)` helper calls for primitive, string,
+  nullable-reference-identity, and collection-placeholder members
+- participating managed-class subclass members emit
+  `__asHarnessStrictEqualsManagedClassMember("<member-hash>", this.<member>, changetype<Class>(other).<member>)`
   helper calls
 - participating subclass members emit
   `__asHarnessAddReflectedValueKeyValuePair("<member-hash>", this.<member>)`
@@ -361,10 +364,11 @@ of that contract:
 - runtime-type-id extraction for guarded class casts
 - primitive and string value comparison
 - nullable-reference identity comparison
+- managed-class recursion through transform-generated hooks
 
-The member-helper path still stops short of recursive managed-class and
-collection comparison, so pair-cache, active-stack, and deferred-match handling
-remain ahead in Phase 3.
+The member-helper path still stops short of collection-specialized comparison,
+but recursive managed-class comparison is now routed through the shared
+pair-cache, active-stack, and deferred-match machinery in Phase 3.
 
 The runtime-side responsibilities are:
 
@@ -386,6 +390,7 @@ The current runtime implementation now includes the first shared helpers for:
 - pair-cache tracking for already-proven reference pairs
 - active-stack tracking for in-flight reference pairs
 - deferred-match handling for recursive reference cycles
+- managed-class recursion delegated back into transform-generated hooks
 
 ### Transform Activation Policy
 
