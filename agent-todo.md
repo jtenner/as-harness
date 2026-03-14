@@ -164,9 +164,9 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 
 ## Node Execution
 
-- [ ] Implement runnable execution for `describe` and `test` callbacks.
-- [ ] Emit `NodeStart` before callback execution begins.
-- [ ] Emit `NodePass` only after successful callback completion.
+- [x] Implement runnable execution for `describe` and `test` callbacks.
+- [x] Emit `NodeStart` before callback execution begins.
+- [x] Emit `NodePass` only after successful callback completion.
 - [ ] Allow nested declarations during callback execution.
 - [ ] Preserve enough execution context to support parent-aware child discovery.
 - [ ] Honor `todo` by suppressing self-outcome significance without preventing descendant discovery.
@@ -175,10 +175,10 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 ## Hooks and Lifecycle
 
 - [x] Define lifecycle registration for `beforeAll`, `beforeEach`, `afterEach`, and `afterAll`.
-- [ ] Associate lifecycle callbacks with the correct structural scope.
-- [ ] Define the exact execution order for lifecycle callbacks relative to traversal and node execution.
-- [ ] Emit `CallbackStart` before each lifecycle callback runs.
-- [ ] Emit `CallbackPass` after successful lifecycle completion.
+- [x] Associate lifecycle callbacks with the correct structural scope.
+- [x] Define the exact execution order for lifecycle callbacks relative to traversal and node execution.
+- [x] Emit `CallbackStart` before each lifecycle callback runs.
+- [x] Emit `CallbackPass` after successful lifecycle completion.
 - [ ] Allow failure metadata emission from inside lifecycle callbacks.
 - [ ] Propagate unreachable conditions from lifecycle callbacks back to the host as callback failure.
 

@@ -26,8 +26,9 @@ Current package milestone:
   `test(...)`, `suite(...)`, aliases/modifiers, and top-level hook
   registration; declaration-time `t.test(...)`, hook aliases, metadata
   getters, `t.skip(...)` / `t.todo(...)`, and a partial `t.assert` facade now
-  exist, while runnable execution and the remaining execution-oriented context
-  APIs remain follow-up work
+  exist, and the shared runtime has a first internal executor for normal
+  callback and lifecycle-hook execution; targeted traversal/discovery and the
+  remaining execution-oriented context APIs remain follow-up work
 
 | Name          | Kind           | URL starting point                                                              |
 | ------------- | -------------- | ------------------------------------------------------------------------------- |

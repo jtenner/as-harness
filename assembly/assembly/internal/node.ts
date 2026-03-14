@@ -82,16 +82,7 @@ export class Node {
     }
 
     this.childrenResolved = true;
-    const previousNode = currentNode;
-    currentNode = this;
-    if (this.suiteCallbackValue !== null) {
-      this.suiteCallbackValue(sharedSuiteContext);
-    } else if (this.testCallbackValue !== null) {
-      this.testCallbackValue(sharedTestContext);
-    } else {
-      this.callback();
-    }
-    currentNode = previousNode;
+    this.invokeCallback();
 
     return this.childrenValue;
   }
@@ -122,6 +113,19 @@ export class Node {
 
   setDeclarationMode(mode: DeclarationMode): void {
     this.declarationModeValue = mode;
+  }
+
+  invokeCallback(): void {
+    const previousNode = currentNode;
+    currentNode = this;
+    if (this.suiteCallbackValue !== null) {
+      this.suiteCallbackValue(sharedSuiteContext);
+    } else if (this.testCallbackValue !== null) {
+      this.testCallbackValue(sharedTestContext);
+    } else {
+      this.callback();
+    }
+    currentNode = previousNode;
   }
 
   getNodeIndex(): StaticArray<u32> {

@@ -3,7 +3,8 @@
 ## Current Status
 
 The first declaration-registration slice now exists for the package-style
-`node:test` lib entry point. The currently implemented surface is:
+`node:test` lib entry point, and the shared runtime now has a first runnable
+executor for normal nodes. The currently implemented surface is:
 
 - top-level `test(...)`, `it(...)`, `suite(...)`, and `describe(...)`
 - declaration modifiers on those exports: `.skip(...)`, `.todo(...)`,
@@ -27,10 +28,14 @@ The first declaration-registration slice now exists for the package-style
 - declaration-time `SuiteContext` and `TestContext` types
 - shared node registration, modifier metadata, hook storage, and `NodeIndex`
   derivation in the internal runtime
+- a first internal executor that emits `NodeStart` / `NodePass`, runs normal
+  node callbacks, and executes `beforeAll` / `beforeEach` in root-to-leaf
+  order plus `afterEach` / `afterAll` in leaf-to-root order
 
-This is still a declaration-only pass. Runnable callback execution, lifecycle
-ordering, diagnostics, traversal events, assertion-call accounting, and the
-remaining deferred `t.assert` APIs remain open work.
+This is now beyond a declaration-only pass, but it is still an internal
+runtime slice rather than a complete `node:test` runner. Targeted traversal,
+`NodeFound` discovery, diagnostics, failure propagation, assertion-call
+accounting, and the remaining deferred `t.assert` APIs remain open work.
 
 ## Current Explicit Non-Goal
 

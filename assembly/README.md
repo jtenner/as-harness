@@ -43,6 +43,9 @@ Implemented today:
   hook-registration aliases, metadata getters, declaration-time `t.skip(...)` /
   `t.todo(...)`, and a partial `t.assert` facade bound onto the current
   synchronous `node:assert` bridge
+- a first internal `node:test` executor that runs normal node callbacks,
+  emits `NodeStart` / `NodePass`, and executes registered lifecycle hooks in
+  deterministic root-to-leaf / leaf-to-root order
 - a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint with a
   host-callable `allocateNodeIndexBuffer(length)` export for NodeIndex writes
   plus the guest-side `invoke()` trampoline export
@@ -52,8 +55,7 @@ Implemented today:
 Not implemented yet:
 
 - most framework adapter source code
-- runnable declaration execution/runtime traversal
-- hook execution ordering
+- targeted traversal and `NodeFound` discovery
 - assertion failure default messaging beyond optional explicit message text
 - function mocking, spies, and call-tracking assertions such as
   `toBeCalled(...)` or `toHaveBeenCalledTimes(...)`; these stay unsupported
@@ -67,10 +69,11 @@ Not implemented yet:
 - host-facing ABI exports for traversal/discovery
 
 For the current scope, standalone `node:assert` work is otherwise complete, and
-the first `node:test` declaration layer now exists with a partial `t.assert`
-facade. The next work there is runnable execution, lifecycle ordering, and the
-remaining execution-oriented context APIs such as diagnostics and
-assertion-call accounting for `t.plan(...)`.
+`node:test` now has declaration registration, declaration-time contexts, a
+partial `t.assert` facade, and a first internal executor for normal callback
+and hook execution. The next work there is targeted traversal/discovery,
+failure propagation, and the remaining execution-oriented context APIs such as
+diagnostics and assertion-call accounting for `t.plan(...)`.
 
 ## Package Layout
 
@@ -97,6 +100,8 @@ Current files:
   `node:test`
 - `context.ts`: declaration-time `SuiteContext` / `TestContext` plus the first
   `t.assert` facade, metadata getters, and declaration-mode mutation helpers
+- `executor.ts`: the first normal-node execution helper for callback and
+  lifecycle ordering plus `NodeStart` / `NodePass` and callback event emission
 - `hooks.ts`: durable hook registration records
 - `assert-bridge.ts`: shared failure-to-`FailMessage` helpers plus the first
   synchronous `node:assert` bridge primitives and trap-backed callback helpers
@@ -123,6 +128,8 @@ Current files:
 - `internal/events.ts`: tests for serializer output shape
 - `internal/assert-bridge.ts`: tests for the non-trapping assertion bridge
   helpers
+- `internal/executor.ts`: tests for normal node execution plus lifecycle
+  ordering
 - `internal/reflected-value.ts`: tests for the reflected-value runtime model
   and collector helpers
 - `trampoline-smoke.ts`: a host-runtime smoke fixture that probes the staged
