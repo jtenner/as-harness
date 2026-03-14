@@ -1,18 +1,27 @@
 import { expect, test } from "bun:test";
-import { NodeKind, Parser } from "assemblyscript/dist/assemblyscript.js";
+import { NodeKind, Parser, Token } from "assemblyscript/dist/assemblyscript.js";
 import type {
+	BlockStatement,
+	CallExpression,
 	ClassDeclaration,
+	ExpressionStatement,
 	FunctionTypeNode,
+	IfStatement,
 	MethodDeclaration,
 	NamedTypeNode,
 	NamespaceDeclaration,
+	PropertyAccessExpression,
 	Statement,
+	SuperExpression,
+	UnaryPrefixExpression,
 } from "assemblyscript/dist/assemblyscript.js";
 import {
 	ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
 	STRICT_EQUALS_METHOD_NAME,
 } from "../src/contracts.js";
+import { createParticipatingMemberHash } from "../src/hash.js";
 import StrictEqualityTransform from "../src/index.js";
+import { getParticipatingInstanceMembers } from "../src/memberSelection.js";
 
 function parseSource(sourceText: string) {
 	const parser = new Parser();
@@ -81,6 +90,19 @@ function findMethod(
 function getReturnTypeName(methodDeclaration: MethodDeclaration): string {
 	const signature = methodDeclaration.signature as FunctionTypeNode;
 	return (signature.returnType as NamedTypeNode).name.identifier.text;
+}
+
+function getMethodBodyStatements(
+	methodDeclaration: MethodDeclaration,
+): readonly Statement[] {
+	const body = methodDeclaration.body as BlockStatement | null;
+	if (!body) {
+		throw new Error(
+			`Method ${methodDeclaration.name.text} does not have a body`,
+		);
+	}
+
+	return body.statements;
 }
 
 test("injects both strict-equality hooks into top-level classes", () => {
@@ -185,4 +207,178 @@ test("injects the current placeholder method signatures", () => {
 	expect(getReturnTypeName(strictEqualsMethod)).toBe("bool");
 	expect(reflectedMethod.signature.parameters).toHaveLength(0);
 	expect(getReturnTypeName(reflectedMethod)).toBe("void");
+});
+
+test("selects instance fields and getters while excluding static members and non-getter methods", () => {
+	const parser = parseSource(`
+class Example {
+  count: i32;
+  readonly label: string = "ready";
+  static skippedCount: i32;
+
+  get size(): i32 {
+    return this.count;
+  }
+
+  set size(value: i32) {
+    this.count = value;
+  }
+
+  helper(): i32 {
+    return this.count;
+  }
+
+  static helperStatic(): i32 {
+    return 0;
+  }
+}
+`);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Example",
+	);
+	const participatingMembers =
+		getParticipatingInstanceMembers(classDeclaration);
+
+	expect(participatingMembers.map((member) => member.name)).toEqual([
+		"count",
+		"label",
+		"size",
+	]);
+	expect(participatingMembers.map((member) => member.kind)).toEqual([
+		"field",
+		"field",
+		"getter",
+	]);
+	expect(participatingMembers.map((member) => member.hash)).toEqual([
+		createParticipatingMemberHash("field", "count"),
+		createParticipatingMemberHash("field", "label"),
+		createParticipatingMemberHash("getter", "size"),
+	]);
+});
+
+test("injects hooks into generic classes without dropping the class generic context", () => {
+	const parser = parseSource(`
+class Box<T> {
+  value: T;
+}
+`);
+
+	new StrictEqualityTransform().afterParse(parser);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Box",
+	);
+	const strictEqualsMethod = findMethod(
+		classDeclaration,
+		STRICT_EQUALS_METHOD_NAME,
+	);
+	const reflectedMethod = findMethod(
+		classDeclaration,
+		ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
+	);
+
+	expect(
+		classDeclaration.typeParameters?.map((parameter) => parameter.name.text),
+	).toEqual(["T"]);
+	expect(strictEqualsMethod.name.text).toBe(STRICT_EQUALS_METHOD_NAME);
+	expect(reflectedMethod.name.text).toBe(
+		ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
+	);
+});
+
+test("keeps participating-member selection scoped to each class across inheritance", () => {
+	const parser = parseSource(`
+class Base {
+  baseField: i32;
+
+  get shared(): i32 {
+    return this.baseField;
+  }
+}
+
+class Derived extends Base {
+  derivedField: i32;
+
+  get shared(): i32 {
+    return this.derivedField;
+  }
+}
+`);
+
+	const statements = getParsedStatements(parser);
+	const baseClass = findTopLevelClass(statements, "Base");
+	const derivedClass = findTopLevelClass(statements, "Derived");
+	const baseMembers = getParticipatingInstanceMembers(baseClass);
+	const derivedMembers = getParticipatingInstanceMembers(derivedClass);
+
+	expect(baseMembers.map((member) => member.hash)).toEqual([
+		createParticipatingMemberHash("field", "baseField"),
+		createParticipatingMemberHash("getter", "shared"),
+	]);
+	expect(derivedMembers.map((member) => member.hash)).toEqual([
+		createParticipatingMemberHash("field", "derivedField"),
+		createParticipatingMemberHash("getter", "shared"),
+	]);
+});
+
+test("delegates into super from generated strict-equality hooks on derived classes", () => {
+	const parser = parseSource(`
+class Base {}
+class Derived extends Base {}
+`);
+
+	new StrictEqualityTransform().afterParse(parser);
+
+	const derivedClass = findTopLevelClass(
+		getParsedStatements(parser),
+		"Derived",
+	);
+	const strictEqualsMethod = findMethod(
+		derivedClass,
+		STRICT_EQUALS_METHOD_NAME,
+	);
+	const [firstStatement] = getMethodBodyStatements(strictEqualsMethod);
+	const superCheckStatement = firstStatement as IfStatement;
+	const condition = superCheckStatement.condition as UnaryPrefixExpression;
+	const superCall = condition.operand as CallExpression;
+	const superAccess = superCall.expression as PropertyAccessExpression;
+
+	expect(superCheckStatement.kind).toBe(NodeKind.If);
+	expect(condition.operator).toBe(Token.Exclamation);
+	expect((superAccess.expression as SuperExpression).kind).toBe(NodeKind.Super);
+	expect(superAccess.property.text).toBe(STRICT_EQUALS_METHOD_NAME);
+	expect(superCall.args).toHaveLength(1);
+	expect(superCall.args[0]?.kind).toBe(NodeKind.Identifier);
+});
+
+test("delegates into super from generated reflection hooks on derived classes", () => {
+	const parser = parseSource(`
+class Base {}
+class Derived extends Base {}
+`);
+
+	new StrictEqualityTransform().afterParse(parser);
+
+	const derivedClass = findTopLevelClass(
+		getParsedStatements(parser),
+		"Derived",
+	);
+	const reflectedMethod = findMethod(
+		derivedClass,
+		ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
+	);
+	const [firstStatement] = getMethodBodyStatements(reflectedMethod);
+	const expressionStatement = firstStatement as ExpressionStatement;
+	const superCall = expressionStatement.expression as CallExpression;
+	const superAccess = superCall.expression as PropertyAccessExpression;
+
+	expect(expressionStatement.kind).toBe(NodeKind.Expression);
+	expect((superAccess.expression as SuperExpression).kind).toBe(NodeKind.Super);
+	expect(superAccess.property.text).toBe(
+		ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
+	);
+	expect(superCall.args).toHaveLength(0);
 });

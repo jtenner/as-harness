@@ -2,6 +2,7 @@
 
 ## 2026-03-14
 
+- **strict-equality: add member selection and inherited hook bodies** Add transform-side participating-member selection for instance fields and getters, define the first member-hash representation for inherited-member suppression work, extend the generated hook scaffolds so derived classes delegate into `super`, add direct CLI compiler-wrapper tests for strict-equality transform auto-enablement, expand transform fixtures for fields, getters, generics, and inheritance, and update the planning docs and checklist. GitHub: *@jtenner*
 - **strict-equality: add first contract and transform implementation pass** Define the strict-equality Phase 1 contracts in the design docs, add the initial AssemblyScript strict-equality runtime contract scaffold and tests, auto-enable the bundled transform for `node:assert` library builds, implement the first real class-instrumenting transform pass with namespace recursion and placeholder hook injection, add transform fixture coverage, and update the relevant README and checklist files. GitHub: *@jtenner*
 
 ## 2026-03-13

@@ -21,6 +21,10 @@ The current implementation now performs the first transform pass:
 - it recurses through nested namespaces
 - it injects placeholder instance methods named
   `__asHarnessStrictEquals` and `__asHarnessAddReflectedValueKeyValuePairs`
+- it selects participating instance members from class fields and getters while
+  excluding static members, setters, constructors, and regular methods
+- it emits inheritance-aware placeholder bodies that delegate into `super` when
+  a class extends a base class
 
 Those generated methods are still contract scaffolds. They establish the
 instrumentation path and method signatures before field/getter enumeration and

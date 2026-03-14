@@ -40,12 +40,12 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [x] Identify every AssemblyScript `ClassDeclaration` that requires strict-equality instrumentation.
 - [x] Inject a generated instance method for structural comparison on instrumented classes.
 - [x] Define the generated method signature and parameter contract for the structural comparison hook.
-- [ ] Enumerate instance fields that should participate in structural comparison.
-- [ ] Enumerate instance getters that should participate in structural comparison.
-- [ ] Decide whether methods, static members, and computed members are excluded from generated comparison hooks.
+- [x] Enumerate instance fields that should participate in structural comparison.
+- [x] Enumerate instance getters that should participate in structural comparison.
+- [x] Decide whether methods, static members, and computed members are excluded from generated comparison hooks.
 - [ ] Handle generic classes without losing generic context in generated methods.
 - [ ] Handle inheritance by delegating into `super` without double-comparing overridden members.
-- [ ] Decide how property-identity hashing or equivalent ignore-listing will be represented in generated code.
+- [x] Decide how property-identity hashing or equivalent ignore-listing will be represented in generated code.
 
 ### Reflected Diagnostics Instrumentation
 
@@ -95,7 +95,7 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 
 ### Compiler Wrapper Integration
 
-- [ ] Extend the compiler wrapper to register the new transform when compiling harness-aware AssemblyScript modules.
+- [x] Extend the compiler wrapper to register the new transform when compiling harness-aware AssemblyScript modules.
 - [ ] Ensure bundled virtual AssemblyScript sources can reference the transform-generated runtime hooks safely.
 - [x] Decide whether transform enablement is always-on for harness builds or gated by adapter selection.
 - [ ] Add debug output or inspection hooks so generated methods can be audited during development.
@@ -104,8 +104,8 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 
 - [x] Add transform-level fixtures that prove classes receive generated comparison hooks.
 - [x] Add transform-level fixtures that prove classes receive generated reflected-value hooks.
-- [ ] Add fixtures for inherited fields and overridden getters.
-- [ ] Add fixtures for generic classes.
+- [x] Add fixtures for inherited fields and overridden getters.
+- [x] Add fixtures for generic classes.
 - [ ] Add runtime equality fixtures for primitives, nullability, arrays, typed arrays, maps, sets, and classes.
 - [ ] Add cycle fixtures that prove recursive graphs terminate cleanly.
 - [ ] Add diagnostics fixtures that prove reflected class key/value extraction matches the generated member list.

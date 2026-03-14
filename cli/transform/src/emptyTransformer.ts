@@ -12,6 +12,7 @@ import {
 } from "./contracts.js";
 import { createAddReflectedValueKeyValuePairsMember } from "./createAddReflectedValueKeyValuePairsMember.js";
 import { createStrictEqualsMember } from "./createStrictEqualsMember.js";
+import { getParticipatingInstanceMembers } from "./memberSelection.js";
 
 function hasMethodNamed(
 	classDeclaration: ClassDeclaration,
@@ -29,8 +30,13 @@ function instrumentClassDeclaration(classDeclaration: ClassDeclaration): void {
 		return;
 	}
 
+	const participatingMembers =
+		getParticipatingInstanceMembers(classDeclaration);
+
 	if (!hasMethodNamed(classDeclaration, STRICT_EQUALS_METHOD_NAME)) {
-		classDeclaration.members.push(createStrictEqualsMember(classDeclaration));
+		classDeclaration.members.push(
+			createStrictEqualsMember(classDeclaration, participatingMembers),
+		);
 	}
 
 	if (
@@ -40,7 +46,10 @@ function instrumentClassDeclaration(classDeclaration: ClassDeclaration): void {
 		)
 	) {
 		classDeclaration.members.push(
-			createAddReflectedValueKeyValuePairsMember(classDeclaration),
+			createAddReflectedValueKeyValuePairsMember(
+				classDeclaration,
+				participatingMembers,
+			),
 		);
 	}
 }

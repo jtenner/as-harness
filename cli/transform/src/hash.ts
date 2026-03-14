@@ -1,4 +1,8 @@
-// Placeholder for shared transform-side helper logic such as member-name
-// hashing used to avoid duplicate inherited work in generated methods.
+import type { ParticipatingMemberKind } from "./memberSelection.js";
 
-export const transformHashScaffold = "hash";
+export function createParticipatingMemberHash(
+	kind: ParticipatingMemberKind,
+	name: string,
+): string {
+	return kind.concat(":", name);
+}

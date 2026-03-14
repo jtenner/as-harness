@@ -92,7 +92,7 @@ const DEFAULT_WASM_ARTIFACT_PATH = "output.wasm";
 const DEFAULT_TEXT_ARTIFACT_PATH = "output.wat";
 const SOURCE_FILE_PATTERN = /^(?!.*\.d\.ts$).*\.ts$/;
 const TEMP_TRANSFORM_DIRECTORY_PREFIX = "as-harness-transform-";
-const BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH = `${bundledTransformRoot}/index.js`;
+export const BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH = `${bundledTransformRoot}/index.js`;
 const STRICT_EQUALITY_LIBRARY_ENTRY_POINTS = new Set([
 	"node:assert",
 	"node:assert/strict",
@@ -172,7 +172,7 @@ function shouldEnableBundledStrictEqualityTransform(
 	);
 }
 
-function withBundledStrictEqualityTransform(
+export function withBundledStrictEqualityTransform(
 	compilerOptions: CompilerOptions,
 ): CompilerOptions {
 	if (!shouldEnableBundledStrictEqualityTransform(compilerOptions)) {
