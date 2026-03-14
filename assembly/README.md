@@ -53,6 +53,9 @@ Implemented today:
 - a first staged `discover(nodeIndex)` host path in wazero that can rediscover
   immediate children under a known node and report interrupted discovery
   separately from execution outcomes
+- first `skip` / `todo` discovery semantics for nested branches, where skipped
+  parents are discovered but do not expose descendants while todo parents still
+  allow descendant discovery
 - a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint with a
   host-callable `allocateNodeIndexBuffer(length)` export for NodeIndex writes
   plus the guest-side `invoke()` trampoline export

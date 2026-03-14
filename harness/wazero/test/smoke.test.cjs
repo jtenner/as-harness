@@ -102,7 +102,9 @@ test("run(nodeIndex) executes the targeted node:test path", () => {
 	assert.equal(harness.run([0]), true);
 	assert.equal(harness.run([1]), false);
 	assert.equal(harness.run([2]), true);
-	assert.equal(harness.run([3]), false);
+	assert.equal(harness.run([3]), true);
+	assert.equal(harness.run([4]), true);
+	assert.equal(harness.run([5]), false);
 });
 
 test("run(nodeIndex) emits decoded node and lifecycle events for a passing test", () => {
@@ -178,6 +180,8 @@ test("discover(nodeIndex) emits NodeFound events for top-level and nested node:t
 
 	assert.equal(harness.discover([]), true);
 	assert.equal(harness.discover([2]), true);
+	assert.equal(harness.discover([3]), true);
+	assert.equal(harness.discover([4]), true);
 	assert.equal(harness.discover([1]), false);
 	assert.deepEqual(found, [
 		{
@@ -199,10 +203,28 @@ test("discover(nodeIndex) emits NodeFound events for top-level and nested node:t
 			name: "parent test",
 		},
 		{
+			nodeIndex: [3],
+			kind: 1,
+			declarationMode: 2,
+			name: "skipped parent",
+		},
+		{
+			nodeIndex: [4],
+			kind: 1,
+			declarationMode: 3,
+			name: "todo parent",
+		},
+		{
 			nodeIndex: [2, 0],
 			kind: 1,
 			declarationMode: 1,
 			name: "nested child",
+		},
+		{
+			nodeIndex: [4, 0],
+			kind: 1,
+			declarationMode: 1,
+			name: "todo nested child",
 		},
 	]);
 });

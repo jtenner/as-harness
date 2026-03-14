@@ -25,3 +25,11 @@ test("failing test", (context: TestContext): void => {
 test("parent test", (context: TestContext): void => {
   context.test("nested child", (_nestedContext: TestContext): void => {});
 });
+
+test.skip("skipped parent", (context: TestContext): void => {
+  context.test("skipped nested child", (_nestedContext: TestContext): void => {});
+});
+
+test.todo("todo parent", (context: TestContext): void => {
+  context.test("todo nested child", (_nestedContext: TestContext): void => {});
+});

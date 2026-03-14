@@ -1,5 +1,5 @@
 import { SuiteContext, TestContext } from "../../node:test";
-import { NodeKind } from "../../internal/imports";
+import { DeclarationMode, NodeKind } from "../../internal/imports";
 import { currentNode, Node } from "../../internal/node";
 import {
   discoverChildrenByIndexFrom,
@@ -89,9 +89,49 @@ function testDiscoverChildrenByIndexFromRejectsMissingNodes(): void {
   assert(discoverChildrenByIndexFrom(localRoot, [1] as StaticArray<u32>) == -1);
 }
 
+function testDiscoverImmediateChildrenOfSkipsSkippedParents(): void {
+  const localRoot = new Node(NodeKind.Root, "local root");
+  const skipped = localRoot.createChild(
+    NodeKind.Test,
+    "skipped",
+    DeclarationMode.Skip,
+  );
+  skipped.setTestCallback(plainTestCallback);
+
+  assert(discoverImmediateChildrenOf(skipped) == 0);
+}
+
+function testFindNodeByIndexFromPrunesSkippedBranches(): void {
+  const localRoot = new Node(NodeKind.Root, "local root");
+  const skipped = localRoot.createChild(
+    NodeKind.Describe,
+    "skipped",
+    DeclarationMode.Skip,
+  );
+  skipped.setSuiteCallback(declareNestedSuite);
+
+  const found = findNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>);
+  assert(found === null);
+}
+
+function testDiscoverChildrenByIndexFromAllowsTodoBranches(): void {
+  const localRoot = new Node(NodeKind.Root, "local root");
+  const todoParent = localRoot.createChild(
+    NodeKind.Describe,
+    "todo parent",
+    DeclarationMode.Todo,
+  );
+  todoParent.setSuiteCallback(declareNestedSuite);
+
+  assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
+}
+
 testFindNodeByIndexFromDiscoversNestedChildren();
 testFindNodeByIndexFromRejectsMissingOrdinals();
 testRunNodeByIndexFromExecutesResolvedNode();
 testDiscoverImmediateChildrenOfCountsTopLevelNodes();
 testDiscoverChildrenByIndexFromCountsNestedChildren();
 testDiscoverChildrenByIndexFromRejectsMissingNodes();
+testDiscoverImmediateChildrenOfSkipsSkippedParents();
+testFindNodeByIndexFromPrunesSkippedBranches();
+testDiscoverChildrenByIndexFromAllowsTodoBranches();

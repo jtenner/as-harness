@@ -41,6 +41,8 @@ executor for normal nodes. The currently implemented surface is:
   wazero host `discover(nodeIndex)` helper, so hosts can request immediate
   child discovery under a known node and observe interruption as discovery
   failure instead of test outcome
+- first declaration-mode discovery semantics for nested branches, where `skip`
+  prunes descendant discovery while `todo` still allows descendant discovery
 
 This is now beyond a declaration-only pass, but it is still an internal
 runtime slice rather than a complete `node:test` runner. Targeted traversal,

@@ -1,5 +1,6 @@
 import { executeNode } from "./executor";
 import { nodeFound } from "./events";
+import { DeclarationMode } from "./imports";
 import { Node, rootNode } from "./node";
 
 export function findNodeByIndexFrom(
@@ -9,6 +10,10 @@ export function findNodeByIndexFrom(
   let cursor: Node = parent;
 
   for (let index: i32 = 0, length = nodeIndex.length; index < length; index++) {
+    if (cursor.parent !== null && cursor.declarationMode == DeclarationMode.Skip) {
+      return null;
+    }
+
     const children = cursor.getChildren();
     const ordinal = unchecked(nodeIndex[index]);
 
@@ -44,6 +49,10 @@ export function runNodeByIndex(nodeIndex: StaticArray<u32>): bool {
 }
 
 export function discoverImmediateChildrenOf(parent: Node): i32 {
+  if (parent.parent !== null && parent.declarationMode == DeclarationMode.Skip) {
+    return 0;
+  }
+
   const children = parent.getChildren();
 
   for (let index: i32 = 0, length = children.length; index < length; index++) {
