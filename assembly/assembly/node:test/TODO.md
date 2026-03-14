@@ -618,7 +618,7 @@ to exist. Otherwise keep them out until there is host/runtime support.
 4. Add hook registration storage.
 5. Add `TestContext.test(...)`, `t.skip(...)`, and `t.todo(...)`.
 6. Add hook execution ordering and callback events.
-7. Add `t.assert` once the assertion bridge exists.
+7. Bind `t.assert` onto the completed `node:assert` bridge surface.
 8. Add `t.plan(...)` only after assertion-call accounting exists.
 
 - [ ] Define the `node:test` declaration surface to expose from this `--lib` entry point.

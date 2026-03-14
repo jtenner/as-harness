@@ -33,6 +33,9 @@ Implemented today:
   `throws(...)`, and `doesNotThrow(...)`, plus strict-mode aliases for
   `equal(...)`, `notEqual(...)`, `deepEqual(...)`, and `notDeepEqual(...)`,
   plus `node:assert.strict` as a namespace alias for the strict entry point
+- package-style bundled `--lib` entry files for `node:assert` and
+  `node:assert/strict`, so the current bridge surface is ready to be consumed
+  by future `t.assert` work in `node:test`
 - a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint with a
   host-callable `allocateNodeIndexBuffer(length)` export for NodeIndex writes
   plus the guest-side `invoke()` trampoline export
@@ -56,6 +59,10 @@ Not implemented yet:
   handling, or object-model APIs such as `Assert` and `AssertionError`
 - host-facing ABI exports for traversal/discovery
 
+For the current scope, standalone `node:assert` work is otherwise complete. The
+next assertion-related package work should happen in `node:test`, where
+`t.assert` can bind to the existing bridge.
+
 ## Package Layout
 
 `assembly/asconfig.json`
@@ -77,7 +84,7 @@ Current files:
 - `node.ts`: structural node metadata, the global `rootNode` / `currentNode`,
   and lazy child discovery
 - `assert-bridge.ts`: shared failure-to-`FailMessage` helpers plus the first
-  strict-structural assertion wrapper
+  synchronous `node:assert` bridge primitives and trap-backed callback helpers
 - `reflected-value.ts`: the first reflected-diagnostics value model and
   collector-backed construction helpers
 - `trampoline.ts`: the staged `() => void` trap-observation boundary used for
@@ -124,8 +131,9 @@ Current skeleton folders include:
 - `qnit`
 
 These folders currently contain TODO stubs or the earliest assertion entrypoint
-files. The intent is that each adapter will expose framework-shaped globals and
-lower them into shared internal primitives.
+files. `node:assert` is the first adapter with a completed current-scope bridge;
+the intent is that each adapter will eventually expose framework-shaped globals
+and lower them into shared internal primitives.
 
 `assembly/build/`
 : Generated build artifacts such as `.wasm`, `.js`, `.d.ts`, `.wat`, and source maps.

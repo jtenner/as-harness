@@ -17,6 +17,12 @@ Current explicit limitation:
   regex support, matcher-aware throw checking, or object-model classes such as
   `Assert` and `AssertionError` are explicitly deferred from the current scope
 
+Current package milestone:
+
+- the current synchronous `node:assert` / `node:assert/strict` bridge scope is
+  in place; the next adjacent work is binding that surface into `node:test`
+  through `t.assert`
+
 | Name          | Kind           | URL starting point                                                              |
 | ------------- | -------------- | ------------------------------------------------------------------------------- |
 | `node:test`   | test structure | `https://nodejs.org/api/test.html` ([Node.js][1])                               |

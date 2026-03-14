@@ -97,7 +97,7 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [x] Add a `node:assert` internal entry point that can call the structural equality runtime.
 - [x] Define how failed structural equality lowers into `FailMessage` plus trap.
 - [ ] Decide whether default deep-equality failure messages are generated in the guest, in the host, or deferred.
-- [ ] Ensure the strict-equality runtime can be reused by future assertion APIs beyond `deepEqual`.
+- [x] Ensure the strict-equality runtime can be reused by future assertion APIs beyond `deepEqual`.
 
 ### Compiler Wrapper Integration
 
@@ -130,14 +130,14 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [ ] `uvu`
 - [ ] `jasmine`
 - [ ] `qnit`
-- [ ] `node:assert`
+- [x] `node:assert`
 - [x] Treat each folder as an AssemblyScript `--lib` entry point rather than a generic public API surface.
 - [ ] Define the exported declarations each framework entry point must provide to match that framework's test-definition surface.
 - [ ] Map each framework's declaration surface onto shared internal representations for `test`, `describe`, `skip`, `todo`, hooks, and assertion integration.
 - [ ] Route the shared internal declaration representations through WebAssembly imports as required by the current design.
 - [ ] Standardize the metadata captured by every adapter at declaration time: node kind, name, declaration mode, callback reference, and parent scope context.
 - [ ] Keep framework-specific naming, overloads, and convenience signatures inside the adapter folders instead of spreading them into the shared runtime.
-- [ ] Define how assertion-oriented entry points such as `node:assert` integrate with the shared assertion bridge.
+- [x] Define how assertion-oriented entry points such as `node:assert` integrate with the shared assertion bridge.
 - [ ] Document the boundary between framework adapter code and the shared Wasm runtime so the adapters stay thin and deterministic.
 
 ## Registry and Discovery
@@ -188,7 +188,7 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [x] Implement `FailMessage` emission before intentional failure when a message exists.
 - [x] Support message-less assertion failure paths.
 - [ ] Ensure assertion failures behave the same inside node callbacks and lifecycle callbacks.
-- [ ] Normalize assertion failure into "emit metadata, then become unreachable".
+- [x] Normalize assertion failure into "emit metadata, then become unreachable".
 
 ## Events and Encoding
 

@@ -7,6 +7,31 @@ Build the first assertion-library adapter pair under:
 - `assembly/assembly/node:assert`
 - `assembly/assembly/node:assert/strict`
 
+## Current Status
+
+The current `node:assert` v1 bridge work is complete for the intended scope of
+this package. The implemented synchronous surface is:
+
+- callable/default `assert(value[, message])`
+- `ok(...)`
+- `fail(...)`
+- `ifError(...)`
+- `equal(...)`
+- `notEqual(...)`
+- `strictEqual(...)`
+- `notStrictEqual(...)`
+- `deepStrictEqual(...)`
+- `notDeepStrictEqual(...)`
+- `throws(fn[, message])`
+- `doesNotThrow(fn[, message])`
+- `assert.strict`
+- strict-entry aliases for `equal(...)`, `notEqual(...)`, `deepEqual(...)`, and
+  `notDeepEqual(...)`
+
+The next work that consumes this bridge belongs in `node:test`, where `t.assert`
+should reuse the current package surface instead of reintroducing assertion
+behavior there.
+
 ## Current Explicit Non-Goal
 
 Until AssemblyScript has Promise support strong enough to model async assertion
@@ -191,7 +216,8 @@ APIs explicitly deferred from the current implementation scope:
 
 Practical first-pass split for this repo:
 
-- `node:assert`: expose the full exported names, but implement legacy-vs-strict differences only where meaningful for the adapter
+- `node:assert`: expose the current scoped package surface and implement
+  legacy-vs-strict differences only where meaningful for the adapter
 - `node:assert/strict`: same exported names, with `equal`/`deepEqual`/`notEqual`/`notDeepEqual` lowered as strict variants
 - keep `assert.strict` as the namespace alias for the strict entry point
 - keep the callable/default export as an alias of `assert.ok(value[, message])`
@@ -216,11 +242,16 @@ Practical first-pass split for this repo:
 
 - [x] Define the internal assertion primitive this adapter should call.
 - [x] Define how assertion failures emit `FailMessage` before becoming unreachable.
-- [ ] Ensure the adapter works the same inside tests and lifecycle callbacks.
 - [x] Keep adapter code thin and free of host-side policy.
+
+Callback and lifecycle equivalence is now a `node:test` integration concern.
+The standalone package bridge is complete; future callback-context verification
+should happen through `t.assert` once runnable test callbacks exist.
 
 ## Initial Deliverables
 
 - [x] Add the first source files for `node:assert`.
 - [x] Add the first source files for `node:assert/strict`.
 - [x] Add a minimal fixture that proves an assertion failure reaches the shared Wasm failure path.
+- [x] Materialize package-style bundled `--lib` entry files for `node:assert`
+  and `node:assert/strict`.
