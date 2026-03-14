@@ -1,9 +1,19 @@
-import { readdir, readFile as readFileFromDisk } from "node:fs/promises";
-import { join, posix, resolve } from "node:path";
+import {
+	mkdir,
+	mkdtemp,
+	readdir,
+	readFile as readFileFromDisk,
+	rm,
+	writeFile as writeFileToDisk,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join, posix, resolve } from "node:path";
 import { createMemoryStream, main as runAsc } from "assemblyscript/asc";
 import type { Runtime as HarnessRuntime } from "../runtime/types";
 import { jsRuntime } from "../runtime/js";
 import {
+	bundledTransformFiles,
+	bundledTransformRoot,
 	bundledVirtualFiles,
 	bundledVirtualRoot,
 } from "./virtual-files.generated";
@@ -81,6 +91,7 @@ const DEFAULT_TARGET = "debug";
 const DEFAULT_WASM_ARTIFACT_PATH = "output.wasm";
 const DEFAULT_TEXT_ARTIFACT_PATH = "output.wat";
 const SOURCE_FILE_PATTERN = /^(?!.*\.d\.ts$).*\.ts$/;
+const TEMP_TRANSFORM_DIRECTORY_PREFIX = "as-harness-transform-";
 
 type VirtualAssemblyFileSystem = {
 	files: Map<string, string>;
@@ -136,6 +147,14 @@ function normalizeVirtualPath(path: string): string {
 	return posix.normalize(toPosixPath(path));
 }
 
+function isBundledTransformPath(path: string): boolean {
+	const normalizedPath = normalizeVirtualPath(path);
+	return (
+		normalizedPath === bundledTransformRoot ||
+		normalizedPath.startsWith(`${bundledTransformRoot}/`)
+	);
+}
+
 function resolveVirtualPath(path: string, baseDir: string): string | null {
 	const normalizedPath = normalizeVirtualPath(path);
 	if (normalizedPath.startsWith(bundledVirtualRoot)) {
@@ -187,6 +206,71 @@ function createVirtualAssemblyFileSystem(): VirtualAssemblyFileSystem {
 	return {
 		files: bundledVirtualFiles,
 		directories,
+	};
+}
+
+type PreparedCompilerOptions = {
+	cleanup(): Promise<void>;
+	compilerOptions: CompilerOptions;
+};
+
+async function materializeBundledTransformDirectory(): Promise<string> {
+	const directory = await mkdtemp(
+		join(tmpdir(), TEMP_TRANSFORM_DIRECTORY_PREFIX),
+	);
+
+	for (const [virtualPath, contents] of bundledTransformFiles) {
+		const relativePath = posix.relative(bundledTransformRoot, virtualPath);
+		const outputPath = join(directory, ...relativePath.split("/"));
+		await mkdir(dirname(outputPath), { recursive: true });
+		await writeFileToDisk(outputPath, contents, "utf8");
+	}
+
+	return directory;
+}
+
+async function prepareCompilerOptions(
+	compilerOptions: CompilerOptions,
+): Promise<PreparedCompilerOptions> {
+	const transformPaths = compilerOptions.transform;
+	if (!transformPaths || transformPaths.length === 0) {
+		return {
+			cleanup: async () => {},
+			compilerOptions,
+		};
+	}
+
+	const requiresBundledTransformMaterialization = transformPaths.some((path) =>
+		isBundledTransformPath(path),
+	);
+	if (!requiresBundledTransformMaterialization) {
+		return {
+			cleanup: async () => {},
+			compilerOptions,
+		};
+	}
+
+	const materializedDirectory = await materializeBundledTransformDirectory();
+	const rewrittenTransformPaths = transformPaths.map((path) => {
+		if (!isBundledTransformPath(path)) {
+			return path;
+		}
+
+		const relativePath = posix.relative(
+			bundledTransformRoot,
+			normalizeVirtualPath(path),
+		);
+		return join(materializedDirectory, ...relativePath.split("/"));
+	});
+
+	return {
+		async cleanup() {
+			await rm(materializedDirectory, { force: true, recursive: true });
+		},
+		compilerOptions: {
+			...compilerOptions,
+			transform: rewrittenTransformPaths,
+		},
 	};
 }
 
@@ -453,41 +537,49 @@ export async function compile(
 	if (Object.keys(compilerOptions).length === 0) {
 		return [];
 	}
+	const preparedCompilerOptions = await prepareCompilerOptions(compilerOptions);
 
-	const { error } = await runAsc(
-		buildCompilerArguments(compilerOptions, harnessRuntime),
-		{
-			stdout,
-			stderr,
-			readFile(filename, baseDir) {
-				return readCompilerFile(filename, baseDir);
+	try {
+		const { error } = await runAsc(
+			buildCompilerArguments(
+				preparedCompilerOptions.compilerOptions,
+				harnessRuntime,
+			),
+			{
+				stdout,
+				stderr,
+				readFile(filename, baseDir) {
+					return readCompilerFile(filename, baseDir);
+				},
+				writeFile(name, contents) {
+					artifacts.set(name, {
+						path: name,
+						contents: toUint8Array(contents),
+						contentType: inferContentType(name),
+					});
+				},
+				listFiles(dirname, baseDir) {
+					return listCompilerFiles(dirname, baseDir);
+				},
 			},
-			writeFile(name, contents) {
-				artifacts.set(name, {
-					path: name,
-					contents: toUint8Array(contents),
-					contentType: inferContentType(name),
-				});
-			},
-			listFiles(dirname, baseDir) {
-				return listCompilerFiles(dirname, baseDir);
-			},
-		},
-	);
+		);
 
-	const stdoutText = stdout.toString();
-	if (stdoutText.length > 0) {
-		process.stdout.write(stdoutText);
+		const stdoutText = stdout.toString();
+		if (stdoutText.length > 0) {
+			process.stdout.write(stdoutText);
+		}
+
+		const stderrText = stderr.toString();
+		if (stderrText.length > 0) {
+			process.stderr.write(stderrText);
+		}
+
+		if (error) {
+			throw error;
+		}
+
+		return [...artifacts.values()];
+	} finally {
+		await preparedCompilerOptions.cleanup();
 	}
-
-	const stderrText = stderr.toString();
-	if (stderrText.length > 0) {
-		process.stderr.write(stderrText);
-	}
-
-	if (error) {
-		throw error;
-	}
-
-	return [...artifacts.values()];
 }

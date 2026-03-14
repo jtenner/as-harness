@@ -1,6 +1,115 @@
-# Assembly Package Buildout Tasks
+# Harness Buildout Tasks
 
-Scope: `assembly/` only. This checklist covers the Wasm-side runtime defined in `docs/primary-buildout.md` and excludes host orchestration work.
+Primary scope: `assembly/`. This checklist covers the Wasm-side runtime defined in `docs/primary-buildout.md` and excludes host orchestration work, except where noted for supporting compiler-side transform machinery.
+
+## Strict Equality Machinery
+
+Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-machinery.md`.
+
+### Planning and Contracts
+
+- [x] Write a design document for strict equality and reflected diagnostics in `docs/strict-equality-machinery.md`.
+- [ ] Define the first-pass behavioral contract for `node:assert.deepEqual(...)`.
+- [ ] Decide whether the first implementation targets `deepEqual`, `deepStrictEqual`, or a shared structural core with assertion-level wrappers.
+- [ ] Define the exact runtime comparison result model, including whether to use a tri-state result such as match / fail / defer.
+- [ ] Define which AssemblyScript value categories are supported in v1:
+- [ ] primitives
+- [ ] nullable references
+- [ ] strings
+- [ ] arrays / `StaticArray`
+- [ ] typed arrays / `ArrayBufferView`
+- [ ] `ArrayBuffer`
+- [ ] `Map`
+- [ ] `Set`
+- [ ] managed classes
+- [ ] function references
+- [ ] Define cycle-handling semantics for recursive reference graphs.
+- [ ] Define inheritance semantics for class-field comparison and reflected reporting.
+- [ ] Define the boundary between transform-generated methods and shared AssemblyScript runtime helpers.
+
+### CLI Transform Scaffolding
+
+- [x] Scaffold `cli/transform/` for strict-equality transform work.
+- [x] Add a CLI-side transform entrypoint that can be passed into the AssemblyScript compiler wrapper.
+- [ ] Decide how the compiler wrapper will enable the transform for selected virtual-library entry points.
+- [x] Document transform activation and build/debug workflow in `cli/README.md`.
+
+### AST Traversal and Class Instrumentation
+
+- [ ] Traverse parser sources after parse and recursively inspect nested namespaces.
+- [ ] Identify every AssemblyScript `ClassDeclaration` that requires strict-equality instrumentation.
+- [ ] Inject a generated instance method for structural comparison on instrumented classes.
+- [ ] Define the generated method signature and parameter contract for the structural comparison hook.
+- [ ] Enumerate instance fields that should participate in structural comparison.
+- [ ] Enumerate instance getters that should participate in structural comparison.
+- [ ] Decide whether methods, static members, and computed members are excluded from generated comparison hooks.
+- [ ] Handle generic classes without losing generic context in generated methods.
+- [ ] Handle inheritance by delegating into `super` without double-comparing overridden members.
+- [ ] Decide how property-identity hashing or equivalent ignore-listing will be represented in generated code.
+
+### Reflected Diagnostics Instrumentation
+
+- [ ] Inject a generated instance method for reflected key/value extraction on instrumented classes.
+- [ ] Define the generated method signature and parameter contract for reflected extraction.
+- [ ] Reuse the same field/getter selection rules between strict equality and reflected diagnostics.
+- [ ] Handle inheritance for reflected extraction without duplicating overridden members.
+- [ ] Decide whether reflected extraction must support custom display overrides in v1 or later.
+
+### Assembly Runtime Equality Core
+
+- [ ] Add a shared AssemblyScript runtime module for structural equality.
+- [ ] Implement fast-path primitive equality checks.
+- [ ] Define null-handling behavior for nullable reference comparisons.
+- [ ] Normalize `NaN` comparison semantics if float support requires it.
+- [ ] Implement pair-cache tracking for already-proven reference matches.
+- [ ] Implement active-resolution stack tracking for recursive comparison.
+- [ ] Define and implement deferred-match behavior for cycles.
+- [ ] Implement specialized comparison for `ArrayBuffer`.
+- [ ] Implement specialized comparison for arrays and arraylikes.
+- [ ] Implement specialized comparison for typed arrays / `ArrayBufferView`.
+- [ ] Implement specialized comparison for `Set`.
+- [ ] Implement specialized comparison for `Map`.
+- [ ] Implement function-reference comparison semantics.
+- [ ] Delegate generic class comparison into the transform-generated structural hook.
+
+### Assembly Runtime Reflected Value Core
+
+- [ ] Add a shared AssemblyScript runtime module for reflected-value construction.
+- [ ] Define the reflected-value type model needed for assertion diagnostics.
+- [ ] Implement primitive reflected values.
+- [ ] Implement reflected values for strings.
+- [ ] Implement reflected values for `ArrayBuffer`.
+- [ ] Implement reflected values for arrays and arraylikes.
+- [ ] Implement reflected values for typed arrays / `ArrayBufferView`.
+- [ ] Implement reflected values for `Set`.
+- [ ] Implement reflected values for `Map`.
+- [ ] Implement reflected values for managed classes via the transform-generated reflection hook.
+- [ ] Define whether stack traces or source context attach to reflected values in v1 or later.
+
+### Assertion Bridge Integration
+
+- [ ] Add a `node:assert` internal entry point that can call the structural equality runtime.
+- [ ] Define how failed structural equality lowers into `FailMessage` plus trap.
+- [ ] Decide whether default deep-equality failure messages are generated in the guest, in the host, or deferred.
+- [ ] Ensure the strict-equality runtime can be reused by future assertion APIs beyond `deepEqual`.
+
+### Compiler Wrapper Integration
+
+- [ ] Extend the compiler wrapper to register the new transform when compiling harness-aware AssemblyScript modules.
+- [ ] Ensure bundled virtual AssemblyScript sources can reference the transform-generated runtime hooks safely.
+- [ ] Decide whether transform enablement is always-on for harness builds or gated by adapter selection.
+- [ ] Add debug output or inspection hooks so generated methods can be audited during development.
+
+### Fixtures and Verification
+
+- [ ] Add transform-level fixtures that prove classes receive generated comparison hooks.
+- [ ] Add transform-level fixtures that prove classes receive generated reflected-value hooks.
+- [ ] Add fixtures for inherited fields and overridden getters.
+- [ ] Add fixtures for generic classes.
+- [ ] Add runtime equality fixtures for primitives, nullability, arrays, typed arrays, maps, sets, and classes.
+- [ ] Add cycle fixtures that prove recursive graphs terminate cleanly.
+- [ ] Add diagnostics fixtures that prove reflected class key/value extraction matches the generated member list.
+- [ ] Add `node:assert.deepEqual(...)` fixtures only after the structural core is stable.
 
 ## Framework Library Entry Points and Declaration Adapters
 

@@ -1,0 +1,246 @@
+# Strict Equality Machinery
+
+This document records the implementation plan for structural equality and
+reflected diagnostics support needed by `node:assert` APIs such as
+`deepEqual(...)`.
+
+The immediate goal is not to implement a full assertion surface. The goal is to
+build the machinery that makes it possible to compare AssemblyScript values,
+including managed classes, without relying on unsupported runtime reflection.
+
+## Problem
+
+AssemblyScript does not provide an easy runtime mechanism to inspect arbitrary
+class shape and compare fields generically.
+
+That means a Node-like deep-equality API cannot be implemented as a single
+"accept any value and walk it dynamically" function for managed classes.
+
+For strict or deep structural comparison of classes, the runtime needs
+class-specific knowledge of:
+
+- which instance fields participate
+- which getters participate
+- how inheritance affects the member list
+- how recursive comparison is delegated back into shared machinery
+
+The clean way to supply that information is a compiler-side transform that
+injects generated methods into class declarations after parse.
+
+## Architectural Split
+
+The design is split into two cooperating layers.
+
+### 1. CLI Transform Layer
+
+Location: `cli/transform/`
+
+Responsibilities:
+
+- walk parsed AssemblyScript sources
+- recurse through namespaces
+- find class declarations
+- inject generated instance methods for:
+- structural comparison
+- reflected key/value extraction
+- preserve generic context
+- preserve inheritance semantics
+
+This layer should know the class AST shape, but it should not own recursive
+comparison policy for arrays, maps, sets, or cycles.
+
+### 2. Assembly Runtime Layer
+
+Location: `assembly/assembly/internal/`
+
+Responsibilities:
+
+- implement the shared structural equality engine
+- implement cycle detection / defer semantics
+- implement specialized branches for:
+- primitives
+- strings
+- `ArrayBuffer`
+- arrays / arraylikes
+- typed arrays
+- `Set`
+- `Map`
+- function references
+- call into transform-generated class comparison hooks
+- implement reflected-value construction for diagnostics
+- call into transform-generated class reflection hooks
+
+This layer owns runtime comparison semantics. It should not need to inspect
+class AST directly.
+
+## Why Both Pieces Are Needed
+
+The transform solves the class-shape problem.
+
+The runtime solves the recursive-graph and collection problem.
+
+Without the transform:
+
+- classes cannot be compared structurally in a general way
+- class diagnostics cannot enumerate members reliably
+
+Without the runtime:
+
+- generated class hooks would still need ad hoc code for arrays, maps, sets,
+  cycles, and nested values
+- each class would need to duplicate comparison policy instead of delegating to
+  one shared engine
+
+## Core Moving Parts
+
+### Structural Equality Entry Point
+
+The AssemblyScript runtime needs a single shared comparison entry point.
+
+That entry point should:
+
+- fast-path equal values
+- handle nullable references
+- handle special primitive rules such as `NaN`
+- dispatch to reference-aware comparison for non-function reference types
+- return enough state to distinguish:
+- successful match
+- failed match
+- deferred match for currently resolving recursive pairs
+
+### Pair Cache and Active Stack
+
+Recursive data structures require two tracking collections:
+
+- a cache of pairs already proven equal
+- a stack of pairs currently being resolved
+
+The cache prevents recomputing known equal subgraphs.
+
+The active stack prevents recursive structures from blowing the stack or
+incorrectly failing when a pair is revisited while still being resolved.
+
+### Collection-Specific Comparison
+
+The shared runtime should own specialized comparison branches for:
+
+- `ArrayBuffer`
+- arrays / `StaticArray` / arraylikes
+- typed arrays / `ArrayBufferView`
+- `Set`
+- `Map`
+- function references
+
+These categories should not be expanded inline by the class transform.
+
+### Generated Class Comparison Hook
+
+Each instrumented class should receive a generated instance method that:
+
+- verifies the compared reference is an instance of the same class
+- casts it to the proper type
+- compares each participating field/getter by delegating to the shared runtime
+- delegates into `super` when appropriate
+- avoids duplicate comparison of overridden/inherited members
+
+This hook is the bridge between compile-time class shape and runtime recursive
+comparison.
+
+### Generated Class Reflection Hook
+
+Diagnostics need a second generated method that:
+
+- pushes reflected keys for participating fields/getters
+- pushes reflected values by delegating back into shared reflected-value
+  construction
+- delegates into `super`
+- avoids duplicate reporting of overridden members
+
+This reflection hook is separate from equality. It exists for failure messages,
+logs, and future structured diagnostics.
+
+## Proposed Folder Scaffold
+
+The transform scaffold should live under:
+
+```text
+cli/transform/
+  README.md
+  src/
+    index.ts
+    createStrictEqualsMember.ts
+    createAddReflectedValueKeyValuePairsMember.ts
+    hash.ts
+    emptyTransformer.ts
+```
+
+This mirrors the minimum shape of the transform responsibilities without
+committing to full implementation details yet.
+
+## Proposed Implementation Sequence
+
+### Phase 1. Contracts and Scaffolding
+
+- scaffold `cli/transform/`
+- define the runtime/transform split
+- define the comparison-result model
+- define the v1 supported value categories
+
+### Phase 2. Transform-Generated Class Equality
+
+- implement parser traversal
+- inject generated class comparison methods
+- support fields, getters, generics, and inheritance
+- add transform fixtures that inspect generated output
+
+### Phase 3. Shared Runtime Equality
+
+- implement the recursive structural comparison engine
+- add pair-cache and active-stack handling
+- add collection-specialized branches
+- delegate generic classes into generated hooks
+
+### Phase 4. Reflected Diagnostics
+
+- implement reflected-value construction primitives
+- inject generated class reflection methods
+- ensure reflected output and comparison walk the same member set
+
+### Phase 5. Assertion Integration
+
+- wire `node:assert.deepEqual(...)` or the chosen first API into the equality
+  runtime
+- normalize failure into `FailMessage` and trap
+- decide where default error text is generated
+
+### Phase 6. Compiler Integration
+
+- register the transform through the CLI compiler wrapper
+- ensure harness-aware compilation paths activate it consistently
+- add inspection/debug workflow for generated methods
+
+## Decisions Still Needed
+
+The machinery can be planned now, but these choices still need to be made
+before implementation details harden:
+
+- whether the first assertion API is `deepEqual`, `deepStrictEqual`, or both
+- the exact supported value categories in v1
+- whether comparison uses a tri-state result model
+- how functions should compare
+- how default deep-equality failure messages should be produced
+- whether reflected diagnostics are required in the first implementation wave or
+  can follow immediately after the equality core
+
+## Deliverable Boundaries
+
+The first deliverable should be the machinery, not a fully complete
+`node:assert` surface.
+
+That means success for this workstream is:
+
+- the transform can inject class comparison/reflection hooks
+- the AssemblyScript runtime can recursively compare supported values
+- the compiler wrapper can activate the transform
+- `node:assert` can start consuming the resulting primitives one function at a
+  time

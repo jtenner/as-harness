@@ -6,7 +6,7 @@ export const bundledVirtualRoot = "~/.as-harness";
 export const bundledVirtualFiles = new Map<string, string>([
 	[
 		"~/.as-harness/exports.ts",
-		"let nodeIndexScratch: StaticArray<u32> | null = null;\n\n/**\n * Allocates a `StaticArray<u32>` in guest memory for a host-provided NodeIndex\n * and returns the linear-memory pointer to its first element.\n */\nexport function allocateNodeIndexBuffer(length: u32): usize {\n  nodeIndexScratch = new StaticArray<u32>(length);\n  return changetype<usize>(nodeIndexScratch);\n}\n",
+		'export { invoke } from "./internal/trampoline";\n\nlet nodeIndexScratch: StaticArray<u32> | null = null;\n\n/**\n * Allocates a `StaticArray<u32>` in guest memory for a host-provided NodeIndex\n * and returns the linear-memory pointer to its first element.\n */\nexport function allocateNodeIndexBuffer(length: u32): usize {\n  nodeIndexScratch = new StaticArray<u32>(length);\n  return changetype<usize>(nodeIndexScratch);\n}\n',
 	],
 	[
 		"~/.as-harness/internal/events.ts",
@@ -14,11 +14,15 @@ export const bundledVirtualFiles = new Map<string, string>([
 	],
 	[
 		"~/.as-harness/internal/imports.ts",
-		'// Flat imported ABI shared by the internal AssemblyScript runtime primitives.\n// These declarations cover the imported host event sink called out in\n// docs/primary-buildout.md.\n\nexport const enum NodeKind {\n  Root = 0,\n  Test = 1,\n  Describe = 2,\n}\n\nexport const enum DeclarationMode {\n  Normal = 1,\n  Skip = 2,\n  Todo = 3,\n}\n\nexport const enum HookKind {\n  BeforeAll = 1,\n  BeforeEach = 2,\n  AfterEach = 3,\n  AfterAll = 4,\n}\n\nexport const enum EventKind {\n  NodeFound = 1,\n  NodeStart = 2,\n  NodePass = 3,\n  FailMessage = 4,\n  CallbackStart = 5,\n  CallbackPass = 6,\n}\n\n/**\n * Writes a packed binary event payload to the host event sink.\n *\n * @param kind Event discriminant for the encoded payload.\n * @param payloadPtr Pointer to the packed payload bytes.\n * @param payloadLen Length of the packed payload bytes.\n */\n// @ts-ignore AssemblyScript external decorator\n@external("as-harness", "write_event")\nexport declare function writeEvent(\n  kind: EventKind,\n  payloadPtr: usize,\n  payloadLen: u32,\n): void;\n',
+		'// Flat imported ABI shared by the internal AssemblyScript runtime primitives.\n// These declarations cover the imported host event sink called out in\n// docs/primary-buildout.md.\n\nexport const enum NodeKind {\n  Root = 0,\n  Test = 1,\n  Describe = 2,\n}\n\nexport const enum DeclarationMode {\n  Normal = 1,\n  Skip = 2,\n  Todo = 3,\n}\n\nexport const enum HookKind {\n  BeforeAll = 1,\n  BeforeEach = 2,\n  AfterEach = 3,\n  AfterAll = 4,\n}\n\nexport const enum EventKind {\n  NodeFound = 1,\n  NodeStart = 2,\n  NodePass = 3,\n  FailMessage = 4,\n  CallbackStart = 5,\n  CallbackPass = 6,\n}\n\n/**\n * Writes a packed binary event payload to the host event sink.\n *\n * @param kind Event discriminant for the encoded payload.\n * @param payloadPtr Pointer to the packed payload bytes.\n * @param payloadLen Length of the packed payload bytes.\n */\n// @ts-ignore AssemblyScript external decorator\n@external("as-harness", "write_event")\nexport declare function writeEvent(\n  kind: EventKind,\n  payloadPtr: usize,\n  payloadLen: u32,\n): void;\n\n/**\n * Calls back into the guest-side exported trampoline and returns whether the\n * inner guest invocation completed without trapping.\n *\n * Return values:\n * - `0`: the inner guest call trapped\n * - `1`: the inner guest call returned normally\n */\n// @ts-ignore AssemblyScript external decorator\n@external("as-harness", "invoke_staged")\nexport declare function invokeStaged(): i32;\n',
 	],
 	[
 		"~/.as-harness/internal/node.ts",
 		'import { DeclarationMode, NodeKind } from "./imports";\n\nexport type NodeCallback = () => void;\n\nfunction noop(): void {}\n\n/**\n * Structural node metadata plus the lazy child-discovery callback used to\n * rediscover descendants when traversal replays the node later.\n */\nexport class Node {\n  readonly kind: NodeKind;\n  readonly name: string;\n  readonly declarationMode: DeclarationMode;\n  readonly callback: NodeCallback;\n\n  private parentValue: Node | null = null;\n  private ordinalValue: u32 = 0;\n  private childrenValue: Array<Node> = new Array<Node>();\n  private childrenResolved: bool = false;\n\n  constructor(\n    kind: NodeKind,\n    name: string,\n    declarationMode: DeclarationMode = DeclarationMode.Normal,\n    callback: NodeCallback = noop,\n  ) {\n    this.kind = kind;\n    this.name = name;\n    this.declarationMode = declarationMode;\n    this.callback = callback;\n  }\n\n  get parent(): Node | null {\n    return this.parentValue;\n  }\n\n  get ordinal(): u32 {\n    return this.ordinalValue;\n  }\n\n  /**\n   * Returns lazily discovered children, evaluating the node callback at most\n   * once to populate the child list.\n   */\n  getChildren(): Array<Node> {\n    if (this.childrenResolved) {\n      return this.childrenValue;\n    }\n\n    this.childrenResolved = true;\n    const previousNode = currentNode;\n    currentNode = this;\n    this.callback();\n    currentNode = previousNode;\n\n    return this.childrenValue;\n  }\n\n  createChild(\n    kind: NodeKind,\n    name: string,\n    declarationMode: DeclarationMode = DeclarationMode.Normal,\n    callback: NodeCallback = noop,\n  ): Node {\n    const child = new Node(kind, name, declarationMode, callback);\n    child.parentValue = this;\n    child.ordinalValue = <u32>this.childrenValue.length;\n    this.childrenValue.push(child);\n    return child;\n  }\n}\n\nexport const rootNode = new Node(NodeKind.Root, "~root");\n\nexport let currentNode: Node = rootNode;\n',
+	],
+	[
+		"~/.as-harness/internal/trampoline.ts",
+		'import { invokeStaged } from "./imports";\n\nexport type TrapCallback = () => void;\n\nlet stagedTrapCallback: TrapCallback | null = null;\n\n/**\n * Returns `true` when the callback trapped across the host-managed boundary.\n *\n * The callback slot is always cleared before this function returns, regardless\n * of whether the staged callback completed or trapped.\n */\nexport function didCallbackTrap(callback: TrapCallback): bool {\n  if (stagedTrapCallback !== null) {\n    unreachable();\n  }\n\n  stagedTrapCallback = callback;\n  const status = invokeStaged();\n  stagedTrapCallback = null;\n  return status == 0;\n}\n\n/**\n * Exported host-callable trampoline that invokes the currently staged\n * callback. The host owns trap observation around this call.\n */\nexport function invoke(): void {\n  const callback = stagedTrapCallback;\n  if (callback === null) {\n    unreachable();\n  }\n\n  callback();\n}\n',
 	],
 	[
 		"~/.as-harness/test/index.ts",
@@ -31,5 +35,34 @@ export const bundledVirtualFiles = new Map<string, string>([
 	[
 		"~/.as-harness/test/internal/node.ts",
 		'import { DeclarationMode, NodeKind } from "../../internal/imports";\nimport { Node, currentNode, rootNode } from "../../internal/node";\n\nlet callbackRuns: i32 = 0;\n\nfunction declareRootChildren(): void {\n  callbackRuns++;\n\n  currentNode.createChild(NodeKind.Test, "first child", DeclarationMode.Skip);\n  currentNode.createChild(NodeKind.Describe, "second child", DeclarationMode.Todo);\n}\n\nfunction testRootNodeDefaults(): void {\n  assert(rootNode.kind == NodeKind.Root);\n  assert(rootNode.name == "~root");\n  assert(rootNode.parent === null);\n  assert(rootNode.ordinal == 0);\n  assert(currentNode === rootNode);\n}\n\nfunction testNodeMetadataAndLazyChildren(): void {\n  const root = new Node(\n    NodeKind.Describe,\n    "root",\n    DeclarationMode.Normal,\n    declareRootChildren,\n  );\n\n  assert(root.kind == NodeKind.Describe);\n  assert(root.name == "root");\n  assert(root.declarationMode == DeclarationMode.Normal);\n  assert(root.parent === null);\n  assert(root.ordinal == 0);\n\n  const firstChildren = root.getChildren();\n  assert(callbackRuns == 1);\n  assert(firstChildren.length == 2);\n\n  const firstChild = unchecked(firstChildren[0]);\n  assert(firstChild.kind == NodeKind.Test);\n  assert(firstChild.name == "first child");\n  assert(firstChild.declarationMode == DeclarationMode.Skip);\n  assert(firstChild.parent === root);\n  assert(firstChild.ordinal == 0);\n\n  const secondChild = unchecked(firstChildren[1]);\n  assert(secondChild.kind == NodeKind.Describe);\n  assert(secondChild.name == "second child");\n  assert(secondChild.declarationMode == DeclarationMode.Todo);\n  assert(secondChild.parent === root);\n  assert(secondChild.ordinal == 1);\n\n  const secondChildren = root.getChildren();\n  assert(callbackRuns == 1);\n  assert(secondChildren === firstChildren);\n}\n\nfunction testManualAddChild(): void {\n  const root = new Node(NodeKind.Describe, "root");\n  const child = root.createChild(NodeKind.Test, "child");\n  const children = root.getChildren();\n\n  assert(children.length == 1);\n  assert(unchecked(children[0]) === child);\n  assert(child.parent === root);\n  assert(child.ordinal == 0);\n}\n\ntestRootNodeDefaults();\ntestNodeMetadataAndLazyChildren();\ntestManualAddChild();\n',
+	],
+	[
+		"~/.as-harness/test/trampoline-smoke.ts",
+		'import { didCallbackTrap } from "../internal/trampoline";\n\nexport { invoke } from "../internal/trampoline";\n\nfunction returnsNormally(): void {}\n\nfunction trapsUnreachable(): void {\n  unreachable();\n}\n\nexport function didTrapWhenCallbackReturns(): i32 {\n  return didCallbackTrap(returnsNormally) ? 1 : 0;\n}\n\nexport function didTrapWhenCallbackTraps(): i32 {\n  return didCallbackTrap(trapsUnreachable) ? 1 : 0;\n}\n',
+	],
+]);
+
+export const bundledTransformRoot = "~/.as-harness/transform";
+
+export const bundledTransformFiles = new Map<string, string>([
+	[
+		"~/.as-harness/transform/createAddReflectedValueKeyValuePairsMember.js",
+		'export const createAddReflectedValueKeyValuePairsMemberScaffold = "createAddReflectedValueKeyValuePairsMember";\n',
+	],
+	[
+		"~/.as-harness/transform/createStrictEqualsMember.js",
+		'export const createStrictEqualsMemberScaffold = "createStrictEqualsMember";\n',
+	],
+	[
+		"~/.as-harness/transform/emptyTransformer.js",
+		'import { Transform } from "assemblyscript/dist/transform.js";\nexport default class EmptyTransform extends Transform {\n  afterParse(_parser) {}\n}\n',
+	],
+	[
+		"~/.as-harness/transform/hash.js",
+		'export const transformHashScaffold = "hash";\n',
+	],
+	[
+		"~/.as-harness/transform/index.js",
+		'export { default } from "./emptyTransformer.js";\n',
 	],
 ]);

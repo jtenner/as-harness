@@ -16,6 +16,7 @@ What exists today:
 - Entry file discovery with default globs, explicit file paths, glob mode, and
   ignore filters
 - A programmatic AssemblyScript compiler wrapper in `as/compile.ts`
+- A scaffolded `transform/` area for future strict-equality AST instrumentation
 - A runtime abstraction layer in `runtime/`
 - A placeholder `n-api/` directory for bundled native modules
 
@@ -49,6 +50,11 @@ Key files and directories:
 - `as/virtual-files.generated.ts`
   Generated source data for the bundled `~/.as-harness` virtual filesystem used
   by the compiler wrapper.
+- `transform/`
+  Scaffold for the future AssemblyScript transform that will inject
+  strict-equality and reflected-diagnostics hooks into class declarations. The
+  bundled CLI generation step also emits precompiled JS transform files that can
+  be hoisted to temp paths before invoking `asc`.
 - `runtime/types.ts`
   Defines the `Runtime` interface used to mutate compiler arguments.
 - `runtime/js.ts`, `runtime/wasmtime.ts`, `runtime/wazero.ts`
@@ -244,6 +250,12 @@ and `listFiles` hooks:
 The virtual `~/.as-harness` tree is populated from a generated TypeScript
 module, not from runtime filesystem scanning. That is what allows the standalone
 CLI binary to ship the AssemblyScript support sources as bundled text.
+
+Bundled transform modules are handled differently from AssemblyScript source
+files. The generator also stores precompiled JS transform assets, and the
+compiler wrapper writes those assets to a temporary directory when a compile
+requests a bundled `--transform` path. This is necessary because AssemblyScript
+expects transform modules to exist as real JS files on disk.
 
 ### Artifact model
 
