@@ -48,6 +48,8 @@ Implemented today:
   deterministic root-to-leaf / leaf-to-root order
 - a first targeted `run()` export path that resolves the staged `NodeIndex`
   against the shared root tree and executes the targeted node
+- a first root discovery `discover()` export path that emits `NodeFound`
+  events for already-registered top-level nodes without classifying outcomes
 - a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint with a
   host-callable `allocateNodeIndexBuffer(length)` export for NodeIndex writes
   plus the guest-side `invoke()` trampoline export
@@ -106,7 +108,7 @@ Current files:
   lifecycle ordering plus `NodeStart` / `NodePass` and callback event emission
 - `hooks.ts`: durable hook registration records
 - `traversal.ts`: first targeted `NodeIndex` resolution and run helpers over
-  the shared root tree
+  the shared root tree plus top-level root discovery helpers
 - `assert-bridge.ts`: shared failure-to-`FailMessage` helpers plus the first
   synchronous `node:assert` bridge primitives and trap-backed callback helpers
 - `reflected-value.ts`: the first reflected-diagnostics value model and
@@ -115,7 +117,7 @@ Current files:
   host-mediated `toThrow()`-style assertions without Wasm exceptions
 
 `assembly/assembly/exports.ts`
-: Wasm-export-oriented entrypoint for test modules that need explicit Wasm exports. It currently exposes `allocateNodeIndexBuffer(length)` so host runtimes can allocate guest memory for a `StaticArray<u32>` NodeIndex, `run()` for the first targeted node execution path, and the guest-side `invoke()` trampoline entrypoint used by the host-managed trap boundary.
+: Wasm-export-oriented entrypoint for test modules that need explicit Wasm exports. It currently exposes `allocateNodeIndexBuffer(length)` so host runtimes can allocate guest memory for a `StaticArray<u32>` NodeIndex, `run()` for the first targeted node execution path, `discover()` for the first root-structure `NodeFound` pass, and the guest-side `invoke()` trampoline entrypoint used by the host-managed trap boundary.
 
 `assembly/assembly/test/`
 : Internal AssemblyScript test entrypoint and test modules.
@@ -138,7 +140,7 @@ Current files:
   and collector helpers
 - `internal/traversal.ts`: tests for targeted `NodeIndex` lookup and execution
 - `node-test-smoke.ts`: exported smoke fixture for host-observed
-  `node:test` targeted run success and failure behavior
+  `node:test` targeted run plus root discovery behavior
 - `trampoline-smoke.ts`: a host-runtime smoke fixture that probes the staged
   callback trampoline with both normal-return and `unreachable` paths
 

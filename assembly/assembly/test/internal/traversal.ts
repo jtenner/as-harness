@@ -2,6 +2,7 @@ import { SuiteContext, TestContext } from "../../node:test";
 import { NodeKind } from "../../internal/imports";
 import { currentNode, Node } from "../../internal/node";
 import {
+  discoverImmediateChildrenOf,
   findNodeByIndexFrom,
   runNodeByIndexFrom,
 } from "../../internal/traversal";
@@ -64,6 +65,15 @@ function testRunNodeByIndexFromExecutesResolvedNode(): void {
   assert(executionTrace[0] == "plain test");
 }
 
+function testDiscoverImmediateChildrenOfCountsTopLevelNodes(): void {
+  const localRoot = new Node(NodeKind.Root, "local root");
+  localRoot.createChild(NodeKind.Test, "plain");
+  localRoot.createChild(NodeKind.Describe, "suite");
+
+  assert(discoverImmediateChildrenOf(localRoot) == 2);
+}
+
 testFindNodeByIndexFromDiscoversNestedChildren();
 testFindNodeByIndexFromRejectsMissingOrdinals();
 testRunNodeByIndexFromExecutesResolvedNode();
+testDiscoverImmediateChildrenOfCountsTopLevelNodes();

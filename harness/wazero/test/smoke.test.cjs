@@ -103,6 +103,31 @@ test("run(nodeIndex) executes the targeted node:test path", () => {
 	assert.equal(harness.run([2]), false);
 });
 
+test("callI32('discover') emits NodeFound events for top-level node:test declarations", () => {
+	const harness = addon.createHarness(compiledNodeTestWasm);
+	const found = [];
+
+	harness.onNodeFound((event) => {
+		found.push(event);
+	});
+
+	assert.equal(harness.callI32("discover"), 2);
+	assert.deepEqual(found, [
+		{
+			nodeIndex: [0],
+			kind: 1,
+			declarationMode: 1,
+			name: "passing test",
+		},
+		{
+			nodeIndex: [1],
+			kind: 1,
+			declarationMode: 1,
+			name: "failing test",
+		},
+	]);
+});
+
 test("observes trap status through the host-managed trampoline", () => {
 	const harness = addon.createHarness(compiledTrampolineWasm);
 

@@ -20,6 +20,7 @@ import "C"
 
 import (
 	"context"
+	"encoding/binary"
 	"sync"
 	"unsafe"
 
@@ -35,6 +36,12 @@ const writeEventModuleName = "as-harness"
 const invokeExport = "invoke"
 const invokeStagedImport = "invoke_staged"
 const uint32ByteLength = 4
+const eventKindNodeFound = 1
+const eventKindNodeStart = 2
+const eventKindNodePass = 3
+const eventKindFailMessage = 4
+const eventKindCallbackStart = 5
+const eventKindCallbackPass = 6
 
 type callbackSlot int
 
@@ -51,8 +58,11 @@ const (
 type harnessState struct {
 	runtime   wazero.Runtime
 	compiled  wazero.CompiledModule
+	env       C.napi_env
 	callbacks [callbackSlotCount]C.napi_ref
 }
+
+type hostCallStateContextKey struct{}
 
 var (
 	harnessMu     sync.Mutex
@@ -160,6 +170,28 @@ func createUint32(env C.napi_env, value uint32) C.napi_value {
 	}
 
 	return result
+}
+
+func createArrayWithLength(env C.napi_env, length uint32) C.napi_value {
+	var result C.napi_value
+	if !must(C.napi_create_array_with_length(env, C.size_t(length), &result), env, "failed to create array") {
+		return nil
+	}
+
+	return result
+}
+
+func setElement(env C.napi_env, target C.napi_value, index uint32, value C.napi_value) bool {
+	return must(C.napi_set_element(env, target, C.uint32_t(index), value), env, "failed to set array element")
+}
+
+func getReferenceValue(env C.napi_env, ref C.napi_ref) (C.napi_value, bool) {
+	var result C.napi_value
+	if !must(C.napi_get_reference_value(env, ref, &result), env, "failed to resolve callback reference") {
+		return nil, false
+	}
+
+	return result, true
 }
 
 func getCallbackArguments(env C.napi_env, info C.napi_callback_info, argc C.size_t) ([]C.napi_value, C.napi_value, bool) {
@@ -302,6 +334,242 @@ func stringFromValue(env C.napi_env, value C.napi_value) (string, bool) {
 	return string(buffer[:int(length)]), true
 }
 
+func contextWithHarnessState(ctx context.Context, state *harnessState) context.Context {
+	return context.WithValue(ctx, hostCallStateContextKey{}, state)
+}
+
+func harnessStateFromContext(ctx context.Context) *harnessState {
+	state, _ := ctx.Value(hostCallStateContextKey{}).(*harnessState)
+	return state
+}
+
+func decodeUint32(payload []byte, offset int) (uint32, int, bool) {
+	if offset+4 > len(payload) {
+		return 0, offset, false
+	}
+
+	return binary.LittleEndian.Uint32(payload[offset : offset+4]), offset + 4, true
+}
+
+func decodeNodeIndex(payload []byte, offset int) ([]uint32, int, bool) {
+	length, nextOffset, ok := decodeUint32(payload, offset)
+	if !ok {
+		return nil, offset, false
+	}
+
+	requiredByteLength := int(length) * uint32ByteLength
+	if nextOffset+requiredByteLength > len(payload) {
+		return nil, offset, false
+	}
+
+	nodeIndex := make([]uint32, int(length))
+	for index := 0; index < int(length); index++ {
+		valueOffset := nextOffset + index*uint32ByteLength
+		nodeIndex[index] = binary.LittleEndian.Uint32(payload[valueOffset : valueOffset+uint32ByteLength])
+	}
+
+	return nodeIndex, nextOffset + requiredByteLength, true
+}
+
+func createNodeIndexValue(env C.napi_env, nodeIndex []uint32) (C.napi_value, bool) {
+	result := createArrayWithLength(env, uint32(len(nodeIndex)))
+	if result == nil {
+		return nil, false
+	}
+
+	for index, value := range nodeIndex {
+		if !setElement(env, result, uint32(index), createUint32(env, value)) {
+			return nil, false
+		}
+	}
+
+	return result, true
+}
+
+func createNodeEventObject(env C.napi_env, nodeIndex []uint32) (C.napi_value, bool) {
+	var result C.napi_value
+	if !must(C.napi_create_object(env, &result), env, "failed to create event object") {
+		return nil, false
+	}
+
+	nodeIndexValue, ok := createNodeIndexValue(env, nodeIndex)
+	if !ok {
+		return nil, false
+	}
+
+	if !setNamedProperty(env, result, "nodeIndex", nodeIndexValue) {
+		return nil, false
+	}
+
+	return result, true
+}
+
+func createNodeFoundEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
+	nodeIndex, offset, ok := decodeNodeIndex(payload, 0)
+	if !ok || offset+8 > len(payload) {
+		return nil, false
+	}
+
+	result, ok := createNodeEventObject(env, nodeIndex)
+	if !ok {
+		return nil, false
+	}
+
+	kind := uint32(payload[offset])
+	mode := uint32(payload[offset+1])
+	nameLength, nextOffset, ok := decodeUint32(payload, offset+4)
+	if !ok {
+		return nil, false
+	}
+	if nextOffset+int(nameLength) > len(payload) {
+		return nil, false
+	}
+
+	if !setNamedProperty(env, result, "kind", createUint32(env, kind)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "declarationMode", createUint32(env, mode)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "name", createString(env, string(payload[nextOffset:nextOffset+int(nameLength)]))) {
+		return nil, false
+	}
+
+	return result, true
+}
+
+func createCallbackEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
+	if len(payload) < 8 {
+		return nil, false
+	}
+
+	hook := uint32(payload[0])
+	nodeIndex, _, ok := decodeNodeIndex(payload, 4)
+	if !ok {
+		return nil, false
+	}
+
+	result, ok := createNodeEventObject(env, nodeIndex)
+	if !ok {
+		return nil, false
+	}
+
+	if !setNamedProperty(env, result, "hook", createUint32(env, hook)) {
+		return nil, false
+	}
+
+	return result, true
+}
+
+func createFailMessageEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
+	var result C.napi_value
+	if !must(C.napi_create_object(env, &result), env, "failed to create event object") {
+		return nil, false
+	}
+
+	if !setNamedProperty(env, result, "message", createString(env, string(payload))) {
+		return nil, false
+	}
+
+	return result, true
+}
+
+func createEventValue(env C.napi_env, kind uint32, payload []byte) (C.napi_value, bool) {
+	switch kind {
+	case eventKindNodeFound:
+		return createNodeFoundEvent(env, payload)
+	case eventKindNodeStart, eventKindNodePass:
+		nodeIndex, _, ok := decodeNodeIndex(payload, 0)
+		if !ok {
+			return nil, false
+		}
+		return createNodeEventObject(env, nodeIndex)
+	case eventKindFailMessage:
+		return createFailMessageEvent(env, payload)
+	case eventKindCallbackStart, eventKindCallbackPass:
+		return createCallbackEvent(env, payload)
+	default:
+		return nil, false
+	}
+}
+
+func callbackSlotForEventKind(kind uint32) (callbackSlot, bool) {
+	switch kind {
+	case eventKindNodeFound:
+		return nodeFoundSlot, true
+	case eventKindNodeStart:
+		return nodeStartSlot, true
+	case eventKindNodePass:
+		return nodePassSlot, true
+	case eventKindFailMessage:
+		return failMessageSlot, true
+	case eventKindCallbackStart:
+		return callbackStartSlot, true
+	case eventKindCallbackPass:
+		return callbackPassSlot, true
+	default:
+		return 0, false
+	}
+}
+
+func dispatchEventPayload(state *harnessState, kind uint32, payload []byte) {
+	if state == nil || state.env == nil {
+		return
+	}
+
+	slot, ok := callbackSlotForEventKind(kind)
+	if !ok {
+		return
+	}
+
+	callbackRef := state.callbacks[slot]
+	if callbackRef == nil {
+		return
+	}
+
+	eventValue, ok := createEventValue(state.env, kind, payload)
+	if !ok {
+		return
+	}
+
+	callbackValue, ok := getReferenceValue(state.env, callbackRef)
+	if !ok {
+		return
+	}
+
+	receiver := undefined(state.env)
+	if receiver == nil {
+		return
+	}
+
+	if !must(
+		C.napi_call_function(state.env, receiver, callbackValue, 1, &eventValue, nil),
+		state.env,
+		"failed to call registered event callback",
+	) {
+		return
+	}
+}
+
+func handleWriteEvent(ctx context.Context, module api.Module, kind uint32, payloadPtr uint32, payloadLen uint32) {
+	state := harnessStateFromContext(ctx)
+	if state == nil {
+		return
+	}
+
+	memory := module.Memory()
+	if memory == nil {
+		return
+	}
+
+	payload, ok := memory.Read(payloadPtr, payloadLen)
+	if !ok {
+		return
+	}
+
+	dispatchEventPayload(state, kind, payload)
+}
+
 func compileHarness(bytes []byte) (*harnessState, error) {
 	ctx := context.Background()
 	runtime := wazero.NewRuntime(ctx)
@@ -318,7 +586,9 @@ func compileHarness(bytes []byte) (*harnessState, error) {
 
 	writeEventBuilder := runtime.NewHostModuleBuilder(writeEventModuleName)
 	writeEventBuilder.NewFunctionBuilder().
-		WithFunc(func(context.Context, uint32, uint32, uint32) {}).
+		WithFunc(func(ctx context.Context, module api.Module, kind uint32, payloadPtr uint32, payloadLen uint32) {
+			handleWriteEvent(ctx, module, kind, payloadPtr, payloadLen)
+		}).
 		Export("write_event")
 	writeEventBuilder.NewFunctionBuilder().
 		WithFunc(func(ctx context.Context, module api.Module) uint32 {
@@ -554,6 +824,8 @@ func GoCreateHarness(env C.napi_env, info C.napi_callback_info) C.napi_value {
 		return nil
 	}
 
+	state.env = env
+
 	return createHarnessObject(env, storeHarness(state))
 }
 
@@ -587,6 +859,8 @@ func nodeIndexFromValue(env C.napi_env, value C.napi_value) ([]uint32, bool) {
 }
 
 func runNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) bool {
+	ctx = contextWithHarnessState(ctx, state)
+
 	module, err := state.runtime.InstantiateModule(
 		ctx,
 		state.compiled,
@@ -634,6 +908,8 @@ func runNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) 
 }
 
 func callExportI32(ctx context.Context, state *harnessState, exportName string) (uint32, bool) {
+	ctx = contextWithHarnessState(ctx, state)
+
 	module, err := state.runtime.InstantiateModule(
 		ctx,
 		state.compiled,

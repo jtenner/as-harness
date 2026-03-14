@@ -34,12 +34,15 @@ executor for normal nodes. The currently implemented surface is:
 - a first targeted `NodeIndex` lookup and `run()` export path that resolves a
   concrete node from the shared root tree and executes it through the internal
   executor
+- a first root `discover()` export path that emits `NodeFound` for
+  already-registered top-level nodes without turning discovery into node
+  pass/fail classification
 
 This is now beyond a declaration-only pass, but it is still an internal
 runtime slice rather than a complete `node:test` runner. Targeted traversal,
-`NodeFound` discovery, diagnostics, failure propagation, replay validation,
-assertion-call accounting, and the remaining deferred `t.assert` APIs remain
-open work.
+full-depth `NodeFound` discovery, diagnostics, failure propagation, replay
+validation, assertion-call accounting, and the remaining deferred `t.assert`
+APIs remain open work.
 
 ## Current Explicit Non-Goal
 

@@ -1,6 +1,6 @@
 import { test, TestContext } from "../node:test";
 
-export { allocateNodeIndexBuffer, invoke, run } from "../exports";
+export { allocateNodeIndexBuffer, discover, invoke, run } from "../exports";
 
 test("passing test", (context: TestContext): void => {
   context.assert.strictEqual<i32>(11, 11);

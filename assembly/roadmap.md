@@ -28,7 +28,8 @@ Current package milestone:
   getters, `t.skip(...)` / `t.todo(...)`, and a partial `t.assert` facade now
   exist, and the shared runtime has a first internal executor for normal
   callback and lifecycle-hook execution plus a first targeted `run()` path by
-  `NodeIndex`; `NodeFound` discovery, replay validation, and the remaining
+  `NodeIndex` and a root-level `discover()` pass that emits `NodeFound` for
+  top-level nodes; full discovery depth, replay validation, and the remaining
   execution-oriented context APIs remain follow-up work
 
 | Name          | Kind           | URL starting point                                                              |

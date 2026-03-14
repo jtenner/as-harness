@@ -1,5 +1,5 @@
 export { invoke } from "./internal/trampoline";
-import { runNodeByIndex } from "./internal/traversal";
+import { discoverRootNodes, runNodeByIndex } from "./internal/traversal";
 
 let nodeIndexScratch: StaticArray<u32> | null = null;
 
@@ -27,4 +27,12 @@ export function run(): i32 {
 
   const nodeIndex = changetype<StaticArray<u32>>(nodeIndexScratch);
   return runNodeByIndex(nodeIndex) ? 1 : 0;
+}
+
+/**
+ * Emits `NodeFound` events for the currently registered top-level nodes and
+ * returns the number of root children that were discovered.
+ */
+export function discover(): i32 {
+  return discoverRootNodes();
 }

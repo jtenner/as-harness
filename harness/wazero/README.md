@@ -14,6 +14,8 @@ The project currently proves out the Go-to-N-API build path:
   the guest `invoke()` export and converts trap vs normal return into `0` or `1`
 - `run(nodeIndex)` now calls the guest-side `run()` export after staging the
   requested `NodeIndex`, so the host can execute a concrete target path
+- registered event callbacks now receive decoded event objects from the guest
+  `write_event` sink, including `NodeFound` during the first discovery slice
 - a tiny C shim registers the Node-API module
 - a local build script resolves the active Node installation headers and emits
   `dist/wazero.node`
@@ -46,7 +48,8 @@ declare function createHarness(
 
 `callI32(exportName)` instantiates the compiled module, runs `__start`, calls a
 zero-argument `i32` guest export, and returns the `u32` result to JS. This is
-currently used by the smoke test to probe the staged-callback trampoline ABI.
+currently used by the smoke tests both to probe the staged-callback trampoline
+ABI and to call the first root discovery export.
 
 `run(nodeIndex)` instantiates the compiled module, calls the guest-side
 `allocateNodeIndexBuffer(length)` export, writes each `u32` from the provided
@@ -54,8 +57,9 @@ NodeIndex into guest memory, calls the guest-side `run()` export, and returns
 `true` when that export returns `1` or `false` on trap, missing export, or a
 missing target path.
 
-This is still only a first targeted-run slice, not the full traversal host
-bridge. Discovery, `NodeFound`, and structural replay validation remain TODOs.
+This is still only an early discovery/execution slice, not the full traversal
+host bridge. Full-depth discovery, interrupted-branch handling, and structural
+replay validation remain TODOs.
 
 ## Commands
 
