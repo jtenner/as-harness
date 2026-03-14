@@ -1,4 +1,8 @@
 import { executeNode } from "../../internal/executor";
+import {
+  getObservedAssertionCount,
+  getPlannedAssertionCount,
+} from "../../internal/execution-state";
 import { DeclarationMode, HookKind, NodeKind } from "../../internal/imports";
 import { Node } from "../../internal/node";
 import { TestContext } from "../../internal/context";
@@ -51,6 +55,13 @@ function executeTestCallback(_context: TestContext): void {
 
 function executeSuiteCallback(): void {
   pushTrace("suite callback");
+}
+
+function executePlannedTestCallback(context: TestContext): void {
+  context.plan(2);
+  context.assert.equal<i32>(1, 1);
+  context.assert.deepEqual<i32>(2, 2);
+  pushTrace("planned callback");
 }
 
 function testExecuteNodeRunsHooksInExpectedOrder(): void {
@@ -110,6 +121,21 @@ function testExecuteNodeSkipsNonRunnableModes(): void {
   assert(executionTrace.length == 0);
 }
 
+function testExecuteNodeTracksPlannedAssertionsThroughContextAssert(): void {
+  resetExecutionTrace();
+
+  const planned = new Node(NodeKind.Test, "planned");
+  planned.setTestCallback(executePlannedTestCallback);
+
+  executeNode(planned);
+
+  assert(executionTrace.length == 1);
+  assert(executionTrace[0] == "planned callback");
+  assert(getPlannedAssertionCount() == -1);
+  assert(getObservedAssertionCount() == 0);
+}
+
 testExecuteNodeRunsHooksInExpectedOrder();
 testExecuteNodeRunsPlainSuiteCallbacks();
 testExecuteNodeSkipsNonRunnableModes();
+testExecuteNodeTracksPlannedAssertionsThroughContextAssert();

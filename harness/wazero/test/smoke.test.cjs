@@ -103,10 +103,11 @@ test("run(nodeIndex) executes the targeted node:test path", () => {
 
 	assert.equal(harness.run([0]), true);
 	assert.equal(harness.run([1]), false);
-	assert.equal(harness.run([2]), true);
+	assert.equal(harness.run([2]), false);
 	assert.equal(harness.run([3]), true);
 	assert.equal(harness.run([4]), true);
-	assert.equal(harness.run([5]), false);
+	assert.equal(harness.run([5]), true);
+	assert.equal(harness.run([6]), false);
 });
 
 test("run(nodeIndex) emits decoded node and lifecycle events for a passing test", () => {
@@ -176,6 +177,47 @@ test("run(nodeIndex) emits FailMessage and stops pass events on a failing test",
 	]);
 });
 
+test("run(nodeIndex) emits FailMessage for planned assertion mismatches after cleanup hooks", () => {
+	const harness = addon.createHarness(compiledNodeTestWasm);
+	const events = [];
+
+	harness.onNodeStart((event) => {
+		events.push(["nodeStart", event]);
+	});
+	harness.onNodePass((event) => {
+		events.push(["nodePass", event]);
+	});
+	harness.onCallbackStart((event) => {
+		events.push(["callbackStart", event]);
+	});
+	harness.onCallbackPass((event) => {
+		events.push(["callbackPass", event]);
+	});
+	harness.onFailMessage((event) => {
+		events.push(["failMessage", event]);
+	});
+
+	assert.equal(harness.run([2]), false);
+	assert.deepEqual(events, [
+		["nodeStart", { nodeIndex: [2] }],
+		["callbackStart", { hook: 1, nodeIndex: [] }],
+		["callbackPass", { hook: 1, nodeIndex: [] }],
+		["callbackStart", { hook: 2, nodeIndex: [] }],
+		["callbackPass", { hook: 2, nodeIndex: [] }],
+		["callbackStart", { hook: 3, nodeIndex: [] }],
+		["callbackPass", { hook: 3, nodeIndex: [] }],
+		["callbackStart", { hook: 4, nodeIndex: [] }],
+		["callbackPass", { hook: 4, nodeIndex: [] }],
+		[
+			"failMessage",
+			{
+				message:
+					'node:test plan mismatch in "planned mismatch test": expected 2 assertion(s), saw 1',
+			},
+		],
+	]);
+});
+
 test("discover(nodeIndex) emits NodeFound events for top-level and nested node:test declarations", () => {
 	const harness = addon.createHarness(compiledNodeTestWasm);
 	const found = [];
@@ -185,9 +227,9 @@ test("discover(nodeIndex) emits NodeFound events for top-level and nested node:t
 	});
 
 	assert.equal(harness.discover([]), true);
-	assert.equal(harness.discover([2]), true);
 	assert.equal(harness.discover([3]), true);
 	assert.equal(harness.discover([4]), true);
+	assert.equal(harness.discover([5]), true);
 	assert.equal(harness.discover([1]), false);
 	assert.deepEqual(found, [
 		{
@@ -206,28 +248,34 @@ test("discover(nodeIndex) emits NodeFound events for top-level and nested node:t
 			nodeIndex: [2],
 			kind: 1,
 			declarationMode: 1,
-			name: "parent test",
+			name: "planned mismatch test",
 		},
 		{
 			nodeIndex: [3],
+			kind: 1,
+			declarationMode: 1,
+			name: "parent test",
+		},
+		{
+			nodeIndex: [4],
 			kind: 1,
 			declarationMode: 2,
 			name: "skipped parent",
 		},
 		{
-			nodeIndex: [4],
+			nodeIndex: [5],
 			kind: 1,
 			declarationMode: 3,
 			name: "todo parent",
 		},
 		{
-			nodeIndex: [2, 0],
+			nodeIndex: [3, 0],
 			kind: 1,
 			declarationMode: 1,
 			name: "nested child",
 		},
 		{
-			nodeIndex: [4, 0],
+			nodeIndex: [5, 0],
 			kind: 1,
 			declarationMode: 1,
 			name: "todo nested child",

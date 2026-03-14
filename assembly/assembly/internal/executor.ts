@@ -1,4 +1,8 @@
 import {
+  beginAssertionScope,
+  endAssertionScope,
+} from "./execution-state";
+import {
   callbackPass,
   callbackStart,
   nodePass,
@@ -69,10 +73,12 @@ export function executeNode(node: Node): void {
   const nodeIndex = node.getNodeIndex();
 
   nodeStart(nodeIndex);
+  beginAssertionScope(node.name, node.plan);
   executeHookKind(chain, HookKind.BeforeAll);
   executeHookKind(chain, HookKind.BeforeEach);
   node.invokeCallback();
   executeHookKind(chain, HookKind.AfterEach, true);
   executeHookKind(chain, HookKind.AfterAll, true);
+  endAssertionScope();
   nodePass(nodeIndex);
 }

@@ -22,6 +22,9 @@ executor for normal nodes. The currently implemented surface is:
   declaration mode during callback discovery
 - `t.diagnostic(message)` with a first host-observed diagnostic event that
   carries the active `NodeIndex` plus UTF-8 message text
+- `t.plan(count)` with first-pass execution-scoped assertion counting for the
+  bound `t.assert.*` methods, including mismatch failure at the end of the
+  active node run
 - a first `t.assert` facade bound onto the current synchronous `node:assert`
   bridge for `ok`, strict `equal` / `notEqual`, strict
   `deepEqual` / `notDeepEqual`, `strictEqual`, `notStrictEqual`,
@@ -48,9 +51,9 @@ executor for normal nodes. The currently implemented surface is:
 
 This is now beyond a declaration-only pass, but it is still an internal
 runtime slice rather than a complete `node:test` runner. Targeted traversal,
-full-depth `NodeFound` discovery, failure propagation, replay
-validation, assertion-call accounting, and the remaining deferred `t.assert`
-APIs remain open work.
+full-depth `NodeFound` discovery, failure propagation, replay validation,
+broader execution-state work such as `runOnly(...)`, and the remaining
+deferred `t.assert` APIs remain open work.
 
 ## Current Explicit Non-Goal
 

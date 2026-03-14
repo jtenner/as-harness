@@ -15,12 +15,18 @@ afterEach((_context: TestContext): void => {});
 after((_context: TestContext): void => {});
 
 test("passing test", (context: TestContext): void => {
+  context.plan(1);
   context.diagnostic("passing test diagnostic");
   context.assert.strictEqual<i32>(11, 11);
 });
 
 test("failing test", (context: TestContext): void => {
   context.assert.strictEqual<i32>(11, 12, "node:test smoke mismatch");
+});
+
+test("planned mismatch test", (context: TestContext): void => {
+  context.plan(2);
+  context.assert.strictEqual<i32>(21, 21);
 });
 
 test("parent test", (context: TestContext): void => {

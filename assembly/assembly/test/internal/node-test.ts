@@ -38,6 +38,7 @@ function declareViaContext(context: TestContext): void {
   assert(context.error == 0);
   assert(context.attempt == 0);
   assert(context.workerId == 0);
+  context.plan(2);
   context.assert.equal<i32>(1, 1);
   context.assert.deepEqual<i32>(2, 2);
   context.beforeEach(noopHook);

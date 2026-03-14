@@ -4,6 +4,10 @@
 
 import { DeclarationMode, HookKind } from "./imports";
 import { declareTestNode, registerHook } from "./api";
+import {
+  recordAssertionCall,
+  setPlannedAssertionCount,
+} from "./execution-state";
 import { diagnostic as emitDiagnostic } from "./events";
 import { HookCallback } from "./hooks";
 import { currentNode } from "./node";
@@ -21,18 +25,22 @@ import {
 
 export class AssertionFacade {
   ok<T>(value: T, message: string | null = null): void {
+    recordAssertionCall();
     ok(value, message);
   }
 
   equal<T>(actual: T, expected: T, message: string | null = null): void {
+    recordAssertionCall();
     strictEqual(actual, expected, message);
   }
 
   notEqual<T>(actual: T, expected: T, message: string | null = null): void {
+    recordAssertionCall();
     notStrictEqual(actual, expected, message);
   }
 
   deepEqual<T>(actual: T, expected: T, message: string | null = null): void {
+    recordAssertionCall();
     deepStrictEqual(actual, expected, message);
   }
 
@@ -41,6 +49,7 @@ export class AssertionFacade {
     expected: T,
     message: string | null = null,
   ): void {
+    recordAssertionCall();
     notDeepStrictEqual(actual, expected, message);
   }
 
@@ -49,6 +58,7 @@ export class AssertionFacade {
     expected: T,
     message: string | null = null,
   ): void {
+    recordAssertionCall();
     strictEqual(actual, expected, message);
   }
 
@@ -57,6 +67,7 @@ export class AssertionFacade {
     expected: T,
     message: string | null = null,
   ): void {
+    recordAssertionCall();
     notStrictEqual(actual, expected, message);
   }
 
@@ -65,6 +76,7 @@ export class AssertionFacade {
     expected: T,
     message: string | null = null,
   ): void {
+    recordAssertionCall();
     deepStrictEqual(actual, expected, message);
   }
 
@@ -73,6 +85,7 @@ export class AssertionFacade {
     expected: T,
     message: string | null = null,
   ): void {
+    recordAssertionCall();
     notDeepStrictEqual(actual, expected, message);
   }
 
@@ -80,6 +93,7 @@ export class AssertionFacade {
     callback: () => void,
     message: string | null = null,
   ): void {
+    recordAssertionCall();
     throws(callback, message);
   }
 
@@ -87,14 +101,17 @@ export class AssertionFacade {
     callback: () => void,
     message: string | null = null,
   ): void {
+    recordAssertionCall();
     doesNotThrow(callback, message);
   }
 
   ifError<T>(value: T): void {
+    recordAssertionCall();
     ifError(value);
   }
 
   fail(message: string | null = null): void {
+    recordAssertionCall();
     fail(message);
   }
 }
@@ -209,6 +226,10 @@ export class TestContext {
 
   diagnostic(message: string): void {
     emitDiagnostic(currentNode.getNodeIndex(), message);
+  }
+
+  plan(count: i32): void {
+    setPlannedAssertionCount(count);
   }
 
   skip(_message: string | null = null): void {

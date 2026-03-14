@@ -41,8 +41,8 @@ Implemented today:
   shared node metadata, hook storage, and `NodeIndex` derivation
 - a first declaration-time `node:test` context layer with `t.test(...)`,
   hook-registration aliases, metadata getters, declaration-time `t.skip(...)` /
-  `t.todo(...)`, `t.diagnostic(...)`, and a partial `t.assert` facade bound
-  onto the current synchronous `node:assert` bridge
+  `t.todo(...)`, `t.diagnostic(...)`, `t.plan(...)`, and a partial `t.assert`
+  facade bound onto the current synchronous `node:assert` bridge
 - a first internal `node:test` executor that runs normal node callbacks,
   emits `NodeStart` / `NodePass`, and executes registered lifecycle hooks in
   deterministic root-to-leaf / leaf-to-root order
@@ -80,11 +80,11 @@ Not implemented yet:
 
 For the current scope, standalone `node:assert` work is otherwise complete, and
 `node:test` now has declaration registration, declaration-time contexts, a
-partial `t.assert` facade, a first host-observed diagnostic event, and a first
+partial `t.assert` facade, first host-observed diagnostic events, first-pass
+`t.plan(...)` assertion counting for bound `t.assert.*` calls, and a first
 internal executor for normal callback and hook execution. The next work there
 is targeted traversal/discovery, failure propagation, and the remaining
-execution-oriented context APIs such as assertion-call accounting for
-`t.plan(...)`.
+execution-oriented context APIs such as `t.runOnly(...)`.
 
 ## Package Layout
 
