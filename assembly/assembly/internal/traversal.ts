@@ -3,6 +3,32 @@ import { nodeFound } from "./events";
 import { DeclarationMode } from "./imports";
 import { Node, rootNode } from "./node";
 
+function shouldPruneChildren(parent: Node): bool {
+  return parent.parent !== null && parent.declarationMode == DeclarationMode.Skip;
+}
+
+function resolveTraversalChildren(parent: Node): Array<Node> {
+  if (parent.parent === null) {
+    return parent.getChildren();
+  }
+
+  return parent.rediscoverChildren();
+}
+
+function hasOnlyChildren(children: Array<Node>): bool {
+  for (let index: i32 = 0, length = children.length; index < length; index++) {
+    if (unchecked(children[index]).only) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function isVisibleChild(child: Node, hasOnlyChild: bool): bool {
+  return !hasOnlyChild || child.only;
+}
+
 export function findNodeByIndexFrom(
   parent: Node,
   nodeIndex: StaticArray<u32>,
@@ -10,18 +36,24 @@ export function findNodeByIndexFrom(
   let cursor: Node = parent;
 
   for (let index: i32 = 0, length = nodeIndex.length; index < length; index++) {
-    if (cursor.parent !== null && cursor.declarationMode == DeclarationMode.Skip) {
+    if (shouldPruneChildren(cursor)) {
       return null;
     }
 
-    const children = cursor.getChildren();
+    const children = resolveTraversalChildren(cursor);
     const ordinal = unchecked(nodeIndex[index]);
+    const onlyFiltered = hasOnlyChildren(children);
 
     if (<i32>ordinal >= children.length) {
       return null;
     }
 
-    cursor = unchecked(children[ordinal]);
+    const child = unchecked(children[ordinal]);
+    if (!isVisibleChild(child, onlyFiltered)) {
+      return null;
+    }
+
+    cursor = child;
   }
 
   return cursor;
@@ -49,23 +81,30 @@ export function runNodeByIndex(nodeIndex: StaticArray<u32>): bool {
 }
 
 export function discoverImmediateChildrenOf(parent: Node): i32 {
-  if (parent.parent !== null && parent.declarationMode == DeclarationMode.Skip) {
+  if (shouldPruneChildren(parent)) {
     return 0;
   }
 
-  const children = parent.getChildren();
+  const children = resolveTraversalChildren(parent);
+  const onlyFiltered = hasOnlyChildren(children);
+  let visibleCount = 0;
 
   for (let index: i32 = 0, length = children.length; index < length; index++) {
     const child = unchecked(children[index]);
+    if (!isVisibleChild(child, onlyFiltered)) {
+      continue;
+    }
+
     nodeFound(
       child.getNodeIndex(),
       child.kind,
       child.declarationMode,
       child.name,
     );
+    visibleCount++;
   }
 
-  return children.length;
+  return visibleCount;
 }
 
 export function discoverRootNodes(): i32 {

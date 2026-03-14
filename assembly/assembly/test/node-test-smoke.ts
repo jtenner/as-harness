@@ -33,6 +33,13 @@ test("parent test", (context: TestContext): void => {
   context.test("nested child", (_nestedContext: TestContext): void => {});
 });
 
+test("run-only parent", (context: TestContext): void => {
+  context.runOnly(true);
+  context.test("run-only nested child", (_nestedContext: TestContext): void => {});
+  context.runOnly(false);
+  context.test("plain nested child", (_nestedContext: TestContext): void => {});
+});
+
 test.skip("skipped parent", (context: TestContext): void => {
   context.test("skipped nested child", (_nestedContext: TestContext): void => {});
 });

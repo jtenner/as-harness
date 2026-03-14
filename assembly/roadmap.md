@@ -28,14 +28,16 @@ Current package milestone:
   getters, `t.skip(...)` / `t.todo(...)`, `t.diagnostic(...)`,
   first-pass `t.plan(...)`, and a partial `t.assert` facade now exist, and the
   shared runtime has a first internal executor for normal callback and
-  lifecycle-hook execution plus a first targeted `run()` path by `NodeIndex`,
-  a root-level `discover()` pass that emits `NodeFound` for top-level nodes, a
-  first staged child-discovery host path, and host-observed diagnostic and
-  plan-mismatch failure paths plus first execution-scoped `attempt` /
-  `passed` metadata, first failure-message-backed `error` state, and
-  callback-scoped `t.runOnly(...)` handling for nested subtests; full
-  discovery depth, replay validation, and the remaining execution-oriented
-  context APIs remain follow-up work
+  lifecycle-hook execution plus a first targeted `run()` path by `NodeIndex`
+  that replays from roots through ancestor callbacks, a root-level
+  `discover()` pass that emits `NodeFound` for top-level nodes, a first staged
+  child-discovery host path, first immediate-scope `only` filtering for
+  discovery and execution, and host-observed diagnostic and plan-mismatch
+  failure paths plus first execution-scoped `attempt` / `passed` metadata,
+  first failure-message-backed `error` state, and callback-scoped
+  `t.runOnly(...)` handling for nested subtests; full discovery depth, richer
+  replay validation, and the remaining execution-oriented context APIs remain
+  follow-up work
 
 | Name          | Kind           | URL starting point                                                              |
 | ------------- | -------------- | ------------------------------------------------------------------------------- |

@@ -31,6 +31,7 @@ export class Node {
   readonly concurrency: i32;
   readonly plan: i32;
 
+  private readonly baseDeclarationModeValue: DeclarationMode;
   private declarationModeValue: DeclarationMode;
   private parentValue: Node | null = null;
   private ordinalValue: u32 = 0;
@@ -52,6 +53,7 @@ export class Node {
   ) {
     this.kind = kind;
     this.name = name;
+    this.baseDeclarationModeValue = declarationMode;
     this.declarationModeValue = declarationMode;
     this.callback = callback !== null ? callback : noop;
     this.only = options !== null ? options.only : false;
@@ -88,6 +90,13 @@ export class Node {
     return this.childrenValue;
   }
 
+  rediscoverChildren(): Array<Node> {
+    this.resetReplayState();
+    this.childrenResolved = true;
+    this.invokeCallback();
+    return this.childrenValue;
+  }
+
   createChild(
     kind: NodeKind,
     name: string,
@@ -114,6 +123,16 @@ export class Node {
 
   setDeclarationMode(mode: DeclarationMode): void {
     this.declarationModeValue = mode;
+  }
+
+  resetReplayState(): void {
+    this.declarationModeValue = this.baseDeclarationModeValue;
+    this.childrenValue.length = 0;
+    this.childrenResolved = false;
+    this.beforeAllHooks.length = 0;
+    this.beforeEachHooks.length = 0;
+    this.afterEachHooks.length = 0;
+    this.afterAllHooks.length = 0;
   }
 
   invokeCallback(): void {

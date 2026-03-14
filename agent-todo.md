@@ -153,8 +153,8 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 ## Traversal and Replay
 
 - [ ] Define the targeted traversal input contract for replaying toward a requested node path.
-- [ ] Implement replay starting from roots and re-entering ancestors as needed.
-- [ ] Rediscover nodes in deterministic order on every replay attempt.
+- [x] Implement replay starting from roots and re-entering ancestors as needed.
+- [x] Rediscover nodes in deterministic order on every replay attempt.
 - [ ] Emit `NodeFound` during discovery for every structurally visible node.
 - [ ] Enforce declaration-mode traversal semantics:
 - [ ] `skip`: emit discovery metadata, stop traversal at that node, and do not traverse children.

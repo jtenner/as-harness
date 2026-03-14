@@ -1,6 +1,6 @@
 import { SuiteContext, TestContext } from "../../node:test";
 import { DeclarationMode, NodeKind } from "../../internal/imports";
-import { currentNode, Node } from "../../internal/node";
+import { currentNode, Node, NodeExecutionOptions } from "../../internal/node";
 import {
   discoverChildrenByIndexFrom,
   discoverImmediateChildrenOf,
@@ -29,6 +29,36 @@ function plainTestCallback(_context: TestContext): void {
 function declareNestedSuite(_context: SuiteContext): void {
   const nested = currentNode.createChild(NodeKind.Test, "nested");
   nested.setTestCallback(nestedTestCallback);
+}
+
+let replayedChildDiscoveryCount = 0;
+
+function declareReplaySensitiveSuite(_context: SuiteContext): void {
+  replayedChildDiscoveryCount++;
+  if (replayedChildDiscoveryCount == 1) {
+    const nested = currentNode.createChild(NodeKind.Test, "replayed nested");
+    nested.setTestCallback(nestedTestCallback);
+  }
+}
+
+function createOnlyOptions(): NodeExecutionOptions {
+  const options = new NodeExecutionOptions();
+  options.only = true;
+  return options;
+}
+
+function declareOnlyNestedSuite(_context: SuiteContext): void {
+  const onlyNested = currentNode.createChild(
+    NodeKind.Test,
+    "only nested",
+    DeclarationMode.Normal,
+    null,
+    createOnlyOptions(),
+  );
+  onlyNested.setTestCallback(nestedTestCallback);
+
+  const plainNested = currentNode.createChild(NodeKind.Test, "plain nested");
+  plainNested.setTestCallback(plainTestCallback);
 }
 
 function testFindNodeByIndexFromDiscoversNestedChildren(): void {
@@ -126,6 +156,70 @@ function testDiscoverChildrenByIndexFromAllowsTodoBranches(): void {
   assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
 }
 
+function testFindNodeByIndexFromRediscoversAncestorsOnEveryAttempt(): void {
+  replayedChildDiscoveryCount = 0;
+
+  const localRoot = new Node(NodeKind.Root, "local root");
+  const suite = localRoot.createChild(NodeKind.Describe, "suite");
+  suite.setSuiteCallback(declareReplaySensitiveSuite);
+
+  const firstFound = findNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>);
+  assert(firstFound !== null);
+
+  const secondFound = findNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>);
+  assert(secondFound === null);
+}
+
+function testDiscoverImmediateChildrenOfFiltersOnlyChildren(): void {
+  const localRoot = new Node(NodeKind.Root, "local root");
+  localRoot.createChild(NodeKind.Test, "plain before");
+  localRoot.createChild(
+    NodeKind.Test,
+    "only child",
+    DeclarationMode.Normal,
+    null,
+    createOnlyOptions(),
+  );
+  localRoot.createChild(NodeKind.Test, "plain after");
+
+  assert(discoverImmediateChildrenOf(localRoot) == 1);
+}
+
+function testRunNodeByIndexFromRejectsNonOnlyTargets(): void {
+  resetExecutionTrace();
+
+  const localRoot = new Node(NodeKind.Root, "local root");
+  const plain = localRoot.createChild(NodeKind.Test, "plain");
+  plain.setTestCallback(plainTestCallback);
+  const onlyChild = localRoot.createChild(
+    NodeKind.Test,
+    "only child",
+    DeclarationMode.Normal,
+    null,
+    createOnlyOptions(),
+  );
+  onlyChild.setTestCallback(nestedTestCallback);
+
+  assert(!runNodeByIndexFrom(localRoot, [0] as StaticArray<u32>));
+  assert(runNodeByIndexFrom(localRoot, [1] as StaticArray<u32>));
+  assert(executionTrace.length == 1);
+  assert(executionTrace[0] == "nested test");
+}
+
+function testDiscoverAndRunNestedOnlyChildren(): void {
+  resetExecutionTrace();
+
+  const localRoot = new Node(NodeKind.Root, "local root");
+  const suite = localRoot.createChild(NodeKind.Describe, "suite");
+  suite.setSuiteCallback(declareOnlyNestedSuite);
+
+  assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
+  assert(runNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>));
+  assert(!runNodeByIndexFrom(localRoot, [0, 1] as StaticArray<u32>));
+  assert(executionTrace.length == 1);
+  assert(executionTrace[0] == "nested test");
+}
+
 testFindNodeByIndexFromDiscoversNestedChildren();
 testFindNodeByIndexFromRejectsMissingOrdinals();
 testRunNodeByIndexFromExecutesResolvedNode();
@@ -135,3 +229,7 @@ testDiscoverChildrenByIndexFromRejectsMissingNodes();
 testDiscoverImmediateChildrenOfSkipsSkippedParents();
 testFindNodeByIndexFromPrunesSkippedBranches();
 testDiscoverChildrenByIndexFromAllowsTodoBranches();
+testFindNodeByIndexFromRediscoversAncestorsOnEveryAttempt();
+testDiscoverImmediateChildrenOfFiltersOnlyChildren();
+testRunNodeByIndexFromRejectsNonOnlyTargets();
+testDiscoverAndRunNestedOnlyChildren();

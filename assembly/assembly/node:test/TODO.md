@@ -39,9 +39,9 @@ executor for normal nodes. The currently implemented surface is:
 - a first internal executor that emits `NodeStart` / `NodePass`, runs normal
   node callbacks, and executes `beforeAll` / `beforeEach` in root-to-leaf
   order plus `afterEach` / `afterAll` in leaf-to-root order
-- a first targeted `NodeIndex` lookup and `run()` export path that resolves a
-  concrete node from the shared root tree and executes it through the internal
-  executor
+- a first targeted `run()` export path that replays from the shared root
+  through ancestor callbacks on every attempt, resolves a concrete node by
+  `NodeIndex`, and executes it through the internal executor
 - a first root `discover()` export path that emits `NodeFound` for
   already-registered top-level nodes without turning discovery into node
   pass/fail classification
@@ -51,12 +51,16 @@ executor for normal nodes. The currently implemented surface is:
   failure instead of test outcome
 - first declaration-mode discovery semantics for nested branches, where `skip`
   prunes descendant discovery while `todo` still allows descendant discovery
+- first immediate-scope `only` filtering for discovery and execution, so
+  `test.only(...)`, `suite.only(...)`, and callback-scoped `t.runOnly(...)`
+  now filter sibling visibility and runnable targets within the active parent
+  scope
 
 This is now beyond a declaration-only pass, but it is still an internal
 runtime slice rather than a complete `node:test` runner. Targeted traversal,
-full-depth `NodeFound` discovery, failure propagation, replay validation,
-broader execution-state work such as `runOnly(...)`, and the remaining
-deferred `t.assert` APIs remain open work.
+full-depth `NodeFound` discovery, failure propagation, replay validation past
+simple missing-target behavior, and the remaining deferred `t.assert` APIs
+remain open work.
 
 ## Current Explicit Non-Goal
 

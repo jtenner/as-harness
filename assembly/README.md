@@ -50,8 +50,9 @@ Implemented today:
 - a first internal `node:test` executor that runs normal node callbacks,
   emits `NodeStart` / `NodePass`, and executes registered lifecycle hooks in
   deterministic root-to-leaf / leaf-to-root order
-- a first targeted `run()` export path that resolves the staged `NodeIndex`
-  against the shared root tree and executes the targeted node
+- a first targeted `run()` export path that replays from the shared root
+  through ancestor callbacks on every attempt before executing the targeted
+  `NodeIndex`
 - a first root discovery `discover()` export path that emits `NodeFound`
   events for already-registered top-level nodes without classifying outcomes
 - a first staged `discover(nodeIndex)` host path in wazero that can rediscover
@@ -60,6 +61,9 @@ Implemented today:
 - first `skip` / `todo` discovery semantics for nested branches, where skipped
   parents are discovered but do not expose descendants while todo parents still
   allow descendant discovery
+- first immediate-scope `only` filtering for nested discovery and execution, so
+  `test.only(...)` / `suite.only(...)` and callback-scoped `t.runOnly(...)`
+  now hide non-`only` siblings from the active parent scope
 - a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint with a
   host-callable `allocateNodeIndexBuffer(length)` export for NodeIndex writes
   plus the guest-side `invoke()` trampoline export
@@ -88,8 +92,10 @@ partial `t.assert` facade, first host-observed diagnostic events, first-pass
 `t.plan(...)` assertion counting for bound `t.assert.*` calls, and a first
 internal executor for normal callback and hook execution, including first
 execution-scoped `attempt` / `passed` metadata, first failure-message-backed
-`error` state, and callback-scoped `t.runOnly(...)` for nested subtests. The
-next work there is targeted traversal/discovery, failure propagation, and the
+`error` state, callback-scoped `t.runOnly(...)` for nested subtests, root-to-
+target replay through ancestor callbacks, and first immediate-scope `only`
+filtering during discovery and execution. The next work there is deeper
+traversal/discovery, richer replay validation, failure propagation, and the
 remaining execution-oriented context APIs such as richer host-facing error
 state.
 
