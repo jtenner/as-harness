@@ -9,7 +9,10 @@ import type {
 import { createParticipatingMemberHash } from "./hash.js";
 
 export type ParticipatingMemberKind = "field" | "getter";
-export type StrictEqualityComparisonStrategy = "value" | "managedClass";
+export type StrictEqualityComparisonStrategy =
+	| "value"
+	| "arrayBuffer"
+	| "managedClass";
 
 export type ParticipatingMember = {
 	declaration: FieldDeclaration | MethodDeclaration;
@@ -112,6 +115,10 @@ function getStrictEqualityComparisonStrategy(
 		false
 	) {
 		return "value";
+	}
+
+	if (typeName === "ArrayBuffer") {
+		return "arrayBuffer";
 	}
 
 	if (

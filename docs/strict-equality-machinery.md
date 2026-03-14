@@ -364,19 +364,20 @@ of that contract:
 - runtime-type-id extraction for guarded class casts
 - primitive and string value comparison
 - nullable-reference identity comparison
+- `ArrayBuffer` bytewise comparison
 - managed-class recursion through transform-generated hooks
 
-The member-helper path still stops short of collection-specialized comparison,
-but recursive managed-class comparison is now routed through the shared
-pair-cache, active-stack, and deferred-match machinery in Phase 3.
+The member-helper path still stops short of arrays, typed arrays, `Set`, and
+`Map`, but `ArrayBuffer` and recursive managed-class comparison are now routed
+through shared runtime helpers in Phase 3.
 
 The runtime-side responsibilities are:
 
 - primitive and nullable handling
 - `NaN` normalization
 - pair-cache and active-stack tracking
-- specialized comparison for `ArrayBuffer`, arrays, typed arrays, `Set`, `Map`,
-  and function references
+- specialized comparison for arrays, typed arrays, `Set`, `Map`, and function
+  references
 - reflected-value construction
 - failure/result propagation
 
@@ -390,6 +391,7 @@ The current runtime implementation now includes the first shared helpers for:
 - pair-cache tracking for already-proven reference pairs
 - active-stack tracking for in-flight reference pairs
 - deferred-match handling for recursive reference cycles
+- `ArrayBuffer` bytewise comparison
 - managed-class recursion delegated back into transform-generated hooks
 
 ### Transform Activation Policy

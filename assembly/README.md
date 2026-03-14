@@ -135,9 +135,10 @@ The AssemblyScript package is being organized around these internal module bound
 Only the earliest `events`, node metadata, import-boundary pieces, and the
 first strict-equality runtime helpers exist right now. That strict-equality
 work currently covers the shared contract constants plus primitive, string,
-nullable, runtime-type-id, pair-cache, active-stack, and `NaN`-aware
-comparison helpers, plus managed-class recursion through generated hooks;
-collection-specialized branches are still pending.
+nullable, runtime-type-id, pair-cache, active-stack, `NaN`-aware comparison
+helpers, `ArrayBuffer` bytewise comparison, and managed-class recursion through
+generated hooks; arrays, typed arrays, sets, maps, and the reflected-value
+runtime are still pending.
 
 ## Event Model
 

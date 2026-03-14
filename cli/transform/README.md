@@ -33,5 +33,5 @@ The current implementation now performs the first transform pass:
 
 Those generated methods are still scaffold-level at the runtime boundary. The
 shared AssemblyScript helpers now perform primitive, string, nullable,
-runtime-type, and managed-class recursive checks. Recursive collection
-comparison work is still pending.
+runtime-type, `ArrayBuffer`, and managed-class recursive checks. Arrays, typed
+arrays, sets, and maps are still pending.

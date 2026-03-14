@@ -19,6 +19,7 @@ import type {
 import {
 	ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME,
 	ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
+	STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME,
@@ -366,6 +367,31 @@ class Box<T> {
 	).toEqual(["managedClass", "managedClass", "value", "value", "managedClass"]);
 });
 
+test("marks ArrayBuffer-typed members for dedicated buffer helper delegation", () => {
+	const parser = parseSource(`
+class Example {
+  buffer: ArrayBuffer;
+
+  get alias(): ArrayBuffer {
+    return this.buffer;
+  }
+}
+`);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Example",
+	);
+	const participatingMembers =
+		getParticipatingInstanceMembers(classDeclaration);
+
+	expect(
+		participatingMembers.map(
+			(member) => member.strictEqualityComparisonStrategy,
+		),
+	).toEqual(["arrayBuffer", "arrayBuffer"]);
+});
+
 test("delegates into super from generated strict-equality hooks on derived classes", () => {
 	const parser = parseSource(`
 class Base {}
@@ -533,6 +559,47 @@ class Example {
 		STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME,
 	);
 	expect((childCall.args[0] as { value: string }).value).toBe("field:child");
+	expect((aliasCall.args[0] as { value: string }).value).toBe("getter:alias");
+});
+
+test("emits ArrayBuffer helper checks for participating ArrayBuffer-typed members", () => {
+	const parser = parseSource(`
+class Example {
+  buffer: ArrayBuffer;
+
+  get alias(): ArrayBuffer {
+    return this.buffer;
+  }
+}
+`);
+
+	new StrictEqualityTransform().afterParse(parser);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Example",
+	);
+	const strictEqualsMethod = findMethod(
+		classDeclaration,
+		STRICT_EQUALS_METHOD_NAME,
+	);
+	const bodyStatements = getMethodBodyStatements(strictEqualsMethod);
+	const bufferCheck = bodyStatements[2] as IfStatement;
+	const aliasCheck = bodyStatements[3] as IfStatement;
+	const bufferCall = (bufferCheck.condition as UnaryPrefixExpression)
+		.operand as CallExpression;
+	const aliasCall = (aliasCheck.condition as UnaryPrefixExpression)
+		.operand as CallExpression;
+
+	expect(bufferCall.expression.kind).toBe(NodeKind.Identifier);
+	expect(aliasCall.expression.kind).toBe(NodeKind.Identifier);
+	expect(bufferCall.expression.text).toBe(
+		STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME,
+	);
+	expect(aliasCall.expression.text).toBe(
+		STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME,
+	);
+	expect((bufferCall.args[0] as { value: string }).value).toBe("field:buffer");
 	expect((aliasCall.args[0] as { value: string }).value).toBe("getter:alias");
 });
 

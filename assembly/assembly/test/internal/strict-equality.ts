@@ -1,10 +1,12 @@
 import {
   __asHarnessAddReflectedValueKeyValuePair,
   __asHarnessHasStrictEqualityRuntimeType,
+  __asHarnessStrictEqualsArrayBufferMember,
   __asHarnessStrictEqualsManagedClassMember,
   __asHarnessStrictEqualsMember,
   ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
   ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME,
+  compareStrictEqualityArrayBuffer,
   compareStrictEqualityManagedClass,
   compareStrictEqualityReferencePair,
   compareStrictEqualityString,
@@ -18,6 +20,7 @@ import {
   hasProvenStrictEqualityReferencePair,
   resetStrictEqualityReferencePairTracking,
   STRICT_EQUALS_METHOD_NAME,
+  STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME,
   STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME,
   STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME,
   STRICT_EQUALS_MEMBER_HELPER_NAME,
@@ -101,6 +104,10 @@ function reenterStrictEqualityPair(
 function testStrictEqualityHookNames(): void {
   assert(STRICT_EQUALS_METHOD_NAME == "__asHarnessStrictEquals");
   assert(
+    STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME ==
+      "__asHarnessStrictEqualsArrayBufferMember",
+  );
+  assert(
     STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME ==
       "__asHarnessStrictEqualsManagedClassMember",
   );
@@ -158,6 +165,16 @@ function testStrictEqualityMemberHelpers(): void {
   assert(__asHarnessStrictEqualsMember("field:value", 42, 42));
   assert(!__asHarnessStrictEqualsMember("field:value", 42, 7));
   __asHarnessAddReflectedValueKeyValuePair("field:value", 42);
+}
+
+function createArrayBufferFromBytes(values: StaticArray<u8>): ArrayBuffer {
+  const output = new ArrayBuffer(values.length);
+  memory.copy(
+    changetype<usize>(output),
+    changetype<usize>(values),
+    <usize>values.length,
+  );
+  return output;
 }
 
 function createRecursiveCycle(
@@ -250,6 +267,52 @@ function testStrictEqualityStringComparison(): void {
   assert(
     compareStrictEqualityValue<string>(left, "steady") ==
       StrictEqualityResult.Fail,
+  );
+}
+
+function testStrictEqualityArrayBufferComparison(): void {
+  const left = createArrayBufferFromBytes([1, 2, 3, 4]);
+  const right = createArrayBufferFromBytes([1, 2, 3, 4]);
+  const mismatch = createArrayBufferFromBytes([1, 2, 9, 4]);
+  const shorter = createArrayBufferFromBytes([1, 2, 3]);
+  const emptyLeft = new ArrayBuffer(0);
+  const emptyRight = new ArrayBuffer(0);
+  const nullBuffer = changetype<ArrayBuffer | null>(0);
+
+  assert(
+    compareStrictEqualityArrayBuffer(left, right) == StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityArrayBuffer(left, mismatch) ==
+      StrictEqualityResult.Fail,
+  );
+  assert(
+    compareStrictEqualityArrayBuffer(left, shorter) ==
+      StrictEqualityResult.Fail,
+  );
+  assert(
+    compareStrictEqualityArrayBuffer(emptyLeft, emptyRight) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityArrayBuffer(left, nullBuffer) ==
+      StrictEqualityResult.Fail,
+  );
+  assert(
+    compareStrictEqualityArrayBuffer(nullBuffer, nullBuffer) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityValue<ArrayBuffer>(left, right) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityValue<ArrayBuffer>(left, mismatch) ==
+      StrictEqualityResult.Fail,
+  );
+  assert(__asHarnessStrictEqualsArrayBufferMember("field:buffer", left, right));
+  assert(
+    !__asHarnessStrictEqualsArrayBufferMember("field:buffer", left, mismatch),
   );
 }
 
@@ -383,6 +446,7 @@ testStrictEqualityMemberHelpers();
 testStrictEqualityPrimitiveComparison();
 testStrictEqualityNullableReferenceComparison();
 testStrictEqualityStringComparison();
+testStrictEqualityArrayBufferComparison();
 testStrictEqualityRuntimeTypeHelpers();
 testStrictEqualityReferencePairTracking();
 testStrictEqualityManagedClassComparison();

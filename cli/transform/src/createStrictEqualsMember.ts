@@ -13,6 +13,7 @@ import type {
 	TypeNode,
 } from "assemblyscript/dist/assemblyscript.js";
 import {
+	STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME,
 	STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_MEMBER_HELPER_NAME,
@@ -187,10 +188,12 @@ export function createStrictEqualsMember(
 	}
 
 	for (const member of participatingMembers) {
-		const helperName =
-			member.strictEqualityComparisonStrategy === "managedClass"
-				? STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME
-				: STRICT_EQUALS_MEMBER_HELPER_NAME;
+		let helperName = STRICT_EQUALS_MEMBER_HELPER_NAME;
+		if (member.strictEqualityComparisonStrategy === "arrayBuffer") {
+			helperName = STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME;
+		} else if (member.strictEqualityComparisonStrategy === "managedClass") {
+			helperName = STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME;
+		}
 		const memberCheckCall = Node.createCallExpression(
 			Node.createIdentifierExpression(helperName, range),
 			null,

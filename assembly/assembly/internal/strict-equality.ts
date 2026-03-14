@@ -1,3 +1,4 @@
+import { memory } from "memory";
 import { OBJECT, TOTAL_OVERHEAD } from "rt/common";
 
 /**
@@ -34,6 +35,8 @@ export const ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME =
 export const STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME =
   "__asHarnessHasStrictEqualityRuntimeType";
 export const STRICT_EQUALS_MEMBER_HELPER_NAME = "__asHarnessStrictEqualsMember";
+export const STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME =
+  "__asHarnessStrictEqualsArrayBufferMember";
 export const STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME =
   "__asHarnessStrictEqualsManagedClassMember";
 export const ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME =
@@ -135,6 +138,36 @@ export function compareStrictEqualityString(
     : StrictEqualityResult.Fail;
 }
 
+export function compareStrictEqualityArrayBuffer(
+  left: ArrayBuffer | null,
+  right: ArrayBuffer | null,
+): StrictEqualityResult {
+  if (left == right) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (left === null || right === null) {
+    return StrictEqualityResult.Fail;
+  }
+
+  const byteLength = left.byteLength;
+  if (byteLength != right.byteLength) {
+    return StrictEqualityResult.Fail;
+  }
+
+  if (byteLength == 0) {
+    return StrictEqualityResult.Match;
+  }
+
+  return memory.compare(
+    changetype<usize>(left),
+    changetype<usize>(right),
+    <usize>byteLength,
+  ) == 0
+    ? StrictEqualityResult.Match
+    : StrictEqualityResult.Fail;
+}
+
 export function compareStrictEqualityValue<T>(
   left: T,
   right: T,
@@ -144,6 +177,13 @@ export function compareStrictEqualityValue<T>(
       return compareStrictEqualityString(
         changetype<string>(left),
         changetype<string>(right),
+      );
+    }
+
+    if (idof<T>() == idof<ArrayBuffer>()) {
+      return compareStrictEqualityArrayBuffer(
+        changetype<ArrayBuffer | null>(left),
+        changetype<ArrayBuffer | null>(right),
       );
     }
 
@@ -305,6 +345,14 @@ export function __asHarnessStrictEqualsMember<T>(
   right: T,
 ): bool {
   return compareStrictEqualityValue(left, right) != StrictEqualityResult.Fail;
+}
+
+export function __asHarnessStrictEqualsArrayBufferMember(
+  _memberHash: string,
+  left: ArrayBuffer | null,
+  right: ArrayBuffer | null,
+): bool {
+  return compareStrictEqualityArrayBuffer(left, right) != StrictEqualityResult.Fail;
 }
 
 export function __asHarnessStrictEqualsManagedClassMember<T>(
