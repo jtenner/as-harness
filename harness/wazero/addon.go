@@ -13,6 +13,7 @@ extern napi_value GoOnFailMessage(napi_env env, napi_callback_info info);
 extern napi_value GoOnCallbackStart(napi_env env, napi_callback_info info);
 extern napi_value GoOnCallbackPass(napi_env env, napi_callback_info info);
 extern napi_value GoCallI32(napi_env env, napi_callback_info info);
+extern napi_value GoDiscoverHarness(napi_env env, napi_callback_info info);
 extern napi_value GoRunHarness(napi_env env, napi_callback_info info);
 extern void GoFinalizeHarness(node_api_basic_env env, void* data, void* hint);
 */
@@ -30,6 +31,7 @@ import (
 
 const harnessIDProperty = "__asHarnessId"
 const allocateNodeIndexBufferExport = "allocateNodeIndexBuffer"
+const discoverExport = "discover"
 const runExport = "run"
 const abortModuleName = "env"
 const writeEventModuleName = "as-harness"
@@ -794,6 +796,9 @@ func createHarnessObject(env C.napi_env, id int64) C.napi_value {
 	if !setNamedProperty(env, harness, "callI32", createFunction(env, "callI32", (C.napi_callback)(C.GoCallI32))) {
 		return nil
 	}
+	if !setNamedProperty(env, harness, "discover", createFunction(env, "discover", (C.napi_callback)(C.GoDiscoverHarness))) {
+		return nil
+	}
 	if !setNamedProperty(env, harness, "run", createFunction(env, "run", (C.napi_callback)(C.GoRunHarness))) {
 		return nil
 	}
@@ -907,6 +912,55 @@ func runNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) 
 	return runResults[0] == 1
 }
 
+func discoverNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) bool {
+	ctx = contextWithHarnessState(ctx, state)
+
+	module, err := state.runtime.InstantiateModule(
+		ctx,
+		state.compiled,
+		wazero.NewModuleConfig().WithName("").WithStartFunctions("__start"),
+	)
+	if err != nil {
+		return false
+	}
+	defer module.Close(ctx)
+
+	allocateBuffer := module.ExportedFunction(allocateNodeIndexBufferExport)
+	if allocateBuffer == nil {
+		return false
+	}
+
+	results, err := allocateBuffer.Call(ctx, uint64(len(nodeIndex)))
+	if err != nil || len(results) != 1 {
+		return false
+	}
+
+	memory := module.Memory()
+	if memory == nil {
+		return false
+	}
+
+	bufferPtr := uint32(results[0])
+	for index, value := range nodeIndex {
+		offset := bufferPtr + uint32(index*uint32ByteLength)
+		if !memory.WriteUint32Le(offset, value) {
+			return false
+		}
+	}
+
+	discover := module.ExportedFunction(discoverExport)
+	if discover == nil {
+		return false
+	}
+
+	discoverResults, err := discover.Call(ctx)
+	if err != nil || len(discoverResults) != 1 {
+		return false
+	}
+
+	return int32(discoverResults[0]) >= 0
+}
+
 func callExportI32(ctx context.Context, state *harnessState, exportName string) (uint32, bool) {
 	ctx = contextWithHarnessState(ctx, state)
 
@@ -993,6 +1047,30 @@ func GoCallI32(env C.napi_env, info C.napi_callback_info) C.napi_value {
 	}
 
 	return createUint32(env, result)
+}
+
+//export GoDiscoverHarness
+func GoDiscoverHarness(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	args, thisArg, ok := getCallbackArguments(env, info, 1)
+	if !ok {
+		return nil
+	}
+
+	if len(args) < 1 {
+		return createBoolean(env, false)
+	}
+
+	state, ok := requireHarness(env, thisArg)
+	if !ok {
+		return createBoolean(env, false)
+	}
+
+	nodeIndex, ok := nodeIndexFromValue(env, args[0])
+	if !ok {
+		return createBoolean(env, false)
+	}
+
+	return createBoolean(env, discoverNodeIndex(context.Background(), state, nodeIndex))
 }
 
 //export GoRunHarness

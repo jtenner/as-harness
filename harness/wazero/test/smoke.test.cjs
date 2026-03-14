@@ -83,6 +83,7 @@ test("creates a harness with per-event registration methods", () => {
 	assert.equal(typeof harness.onCallbackStart, "function");
 	assert.equal(typeof harness.onCallbackPass, "function");
 	assert.equal(typeof harness.callI32, "function");
+	assert.equal(typeof harness.discover, "function");
 	assert.equal(typeof harness.run, "function");
 
 	harness.onNodeFound(() => {});
@@ -100,10 +101,11 @@ test("run(nodeIndex) executes the targeted node:test path", () => {
 
 	assert.equal(harness.run([0]), true);
 	assert.equal(harness.run([1]), false);
-	assert.equal(harness.run([2]), false);
+	assert.equal(harness.run([2]), true);
+	assert.equal(harness.run([3]), false);
 });
 
-test("callI32('discover') emits NodeFound events for top-level node:test declarations", () => {
+test("discover(nodeIndex) emits NodeFound events for top-level and nested node:test declarations", () => {
 	const harness = addon.createHarness(compiledNodeTestWasm);
 	const found = [];
 
@@ -111,7 +113,9 @@ test("callI32('discover') emits NodeFound events for top-level node:test declara
 		found.push(event);
 	});
 
-	assert.equal(harness.callI32("discover"), 2);
+	assert.equal(harness.discover([]), true);
+	assert.equal(harness.discover([2]), true);
+	assert.equal(harness.discover([1]), false);
 	assert.deepEqual(found, [
 		{
 			nodeIndex: [0],
@@ -124,6 +128,18 @@ test("callI32('discover') emits NodeFound events for top-level node:test declara
 			kind: 1,
 			declarationMode: 1,
 			name: "failing test",
+		},
+		{
+			nodeIndex: [2],
+			kind: 1,
+			declarationMode: 1,
+			name: "parent test",
+		},
+		{
+			nodeIndex: [2, 0],
+			kind: 1,
+			declarationMode: 1,
+			name: "nested child",
 		},
 	]);
 });

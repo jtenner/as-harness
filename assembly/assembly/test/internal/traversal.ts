@@ -2,6 +2,7 @@ import { SuiteContext, TestContext } from "../../node:test";
 import { NodeKind } from "../../internal/imports";
 import { currentNode, Node } from "../../internal/node";
 import {
+  discoverChildrenByIndexFrom,
   discoverImmediateChildrenOf,
   findNodeByIndexFrom,
   runNodeByIndexFrom,
@@ -73,7 +74,24 @@ function testDiscoverImmediateChildrenOfCountsTopLevelNodes(): void {
   assert(discoverImmediateChildrenOf(localRoot) == 2);
 }
 
+function testDiscoverChildrenByIndexFromCountsNestedChildren(): void {
+  const localRoot = new Node(NodeKind.Root, "local root");
+  const suite = localRoot.createChild(NodeKind.Describe, "suite");
+  suite.setSuiteCallback(declareNestedSuite);
+
+  assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
+}
+
+function testDiscoverChildrenByIndexFromRejectsMissingNodes(): void {
+  const localRoot = new Node(NodeKind.Root, "local root");
+  localRoot.createChild(NodeKind.Test, "plain");
+
+  assert(discoverChildrenByIndexFrom(localRoot, [1] as StaticArray<u32>) == -1);
+}
+
 testFindNodeByIndexFromDiscoversNestedChildren();
 testFindNodeByIndexFromRejectsMissingOrdinals();
 testRunNodeByIndexFromExecutesResolvedNode();
 testDiscoverImmediateChildrenOfCountsTopLevelNodes();
+testDiscoverChildrenByIndexFromCountsNestedChildren();
+testDiscoverChildrenByIndexFromRejectsMissingNodes();

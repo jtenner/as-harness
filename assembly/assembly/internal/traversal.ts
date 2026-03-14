@@ -62,3 +62,19 @@ export function discoverImmediateChildrenOf(parent: Node): i32 {
 export function discoverRootNodes(): i32 {
   return discoverImmediateChildrenOf(rootNode);
 }
+
+export function discoverChildrenByIndexFrom(
+  parent: Node,
+  nodeIndex: StaticArray<u32>,
+): i32 {
+  const node = findNodeByIndexFrom(parent, nodeIndex);
+  if (node === null) {
+    return -1;
+  }
+
+  return discoverImmediateChildrenOf(node);
+}
+
+export function discoverChildrenByIndex(nodeIndex: StaticArray<u32>): i32 {
+  return discoverChildrenByIndexFrom(rootNode, nodeIndex);
+}

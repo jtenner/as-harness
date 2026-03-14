@@ -37,6 +37,10 @@ executor for normal nodes. The currently implemented surface is:
 - a first root `discover()` export path that emits `NodeFound` for
   already-registered top-level nodes without turning discovery into node
   pass/fail classification
+- a first staged discovery path by `NodeIndex`, currently surfaced through the
+  wazero host `discover(nodeIndex)` helper, so hosts can request immediate
+  child discovery under a known node and observe interruption as discovery
+  failure instead of test outcome
 
 This is now beyond a declaration-only pass, but it is still an internal
 runtime slice rather than a complete `node:test` runner. Targeted traversal,

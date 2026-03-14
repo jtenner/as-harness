@@ -50,6 +50,9 @@ Implemented today:
   against the shared root tree and executes the targeted node
 - a first root discovery `discover()` export path that emits `NodeFound`
   events for already-registered top-level nodes without classifying outcomes
+- a first staged `discover(nodeIndex)` host path in wazero that can rediscover
+  immediate children under a known node and report interrupted discovery
+  separately from execution outcomes
 - a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint with a
   host-callable `allocateNodeIndexBuffer(length)` export for NodeIndex writes
   plus the guest-side `invoke()` trampoline export

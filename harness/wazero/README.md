@@ -36,6 +36,7 @@ type Harness = {
   onCallbackStart(callback: (event: unknown) => void): void;
   onCallbackPass(callback: (event: unknown) => void): void;
   callI32(exportName: string): number;
+  discover(nodeIndex: Array<number>): boolean;
   run(nodeIndex: Array<number>): boolean;
 };
 
@@ -48,8 +49,14 @@ declare function createHarness(
 
 `callI32(exportName)` instantiates the compiled module, runs `__start`, calls a
 zero-argument `i32` guest export, and returns the `u32` result to JS. This is
-currently used by the smoke tests both to probe the staged-callback trampoline
-ABI and to call the first root discovery export.
+currently used by the smoke tests to probe the staged-callback trampoline ABI.
+
+`discover(nodeIndex)` instantiates the compiled module, stages the provided
+`NodeIndex`, calls the guest-side `discover()` export, returns `true` when the
+guest reported a non-negative discovery result, and returns `false` when the
+target path was missing or discovery trapped while replaying the target
+callback. Discovery remains structural here: interruption is not treated as a
+test pass/fail classification.
 
 `run(nodeIndex)` instantiates the compiled module, calls the guest-side
 `allocateNodeIndexBuffer(length)` export, writes each `u32` from the provided

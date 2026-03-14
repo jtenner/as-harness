@@ -9,3 +9,7 @@ test("passing test", (context: TestContext): void => {
 test("failing test", (context: TestContext): void => {
   context.assert.strictEqual<i32>(11, 12, "node:test smoke mismatch");
 });
+
+test("parent test", (context: TestContext): void => {
+  context.test("nested child", (_nestedContext: TestContext): void => {});
+});
