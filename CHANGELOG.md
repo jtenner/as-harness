@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-03-14
+
+- **strict-equality: add first contract and transform implementation pass** Define the strict-equality Phase 1 contracts in the design docs, add the initial AssemblyScript strict-equality runtime contract scaffold and tests, auto-enable the bundled transform for `node:assert` library builds, implement the first real class-instrumenting transform pass with namespace recursion and placeholder hook injection, add transform fixture coverage, and update the relevant README and checklist files. GitHub: *@jtenner*
+
 ## 2026-03-13
 
 - **cli: bundle and materialize transform assets for asc** Add `cli/transform/` scaffolding plus a loadable no-op AssemblyScript transform entrypoint, extend the virtual-file generator to bundle precompiled JS transform assets alongside the virtual AssemblyScript sources, teach the compiler wrapper to hoist bundled transform files to a temp directory and rewrite `--transform` paths before invoking `asc`, update the strict-equality planning doc and checklist, and document the transform hoisting behavior in the CLI README. GitHub: *@jtenner*

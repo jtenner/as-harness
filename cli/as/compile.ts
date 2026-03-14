@@ -92,6 +92,11 @@ const DEFAULT_WASM_ARTIFACT_PATH = "output.wasm";
 const DEFAULT_TEXT_ARTIFACT_PATH = "output.wat";
 const SOURCE_FILE_PATTERN = /^(?!.*\.d\.ts$).*\.ts$/;
 const TEMP_TRANSFORM_DIRECTORY_PREFIX = "as-harness-transform-";
+const BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH = `${bundledTransformRoot}/index.js`;
+const STRICT_EQUALITY_LIBRARY_ENTRY_POINTS = new Set([
+	"node:assert",
+	"node:assert/strict",
+]);
 
 type VirtualAssemblyFileSystem = {
 	files: Map<string, string>;
@@ -153,6 +158,44 @@ function isBundledTransformPath(path: string): boolean {
 		normalizedPath === bundledTransformRoot ||
 		normalizedPath.startsWith(`${bundledTransformRoot}/`)
 	);
+}
+
+function shouldEnableBundledStrictEqualityTransform(
+	compilerOptions: CompilerOptions,
+): boolean {
+	const libraries = compilerOptions.lib;
+	return (
+		Array.isArray(libraries) &&
+		libraries.some((library) =>
+			STRICT_EQUALITY_LIBRARY_ENTRY_POINTS.has(library),
+		)
+	);
+}
+
+function withBundledStrictEqualityTransform(
+	compilerOptions: CompilerOptions,
+): CompilerOptions {
+	if (!shouldEnableBundledStrictEqualityTransform(compilerOptions)) {
+		return compilerOptions;
+	}
+
+	const existingTransformPaths = compilerOptions.transform ?? [];
+	const hasBundledStrictEqualityTransform = existingTransformPaths.some(
+		(path) =>
+			normalizeVirtualPath(path) ===
+			normalizeVirtualPath(BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH),
+	);
+	if (hasBundledStrictEqualityTransform) {
+		return compilerOptions;
+	}
+
+	return {
+		...compilerOptions,
+		transform: [
+			...existingTransformPaths,
+			BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH,
+		],
+	};
 }
 
 function resolveVirtualPath(path: string, baseDir: string): string | null {
@@ -232,11 +275,13 @@ async function materializeBundledTransformDirectory(): Promise<string> {
 async function prepareCompilerOptions(
 	compilerOptions: CompilerOptions,
 ): Promise<PreparedCompilerOptions> {
-	const transformPaths = compilerOptions.transform;
+	const compilerOptionsWithBundledTransform =
+		withBundledStrictEqualityTransform(compilerOptions);
+	const transformPaths = compilerOptionsWithBundledTransform.transform;
 	if (!transformPaths || transformPaths.length === 0) {
 		return {
 			cleanup: async () => {},
-			compilerOptions,
+			compilerOptions: compilerOptionsWithBundledTransform,
 		};
 	}
 
@@ -246,7 +291,7 @@ async function prepareCompilerOptions(
 	if (!requiresBundledTransformMaterialization) {
 		return {
 			cleanup: async () => {},
-			compilerOptions,
+			compilerOptions: compilerOptionsWithBundledTransform,
 		};
 	}
 
@@ -268,7 +313,7 @@ async function prepareCompilerOptions(
 			await rm(materializedDirectory, { force: true, recursive: true });
 		},
 		compilerOptions: {
-			...compilerOptions,
+			...compilerOptionsWithBundledTransform,
 			transform: rewrittenTransformPaths,
 		},
 	};

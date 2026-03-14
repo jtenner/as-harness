@@ -9,37 +9,37 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 ### Planning and Contracts
 
 - [x] Write a design document for strict equality and reflected diagnostics in `docs/strict-equality-machinery.md`.
-- [ ] Define the first-pass behavioral contract for `node:assert.deepEqual(...)`.
-- [ ] Decide whether the first implementation targets `deepEqual`, `deepStrictEqual`, or a shared structural core with assertion-level wrappers.
-- [ ] Define the exact runtime comparison result model, including whether to use a tri-state result such as match / fail / defer.
-- [ ] Define which AssemblyScript value categories are supported in v1:
-- [ ] primitives
-- [ ] nullable references
-- [ ] strings
-- [ ] arrays / `StaticArray`
-- [ ] typed arrays / `ArrayBufferView`
-- [ ] `ArrayBuffer`
-- [ ] `Map`
-- [ ] `Set`
-- [ ] managed classes
-- [ ] function references
-- [ ] Define cycle-handling semantics for recursive reference graphs.
-- [ ] Define inheritance semantics for class-field comparison and reflected reporting.
-- [ ] Define the boundary between transform-generated methods and shared AssemblyScript runtime helpers.
+- [x] Define the first-pass behavioral contract for `node:assert.deepEqual(...)`.
+- [x] Decide whether the first implementation targets `deepEqual`, `deepStrictEqual`, or a shared structural core with assertion-level wrappers.
+- [x] Define the exact runtime comparison result model, including whether to use a tri-state result such as match / fail / defer.
+- [x] Define which AssemblyScript value categories are supported in v1:
+- [x] primitives
+- [x] nullable references
+- [x] strings
+- [x] arrays / `StaticArray`
+- [x] typed arrays / `ArrayBufferView`
+- [x] `ArrayBuffer`
+- [x] `Map`
+- [x] `Set`
+- [x] managed classes
+- [x] function references
+- [x] Define cycle-handling semantics for recursive reference graphs.
+- [x] Define inheritance semantics for class-field comparison and reflected reporting.
+- [x] Define the boundary between transform-generated methods and shared AssemblyScript runtime helpers.
 
 ### CLI Transform Scaffolding
 
 - [x] Scaffold `cli/transform/` for strict-equality transform work.
 - [x] Add a CLI-side transform entrypoint that can be passed into the AssemblyScript compiler wrapper.
-- [ ] Decide how the compiler wrapper will enable the transform for selected virtual-library entry points.
+- [x] Decide how the compiler wrapper will enable the transform for selected virtual-library entry points.
 - [x] Document transform activation and build/debug workflow in `cli/README.md`.
 
 ### AST Traversal and Class Instrumentation
 
-- [ ] Traverse parser sources after parse and recursively inspect nested namespaces.
-- [ ] Identify every AssemblyScript `ClassDeclaration` that requires strict-equality instrumentation.
-- [ ] Inject a generated instance method for structural comparison on instrumented classes.
-- [ ] Define the generated method signature and parameter contract for the structural comparison hook.
+- [x] Traverse parser sources after parse and recursively inspect nested namespaces.
+- [x] Identify every AssemblyScript `ClassDeclaration` that requires strict-equality instrumentation.
+- [x] Inject a generated instance method for structural comparison on instrumented classes.
+- [x] Define the generated method signature and parameter contract for the structural comparison hook.
 - [ ] Enumerate instance fields that should participate in structural comparison.
 - [ ] Enumerate instance getters that should participate in structural comparison.
 - [ ] Decide whether methods, static members, and computed members are excluded from generated comparison hooks.
@@ -49,8 +49,8 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 
 ### Reflected Diagnostics Instrumentation
 
-- [ ] Inject a generated instance method for reflected key/value extraction on instrumented classes.
-- [ ] Define the generated method signature and parameter contract for reflected extraction.
+- [x] Inject a generated instance method for reflected key/value extraction on instrumented classes.
+- [x] Define the generated method signature and parameter contract for reflected extraction.
 - [ ] Reuse the same field/getter selection rules between strict equality and reflected diagnostics.
 - [ ] Handle inheritance for reflected extraction without duplicating overridden members.
 - [ ] Decide whether reflected extraction must support custom display overrides in v1 or later.
@@ -97,13 +97,13 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 
 - [ ] Extend the compiler wrapper to register the new transform when compiling harness-aware AssemblyScript modules.
 - [ ] Ensure bundled virtual AssemblyScript sources can reference the transform-generated runtime hooks safely.
-- [ ] Decide whether transform enablement is always-on for harness builds or gated by adapter selection.
+- [x] Decide whether transform enablement is always-on for harness builds or gated by adapter selection.
 - [ ] Add debug output or inspection hooks so generated methods can be audited during development.
 
 ### Fixtures and Verification
 
-- [ ] Add transform-level fixtures that prove classes receive generated comparison hooks.
-- [ ] Add transform-level fixtures that prove classes receive generated reflected-value hooks.
+- [x] Add transform-level fixtures that prove classes receive generated comparison hooks.
+- [x] Add transform-level fixtures that prove classes receive generated reflected-value hooks.
 - [ ] Add fixtures for inherited fields and overridden getters.
 - [ ] Add fixtures for generic classes.
 - [ ] Add runtime equality fixtures for primitives, nullability, arrays, typed arrays, maps, sets, and classes.

@@ -126,12 +126,14 @@ The AssemblyScript package is being organized around these internal module bound
 - `traversal`
 - `executor`
 - `hooks`
+- `strict_equality`
 - `assert_bridge`
 - `events`
 - `abi`
 - `state`
 
-Only the earliest `events`, node metadata, and import-boundary pieces exist right now.
+Only the earliest `events`, node metadata, import-boundary pieces, and the
+strict-equality contract scaffold exist right now.
 
 ## Event Model
 

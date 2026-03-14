@@ -171,6 +171,8 @@ Practical first-pass split for this repo:
 - `node:assert/strict`: same exported names, with `equal`/`deepEqual`/`notEqual`/`notDeepEqual` lowered as strict variants
 - keep `assert.strict` as the namespace alias for the strict entry point
 - keep adapter code thin and push message emission and unreachable-failure behavior into the shared bridge
+- first shared structural-equality consumer: `deepStrictEqual`
+- keep legacy `deepEqual` out of the first bridge wave until its loose semantics are designed explicitly
 
 ## Structure
 

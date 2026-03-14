@@ -15,5 +15,13 @@ The transform is expected to:
 Implementation planning lives in
 [strict-equality-machinery.md](/home/jtenner/Projects/as-harness/docs/strict-equality-machinery.md).
 
-The files under `src/` are placeholders only. They exist to establish the
-intended module layout before implementation begins.
+The current implementation now performs the first transform pass:
+
+- it walks non-library parser sources after parse
+- it recurses through nested namespaces
+- it injects placeholder instance methods named
+  `__asHarnessStrictEquals` and `__asHarnessAddReflectedValueKeyValuePairs`
+
+Those generated methods are still contract scaffolds. They establish the
+instrumentation path and method signatures before field/getter enumeration and
+runtime delegation logic are added.

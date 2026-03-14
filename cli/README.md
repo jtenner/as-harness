@@ -54,7 +54,9 @@ Key files and directories:
   Scaffold for the future AssemblyScript transform that will inject
   strict-equality and reflected-diagnostics hooks into class declarations. The
   bundled CLI generation step also emits precompiled JS transform files that can
-  be hoisted to temp paths before invoking `asc`.
+  be hoisted to temp paths before invoking `asc`. When a compile requests
+  `node:assert` or `node:assert/strict` through `--lib`, the compiler wrapper
+  now auto-enables this bundled transform.
 - `runtime/types.ts`
   Defines the `Runtime` interface used to mutate compiler arguments.
 - `runtime/js.ts`, `runtime/wasmtime.ts`, `runtime/wazero.ts`
@@ -256,6 +258,11 @@ files. The generator also stores precompiled JS transform assets, and the
 compiler wrapper writes those assets to a temporary directory when a compile
 requests a bundled `--transform` path. This is necessary because AssemblyScript
 expects transform modules to exist as real JS files on disk.
+
+For strict-equality work, the wrapper also injects the bundled transform
+automatically when the requested library set includes `node:assert` or
+`node:assert/strict`. The current transform is still a no-op scaffold, but the
+activation path is now owned by the wrapper instead of individual callers.
 
 ### Artifact model
 
