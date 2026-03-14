@@ -36,6 +36,9 @@ Implemented today:
 - package-style bundled `--lib` entry files for `node:assert` and
   `node:assert/strict`, so the current bridge surface is ready to be consumed
   by future `t.assert` work in `node:test`
+- a first package-style `node:test` declaration adapter for `test(...)`,
+  `suite(...)`, aliases/modifiers, and top-level hook registration, backed by
+  shared node metadata, hook storage, and `NodeIndex` derivation
 - a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint with a
   host-callable `allocateNodeIndexBuffer(length)` export for NodeIndex writes
   plus the guest-side `invoke()` trampoline export
@@ -45,8 +48,8 @@ Implemented today:
 Not implemented yet:
 
 - most framework adapter source code
-- declaration registration/runtime traversal
-- hook execution
+- runnable declaration execution/runtime traversal
+- hook execution ordering
 - assertion failure default messaging beyond optional explicit message text
 - function mocking, spies, and call-tracking assertions such as
   `toBeCalled(...)` or `toHaveBeenCalledTimes(...)`; these stay unsupported
@@ -59,9 +62,9 @@ Not implemented yet:
   handling, or object-model APIs such as `Assert` and `AssertionError`
 - host-facing ABI exports for traversal/discovery
 
-For the current scope, standalone `node:assert` work is otherwise complete. The
-next assertion-related package work should happen in `node:test`, where
-`t.assert` can bind to the existing bridge.
+For the current scope, standalone `node:assert` work is otherwise complete, and
+the first `node:test` declaration layer now exists. The next assertion-related
+package work there is binding `t.assert` onto the existing bridge.
 
 ## Package Layout
 
@@ -82,7 +85,12 @@ Current files:
 - `imports.ts`: imported ABI declarations and shared enums
 - `events.ts`: event payload serialization and event-sender helpers
 - `node.ts`: structural node metadata, the global `rootNode` / `currentNode`,
-  and lazy child discovery
+  lazy child discovery, durable declaration metadata, hook storage, and
+  `NodeIndex` derivation
+- `api.ts`: shared declaration and hook registration helpers used by
+  `node:test`
+- `context.ts`: minimal declaration-time `SuiteContext` / `TestContext` types
+- `hooks.ts`: durable hook registration records
 - `assert-bridge.ts`: shared failure-to-`FailMessage` helpers plus the first
   synchronous `node:assert` bridge primitives and trap-backed callback helpers
 - `reflected-value.ts`: the first reflected-diagnostics value model and
@@ -130,10 +138,11 @@ Current skeleton folders include:
 - `jasmine`
 - `qnit`
 
-These folders currently contain TODO stubs or the earliest assertion entrypoint
-files. `node:assert` is the first adapter with a completed current-scope bridge;
-the intent is that each adapter will eventually expose framework-shaped globals
-and lower them into shared internal primitives.
+These folders currently contain TODO stubs or the earliest adapter entrypoint
+files. `node:assert` is the first adapter with a completed current-scope bridge,
+and `node:test` now has the first declaration-registration slice; the intent is
+that each adapter will eventually expose framework-shaped globals and lower
+them into shared internal primitives.
 
 `assembly/build/`
 : Generated build artifacts such as `.wasm`, `.js`, `.d.ts`, `.wat`, and source maps.

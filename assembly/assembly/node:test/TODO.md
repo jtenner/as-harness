@@ -1,5 +1,26 @@
 # `node:test` Adapter TODO
 
+## Current Status
+
+The first declaration-registration slice now exists for the package-style
+`node:test` lib entry point. The currently implemented surface is:
+
+- top-level `test(...)`, `it(...)`, `suite(...)`, and `describe(...)`
+- declaration modifiers on those exports: `.skip(...)`, `.todo(...)`,
+  `.only(...)`, and `.expectFailure(...)`
+- top-level shorthand exports: `skip(...)`, `todo(...)`, `only(...)`, and
+  `expectFailure(...)`
+- top-level hook registration: `before(...)`, `after(...)`, `beforeEach(...)`,
+  and `afterEach(...)`
+- minimal declaration-time `SuiteContext` and `TestContext` types so callback
+  signatures compile
+- shared node registration, modifier metadata, hook storage, and `NodeIndex`
+  derivation in the internal runtime
+
+This is still a declaration-only pass. Runnable callback execution, lifecycle
+ordering, `t.assert`, `t.test`, `t.skip`, `t.todo`, diagnostics, and traversal
+events remain open work.
+
 ## Current Explicit Non-Goal
 
 Until AssemblyScript supports closures well enough to model mock callbacks and
@@ -621,7 +642,7 @@ to exist. Otherwise keep them out until there is host/runtime support.
 7. Bind `t.assert` onto the completed `node:assert` bridge surface.
 8. Add `t.plan(...)` only after assertion-call accounting exists.
 
-- [ ] Define the `node:test` declaration surface to expose from this `--lib` entry point.
-- [ ] Map `test`, `describe`, `skip`, `todo`, and lifecycle APIs onto the shared internal declarations.
-- [ ] Keep adapter-specific overloads and naming inside this folder.
-- [ ] Add initial source files and a minimal traversal fixture.
+- [x] Define the `node:test` declaration surface to expose from this `--lib` entry point.
+- [x] Map `test`, `describe`, `skip`, `todo`, and lifecycle APIs onto the shared internal declarations.
+- [x] Keep adapter-specific overloads and naming inside this folder.
+- [x] Add initial source files and a minimal traversal fixture.

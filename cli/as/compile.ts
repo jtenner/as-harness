@@ -96,6 +96,11 @@ const TEMP_TRANSFORM_DIRECTORY_PREFIX = "as-harness-transform-";
 export const BUNDLED_LIBRARY_COMPONENTS_PATH = `${bundledVirtualRoot}/lib`;
 export const BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH = `${bundledTransformRoot}/index.js`;
 const BUNDLED_HARNESS_LIBRARY_ENTRY_POINTS = new Set([
+	"node:test",
+	"node:assert",
+	"node:assert/strict",
+]);
+const STRICT_EQUALITY_LIBRARY_ENTRY_POINTS = new Set([
 	"node:assert",
 	"node:assert/strict",
 ]);
@@ -178,7 +183,7 @@ function shouldEnableBundledStrictEqualityTransform(
 		Array.isArray(libraries) &&
 		libraries.some(
 			(library) =>
-				BUNDLED_HARNESS_LIBRARY_ENTRY_POINTS.has(library) ||
+				STRICT_EQUALITY_LIBRARY_ENTRY_POINTS.has(library) ||
 				isBundledLibraryPath(library),
 		)
 	);

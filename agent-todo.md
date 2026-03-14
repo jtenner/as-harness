@@ -120,7 +120,7 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 ## Framework Library Entry Points and Declaration Adapters
 
 - [x] Create framework-specific library entry-point folders under `assembly/assembly/` for:
-- [ ] `node:test`
+- [x] `node:test`
 - [ ] `jest`
 - [ ] `mocha`
 - [ ] `vitest`
@@ -136,7 +136,7 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [ ] Map each framework's declaration surface onto shared internal representations for `test`, `describe`, `skip`, `todo`, hooks, and assertion integration.
 - [ ] Route the shared internal declaration representations through WebAssembly imports as required by the current design.
 - [ ] Standardize the metadata captured by every adapter at declaration time: node kind, name, declaration mode, callback reference, and parent scope context.
-- [ ] Keep framework-specific naming, overloads, and convenience signatures inside the adapter folders instead of spreading them into the shared runtime.
+- [x] Keep framework-specific naming, overloads, and convenience signatures inside the adapter folders instead of spreading them into the shared runtime.
 - [x] Define how assertion-oriented entry points such as `node:assert` integrate with the shared assertion bridge.
 - [ ] Document the boundary between framework adapter code and the shared Wasm runtime so the adapters stay thin and deterministic.
 
@@ -146,9 +146,9 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [x] Implement active parent-scope tracking for nested declarations.
 - [x] Attach child nodes to the correct parent deterministically.
 - [x] Assign deterministic child ordinals within each scope.
-- [ ] Define and compute `NodeIndex` values for roots and descendants.
+- [x] Define and compute `NodeIndex` values for roots and descendants.
 - [x] Preserve node kind, display name, declaration mode, and parent linkage for replay.
-- [ ] Ensure nested declarations made during callback execution attach to the active traversal scope rather than a stale registration scope.
+- [x] Ensure nested declarations made during callback execution attach to the active traversal scope rather than a stale registration scope.
 
 ## Traversal and Replay
 
@@ -174,7 +174,7 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 
 ## Hooks and Lifecycle
 
-- [ ] Define lifecycle registration for `beforeAll`, `beforeEach`, `afterEach`, and `afterAll`.
+- [x] Define lifecycle registration for `beforeAll`, `beforeEach`, `afterEach`, and `afterAll`.
 - [ ] Associate lifecycle callbacks with the correct structural scope.
 - [ ] Define the exact execution order for lifecycle callbacks relative to traversal and node execution.
 - [ ] Emit `CallbackStart` before each lifecycle callback runs.

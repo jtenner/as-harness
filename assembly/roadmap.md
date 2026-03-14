@@ -22,6 +22,10 @@ Current package milestone:
 - the current synchronous `node:assert` / `node:assert/strict` bridge scope is
   in place; the next adjacent work is binding that surface into `node:test`
   through `t.assert`
+- the first `node:test` declaration-registration slice is in place for
+  `test(...)`, `suite(...)`, aliases/modifiers, and top-level hook
+  registration; runnable execution and `t.assert` integration remain follow-up
+  work
 
 | Name          | Kind           | URL starting point                                                              |
 | ------------- | -------------- | ------------------------------------------------------------------------------- |
