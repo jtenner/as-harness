@@ -43,6 +43,8 @@ Implemented today:
   hook-registration aliases, metadata getters, declaration-time `t.skip(...)` /
   `t.todo(...)`, `t.diagnostic(...)`, `t.plan(...)`, and a partial `t.assert`
   facade bound onto the current synchronous `node:assert` bridge
+- first execution-scoped `TestContext.attempt` / `TestContext.passed` metadata
+  backed by the shared node executor
 - a first internal `node:test` executor that runs normal node callbacks,
   emits `NodeStart` / `NodePass`, and executes registered lifecycle hooks in
   deterministic root-to-leaf / leaf-to-root order
@@ -82,9 +84,11 @@ For the current scope, standalone `node:assert` work is otherwise complete, and
 `node:test` now has declaration registration, declaration-time contexts, a
 partial `t.assert` facade, first host-observed diagnostic events, first-pass
 `t.plan(...)` assertion counting for bound `t.assert.*` calls, and a first
-internal executor for normal callback and hook execution. The next work there
-is targeted traversal/discovery, failure propagation, and the remaining
-execution-oriented context APIs such as `t.runOnly(...)`.
+internal executor for normal callback and hook execution, including first
+execution-scoped `attempt` / `passed` metadata. The next work there is
+targeted traversal/discovery, failure propagation, and the remaining
+execution-oriented context APIs such as `t.runOnly(...)` and richer error
+state.
 
 ## Package Layout
 

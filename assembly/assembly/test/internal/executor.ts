@@ -49,6 +49,16 @@ function afterAllChild(_context: TestContext): void {
   pushTrace("child afterAll");
 }
 
+function beforeEachMetadata(context: TestContext): void {
+  assert(!context.passed);
+  assert(context.attempt == 1);
+}
+
+function afterEachMetadata(context: TestContext): void {
+  assert(context.passed);
+  assert(context.attempt == 1);
+}
+
 function executeTestCallback(_context: TestContext): void {
   pushTrace("test callback");
 }
@@ -135,7 +145,19 @@ function testExecuteNodeTracksPlannedAssertionsThroughContextAssert(): void {
   assert(getObservedAssertionCount() == 0);
 }
 
+function testExecuteNodeExposesAttemptAndPassedThroughLifecycleHooks(): void {
+  const root = new Node(NodeKind.Describe, "root");
+  root.registerHook(HookKind.BeforeEach, beforeEachMetadata);
+  root.registerHook(HookKind.AfterEach, afterEachMetadata);
+
+  const child = root.createChild(NodeKind.Test, "child");
+  child.setTestCallback(executeTestCallback);
+
+  executeNode(child);
+}
+
 testExecuteNodeRunsHooksInExpectedOrder();
 testExecuteNodeRunsPlainSuiteCallbacks();
 testExecuteNodeSkipsNonRunnableModes();
 testExecuteNodeTracksPlannedAssertionsThroughContextAssert();
+testExecuteNodeExposesAttemptAndPassedThroughLifecycleHooks();

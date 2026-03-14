@@ -31,8 +31,9 @@ Current package milestone:
   lifecycle-hook execution plus a first targeted `run()` path by `NodeIndex`,
   a root-level `discover()` pass that emits `NodeFound` for top-level nodes, a
   first staged child-discovery host path, and host-observed diagnostic and
-  plan-mismatch failure paths; full discovery depth, replay validation, and
-  the remaining execution-oriented context APIs remain follow-up work
+  plan-mismatch failure paths plus first execution-scoped `attempt` /
+  `passed` metadata; full discovery depth, replay validation, and the
+  remaining execution-oriented context APIs remain follow-up work
 
 | Name          | Kind           | URL starting point                                                              |
 | ------------- | -------------- | ------------------------------------------------------------------------------- |

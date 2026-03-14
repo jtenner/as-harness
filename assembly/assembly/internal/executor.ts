@@ -1,6 +1,7 @@
 import {
   beginAssertionScope,
   endAssertionScope,
+  markActiveNodeCallbackPassed,
 } from "./execution-state";
 import {
   callbackPass,
@@ -77,6 +78,7 @@ export function executeNode(node: Node): void {
   executeHookKind(chain, HookKind.BeforeAll);
   executeHookKind(chain, HookKind.BeforeEach);
   node.invokeCallback();
+  markActiveNodeCallbackPassed();
   executeHookKind(chain, HookKind.AfterEach, true);
   executeHookKind(chain, HookKind.AfterAll, true);
   endAssertionScope();

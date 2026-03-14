@@ -16,8 +16,9 @@ executor for normal nodes. The currently implemented surface is:
 - declaration-time `TestContext.test(...)`, `t.before(...)`, `t.after(...)`,
   `t.beforeEach(...)`, and `t.afterEach(...)`
 - declaration-time metadata getters on `SuiteContext` and `TestContext` for
-  `name`, `fullName`, `filePath`, and `signal`, plus `passed`, `error`,
-  `attempt`, and `workerId` placeholders on `TestContext`
+  `name`, `fullName`, `filePath`, and `signal`, plus first execution-scoped
+  `passed` / `attempt` state and `error` / `workerId` placeholders on
+  `TestContext`
 - declaration-time `t.skip(...)` and `t.todo(...)` that retag the active node's
   declaration mode during callback discovery
 - `t.diagnostic(message)` with a first host-observed diagnostic event that

@@ -4,12 +4,16 @@ let assertionScopeActive: bool = false;
 let plannedAssertionCount: i32 = -1;
 let observedAssertionCount: i32 = 0;
 let activeNodeName = "";
+let activeAttempt: i32 = 0;
+let activeNodePassed: bool = false;
 
 function resetAssertionScopeState(): void {
   assertionScopeActive = false;
   plannedAssertionCount = -1;
   observedAssertionCount = 0;
   activeNodeName = "";
+  activeAttempt = 0;
+  activeNodePassed = false;
 }
 
 function planMismatchMessage(): string {
@@ -31,6 +35,8 @@ export function beginAssertionScope(
   plannedAssertionCount = initialPlannedAssertionCount;
   observedAssertionCount = 0;
   activeNodeName = nodeName;
+  activeAttempt = 1;
+  activeNodePassed = false;
 }
 
 export function endAssertionScope(): void {
@@ -78,10 +84,26 @@ export function setPlannedAssertionCount(count: i32): void {
   }
 }
 
+export function markActiveNodeCallbackPassed(): void {
+  if (!assertionScopeActive) {
+    return;
+  }
+
+  activeNodePassed = true;
+}
+
 export function getPlannedAssertionCount(): i32 {
   return plannedAssertionCount;
 }
 
 export function getObservedAssertionCount(): i32 {
   return observedAssertionCount;
+}
+
+export function getActiveAttempt(): i32 {
+  return activeAttempt;
+}
+
+export function getActiveNodePassed(): bool {
+  return activeNodePassed;
 }

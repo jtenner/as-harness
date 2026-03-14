@@ -5,6 +5,8 @@
 import { DeclarationMode, HookKind } from "./imports";
 import { declareTestNode, registerHook } from "./api";
 import {
+  getActiveAttempt,
+  getActiveNodePassed,
   recordAssertionCall,
   setPlannedAssertionCount,
 } from "./execution-state";
@@ -186,7 +188,7 @@ export class TestContext {
   }
 
   get passed(): bool {
-    return false;
+    return getActiveNodePassed();
   }
 
   get error(): usize {
@@ -194,7 +196,7 @@ export class TestContext {
   }
 
   get attempt(): i32 {
-    return 0;
+    return getActiveAttempt();
   }
 
   get workerId(): i32 {
