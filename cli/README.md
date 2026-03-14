@@ -266,6 +266,13 @@ per-member helper calls into the shared AssemblyScript strict-equality runtime,
 including runtime-type guards before generated member comparison, so the
 activation path is owned by the wrapper instead of individual callers.
 
+Those assertion-oriented library selections also trigger wrapper-managed custom
+library materialization. The bundled package-style entry files under
+`assembly/assembly/lib/` are written to a temporary `--lib` directory so guest
+code can import `node:assert` or `node:assert/strict` as package specifiers
+while the lib entry files themselves can still delegate back into the bundled
+`~/.as-harness` runtime sources.
+
 ### Artifact model
 
 Compiler output is returned as:

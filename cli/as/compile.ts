@@ -91,9 +91,11 @@ const DEFAULT_TARGET = "debug";
 const DEFAULT_WASM_ARTIFACT_PATH = "output.wasm";
 const DEFAULT_TEXT_ARTIFACT_PATH = "output.wat";
 const SOURCE_FILE_PATTERN = /^(?!.*\.d\.ts$).*\.ts$/;
+const TEMP_LIBRARY_DIRECTORY_PREFIX = "as-harness-lib-";
 const TEMP_TRANSFORM_DIRECTORY_PREFIX = "as-harness-transform-";
+export const BUNDLED_LIBRARY_COMPONENTS_PATH = `${bundledVirtualRoot}/lib`;
 export const BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH = `${bundledTransformRoot}/index.js`;
-const STRICT_EQUALITY_LIBRARY_ENTRY_POINTS = new Set([
+const BUNDLED_HARNESS_LIBRARY_ENTRY_POINTS = new Set([
 	"node:assert",
 	"node:assert/strict",
 ]);
@@ -160,16 +162,60 @@ function isBundledTransformPath(path: string): boolean {
 	);
 }
 
+function isBundledLibraryPath(path: string): boolean {
+	const normalizedPath = normalizeVirtualPath(path);
+	return (
+		normalizedPath === BUNDLED_LIBRARY_COMPONENTS_PATH ||
+		normalizedPath.startsWith(`${BUNDLED_LIBRARY_COMPONENTS_PATH}/`)
+	);
+}
+
 function shouldEnableBundledStrictEqualityTransform(
 	compilerOptions: CompilerOptions,
 ): boolean {
 	const libraries = compilerOptions.lib;
 	return (
 		Array.isArray(libraries) &&
-		libraries.some((library) =>
-			STRICT_EQUALITY_LIBRARY_ENTRY_POINTS.has(library),
+		libraries.some(
+			(library) =>
+				BUNDLED_HARNESS_LIBRARY_ENTRY_POINTS.has(library) ||
+				isBundledLibraryPath(library),
 		)
 	);
+}
+
+export function withBundledHarnessLibraryComponents(
+	compilerOptions: CompilerOptions,
+): CompilerOptions {
+	const libraries = compilerOptions.lib;
+	if (!Array.isArray(libraries)) {
+		return compilerOptions;
+	}
+
+	let usesBundledHarnessLibrary = false;
+	const rewrittenLibraries: string[] = [];
+
+	for (const library of libraries) {
+		if (BUNDLED_HARNESS_LIBRARY_ENTRY_POINTS.has(library)) {
+			usesBundledHarnessLibrary = true;
+			continue;
+		}
+
+		rewrittenLibraries.push(library);
+	}
+
+	if (!usesBundledHarnessLibrary) {
+		return compilerOptions;
+	}
+
+	if (!rewrittenLibraries.some((library) => isBundledLibraryPath(library))) {
+		rewrittenLibraries.push(BUNDLED_LIBRARY_COMPONENTS_PATH);
+	}
+
+	return {
+		...compilerOptions,
+		lib: rewrittenLibraries,
+	};
 }
 
 export function withBundledStrictEqualityTransform(
@@ -272,49 +318,84 @@ async function materializeBundledTransformDirectory(): Promise<string> {
 	return directory;
 }
 
-async function prepareCompilerOptions(
-	compilerOptions: CompilerOptions,
-): Promise<PreparedCompilerOptions> {
-	const compilerOptionsWithBundledTransform =
-		withBundledStrictEqualityTransform(compilerOptions);
-	const transformPaths = compilerOptionsWithBundledTransform.transform;
-	if (!transformPaths || transformPaths.length === 0) {
-		return {
-			cleanup: async () => {},
-			compilerOptions: compilerOptionsWithBundledTransform,
-		};
-	}
-
-	const requiresBundledTransformMaterialization = transformPaths.some((path) =>
-		isBundledTransformPath(path),
+async function materializeBundledLibraryDirectory(): Promise<string> {
+	const directory = await mkdtemp(
+		join(tmpdir(), TEMP_LIBRARY_DIRECTORY_PREFIX),
 	);
-	if (!requiresBundledTransformMaterialization) {
-		return {
-			cleanup: async () => {},
-			compilerOptions: compilerOptionsWithBundledTransform,
-		};
-	}
 
-	const materializedDirectory = await materializeBundledTransformDirectory();
-	const rewrittenTransformPaths = transformPaths.map((path) => {
-		if (!isBundledTransformPath(path)) {
-			return path;
+	for (const [virtualPath, contents] of bundledVirtualFiles) {
+		if (!isBundledLibraryPath(virtualPath)) {
+			continue;
 		}
 
 		const relativePath = posix.relative(
-			bundledTransformRoot,
-			normalizeVirtualPath(path),
+			BUNDLED_LIBRARY_COMPONENTS_PATH,
+			virtualPath,
 		);
-		return join(materializedDirectory, ...relativePath.split("/"));
-	});
+		const outputPath = join(directory, ...relativePath.split("/"));
+		await mkdir(dirname(outputPath), { recursive: true });
+		await writeFileToDisk(outputPath, contents, "utf8");
+	}
+
+	return directory;
+}
+
+async function prepareCompilerOptions(
+	compilerOptions: CompilerOptions,
+): Promise<PreparedCompilerOptions> {
+	const compilerOptionsWithBundledSupport = withBundledHarnessLibraryComponents(
+		withBundledStrictEqualityTransform(compilerOptions),
+	);
+	const cleanupTasks: Array<() => Promise<void>> = [];
+	let rewrittenTransformPaths = compilerOptionsWithBundledSupport.transform;
+	let rewrittenLibraryPaths = compilerOptionsWithBundledSupport.lib;
+
+	if (rewrittenTransformPaths?.some((path) => isBundledTransformPath(path))) {
+		const materializedDirectory = await materializeBundledTransformDirectory();
+		cleanupTasks.push(() =>
+			rm(materializedDirectory, { force: true, recursive: true }),
+		);
+		rewrittenTransformPaths = rewrittenTransformPaths.map((path) => {
+			if (!isBundledTransformPath(path)) {
+				return path;
+			}
+
+			const relativePath = posix.relative(
+				bundledTransformRoot,
+				normalizeVirtualPath(path),
+			);
+			return join(materializedDirectory, ...relativePath.split("/"));
+		});
+	}
+
+	if (rewrittenLibraryPaths?.some((path) => isBundledLibraryPath(path))) {
+		const materializedDirectory = await materializeBundledLibraryDirectory();
+		cleanupTasks.push(() =>
+			rm(materializedDirectory, { force: true, recursive: true }),
+		);
+		rewrittenLibraryPaths = rewrittenLibraryPaths.map((path) => {
+			if (!isBundledLibraryPath(path)) {
+				return path;
+			}
+
+			const relativePath = posix.relative(
+				BUNDLED_LIBRARY_COMPONENTS_PATH,
+				normalizeVirtualPath(path),
+			);
+			return relativePath.length > 0
+				? join(materializedDirectory, ...relativePath.split("/"))
+				: materializedDirectory;
+		});
+	}
 
 	return {
 		async cleanup() {
-			await rm(materializedDirectory, { force: true, recursive: true });
+			await Promise.all(cleanupTasks.map((cleanup) => cleanup()));
 		},
 		compilerOptions: {
-			...compilerOptionsWithBundledTransform,
+			...compilerOptionsWithBundledSupport,
 			transform: rewrittenTransformPaths,
+			lib: rewrittenLibraryPaths,
 		},
 	};
 }

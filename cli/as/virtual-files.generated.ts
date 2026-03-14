@@ -37,6 +37,18 @@ export const bundledVirtualFiles = new Map<string, string>([
 		'import { invokeStaged } from "./imports";\n\nexport type TrapCallback = () => void;\n\nlet stagedTrapCallback: TrapCallback | null = null;\n\n/**\n * Returns `true` when the callback trapped across the host-managed boundary.\n *\n * The callback slot is always cleared before this function returns, regardless\n * of whether the staged callback completed or trapped.\n */\nexport function didCallbackTrap(callback: TrapCallback): bool {\n  if (stagedTrapCallback !== null) {\n    unreachable();\n  }\n\n  stagedTrapCallback = callback;\n  const status = invokeStaged();\n  stagedTrapCallback = null;\n  return status == 0;\n}\n\n/**\n * Exported host-callable trampoline that invokes the currently staged\n * callback. The host owns trap observation around this call.\n */\nexport function invoke(): void {\n  const callback = stagedTrapCallback;\n  if (callback === null) {\n    unreachable();\n  }\n\n  callback();\n}\n',
 	],
 	[
+		"~/.as-harness/lib/node:assert.ts",
+		'export { deepStrictEqual } from "./node:assert/shared";\n',
+	],
+	[
+		"~/.as-harness/lib/node:assert/shared.ts",
+		'export { deepStrictEqual } from "~/.as-harness/node:assert/shared";\n',
+	],
+	[
+		"~/.as-harness/lib/node:assert/strict.ts",
+		'export { deepStrictEqual } from "./shared";\n',
+	],
+	[
 		"~/.as-harness/node:assert/index.ts",
 		'export { deepStrictEqual } from "./shared";\n',
 	],

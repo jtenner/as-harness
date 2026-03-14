@@ -178,7 +178,7 @@ Practical first-pass split for this repo:
 
 - [x] Define the shared files and boundaries between `node:assert` and `node:assert/strict`.
 - [x] Decide which implementation can be shared and which behavior must differ for `strict`.
-- [ ] Confirm how these folders will be exposed as AssemblyScript `--lib` entry points.
+- [x] Confirm how these folders will be exposed as AssemblyScript `--lib` entry points.
 
 ## Assertion Surface
 
