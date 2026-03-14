@@ -2,9 +2,10 @@
 // These expose the declaration-time methods that can be supported before
 // runnable execution and per-attempt state exist.
 
-import { HookKind } from "./imports";
+import { DeclarationMode, HookKind } from "./imports";
 import { declareTestNode, registerHook } from "./api";
 import { HookCallback } from "./hooks";
+import { currentNode } from "./node";
 import {
   doesNotThrow,
   fail,
@@ -111,11 +112,75 @@ function registerContextHook(
   registerHook(kind, callback);
 }
 
-export class SuiteContext {}
+function fullNameForCurrentNode(): string {
+  let result = currentNode.name;
+  let cursor = currentNode.parent;
+
+  while (cursor !== null && cursor.parent !== null) {
+    result = cursor.name + " > " + result;
+    cursor = cursor.parent;
+  }
+
+  return result;
+}
+
+function markCurrentNode(mode: DeclarationMode): void {
+  currentNode.setDeclarationMode(mode);
+}
+
+export class SuiteContext {
+  get name(): string {
+    return currentNode.name;
+  }
+
+  get fullName(): string {
+    return fullNameForCurrentNode();
+  }
+
+  get filePath(): string {
+    return "";
+  }
+
+  get signal(): usize {
+    return 0;
+  }
+}
 
 export class TestContext {
   get assert(): AssertionFacade {
     return sharedAssertionFacade;
+  }
+
+  get name(): string {
+    return currentNode.name;
+  }
+
+  get fullName(): string {
+    return fullNameForCurrentNode();
+  }
+
+  get filePath(): string {
+    return "";
+  }
+
+  get signal(): usize {
+    return 0;
+  }
+
+  get passed(): bool {
+    return false;
+  }
+
+  get error(): usize {
+    return 0;
+  }
+
+  get attempt(): i32 {
+    return 0;
+  }
+
+  get workerId(): i32 {
+    return 0;
   }
 
   test(
@@ -139,6 +204,14 @@ export class TestContext {
 
   afterEach(callback: HookCallback | null = null): void {
     registerContextHook(HookKind.AfterEach, callback);
+  }
+
+  skip(_message: string | null = null): void {
+    markCurrentNode(DeclarationMode.Skip);
+  }
+
+  todo(_message: string | null = null): void {
+    markCurrentNode(DeclarationMode.Todo);
   }
 }
 

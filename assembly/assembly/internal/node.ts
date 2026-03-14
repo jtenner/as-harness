@@ -23,7 +23,6 @@ export class NodeExecutionOptions {
 export class Node {
   readonly kind: NodeKind;
   readonly name: string;
-  readonly declarationMode: DeclarationMode;
   readonly callback: NodeCallback;
   readonly only: bool;
   readonly expectFailure: bool;
@@ -31,6 +30,7 @@ export class Node {
   readonly concurrency: i32;
   readonly plan: i32;
 
+  private declarationModeValue: DeclarationMode;
   private parentValue: Node | null = null;
   private ordinalValue: u32 = 0;
   private childrenValue: Array<Node> = new Array<Node>();
@@ -51,7 +51,7 @@ export class Node {
   ) {
     this.kind = kind;
     this.name = name;
-    this.declarationMode = declarationMode;
+    this.declarationModeValue = declarationMode;
     this.callback = callback !== null ? callback : noop;
     this.only = options !== null ? options.only : false;
     this.expectFailure = options !== null ? options.expectFailure : false;
@@ -62,6 +62,10 @@ export class Node {
 
   get parent(): Node | null {
     return this.parentValue;
+  }
+
+  get declarationMode(): DeclarationMode {
+    return this.declarationModeValue;
   }
 
   get ordinal(): u32 {
@@ -114,6 +118,10 @@ export class Node {
   setSuiteCallback(callback: SuiteNodeCallback): void {
     this.suiteCallbackValue = callback;
     this.testCallbackValue = null;
+  }
+
+  setDeclarationMode(mode: DeclarationMode): void {
+    this.declarationModeValue = mode;
   }
 
   getNodeIndex(): StaticArray<u32> {

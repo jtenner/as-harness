@@ -30,10 +30,33 @@ function declareNestedSuite(_context: SuiteContext): void {
 }
 
 function declareViaContext(context: TestContext): void {
+  assert(context.name == "context parent");
+  assert(context.fullName == "context parent");
+  assert(context.filePath == "");
+  assert(context.signal == 0);
+  assert(!context.passed);
+  assert(context.error == 0);
+  assert(context.attempt == 0);
+  assert(context.workerId == 0);
   context.assert.equal<i32>(1, 1);
   context.assert.deepEqual<i32>(2, 2);
   context.beforeEach(noopHook);
   context.test("context nested", noopTest);
+}
+
+function declareContextSkip(context: TestContext): void {
+  context.skip("skip me");
+}
+
+function declareContextTodo(context: TestContext): void {
+  context.todo("todo me");
+}
+
+function declareSuiteMetadata(context: SuiteContext): void {
+  assert(context.name == "suite parent");
+  assert(context.fullName == "suite parent");
+  assert(context.filePath == "");
+  assert(context.signal == 0);
 }
 
 function testNodeTestDeclarationRegistration(): void {
@@ -132,6 +155,27 @@ function testNodeTestContextMethods(): void {
   resetCurrentNode();
 }
 
+function testNodeTestContextSkipAndTodo(): void {
+  const localRoot = new Node(NodeKind.Root, "local root");
+  setCurrentNode(localRoot);
+
+  test("skip parent", declareContextSkip);
+  test("todo parent", declareContextTodo);
+  describe("suite parent", declareSuiteMetadata);
+
+  const children = localRoot.getChildren();
+  assert(children.length == 3);
+  unchecked(children[0]).getChildren();
+  unchecked(children[1]).getChildren();
+  unchecked(children[2]).getChildren();
+  assert(unchecked(children[0]).declarationMode == DeclarationMode.Skip);
+  assert(unchecked(children[1]).declarationMode == DeclarationMode.Todo);
+  assert(unchecked(children[2]).declarationMode == DeclarationMode.Normal);
+
+  resetCurrentNode();
+}
+
 testNodeTestDeclarationRegistration();
 testNodeTestAnonymousNames();
 testNodeTestContextMethods();
+testNodeTestContextSkipAndTodo();

@@ -14,6 +14,11 @@ The first declaration-registration slice now exists for the package-style
   and `afterEach(...)`
 - declaration-time `TestContext.test(...)`, `t.before(...)`, `t.after(...)`,
   `t.beforeEach(...)`, and `t.afterEach(...)`
+- declaration-time metadata getters on `SuiteContext` and `TestContext` for
+  `name`, `fullName`, `filePath`, and `signal`, plus `passed`, `error`,
+  `attempt`, and `workerId` placeholders on `TestContext`
+- declaration-time `t.skip(...)` and `t.todo(...)` that retag the active node's
+  declaration mode during callback discovery
 - a first `t.assert` facade bound onto the current synchronous `node:assert`
   bridge for `ok`, strict `equal` / `notEqual`, strict
   `deepEqual` / `notDeepEqual`, `strictEqual`, `notStrictEqual`,
@@ -24,9 +29,8 @@ The first declaration-registration slice now exists for the package-style
   derivation in the internal runtime
 
 This is still a declaration-only pass. Runnable callback execution, lifecycle
-ordering, `t.skip`, `t.todo`, diagnostics, traversal events,
-assertion-call accounting, and the remaining deferred `t.assert` APIs remain
-open work.
+ordering, diagnostics, traversal events, assertion-call accounting, and the
+remaining deferred `t.assert` APIs remain open work.
 
 ## Current Explicit Non-Goal
 
