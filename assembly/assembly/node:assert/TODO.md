@@ -16,6 +16,16 @@ helpers coherently, this adapter should treat the following as unsupported:
 - `assert.doesNotReject(asyncFn[, error][, message])`
 - any Promise-based matcher or wrapper shape layered above those APIs
 
+The current `node:assert` v1 scope should also treat the following as deferred:
+
+- legacy `deepEqual(...)` and `notDeepEqual(...)`
+- `match(...)` and `doesNotMatch(...)`
+- matcher-aware `throws(fn[, error][, message])`
+- matcher-aware `doesNotThrow(fn[, error][, message])`
+- `partialDeepStrictEqual(...)`
+- `Assert`
+- `AssertionError`
+
 ## Investigated Surface
 
 Baseline used for this inventory:
@@ -165,8 +175,7 @@ Shared primitive candidates for the Wasm assertion bridge:
 - `doesNotMatch`
 - `ifError`
 
-APIs that still need separate design work because they are not yet covered by
-the current synchronous bridge slices:
+APIs explicitly deferred from the current implementation scope:
 
 - legacy `deepEqual`
 - legacy `notDeepEqual`
@@ -188,7 +197,7 @@ Practical first-pass split for this repo:
 - keep the callable/default export as an alias of `assert.ok(value[, message])`
 - keep adapter code thin and push message emission and unreachable-failure behavior into the shared bridge
 - first shared structural-equality consumer: `deepStrictEqual`
-- keep legacy `deepEqual` out of the first bridge wave until its loose semantics are designed explicitly
+- keep legacy `deepEqual` out of the current bridge scope and defer it from v1
 
 ## Structure
 

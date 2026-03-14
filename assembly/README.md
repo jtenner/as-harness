@@ -51,6 +51,9 @@ Not implemented yet:
 - Promise-dependent assertion helpers such as `rejects(...)`,
   `doesNotReject(...)`, `.resolves`, `.rejects`, or async polling helpers stay
   unsupported until AssemblyScript has usable Promise support
+- the remaining `node:assert` surface is intentionally deferred for now where
+  it depends on loose deep equality, regex support, richer matcher-aware throw
+  handling, or object-model APIs such as `Assert` and `AssertionError`
 - host-facing ABI exports for traversal/discovery
 
 ## Package Layout

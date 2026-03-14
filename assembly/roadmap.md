@@ -13,6 +13,9 @@ Current explicit limitation:
   `rejects(...)`, `doesNotReject(...)`, `.resolves`, `.rejects`, or
   `waitFor(...)` are not planned until AssemblyScript has Promise support that
   can model those APIs coherently
+- the remaining `node:assert` APIs that depend on legacy loose deep equality,
+  regex support, matcher-aware throw checking, or object-model classes such as
+  `Assert` and `AssertionError` are explicitly deferred from the current scope
 
 | Name          | Kind           | URL starting point                                                              |
 | ------------- | -------------- | ------------------------------------------------------------------------------- |
