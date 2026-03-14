@@ -40,6 +40,7 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [x] Identify every AssemblyScript `ClassDeclaration` that requires strict-equality instrumentation.
 - [x] Inject a generated instance method for structural comparison on instrumented classes.
 - [x] Define the generated method signature and parameter contract for the structural comparison hook.
+- [x] Emit same-class identity and runtime-type guards before generated member comparison.
 - [x] Enumerate instance fields that should participate in structural comparison.
 - [x] Enumerate instance getters that should participate in structural comparison.
 - [x] Decide whether methods, static members, and computed members are excluded from generated comparison hooks.
@@ -61,6 +62,7 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [x] Implement fast-path primitive equality checks.
 - [x] Define null-handling behavior for nullable reference comparisons.
 - [x] Normalize `NaN` comparison semantics if float support requires it.
+- [x] Add runtime type-id helpers that generated class hooks can use before member comparison.
 - [ ] Implement pair-cache tracking for already-proven reference matches.
 - [ ] Implement active-resolution stack tracking for recursive comparison.
 - [ ] Define and implement deferred-match behavior for cycles.

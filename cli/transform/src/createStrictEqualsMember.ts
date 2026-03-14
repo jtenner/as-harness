@@ -13,6 +13,7 @@ import type {
 	TypeNode,
 } from "assemblyscript/dist/assemblyscript.js";
 import {
+	STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME,
 	STRICT_EQUALS_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_METHOD_NAME,
 } from "./contracts.js";
@@ -38,6 +39,47 @@ function createThisMemberAccessExpression(
 	);
 }
 
+function createClassTypeNode(
+	classDeclaration: ClassDeclaration,
+	range: Range,
+): TypeNode {
+	const typeArguments =
+		classDeclaration.typeParameters?.map((parameter) =>
+			createNamedType(parameter.name.text, range),
+		) ?? null;
+
+	return Node.createNamedType(
+		Node.createSimpleTypeName(classDeclaration.name.text, range),
+		typeArguments,
+		false,
+		range,
+	);
+}
+
+function createOtherAsClassExpression(
+	classDeclaration: ClassDeclaration,
+	range: Range,
+): Expression {
+	return Node.createCallExpression(
+		Node.createIdentifierExpression("changetype", range),
+		[createClassTypeNode(classDeclaration, range)],
+		[Node.createIdentifierExpression("other", range)],
+		range,
+	);
+}
+
+function createOtherMemberAccessExpression(
+	classDeclaration: ClassDeclaration,
+	member: ParticipatingMember,
+	range: Range,
+): Expression {
+	return Node.createPropertyAccessExpression(
+		createOtherAsClassExpression(classDeclaration, range),
+		Node.createIdentifierExpression(member.name, range),
+		range,
+	);
+}
+
 export function createStrictEqualsMember(
 	classDeclaration: ClassDeclaration,
 	participatingMembers: readonly ParticipatingMember[],
@@ -58,6 +100,60 @@ export function createStrictEqualsMember(
 		null,
 		false,
 		range,
+	);
+
+	statements.push(
+		Node.createIfStatement(
+			Node.createBinaryExpression(
+				Token.Equals_Equals,
+				Node.createIdentifierExpression("other", range),
+				Node.createCallExpression(
+					Node.createIdentifierExpression("changetype", range),
+					[createNamedType("usize", range)],
+					[Node.createThisExpression(range)],
+					range,
+				),
+				range,
+			),
+			Node.createBlockStatement(
+				[Node.createReturnStatement(Node.createTrueExpression(range), range)],
+				range,
+			),
+			null,
+			range,
+		),
+	);
+
+	statements.push(
+		Node.createIfStatement(
+			Node.createUnaryPrefixExpression(
+				Token.Exclamation,
+				Node.createCallExpression(
+					Node.createIdentifierExpression(
+						STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME,
+						range,
+					),
+					null,
+					[
+						Node.createIdentifierExpression("other", range),
+						Node.createCallExpression(
+							Node.createIdentifierExpression("idof", range),
+							[createClassTypeNode(classDeclaration, range)],
+							[],
+							range,
+						),
+					],
+					range,
+				),
+				range,
+			),
+			Node.createBlockStatement(
+				[Node.createReturnStatement(Node.createFalseExpression(range), range)],
+				range,
+			),
+			null,
+			range,
+		),
 	);
 
 	if (classDeclaration.extendsType !== null) {
@@ -94,9 +190,9 @@ export function createStrictEqualsMember(
 			Node.createIdentifierExpression(STRICT_EQUALS_MEMBER_HELPER_NAME, range),
 			null,
 			[
-				Node.createIdentifierExpression("other", range),
 				Node.createStringLiteralExpression(member.hash, range),
 				createThisMemberAccessExpression(member, range),
+				createOtherMemberAccessExpression(classDeclaration, member, range),
 			],
 			range,
 		);

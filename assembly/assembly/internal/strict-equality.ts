@@ -1,3 +1,5 @@
+import { OBJECT, TOTAL_OVERHEAD } from "rt/common";
+
 /**
  * Tri-state result for one structural equality comparison step.
  *
@@ -29,6 +31,8 @@ export const enum StrictEqualityValueKind {
 export const STRICT_EQUALS_METHOD_NAME = "__asHarnessStrictEquals";
 export const ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME =
   "__asHarnessAddReflectedValueKeyValuePairs";
+export const STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME =
+  "__asHarnessHasStrictEqualityRuntimeType";
 export const STRICT_EQUALS_MEMBER_HELPER_NAME = "__asHarnessStrictEqualsMember";
 export const ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME =
   "__asHarnessAddReflectedValueKeyValuePair";
@@ -98,12 +102,54 @@ export function compareStrictEqualityNullableReference<T>(
     : StrictEqualityResult.Fail;
 }
 
-export function __asHarnessStrictEqualsMember<T>(
-  _other: usize,
-  _memberHash: string,
-  _value: T,
+export function compareStrictEqualityString(
+  left: string,
+  right: string,
+): StrictEqualityResult {
+  return left == right
+    ? StrictEqualityResult.Match
+    : StrictEqualityResult.Fail;
+}
+
+export function compareStrictEqualityValue<T>(
+  left: T,
+  right: T,
+): StrictEqualityResult {
+  if (isReference<T>()) {
+    if (isString<T>()) {
+      return compareStrictEqualityString(
+        changetype<string>(left),
+        changetype<string>(right),
+      );
+    }
+
+    return compareStrictEqualityNullableReference(left, right);
+  }
+
+  return compareStrictEqualityPrimitive(left, right);
+}
+
+export function getStrictEqualityRuntimeTypeId(reference: usize): u32 {
+  if (reference == 0) {
+    return 0;
+  }
+
+  return changetype<OBJECT>(reference - TOTAL_OVERHEAD).rtId;
+}
+
+export function __asHarnessHasStrictEqualityRuntimeType(
+  reference: usize,
+  expectedTypeId: u32,
 ): bool {
-  return true;
+  return getStrictEqualityRuntimeTypeId(reference) == expectedTypeId;
+}
+
+export function __asHarnessStrictEqualsMember<T>(
+  _memberHash: string,
+  left: T,
+  right: T,
+): bool {
+  return compareStrictEqualityValue(left, right) == StrictEqualityResult.Match;
 }
 
 export function __asHarnessAddReflectedValueKeyValuePair<T>(

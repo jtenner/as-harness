@@ -1,11 +1,16 @@
 import {
   __asHarnessAddReflectedValueKeyValuePair,
+  __asHarnessHasStrictEqualityRuntimeType,
   __asHarnessStrictEqualsMember,
   ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
   ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME,
+  compareStrictEqualityString,
+  compareStrictEqualityValue,
   compareStrictEqualityNullableReference,
   compareStrictEqualityPrimitive,
+  getStrictEqualityRuntimeTypeId,
   STRICT_EQUALS_METHOD_NAME,
+  STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME,
   STRICT_EQUALS_MEMBER_HELPER_NAME,
   StrictEqualityResult,
   StrictEqualityValueKind,
@@ -15,6 +20,7 @@ import {
 } from "../../internal/strict-equality";
 
 class StrictEqualityReferenceBox {}
+class StrictEqualityOtherReferenceBox {}
 
 function testStrictEqualityHookNames(): void {
   assert(STRICT_EQUALS_METHOD_NAME == "__asHarnessStrictEquals");
@@ -23,6 +29,10 @@ function testStrictEqualityHookNames(): void {
       "__asHarnessAddReflectedValueKeyValuePairs",
   );
   assert(STRICT_EQUALS_MEMBER_HELPER_NAME == "__asHarnessStrictEqualsMember");
+  assert(
+    STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME ==
+      "__asHarnessHasStrictEqualityRuntimeType",
+  );
   assert(
     ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME ==
       "__asHarnessAddReflectedValueKeyValuePair",
@@ -65,7 +75,8 @@ function testSupportedStrictEqualityValueKinds(): void {
 }
 
 function testStrictEqualityMemberHelpers(): void {
-  assert(__asHarnessStrictEqualsMember(123, "field:value", 42));
+  assert(__asHarnessStrictEqualsMember("field:value", 42, 42));
+  assert(!__asHarnessStrictEqualsMember("field:value", 42, 7));
   __asHarnessAddReflectedValueKeyValuePair("field:value", 42);
 }
 
@@ -134,9 +145,53 @@ function testStrictEqualityNullableReferenceComparison(): void {
   );
 }
 
+function testStrictEqualityStringComparison(): void {
+  const left = String.UTF8.decode(String.UTF8.encode("ready"));
+  const right = String.UTF8.decode(String.UTF8.encode("ready"));
+
+  assert(
+    compareStrictEqualityString(left, right) == StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityValue<string>(left, right) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityValue<string>(left, "steady") ==
+      StrictEqualityResult.Fail,
+  );
+}
+
+function testStrictEqualityRuntimeTypeHelpers(): void {
+  const value = new StrictEqualityReferenceBox();
+  const other = new StrictEqualityOtherReferenceBox();
+  const nullValue = 0;
+
+  assert(getStrictEqualityRuntimeTypeId(changetype<usize>(value)) != 0);
+  assert(
+    getStrictEqualityRuntimeTypeId(changetype<usize>(value)) ==
+      idof<StrictEqualityReferenceBox>(),
+  );
+  assert(getStrictEqualityRuntimeTypeId(nullValue) == 0);
+  assert(
+    __asHarnessHasStrictEqualityRuntimeType(
+      changetype<usize>(value),
+      idof<StrictEqualityReferenceBox>(),
+    ),
+  );
+  assert(
+    !__asHarnessHasStrictEqualityRuntimeType(
+      changetype<usize>(other),
+      idof<StrictEqualityReferenceBox>(),
+    ),
+  );
+}
+
 testStrictEqualityHookNames();
 testStrictEqualityResultHelpers();
 testSupportedStrictEqualityValueKinds();
 testStrictEqualityMemberHelpers();
 testStrictEqualityPrimitiveComparison();
 testStrictEqualityNullableReferenceComparison();
+testStrictEqualityStringComparison();
+testStrictEqualityRuntimeTypeHelpers();

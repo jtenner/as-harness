@@ -340,21 +340,31 @@ The transform-side responsibilities are:
 
 The current generated-body scaffold already performs inheritance delegation:
 
+- generated `__asHarnessStrictEquals(...)` methods return `true` immediately
+  when `other` is the same runtime reference as `this`
+- generated `__asHarnessStrictEquals(...)` methods return `false` when `other`
+  does not match the current class runtime type id
 - derived `__asHarnessStrictEquals(...)` methods short-circuit to `false` when
   the generated `super` hook returns `false`
 - derived `__asHarnessAddReflectedValueKeyValuePairs(...)` methods call the
   generated `super` hook before subclass-local work
 - participating subclass members emit
-  `__asHarnessStrictEqualsMember(other, "<member-hash>", this.<member>)`
+  `__asHarnessStrictEqualsMember("<member-hash>", this.<member>, changetype<Class>(other).<member>)`
   helper calls
 - participating subclass members emit
   `__asHarnessAddReflectedValueKeyValuePair("<member-hash>", this.<member>)`
   helper calls
 
-The AssemblyScript runtime now provides placeholder entry points for those
-member-helper calls so bundled library sources can reference the generated hook
-contract safely while the recursive comparison and reflected-value cores are
-still being implemented.
+The AssemblyScript runtime now provides concrete entry points for the first part
+of that contract:
+
+- runtime-type-id extraction for guarded class casts
+- primitive and string value comparison
+- nullable-reference identity comparison
+
+The member-helper path still stops short of recursive managed-class and
+collection comparison, so pair-cache, active-stack, and deferred-match handling
+remain ahead in Phase 3.
 
 The runtime-side responsibilities are:
 
@@ -369,8 +379,10 @@ The runtime-side responsibilities are:
 The current runtime implementation now includes the first shared helpers for:
 
 - primitive equality fast paths
+- string equality handling
 - nullable-reference identity comparison
 - `NaN` normalization for float primitive comparisons
+- runtime-type-id checks used by generated class hooks
 
 ### Transform Activation Policy
 

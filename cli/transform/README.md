@@ -24,11 +24,14 @@ The current implementation now performs the first transform pass:
 - it selects participating instance members from class fields and getters while
   excluding static members, setters, constructors, and regular methods
 - it preserves class generic context while adding those hooks
+- it emits same-instance and runtime-type guards before generated comparison
+  work begins
 - it emits inheritance-aware bodies that delegate into `super` when a class
   extends a base class
 - it emits per-member helper calls so selected fields and getters flow into the
   shared strict-equality and reflected-value runtimes
 
 Those generated methods are still scaffold-level at the runtime boundary. The
-shared AssemblyScript helpers are placeholder entry points today, but the
-transform-side member enumeration and delegation shape are now fixed.
+shared AssemblyScript helpers now perform primitive, string, nullable, and
+runtime-type checks, but recursive collection and managed-class comparison work
+is still pending.
