@@ -6,7 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**", "!!**/dist"]
+		"includes": ["**", "!!**/dist", "!!as/.generated/virtual-files.barrel.ts"]
 	},
 	"formatter": {
 		"enabled": true,
