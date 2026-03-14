@@ -366,18 +366,20 @@ of that contract:
 - nullable-reference identity comparison
 - `ArrayBuffer` bytewise comparison
 - ordered comparison for `Array<T>` and `StaticArray<T>`
+- bytewise typed-array / `ArrayBufferView` / `DataView` comparison
 - managed-class recursion through transform-generated hooks
 
-The member-helper path still stops short of typed arrays, `Set`, and `Map`,
-but `ArrayBuffer`, ordered arrays / arraylikes, and recursive managed-class
-comparison are now routed through shared runtime helpers in Phase 3.
+The member-helper path now covers `ArrayBuffer` plus typed arrays /
+`ArrayBufferView` / `DataView`, while `Set` and `Map` still remain pending.
+Ordered arrays / arraylikes and recursive managed-class comparison are also
+routed through shared runtime helpers in Phase 3.
 
 The runtime-side responsibilities are:
 
 - primitive and nullable handling
 - `NaN` normalization
 - pair-cache and active-stack tracking
-- specialized comparison for typed arrays, `Set`, `Map`, and function references
+- specialized comparison for `Set`, `Map`, and function references
 - reflected-value construction
 - failure/result propagation
 

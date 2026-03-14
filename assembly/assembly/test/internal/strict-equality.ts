@@ -2,12 +2,14 @@ import {
   __asHarnessAddReflectedValueKeyValuePair,
   __asHarnessHasStrictEqualityRuntimeType,
   __asHarnessStrictEqualsArrayBufferMember,
+  __asHarnessStrictEqualsArrayBufferViewMember,
   __asHarnessStrictEqualsManagedClassMember,
   __asHarnessStrictEqualsMember,
   ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
   ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME,
   compareStrictEqualityArray,
   compareStrictEqualityArrayBuffer,
+  compareStrictEqualityArrayBufferView,
   compareStrictEqualityManagedClass,
   compareStrictEqualityReferencePair,
   compareStrictEqualityStaticArray,
@@ -23,6 +25,7 @@ import {
   resetStrictEqualityReferencePairTracking,
   STRICT_EQUALS_METHOD_NAME,
   STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME,
+  STRICT_EQUALS_ARRAY_BUFFER_VIEW_MEMBER_HELPER_NAME,
   STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME,
   STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME,
   STRICT_EQUALS_MEMBER_HELPER_NAME,
@@ -110,6 +113,10 @@ function testStrictEqualityHookNames(): void {
       "__asHarnessStrictEqualsArrayBufferMember",
   );
   assert(
+    STRICT_EQUALS_ARRAY_BUFFER_VIEW_MEMBER_HELPER_NAME ==
+      "__asHarnessStrictEqualsArrayBufferViewMember",
+  );
+  assert(
     STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME ==
       "__asHarnessStrictEqualsManagedClassMember",
   );
@@ -181,6 +188,14 @@ function createArrayBufferFromBytes(values: StaticArray<u8>): ArrayBuffer {
 
 function createIntArray(values: StaticArray<i32>): Array<i32> {
   const output = new Array<i32>(values.length);
+  for (let i = 0; i < values.length; i++) {
+    output[i] = unchecked(values[i]);
+  }
+  return output;
+}
+
+function createUint8Array(values: StaticArray<u8>): Uint8Array {
+  const output = new Uint8Array(values.length);
   for (let i = 0; i < values.length; i++) {
     output[i] = unchecked(values[i]);
   }
@@ -394,6 +409,7 @@ function testStrictEqualityArrayComparison(): void {
   );
   assert(getActiveStrictEqualityReferencePairCount() == 0);
   assert(getProvenStrictEqualityReferencePairCount() == 0);
+
 }
 
 function testStrictEqualityStaticArrayComparison(): void {
@@ -430,6 +446,92 @@ function testStrictEqualityStaticArrayComparison(): void {
   assert(
     compareStrictEqualityValue<StaticArray<i32>>(left, mismatch) ==
       StrictEqualityResult.Fail,
+  );
+}
+
+function testStrictEqualityArrayBufferViewComparison(): void {
+  const left = createUint8Array([1, 2, 3, 4]);
+  const right = createUint8Array([1, 2, 3, 4]);
+  const mismatch = createUint8Array([1, 2, 9, 4]);
+  const shorter = createUint8Array([1, 2, 3]);
+  const signed = new Int8Array(4);
+  signed[0] = 1;
+  signed[1] = 2;
+  signed[2] = 3;
+  signed[3] = 4;
+
+  assert(
+    compareStrictEqualityArrayBufferView(left, right) ==
+      StrictEqualityResult.Match,
+    "typed array views with identical bytes should match",
+  );
+  assert(
+    compareStrictEqualityArrayBufferView(left, mismatch) ==
+      StrictEqualityResult.Fail,
+    "typed array views with different bytes should fail",
+  );
+  assert(
+    compareStrictEqualityArrayBufferView(left, shorter) ==
+      StrictEqualityResult.Fail,
+    "typed array views with different lengths should fail",
+  );
+  assert(
+    compareStrictEqualityArrayBufferView(
+      changetype<ArrayBufferView>(left),
+      changetype<ArrayBufferView>(signed),
+    ) == StrictEqualityResult.Fail,
+    "typed array views with different runtime types should fail",
+  );
+  assert(
+    __asHarnessStrictEqualsArrayBufferViewMember("field:view", left, right),
+    "view member helper should accept equal typed-array members",
+  );
+  assert(
+    !__asHarnessStrictEqualsArrayBufferViewMember("field:view", left, mismatch),
+    "view member helper should reject mismatched typed-array members",
+  );
+
+  const viewBufferLeft = createArrayBufferFromBytes([1, 2, 3, 4]);
+  const viewBufferRight = createArrayBufferFromBytes([1, 2, 3, 4]);
+  const viewBufferMismatch = createArrayBufferFromBytes([1, 2, 9, 4]);
+  const viewLeft = new DataView(viewBufferLeft, 1, 2);
+  const viewRight = new DataView(viewBufferRight, 1, 2);
+  const viewMismatch = new DataView(viewBufferMismatch, 1, 2);
+
+  assert(
+    compareStrictEqualityArrayBufferView(
+      changetype<ArrayBufferView>(viewLeft),
+      changetype<ArrayBufferView>(viewRight),
+    ) ==
+      StrictEqualityResult.Match,
+    "DataView slices with identical bytes should match",
+  );
+  assert(
+    compareStrictEqualityArrayBufferView(
+      changetype<ArrayBufferView>(viewLeft),
+      changetype<ArrayBufferView>(viewMismatch),
+    ) ==
+      StrictEqualityResult.Fail,
+    "DataView slices with different bytes should fail",
+  );
+  assert(
+    __asHarnessStrictEqualsArrayBufferViewMember("field:view", viewLeft, viewRight),
+    "view member helper should accept equal DataView members",
+  );
+  assert(
+    !__asHarnessStrictEqualsArrayBufferViewMember(
+      "field:view",
+      viewLeft,
+      viewMismatch,
+    ),
+    "view member helper should reject mismatched DataView members",
+  );
+  assert(
+    compareStrictEqualityArrayBufferView(
+      changetype<ArrayBufferView>(left),
+      changetype<ArrayBufferView>(viewLeft),
+    ) == StrictEqualityResult.Fail,
+    "typed arrays should not compare equal to DataView instances",
   );
 }
 
@@ -566,6 +668,7 @@ testStrictEqualityStringComparison();
 testStrictEqualityArrayBufferComparison();
 testStrictEqualityArrayComparison();
 testStrictEqualityStaticArrayComparison();
+testStrictEqualityArrayBufferViewComparison();
 testStrictEqualityRuntimeTypeHelpers();
 testStrictEqualityReferencePairTracking();
 testStrictEqualityManagedClassComparison();

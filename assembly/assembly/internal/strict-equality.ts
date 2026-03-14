@@ -37,6 +37,8 @@ export const STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME =
 export const STRICT_EQUALS_MEMBER_HELPER_NAME = "__asHarnessStrictEqualsMember";
 export const STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME =
   "__asHarnessStrictEqualsArrayBufferMember";
+export const STRICT_EQUALS_ARRAY_BUFFER_VIEW_MEMBER_HELPER_NAME =
+  "__asHarnessStrictEqualsArrayBufferViewMember";
 export const STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME =
   "__asHarnessStrictEqualsManagedClassMember";
 export const ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME =
@@ -164,6 +166,42 @@ export function compareStrictEqualityArrayBuffer(
     changetype<usize>(right),
     <usize>byteLength,
   ) == 0
+    ? StrictEqualityResult.Match
+    : StrictEqualityResult.Fail;
+}
+
+export function compareStrictEqualityArrayBufferView(
+  left: ArrayBufferView | null,
+  right: ArrayBufferView | null,
+): StrictEqualityResult {
+  if (left == right) {
+    return StrictEqualityResult.Match;
+  }
+
+  const leftReference = changetype<usize>(left);
+  const rightReference = changetype<usize>(right);
+
+  if (leftReference == 0 || rightReference == 0) {
+    return StrictEqualityResult.Fail;
+  }
+
+  if (getStrictEqualityRuntimeTypeId(leftReference) != getStrictEqualityRuntimeTypeId(rightReference)) {
+    return StrictEqualityResult.Fail;
+  }
+
+  const leftView = changetype<ArrayBufferView>(leftReference);
+  const rightView = changetype<ArrayBufferView>(rightReference);
+  const byteLength = leftView.byteLength;
+
+  if (byteLength != rightView.byteLength) {
+    return StrictEqualityResult.Fail;
+  }
+
+  if (byteLength == 0) {
+    return StrictEqualityResult.Match;
+  }
+
+  return memory.compare(leftView.dataStart, rightView.dataStart, <usize>byteLength) == 0
     ? StrictEqualityResult.Match
     : StrictEqualityResult.Fail;
 }
@@ -321,7 +359,10 @@ export function compareStrictEqualityValue<T>(
     }
 
     if (ArrayBuffer.isView(left)) {
-      return StrictEqualityResult.Fail;
+      return compareStrictEqualityArrayBufferView(
+        changetype<ArrayBufferView | null>(left),
+        changetype<ArrayBufferView | null>(right),
+      );
     }
 
     if (left instanceof Set || left instanceof Map || isFunction<T>()) {
@@ -470,9 +511,8 @@ export function compareStrictEqualityManagedClass<T>(
   }
 
   pushActiveStrictEqualityReferencePair(leftReference, rightReference);
-  const result = changetype<nonnull<T>>(
-    leftReference,
-  ).__asHarnessStrictEquals(rightReference)
+  // @ts-ignore The transform injects this hook only on participating classes.
+  const result = changetype<nonnull<T>>(leftReference).__asHarnessStrictEquals(rightReference)
     ? StrictEqualityResult.Match
     : StrictEqualityResult.Fail;
   popActiveStrictEqualityReferencePair();
@@ -498,6 +538,17 @@ export function __asHarnessStrictEqualsArrayBufferMember(
   right: ArrayBuffer | null,
 ): bool {
   return compareStrictEqualityArrayBuffer(left, right) != StrictEqualityResult.Fail;
+}
+
+export function __asHarnessStrictEqualsArrayBufferViewMember<T>(
+  _memberHash: string,
+  left: T,
+  right: T,
+): bool {
+  return compareStrictEqualityArrayBufferView(
+    changetype<ArrayBufferView | null>(left),
+    changetype<ArrayBufferView | null>(right),
+  ) != StrictEqualityResult.Fail;
 }
 
 export function __asHarnessStrictEqualsManagedClassMember<T>(

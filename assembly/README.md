@@ -137,9 +137,10 @@ first strict-equality runtime helpers exist right now. That strict-equality
 work currently covers the shared contract constants plus primitive, string,
 nullable, runtime-type-id, pair-cache, active-stack, `NaN`-aware comparison
 helpers, `ArrayBuffer` bytewise comparison, ordered `Array<T>` /
-`StaticArray<T>` comparison, and managed-class recursion through generated
-hooks; typed arrays, sets, maps, and the reflected-value runtime are still
-pending.
+`StaticArray<T>` comparison, bytewise typed-array / `ArrayBufferView` /
+`DataView` comparison, dedicated generated-member helpers for `ArrayBuffer`
+and view-typed fields, and managed-class recursion through generated hooks;
+sets, maps, and the reflected-value runtime are still pending.
 
 ## Event Model
 

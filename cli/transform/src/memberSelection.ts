@@ -12,6 +12,7 @@ export type ParticipatingMemberKind = "field" | "getter";
 export type StrictEqualityComparisonStrategy =
 	| "value"
 	| "arrayBuffer"
+	| "arrayBufferView"
 	| "managedClass";
 
 export type ParticipatingMember = {
@@ -59,6 +60,22 @@ const NON_MANAGED_CLASS_TYPE_NAMES = new Set([
 	"u64",
 	"usize",
 	"v128",
+]);
+
+const ARRAY_BUFFER_VIEW_TYPE_NAMES = new Set([
+	"ArrayBufferView",
+	"DataView",
+	"Float32Array",
+	"Float64Array",
+	"Int8Array",
+	"Int16Array",
+	"Int32Array",
+	"Int64Array",
+	"Uint8Array",
+	"Uint8ClampedArray",
+	"Uint16Array",
+	"Uint32Array",
+	"Uint64Array",
 ]);
 
 function isParticipatingFieldDeclaration(
@@ -119,6 +136,10 @@ function getStrictEqualityComparisonStrategy(
 
 	if (typeName === "ArrayBuffer") {
 		return "arrayBuffer";
+	}
+
+	if (ARRAY_BUFFER_VIEW_TYPE_NAMES.has(typeName)) {
+		return "arrayBufferView";
 	}
 
 	if (

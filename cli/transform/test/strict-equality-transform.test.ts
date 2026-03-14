@@ -20,6 +20,7 @@ import {
 	ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME,
 	ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
 	STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME,
+	STRICT_EQUALS_ARRAY_BUFFER_VIEW_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME,
@@ -392,6 +393,32 @@ class Example {
 	).toEqual(["arrayBuffer", "arrayBuffer"]);
 });
 
+test("marks typed-array and DataView members for dedicated view helper delegation", () => {
+	const parser = parseSource(`
+class Example {
+  bytes: Uint8Array;
+  view: DataView;
+
+  get alias(): Uint8Array {
+    return this.bytes;
+  }
+}
+`);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Example",
+	);
+	const participatingMembers =
+		getParticipatingInstanceMembers(classDeclaration);
+
+	expect(
+		participatingMembers.map(
+			(member) => member.strictEqualityComparisonStrategy,
+		),
+	).toEqual(["arrayBufferView", "arrayBufferView", "arrayBufferView"]);
+});
+
 test("delegates into super from generated strict-equality hooks on derived classes", () => {
 	const parser = parseSource(`
 class Base {}
@@ -601,6 +628,44 @@ class Example {
 	);
 	expect((bufferCall.args[0] as { value: string }).value).toBe("field:buffer");
 	expect((aliasCall.args[0] as { value: string }).value).toBe("getter:alias");
+});
+
+test("emits ArrayBufferView helper checks for participating typed-array and DataView members", () => {
+	const parser = parseSource(`
+class Example {
+  bytes: Uint8Array;
+  view: DataView;
+}
+`);
+
+	new StrictEqualityTransform().afterParse(parser);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Example",
+	);
+	const strictEqualsMethod = findMethod(
+		classDeclaration,
+		STRICT_EQUALS_METHOD_NAME,
+	);
+	const bodyStatements = getMethodBodyStatements(strictEqualsMethod);
+	const bytesCheck = bodyStatements[2] as IfStatement;
+	const viewCheck = bodyStatements[3] as IfStatement;
+	const bytesCall = (bytesCheck.condition as UnaryPrefixExpression)
+		.operand as CallExpression;
+	const viewCall = (viewCheck.condition as UnaryPrefixExpression)
+		.operand as CallExpression;
+
+	expect(bytesCall.expression.kind).toBe(NodeKind.Identifier);
+	expect(viewCall.expression.kind).toBe(NodeKind.Identifier);
+	expect(bytesCall.expression.text).toBe(
+		STRICT_EQUALS_ARRAY_BUFFER_VIEW_MEMBER_HELPER_NAME,
+	);
+	expect(viewCall.expression.text).toBe(
+		STRICT_EQUALS_ARRAY_BUFFER_VIEW_MEMBER_HELPER_NAME,
+	);
+	expect((bytesCall.args[0] as { value: string }).value).toBe("field:bytes");
+	expect((viewCall.args[0] as { value: string }).value).toBe("field:view");
 });
 
 test("emits per-member reflected key-value helper calls for participating fields and getters", () => {
