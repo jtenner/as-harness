@@ -94,8 +94,8 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 
 ### Assertion Bridge Integration
 
-- [ ] Add a `node:assert` internal entry point that can call the structural equality runtime.
-- [ ] Define how failed structural equality lowers into `FailMessage` plus trap.
+- [x] Add a `node:assert` internal entry point that can call the structural equality runtime.
+- [x] Define how failed structural equality lowers into `FailMessage` plus trap.
 - [ ] Decide whether default deep-equality failure messages are generated in the guest, in the host, or deferred.
 - [ ] Ensure the strict-equality runtime can be reused by future assertion APIs beyond `deepEqual`.
 
@@ -185,8 +185,8 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 ## Assertion Bridge
 
 - [x] Define the minimal assertion primitive the runtime exposes to assertion libraries.
-- [ ] Implement `FailMessage` emission before intentional failure when a message exists.
-- [ ] Support message-less assertion failure paths.
+- [x] Implement `FailMessage` emission before intentional failure when a message exists.
+- [x] Support message-less assertion failure paths.
 - [ ] Ensure assertion failures behave the same inside node callbacks and lifecycle callbacks.
 - [ ] Normalize assertion failure into "emit metadata, then become unreachable".
 
@@ -227,5 +227,5 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [ ] Add fixtures that prove `todo` preserves descendant traversal while suppressing self-outcome significance.
 - [ ] Add fixtures for nested declaration during execution.
 - [ ] Add fixtures for lifecycle ordering and lifecycle failure propagation.
-- [ ] Add fixtures for assertion failures with and without messages.
+- [x] Add fixtures for assertion failures with and without messages.
 - [ ] Add fixtures for unreachable branch pruning and clean replay after failure.

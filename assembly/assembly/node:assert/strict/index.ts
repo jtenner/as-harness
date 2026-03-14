@@ -1,0 +1,1 @@
+export { deepStrictEqual } from "../shared";

@@ -23,8 +23,10 @@ Implemented today:
 - internal event serialization helpers in `assembly/assembly/internal/events.ts`
 - an internal `Node` class with lazy child discovery in `assembly/assembly/internal/node.ts`
 - an internal staged-callback trampoline in `assembly/assembly/internal/trampoline.ts`
+- an internal assertion bridge in `assembly/assembly/internal/assert-bridge.ts`
 - serializer-shape tests in `assembly/assembly/test/internal/events.ts`
 - `Node` metadata/discovery tests in `assembly/assembly/test/internal/node.ts`
+- `deepStrictEqual(...)` entry points for `node:assert` and `node:assert/strict`
 - a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint with a
   host-callable `allocateNodeIndexBuffer(length)` export for NodeIndex writes
   plus the guest-side `invoke()` trampoline export
@@ -33,10 +35,10 @@ Implemented today:
 
 Not implemented yet:
 
-- framework adapter source code
+- most framework adapter source code
 - declaration registration/runtime traversal
 - hook execution
-- assertion bridge beyond the initial event work
+- assertion failure default messaging beyond optional explicit message text
 - host-facing ABI exports for traversal/discovery
 
 ## Package Layout
@@ -59,6 +61,8 @@ Current files:
 - `events.ts`: event payload serialization and event-sender helpers
 - `node.ts`: structural node metadata, the global `rootNode` / `currentNode`,
   and lazy child discovery
+- `assert-bridge.ts`: shared failure-to-`FailMessage` helpers plus the first
+  strict-structural assertion wrapper
 - `reflected-value.ts`: the first reflected-diagnostics value model and
   collector-backed construction helpers
 - `trampoline.ts`: the staged `() => void` trap-observation boundary used for
@@ -73,7 +77,13 @@ Current files:
 Current files:
 
 - `index.ts`: barrel entrypoint for internal tests
+- `node-assert-smoke.ts`: exported smoke fixture for host-observed
+  `node:assert` `deepStrictEqual(...)` success and failure behavior
+- `node-assert-strict-smoke.ts`: exported smoke fixture for host-observed
+  `node:assert/strict` `deepStrictEqual(...)` success and failure behavior
 - `internal/events.ts`: tests for serializer output shape
+- `internal/assert-bridge.ts`: tests for the non-trapping assertion bridge
+  helpers
 - `internal/reflected-value.ts`: tests for the reflected-value runtime model
   and collector helpers
 - `trampoline-smoke.ts`: a host-runtime smoke fixture that probes the staged
@@ -96,7 +106,9 @@ Current skeleton folders include:
 - `jasmine`
 - `qnit`
 
-These folders currently contain TODO stubs only. The intent is that each adapter will expose framework-shaped globals and lower them into shared internal primitives.
+These folders currently contain TODO stubs or the earliest assertion entrypoint
+files. The intent is that each adapter will expose framework-shaped globals and
+lower them into shared internal primitives.
 
 `assembly/build/`
 : Generated build artifacts such as `.wasm`, `.js`, `.d.ts`, `.wat`, and source maps.
