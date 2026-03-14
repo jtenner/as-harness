@@ -19,6 +19,7 @@ import type {
 import {
 	ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME,
 	ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
+	STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME,
 	STRICT_EQUALS_METHOD_NAME,
@@ -260,6 +261,11 @@ class Example {
 		createParticipatingMemberHash("field", "label"),
 		createParticipatingMemberHash("getter", "size"),
 	]);
+	expect(
+		participatingMembers.map(
+			(member) => member.strictEqualityComparisonStrategy,
+		),
+	).toEqual(["value", "value", "value"]);
 });
 
 test("injects hooks into generic classes without dropping the class generic context", () => {
@@ -326,6 +332,38 @@ class Derived extends Base {
 		createParticipatingMemberHash("field", "derivedField"),
 		createParticipatingMemberHash("getter", "shared"),
 	]);
+});
+
+test("marks known class-typed members for managed-class helper delegation", () => {
+	const parser = parseSource(`
+class Child {}
+
+class Box<T> {
+  child: Child | null;
+  nested: Box<T> | null;
+  value: T;
+  items: Array<Child>;
+
+  get alias(): Child | null {
+    return this.child;
+  }
+}
+`);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Box",
+	);
+	const participatingMembers = getParticipatingInstanceMembers(
+		classDeclaration,
+		new Set(["Child", "Box"]),
+	);
+
+	expect(
+		participatingMembers.map(
+			(member) => member.strictEqualityComparisonStrategy,
+		),
+	).toEqual(["managedClass", "managedClass", "value", "value", "managedClass"]);
 });
 
 test("delegates into super from generated strict-equality hooks on derived classes", () => {
@@ -453,6 +491,49 @@ class Example {
 	expect(countOtherMemberAccess.property.text).toBe("count");
 	expect(sizeOtherMemberAccess.property.text).toBe("size");
 	expect(bodyStatements[4]?.kind).toBe(NodeKind.Return);
+});
+
+test("emits managed-class helper checks for participating class-typed members", () => {
+	const parser = parseSource(`
+class Child {}
+
+class Example {
+  child: Child | null;
+
+  get alias(): Child | null {
+    return this.child;
+  }
+}
+`);
+
+	new StrictEqualityTransform().afterParse(parser);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Example",
+	);
+	const strictEqualsMethod = findMethod(
+		classDeclaration,
+		STRICT_EQUALS_METHOD_NAME,
+	);
+	const bodyStatements = getMethodBodyStatements(strictEqualsMethod);
+	const childCheck = bodyStatements[2] as IfStatement;
+	const aliasCheck = bodyStatements[3] as IfStatement;
+	const childCall = (childCheck.condition as UnaryPrefixExpression)
+		.operand as CallExpression;
+	const aliasCall = (aliasCheck.condition as UnaryPrefixExpression)
+		.operand as CallExpression;
+
+	expect(childCall.expression.kind).toBe(NodeKind.Identifier);
+	expect(aliasCall.expression.kind).toBe(NodeKind.Identifier);
+	expect(childCall.expression.text).toBe(
+		STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME,
+	);
+	expect(aliasCall.expression.text).toBe(
+		STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME,
+	);
+	expect((childCall.args[0] as { value: string }).value).toBe("field:child");
+	expect((aliasCall.args[0] as { value: string }).value).toBe("getter:alias");
 });
 
 test("emits per-member reflected key-value helper calls for participating fields and getters", () => {

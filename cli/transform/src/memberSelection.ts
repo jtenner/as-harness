@@ -3,17 +3,60 @@ import type {
 	ClassDeclaration,
 	FieldDeclaration,
 	MethodDeclaration,
+	NamedTypeNode,
+	TypeNode,
 } from "assemblyscript/dist/assemblyscript.js";
 import { createParticipatingMemberHash } from "./hash.js";
 
 export type ParticipatingMemberKind = "field" | "getter";
+export type StrictEqualityComparisonStrategy = "value" | "managedClass";
 
 export type ParticipatingMember = {
 	declaration: FieldDeclaration | MethodDeclaration;
 	hash: string;
 	kind: ParticipatingMemberKind;
 	name: string;
+	strictEqualityComparisonStrategy: StrictEqualityComparisonStrategy;
 };
+
+const NON_MANAGED_CLASS_TYPE_NAMES = new Set([
+	"Array",
+	"ArrayBuffer",
+	"ArrayBufferView",
+	"ArrayLike",
+	"DataView",
+	"Date",
+	"Float32Array",
+	"Float64Array",
+	"Int8Array",
+	"Int16Array",
+	"Int32Array",
+	"Int64Array",
+	"Map",
+	"Set",
+	"StaticArray",
+	"String",
+	"Uint8Array",
+	"Uint8ClampedArray",
+	"Uint16Array",
+	"Uint32Array",
+	"Uint64Array",
+	"bool",
+	"f32",
+	"f64",
+	"i8",
+	"i16",
+	"i32",
+	"i64",
+	"isize",
+	"string",
+	"u8",
+	"u16",
+	"u32",
+	"u64",
+	"usize",
+	"v128",
+]);
 
 function isParticipatingFieldDeclaration(
 	fieldDeclaration: FieldDeclaration,
@@ -32,8 +75,58 @@ function isParticipatingGetterDeclaration(
 	);
 }
 
+function getParticipatingMemberTypeNode(
+	declaration: FieldDeclaration | MethodDeclaration,
+): TypeNode | null {
+	if (declaration.kind === NodeKind.FieldDeclaration) {
+		return (declaration as FieldDeclaration).type;
+	}
+
+	return ((declaration as MethodDeclaration).signature.returnType ??
+		null) as TypeNode | null;
+}
+
+function getNamedTypeName(typeNode: TypeNode | null): string | null {
+	if (typeNode === null || typeNode.kind !== NodeKind.NamedType) {
+		return null;
+	}
+
+	return (typeNode as NamedTypeNode).name.identifier.text;
+}
+
+function getStrictEqualityComparisonStrategy(
+	classDeclaration: ClassDeclaration,
+	declaration: FieldDeclaration | MethodDeclaration,
+	knownClassNames: ReadonlySet<string>,
+): StrictEqualityComparisonStrategy {
+	const typeNode = getParticipatingMemberTypeNode(declaration);
+	const typeName = getNamedTypeName(typeNode);
+	if (typeName === null) {
+		return "value";
+	}
+
+	if (
+		classDeclaration.typeParameters?.some(
+			(typeParameter) => typeParameter.name.text === typeName,
+		) ??
+		false
+	) {
+		return "value";
+	}
+
+	if (
+		NON_MANAGED_CLASS_TYPE_NAMES.has(typeName) ||
+		!knownClassNames.has(typeName)
+	) {
+		return "value";
+	}
+
+	return "managedClass";
+}
+
 export function getParticipatingInstanceMembers(
 	classDeclaration: ClassDeclaration,
+	knownClassNames: ReadonlySet<string> = new Set<string>(),
 ): ParticipatingMember[] {
 	const participatingMembers: ParticipatingMember[] = [];
 
@@ -47,6 +140,11 @@ export function getParticipatingInstanceMembers(
 				hash: createParticipatingMemberHash("field", member.name.text),
 				kind: "field",
 				name: member.name.text,
+				strictEqualityComparisonStrategy: getStrictEqualityComparisonStrategy(
+					classDeclaration,
+					member as FieldDeclaration,
+					knownClassNames,
+				),
 			});
 			continue;
 		}
@@ -60,6 +158,11 @@ export function getParticipatingInstanceMembers(
 				hash: createParticipatingMemberHash("getter", member.name.text),
 				kind: "getter",
 				name: member.name.text,
+				strictEqualityComparisonStrategy: getStrictEqualityComparisonStrategy(
+					classDeclaration,
+					member as MethodDeclaration,
+					knownClassNames,
+				),
 			});
 		}
 	}

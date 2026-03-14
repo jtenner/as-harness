@@ -25,13 +25,37 @@ function hasMethodNamed(
 	);
 }
 
-function instrumentClassDeclaration(classDeclaration: ClassDeclaration): void {
+function collectKnownClassNames(
+	statements: readonly Statement[],
+	knownClassNames: Set<string>,
+): void {
+	for (const statement of statements) {
+		if (statement.kind === NodeKind.ClassDeclaration) {
+			knownClassNames.add((statement as ClassDeclaration).name.text);
+			continue;
+		}
+
+		if (statement.kind === NodeKind.NamespaceDeclaration) {
+			collectKnownClassNames(
+				(statement as NamespaceDeclaration).members,
+				knownClassNames,
+			);
+		}
+	}
+}
+
+function instrumentClassDeclaration(
+	classDeclaration: ClassDeclaration,
+	knownClassNames: ReadonlySet<string>,
+): void {
 	if (classDeclaration.flags & CommonFlags.Ambient) {
 		return;
 	}
 
-	const participatingMembers =
-		getParticipatingInstanceMembers(classDeclaration);
+	const participatingMembers = getParticipatingInstanceMembers(
+		classDeclaration,
+		knownClassNames,
+	);
 
 	if (!hasMethodNamed(classDeclaration, STRICT_EQUALS_METHOD_NAME)) {
 		classDeclaration.members.push(
@@ -54,27 +78,46 @@ function instrumentClassDeclaration(classDeclaration: ClassDeclaration): void {
 	}
 }
 
-function visitStatements(statements: readonly Statement[]): void {
+function visitStatements(
+	statements: readonly Statement[],
+	knownClassNames: ReadonlySet<string>,
+): void {
 	for (const statement of statements) {
 		if (statement.kind === NodeKind.ClassDeclaration) {
-			instrumentClassDeclaration(statement as ClassDeclaration);
+			instrumentClassDeclaration(
+				statement as ClassDeclaration,
+				knownClassNames,
+			);
 			continue;
 		}
 
 		if (statement.kind === NodeKind.NamespaceDeclaration) {
-			visitStatements((statement as NamespaceDeclaration).members);
+			visitStatements(
+				(statement as NamespaceDeclaration).members,
+				knownClassNames,
+			);
 		}
 	}
 }
 
 export default class EmptyTransform extends Transform {
 	afterParse(parser: Parser): void {
+		const knownClassNames = new Set<string>();
+
 		for (const source of parser.sources) {
 			if (source.isLibrary) {
 				continue;
 			}
 
-			visitStatements(source.statements);
+			collectKnownClassNames(source.statements, knownClassNames);
+		}
+
+		for (const source of parser.sources) {
+			if (source.isLibrary) {
+				continue;
+			}
+
+			visitStatements(source.statements, knownClassNames);
 		}
 	}
 }

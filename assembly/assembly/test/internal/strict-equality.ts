@@ -1,9 +1,11 @@
 import {
   __asHarnessAddReflectedValueKeyValuePair,
   __asHarnessHasStrictEqualityRuntimeType,
+  __asHarnessStrictEqualsManagedClassMember,
   __asHarnessStrictEqualsMember,
   ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
   ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME,
+  compareStrictEqualityManagedClass,
   compareStrictEqualityReferencePair,
   compareStrictEqualityString,
   compareStrictEqualityValue,
@@ -16,6 +18,7 @@ import {
   hasProvenStrictEqualityReferencePair,
   resetStrictEqualityReferencePairTracking,
   STRICT_EQUALS_METHOD_NAME,
+  STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME,
   STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME,
   STRICT_EQUALS_MEMBER_HELPER_NAME,
   StrictEqualityResult,
@@ -27,6 +30,39 @@ import {
 
 class StrictEqualityReferenceBox {}
 class StrictEqualityOtherReferenceBox {}
+class StrictEqualityRecursiveNode {
+  label: string;
+  next: StrictEqualityRecursiveNode | null = null;
+
+  constructor(label: string) {
+    this.label = label;
+  }
+
+  __asHarnessStrictEquals(other: usize): bool {
+    if (other == changetype<usize>(this)) {
+      return true;
+    }
+
+    if (
+      !__asHarnessHasStrictEqualityRuntimeType(
+        other,
+        idof<StrictEqualityRecursiveNode>(),
+      )
+    ) {
+      return false;
+    }
+
+    const otherNode = changetype<StrictEqualityRecursiveNode>(other);
+    return (
+      __asHarnessStrictEqualsMember("field:label", this.label, otherNode.label) &&
+      __asHarnessStrictEqualsManagedClassMember(
+        "field:next",
+        this.next,
+        otherNode.next,
+      )
+    );
+  }
+}
 
 let strictEqualityCallbackRuns: i32 = 0;
 
@@ -64,6 +100,10 @@ function reenterStrictEqualityPair(
 
 function testStrictEqualityHookNames(): void {
   assert(STRICT_EQUALS_METHOD_NAME == "__asHarnessStrictEquals");
+  assert(
+    STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME ==
+      "__asHarnessStrictEqualsManagedClassMember",
+  );
   assert(
     ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME ==
       "__asHarnessAddReflectedValueKeyValuePairs",
@@ -118,6 +158,17 @@ function testStrictEqualityMemberHelpers(): void {
   assert(__asHarnessStrictEqualsMember("field:value", 42, 42));
   assert(!__asHarnessStrictEqualsMember("field:value", 42, 7));
   __asHarnessAddReflectedValueKeyValuePair("field:value", 42);
+}
+
+function createRecursiveCycle(
+  rootLabel: string,
+  childLabel: string,
+): StrictEqualityRecursiveNode {
+  const root = new StrictEqualityRecursiveNode(rootLabel);
+  const child = new StrictEqualityRecursiveNode(childLabel);
+  root.next = child;
+  child.next = root;
+  return root;
 }
 
 function testStrictEqualityPrimitiveComparison(): void {
@@ -276,6 +327,55 @@ function testStrictEqualityReferencePairTracking(): void {
   assert(!hasProvenStrictEqualityReferencePair(leftRef, rightRef));
 }
 
+function testStrictEqualityManagedClassComparison(): void {
+  const left = createRecursiveCycle("root", "child");
+  const right = createRecursiveCycle("root", "child");
+  const mismatch = createRecursiveCycle("root", "other");
+  const nullNode = changetype<StrictEqualityRecursiveNode | null>(0);
+
+  resetStrictEqualityReferencePairTracking();
+  assert(
+    compareStrictEqualityManagedClass(left, right) == StrictEqualityResult.Match,
+  );
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+  assert(getProvenStrictEqualityReferencePairCount() == 2);
+
+  resetStrictEqualityReferencePairTracking();
+  assert(
+    __asHarnessStrictEqualsManagedClassMember("field:next", left, right),
+  );
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+  assert(getProvenStrictEqualityReferencePairCount() == 2);
+
+  resetStrictEqualityReferencePairTracking();
+  assert(
+    compareStrictEqualityManagedClass(left, mismatch) ==
+      StrictEqualityResult.Fail,
+  );
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+  assert(getProvenStrictEqualityReferencePairCount() == 0);
+
+  resetStrictEqualityReferencePairTracking();
+  assert(
+    !__asHarnessStrictEqualsManagedClassMember("field:next", left, mismatch),
+  );
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+  assert(getProvenStrictEqualityReferencePairCount() == 0);
+
+  resetStrictEqualityReferencePairTracking();
+  assert(
+    __asHarnessStrictEqualsManagedClassMember("field:next", left, left),
+  );
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+  assert(getProvenStrictEqualityReferencePairCount() == 0);
+
+  resetStrictEqualityReferencePairTracking();
+  assert(
+    !__asHarnessStrictEqualsManagedClassMember("field:next", left, nullNode),
+  );
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+}
+
 testStrictEqualityHookNames();
 testStrictEqualityResultHelpers();
 testSupportedStrictEqualityValueKinds();
@@ -285,3 +385,4 @@ testStrictEqualityNullableReferenceComparison();
 testStrictEqualityStringComparison();
 testStrictEqualityRuntimeTypeHelpers();
 testStrictEqualityReferencePairTracking();
+testStrictEqualityManagedClassComparison();

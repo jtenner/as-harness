@@ -72,7 +72,7 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [ ] Implement specialized comparison for `Set`.
 - [ ] Implement specialized comparison for `Map`.
 - [ ] Implement function-reference comparison semantics.
-- [ ] Delegate generic class comparison into the transform-generated structural hook.
+- [x] Delegate generic class comparison into the transform-generated structural hook.
 
 ### Assembly Runtime Reflected Value Core
 

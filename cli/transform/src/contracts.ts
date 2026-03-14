@@ -6,5 +6,7 @@ export const ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME =
 export const STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME =
 	"__asHarnessHasStrictEqualityRuntimeType";
 export const STRICT_EQUALS_MEMBER_HELPER_NAME = "__asHarnessStrictEqualsMember";
+export const STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME =
+	"__asHarnessStrictEqualsManagedClassMember";
 export const ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME =
 	"__asHarnessAddReflectedValueKeyValuePair";
