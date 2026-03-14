@@ -150,7 +150,7 @@ export const bundledVirtualFiles = new Map<string, string>([
 	],
 	[
 		"~/.as-harness/test/node-test-smoke.ts",
-		'import { test, TestContext } from "../node:test";\n\nexport { allocateNodeIndexBuffer, discover, invoke, run } from "../exports";\n\ntest("passing test", (context: TestContext): void => {\n  context.assert.strictEqual<i32>(11, 11);\n});\n\ntest("failing test", (context: TestContext): void => {\n  context.assert.strictEqual<i32>(11, 12, "node:test smoke mismatch");\n});\n\ntest("parent test", (context: TestContext): void => {\n  context.test("nested child", (_nestedContext: TestContext): void => {});\n});\n',
+		'import {\n  after,\n  afterEach,\n  before,\n  beforeEach,\n  test,\n  TestContext,\n} from "../node:test";\n\nexport { allocateNodeIndexBuffer, discover, invoke, run } from "../exports";\n\nbefore((_context: TestContext): void => {});\nbeforeEach((_context: TestContext): void => {});\nafterEach((_context: TestContext): void => {});\nafter((_context: TestContext): void => {});\n\ntest("passing test", (context: TestContext): void => {\n  context.assert.strictEqual<i32>(11, 11);\n});\n\ntest("failing test", (context: TestContext): void => {\n  context.assert.strictEqual<i32>(11, 12, "node:test smoke mismatch");\n});\n\ntest("parent test", (context: TestContext): void => {\n  context.test("nested child", (_nestedContext: TestContext): void => {});\n});\n',
 	],
 	[
 		"~/.as-harness/test/trampoline-smoke.ts",

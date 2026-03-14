@@ -105,6 +105,69 @@ test("run(nodeIndex) executes the targeted node:test path", () => {
 	assert.equal(harness.run([3]), false);
 });
 
+test("run(nodeIndex) emits decoded node and lifecycle events for a passing test", () => {
+	const harness = addon.createHarness(compiledNodeTestWasm);
+	const events = [];
+
+	harness.onNodeStart((event) => {
+		events.push(["nodeStart", event]);
+	});
+	harness.onNodePass((event) => {
+		events.push(["nodePass", event]);
+	});
+	harness.onCallbackStart((event) => {
+		events.push(["callbackStart", event]);
+	});
+	harness.onCallbackPass((event) => {
+		events.push(["callbackPass", event]);
+	});
+
+	assert.equal(harness.run([0]), true);
+	assert.deepEqual(events, [
+		["nodeStart", { nodeIndex: [0] }],
+		["callbackStart", { hook: 1, nodeIndex: [] }],
+		["callbackPass", { hook: 1, nodeIndex: [] }],
+		["callbackStart", { hook: 2, nodeIndex: [] }],
+		["callbackPass", { hook: 2, nodeIndex: [] }],
+		["callbackStart", { hook: 3, nodeIndex: [] }],
+		["callbackPass", { hook: 3, nodeIndex: [] }],
+		["callbackStart", { hook: 4, nodeIndex: [] }],
+		["callbackPass", { hook: 4, nodeIndex: [] }],
+		["nodePass", { nodeIndex: [0] }],
+	]);
+});
+
+test("run(nodeIndex) emits FailMessage and stops pass events on a failing test", () => {
+	const harness = addon.createHarness(compiledNodeTestWasm);
+	const events = [];
+
+	harness.onNodeStart((event) => {
+		events.push(["nodeStart", event]);
+	});
+	harness.onNodePass((event) => {
+		events.push(["nodePass", event]);
+	});
+	harness.onCallbackStart((event) => {
+		events.push(["callbackStart", event]);
+	});
+	harness.onCallbackPass((event) => {
+		events.push(["callbackPass", event]);
+	});
+	harness.onFailMessage((event) => {
+		events.push(["failMessage", event]);
+	});
+
+	assert.equal(harness.run([1]), false);
+	assert.deepEqual(events, [
+		["nodeStart", { nodeIndex: [1] }],
+		["callbackStart", { hook: 1, nodeIndex: [] }],
+		["callbackPass", { hook: 1, nodeIndex: [] }],
+		["callbackStart", { hook: 2, nodeIndex: [] }],
+		["callbackPass", { hook: 2, nodeIndex: [] }],
+		["failMessage", { message: "node:test smoke mismatch" }],
+	]);
+});
+
 test("discover(nodeIndex) emits NodeFound events for top-level and nested node:test declarations", () => {
 	const harness = addon.createHarness(compiledNodeTestWasm);
 	const found = [];
