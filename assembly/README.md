@@ -147,9 +147,9 @@ view-typed fields, `Set`, and `Map`, direct `Set` / `Map` comparison helpers,
 function-reference identity comparison, managed-class recursion through
 generated hooks, and the first reflected-value runtime slice for primitive,
 string, `ArrayBuffer`, ordered array / `StaticArray`, and typed-array /
-`ArrayBufferView` diagnostics plus the generated key/value collector.
-`Set`, `Map`, and recursive managed-class reflected-value construction are
-still pending.
+`ArrayBufferView`, `Set`, and `Map` diagnostics plus the generated key/value
+collector. Recursive managed-class reflected-value construction is still
+pending.
 
 ## Event Model
 

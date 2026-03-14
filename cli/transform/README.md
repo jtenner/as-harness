@@ -37,6 +37,6 @@ runtime-type, `ArrayBuffer`, typed-array / `ArrayBufferView`, ordered array /
 arraylike, direct `Set` / `Map`, function-reference identity, and managed-class
 recursive checks. The reflected-value side now also has a live collector plus
 primitive, string, `ArrayBuffer`, ordered array / `StaticArray`, and
-typed-array / `ArrayBufferView` construction helpers behind
-`__asHarnessAddReflectedValueKeyValuePair(...)`. `Set`, `Map`, and generic
-managed-class reflected-value construction are still pending.
+typed-array / `ArrayBufferView`, `Set`, and `Map` construction helpers behind
+`__asHarnessAddReflectedValueKeyValuePair(...)`. Generic managed-class
+reflected-value construction is still pending.

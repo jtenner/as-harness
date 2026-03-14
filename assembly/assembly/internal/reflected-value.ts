@@ -10,9 +10,11 @@ export const enum ReflectedValueKind {
   ArrayBuffer = 6,
   ArrayLike = 7,
   ArrayBufferView = 8,
-  ManagedClass = 9,
-  CircularReference = 10,
-  Unsupported = 11,
+  Set = 9,
+  Map = 10,
+  ManagedClass = 11,
+  CircularReference = 12,
+  Unsupported = 13,
 }
 
 export class ReflectedValueKeyValuePair {
@@ -20,6 +22,16 @@ export class ReflectedValueKeyValuePair {
   value: ReflectedValue;
 
   constructor(key: string, value: ReflectedValue) {
+    this.key = key;
+    this.value = value;
+  }
+}
+
+export class ReflectedValueEntry {
+  key: ReflectedValue;
+  value: ReflectedValue;
+
+  constructor(key: ReflectedValue, value: ReflectedValue) {
     this.key = key;
     this.value = value;
   }
@@ -37,6 +49,7 @@ export class ReflectedValue {
   bytes: ArrayBuffer | null = null;
   runtimeTypeId: u32 = 0;
   values: Array<ReflectedValue> | null = null;
+  entries: Array<ReflectedValueEntry> | null = null;
   keyValuePairs: Array<ReflectedValueKeyValuePair> | null = null;
 
   constructor(kind: ReflectedValueKind) {
@@ -119,6 +132,8 @@ export function isSupportedReflectedValueKind(kind: ReflectedValueKind): bool {
     kind == ReflectedValueKind.ArrayBuffer ||
     kind == ReflectedValueKind.ArrayLike ||
     kind == ReflectedValueKind.ArrayBufferView ||
+    kind == ReflectedValueKind.Set ||
+    kind == ReflectedValueKind.Map ||
     kind == ReflectedValueKind.ManagedClass ||
     kind == ReflectedValueKind.CircularReference ||
     kind == ReflectedValueKind.Unsupported
@@ -274,6 +289,64 @@ export function createArrayBufferViewReflectedValue(
   return reflected;
 }
 
+export function createSetReflectedValue<T>(value: Set<T> | null): ReflectedValue {
+  if (value === null) {
+    return createNullReflectedValue();
+  }
+
+  const reference = changetype<usize>(value);
+  if (hasActiveReflectedValueReference(reference)) {
+    return createCircularReferenceReflectedValue(reference);
+  }
+
+  pushActiveReflectedValueReference(reference);
+  const reflected = new ReflectedValue(ReflectedValueKind.Set);
+  reflected.runtimeTypeId = getReflectedValueRuntimeTypeId(reference);
+  const values = new Array<ReflectedValue>();
+  reflected.values = values;
+
+  const setValues = value.values();
+  for (let i = 0, length = setValues.length; i < length; i++) {
+    values.push(createReflectedValue<T>(setValues[i]));
+  }
+
+  popActiveReflectedValueReference();
+  return reflected;
+}
+
+export function createMapReflectedValue<K, V>(
+  value: Map<K, V> | null,
+): ReflectedValue {
+  if (value === null) {
+    return createNullReflectedValue();
+  }
+
+  const reference = changetype<usize>(value);
+  if (hasActiveReflectedValueReference(reference)) {
+    return createCircularReferenceReflectedValue(reference);
+  }
+
+  pushActiveReflectedValueReference(reference);
+  const reflected = new ReflectedValue(ReflectedValueKind.Map);
+  reflected.runtimeTypeId = getReflectedValueRuntimeTypeId(reference);
+  const entries = new Array<ReflectedValueEntry>();
+  reflected.entries = entries;
+
+  const keys = value.keys();
+  const values = value.values();
+  for (let i = 0, length = keys.length; i < length; i++) {
+    entries.push(
+      new ReflectedValueEntry(
+        createReflectedValue<K>(keys[i]),
+        createReflectedValue<V>(values[i]),
+      ),
+    );
+  }
+
+  popActiveReflectedValueReference();
+  return reflected;
+}
+
 export function createCircularReferenceReflectedValue(
   reference: usize,
 ): ReflectedValue {
@@ -341,7 +414,19 @@ export function createReflectedValue<T>(value: T): ReflectedValue {
       );
     }
 
-    if (value instanceof Set || value instanceof Map || isFunction<T>()) {
+    if (value instanceof Set) {
+      return createSetReflectedValue<indexof<T>>(
+        changetype<Set<indexof<T>> | null>(value),
+      );
+    }
+
+    if (value instanceof Map) {
+      return createMapReflectedValue<indexof<T>, valueof<T>>(
+        changetype<Map<indexof<T>, valueof<T>> | null>(value),
+      );
+    }
+
+    if (isFunction<T>()) {
       return createUnsupportedReflectedValue(reference);
     }
 

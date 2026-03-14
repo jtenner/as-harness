@@ -1,6 +1,7 @@
 import { memory } from "memory";
 import {
   ReflectedValue,
+  ReflectedValueEntry,
   ReflectedValueKind,
   ReflectedValueKeyValuePair,
   addReflectedValueKeyValuePair,
@@ -75,6 +76,8 @@ function testReflectedValueKinds(): void {
   assert(isSupportedReflectedValueKind(ReflectedValueKind.ArrayBuffer));
   assert(isSupportedReflectedValueKind(ReflectedValueKind.ArrayLike));
   assert(isSupportedReflectedValueKind(ReflectedValueKind.ArrayBufferView));
+  assert(isSupportedReflectedValueKind(ReflectedValueKind.Set));
+  assert(isSupportedReflectedValueKind(ReflectedValueKind.Map));
   assert(isSupportedReflectedValueKind(ReflectedValueKind.ManagedClass));
   assert(isSupportedReflectedValueKind(ReflectedValueKind.CircularReference));
   assert(isSupportedReflectedValueKind(ReflectedValueKind.Unsupported));
@@ -170,15 +173,83 @@ function testArrayBufferViewReflectedValues(): void {
   assert(load<u8>(changetype<usize>(reflected.bytes) + 1) == 3);
 }
 
-function testUnsupportedReflectedValues(): void {
-  const setReflected = createReflectedValue<Set<i32>>(new Set<i32>());
-  assert(setReflected.kind == ReflectedValueKind.Unsupported);
+function testSetReflectedValues(): void {
+  const value = new Set<i32>();
+  value.add(4);
+  value.add(5);
 
-  const mapReflected = createReflectedValue<Map<i32, string>>(
-    new Map<i32, string>(),
+  let reflected = createReflectedValue<Set<i32>>(value);
+  assert(reflected.kind == ReflectedValueKind.Set);
+  assert(reflected.runtimeTypeId == idof<Set<i32>>());
+  assert(reflected.values !== null);
+  const setValues = changetype<Array<ReflectedValue>>(reflected.values);
+  assert(setValues.length == 2);
+  assert(setValues[0].signedIntegerValue == 4);
+  assert(setValues[1].signedIntegerValue == 5);
+
+  const nested = new Set<Array<i32>>();
+  nested.add([1, 2]);
+  reflected = createReflectedValue<Set<Array<i32>>>(nested);
+  assert(reflected.kind == ReflectedValueKind.Set);
+  assert(reflected.values !== null);
+  const nestedValues = changetype<Array<ReflectedValue>>(reflected.values);
+  assert(nestedValues.length == 1);
+  assert(nestedValues[0].kind == ReflectedValueKind.ArrayLike);
+
+  const recursive = new Set<Set<i32>>();
+  recursive.add(changetype<Set<i32>>(changetype<usize>(recursive)));
+  resetReflectedValueTracking();
+  reflected = createReflectedValue(recursive);
+  assert(reflected.kind == ReflectedValueKind.Set);
+  assert(reflected.values !== null);
+  const recursiveValues = changetype<Array<ReflectedValue>>(reflected.values);
+  assert(recursiveValues.length == 1);
+  assert(recursiveValues[0].kind == ReflectedValueKind.CircularReference);
+}
+
+function testMapReflectedValues(): void {
+  const value = new Map<i32, string>();
+  value.set(1, "one");
+  value.set(2, "two");
+
+  let reflected = createReflectedValue<Map<i32, string>>(value);
+  assert(reflected.kind == ReflectedValueKind.Map);
+  assert(reflected.runtimeTypeId == idof<Map<i32, string>>());
+  assert(reflected.entries !== null);
+  const entries = changetype<Array<ReflectedValueEntry>>(reflected.entries);
+  assert(entries.length == 2);
+  assert(entries[0].key.kind == ReflectedValueKind.Integer);
+  assert(entries[0].key.signedIntegerValue == 1);
+  assert(entries[0].value.kind == ReflectedValueKind.String);
+  assert(entries[0].value.stringValue == "one");
+  assert(entries[1].key.signedIntegerValue == 2);
+  assert(entries[1].value.stringValue == "two");
+
+  const nested = new Map<string, Array<i32>>();
+  nested.set("numbers", [3, 4]);
+  reflected = createReflectedValue<Map<string, Array<i32>>>(nested);
+  assert(reflected.kind == ReflectedValueKind.Map);
+  assert(reflected.entries !== null);
+  const nestedEntries = changetype<Array<ReflectedValueEntry>>(reflected.entries);
+  assert(nestedEntries.length == 1);
+  assert(nestedEntries[0].key.kind == ReflectedValueKind.String);
+  assert(nestedEntries[0].value.kind == ReflectedValueKind.ArrayLike);
+
+  const recursive = new Map<string, Map<string, i32>>();
+  recursive.set(
+    "self",
+    changetype<Map<string, i32>>(changetype<usize>(recursive)),
   );
-  assert(mapReflected.kind == ReflectedValueKind.Unsupported);
+  resetReflectedValueTracking();
+  reflected = createReflectedValue(recursive);
+  assert(reflected.kind == ReflectedValueKind.Map);
+  assert(reflected.entries !== null);
+  const recursiveEntries = changetype<Array<ReflectedValueEntry>>(reflected.entries);
+  assert(recursiveEntries.length == 1);
+  assert(recursiveEntries[0].value.kind == ReflectedValueKind.CircularReference);
+}
 
+function testUnsupportedReflectedValues(): void {
   const functionReflected = createReflectedValue<() => i32>(
     reflectedValueFunction,
   );
@@ -238,5 +309,7 @@ testPrimitiveReflectedValues();
 testStringAndArrayBufferReflectedValues();
 testArrayLikeReflectedValues();
 testArrayBufferViewReflectedValues();
+testSetReflectedValues();
+testMapReflectedValues();
 testUnsupportedReflectedValues();
 testManagedClassReflectedValues();

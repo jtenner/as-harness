@@ -404,6 +404,8 @@ The current runtime implementation now includes the first shared helpers for:
   construction helpers
 - reflected values for ordered arrays / `StaticArray` / arraylikes
 - reflected values for typed arrays / `ArrayBufferView` / `DataView`
+- reflected values for `Set`
+- reflected values for `Map`
 - a live reflected key/value collector behind
   `__asHarnessAddReflectedValueKeyValuePair(...)`
 
