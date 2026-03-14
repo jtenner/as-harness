@@ -1,5 +1,6 @@
 import { memory } from "memory";
 import {
+  ReflectedValue,
   ReflectedValueKind,
   ReflectedValueKeyValuePair,
   addReflectedValueKeyValuePair,
@@ -57,6 +58,14 @@ function createArrayBufferFromBytes(values: StaticArray<u8>): ArrayBuffer {
   return output;
 }
 
+function createUint8Array(values: StaticArray<u8>): Uint8Array {
+  const output = new Uint8Array(values.length);
+  for (let i = 0; i < values.length; i++) {
+    output[i] = unchecked(values[i]);
+  }
+  return output;
+}
+
 function testReflectedValueKinds(): void {
   assert(isSupportedReflectedValueKind(ReflectedValueKind.Null));
   assert(isSupportedReflectedValueKind(ReflectedValueKind.Boolean));
@@ -64,6 +73,8 @@ function testReflectedValueKinds(): void {
   assert(isSupportedReflectedValueKind(ReflectedValueKind.Float));
   assert(isSupportedReflectedValueKind(ReflectedValueKind.String));
   assert(isSupportedReflectedValueKind(ReflectedValueKind.ArrayBuffer));
+  assert(isSupportedReflectedValueKind(ReflectedValueKind.ArrayLike));
+  assert(isSupportedReflectedValueKind(ReflectedValueKind.ArrayBufferView));
   assert(isSupportedReflectedValueKind(ReflectedValueKind.ManagedClass));
   assert(isSupportedReflectedValueKind(ReflectedValueKind.CircularReference));
   assert(isSupportedReflectedValueKind(ReflectedValueKind.Unsupported));
@@ -107,9 +118,66 @@ function testStringAndArrayBufferReflectedValues(): void {
   assert(load<u8>(changetype<usize>(reflected.bytes) + 2) == 3);
 }
 
+function testArrayLikeReflectedValues(): void {
+  let reflected = createReflectedValue<Array<i32>>([1, 2, 3]);
+  assert(reflected.kind == ReflectedValueKind.ArrayLike);
+  assert(reflected.values !== null);
+  const arrayValues = changetype<Array<ReflectedValue>>(reflected.values);
+  assert(arrayValues.length == 3);
+  assert(arrayValues[0].kind == ReflectedValueKind.Integer);
+  assert(arrayValues[0].signedIntegerValue == 1);
+  assert(arrayValues[2].signedIntegerValue == 3);
+
+  reflected = createReflectedValue<Array<Array<i32>>>([[1, 2], [3]]);
+  assert(reflected.kind == ReflectedValueKind.ArrayLike);
+  assert(reflected.values !== null);
+  const nestedValues = changetype<Array<ReflectedValue>>(reflected.values);
+  assert(nestedValues.length == 2);
+  assert(nestedValues[0].kind == ReflectedValueKind.ArrayLike);
+  assert(nestedValues[0].values !== null);
+  const nestedInnerValues = changetype<Array<ReflectedValue>>(
+    nestedValues[0].values,
+  );
+  assert(nestedInnerValues.length == 2);
+  assert(nestedInnerValues[1].signedIntegerValue == 2);
+
+  const staticArray: StaticArray<i32> = [4, 5];
+  reflected = createReflectedValue<StaticArray<i32>>(staticArray);
+  assert(reflected.kind == ReflectedValueKind.ArrayLike);
+  assert(reflected.values !== null);
+  const staticValues = changetype<Array<ReflectedValue>>(reflected.values);
+  assert(staticValues.length == 2);
+  assert(staticValues[0].signedIntegerValue == 4);
+  assert(staticValues[1].signedIntegerValue == 5);
+}
+
+function testArrayBufferViewReflectedValues(): void {
+  let reflected = createReflectedValue<Uint8Array>(createUint8Array([9, 8, 7]));
+  assert(reflected.kind == ReflectedValueKind.ArrayBufferView);
+  assert(reflected.byteLength == 3);
+  assert(reflected.bytes !== null);
+  assert(reflected.runtimeTypeId == idof<Uint8Array>());
+  assert(load<u8>(changetype<usize>(reflected.bytes)) == 9);
+  assert(load<u8>(changetype<usize>(reflected.bytes) + 2) == 7);
+
+  const backing = createArrayBufferFromBytes([1, 2, 3, 4]);
+  reflected = createReflectedValue<DataView>(new DataView(backing, 1, 2));
+  assert(reflected.kind == ReflectedValueKind.ArrayBufferView);
+  assert(reflected.byteLength == 2);
+  assert(reflected.bytes !== null);
+  assert(reflected.runtimeTypeId == idof<DataView>());
+  assert(load<u8>(changetype<usize>(reflected.bytes)) == 2);
+  assert(load<u8>(changetype<usize>(reflected.bytes) + 1) == 3);
+}
+
 function testUnsupportedReflectedValues(): void {
-  const arrayReflected = createReflectedValue<Array<i32>>([1, 2, 3]);
-  assert(arrayReflected.kind == ReflectedValueKind.Unsupported);
+  const setReflected = createReflectedValue<Set<i32>>(new Set<i32>());
+  assert(setReflected.kind == ReflectedValueKind.Unsupported);
+
+  const mapReflected = createReflectedValue<Map<i32, string>>(
+    new Map<i32, string>(),
+  );
+  assert(mapReflected.kind == ReflectedValueKind.Unsupported);
 
   const functionReflected = createReflectedValue<() => i32>(
     reflectedValueFunction,
@@ -168,5 +236,7 @@ function testManagedClassReflectedValues(): void {
 testReflectedValueKinds();
 testPrimitiveReflectedValues();
 testStringAndArrayBufferReflectedValues();
+testArrayLikeReflectedValues();
+testArrayBufferViewReflectedValues();
 testUnsupportedReflectedValues();
 testManagedClassReflectedValues();

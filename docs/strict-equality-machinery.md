@@ -402,6 +402,8 @@ The current runtime implementation now includes the first shared helpers for:
 - managed-class recursion delegated back into transform-generated hooks
 - a reflected-value model plus primitive, string, and `ArrayBuffer`
   construction helpers
+- reflected values for ordered arrays / `StaticArray` / arraylikes
+- reflected values for typed arrays / `ArrayBufferView` / `DataView`
 - a live reflected key/value collector behind
   `__asHarnessAddReflectedValueKeyValuePair(...)`
 

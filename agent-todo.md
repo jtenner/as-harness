@@ -82,8 +82,8 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [x] Implement primitive reflected values.
 - [x] Implement reflected values for strings.
 - [x] Implement reflected values for `ArrayBuffer`.
-- [ ] Implement reflected values for arrays and arraylikes.
-- [ ] Implement reflected values for typed arrays / `ArrayBufferView`.
+- [x] Implement reflected values for arrays and arraylikes.
+- [x] Implement reflected values for typed arrays / `ArrayBufferView`.
 - [ ] Implement reflected values for `Set`.
 - [ ] Implement reflected values for `Map`.
 - [ ] Implement reflected values for managed classes via the transform-generated reflection hook.

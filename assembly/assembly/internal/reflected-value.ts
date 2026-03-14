@@ -8,9 +8,11 @@ export const enum ReflectedValueKind {
   Float = 4,
   String = 5,
   ArrayBuffer = 6,
-  ManagedClass = 7,
-  CircularReference = 8,
-  Unsupported = 9,
+  ArrayLike = 7,
+  ArrayBufferView = 8,
+  ManagedClass = 9,
+  CircularReference = 10,
+  Unsupported = 11,
 }
 
 export class ReflectedValueKeyValuePair {
@@ -34,6 +36,7 @@ export class ReflectedValue {
   byteLength: i32 = 0;
   bytes: ArrayBuffer | null = null;
   runtimeTypeId: u32 = 0;
+  values: Array<ReflectedValue> | null = null;
   keyValuePairs: Array<ReflectedValueKeyValuePair> | null = null;
 
   constructor(kind: ReflectedValueKind) {
@@ -43,6 +46,7 @@ export class ReflectedValue {
 
 const activeReflectedValueKeyValuePairCollections =
   new Array<Array<ReflectedValueKeyValuePair>>();
+const activeReflectedValueReferences = new Array<usize>();
 
 function cloneArrayBuffer(value: ArrayBuffer): ArrayBuffer {
   const byteLength = value.byteLength;
@@ -76,6 +80,35 @@ function currentReflectedValueKeyValuePairCollection(): Array<ReflectedValueKeyV
     : null;
 }
 
+function findActiveReflectedValueReferenceIndex(reference: usize): i32 {
+  for (let i = 0, length = activeReflectedValueReferences.length; i < length; i++) {
+    if (unchecked(activeReflectedValueReferences[i]) == reference) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+function pushActiveReflectedValueReference(reference: usize): void {
+  activeReflectedValueReferences.push(reference);
+}
+
+function popActiveReflectedValueReference(): void {
+  activeReflectedValueReferences.pop();
+}
+
+function cloneArrayBufferViewBytes(value: ArrayBufferView): ArrayBuffer {
+  const byteLength = value.byteLength;
+  const clone = new ArrayBuffer(byteLength);
+
+  if (byteLength > 0) {
+    memory.copy(changetype<usize>(clone), value.dataStart, <usize>byteLength);
+  }
+
+  return clone;
+}
+
 export function isSupportedReflectedValueKind(kind: ReflectedValueKind): bool {
   return (
     kind == ReflectedValueKind.Null ||
@@ -84,6 +117,8 @@ export function isSupportedReflectedValueKind(kind: ReflectedValueKind): bool {
     kind == ReflectedValueKind.Float ||
     kind == ReflectedValueKind.String ||
     kind == ReflectedValueKind.ArrayBuffer ||
+    kind == ReflectedValueKind.ArrayLike ||
+    kind == ReflectedValueKind.ArrayBufferView ||
     kind == ReflectedValueKind.ManagedClass ||
     kind == ReflectedValueKind.CircularReference ||
     kind == ReflectedValueKind.Unsupported
@@ -92,10 +127,19 @@ export function isSupportedReflectedValueKind(kind: ReflectedValueKind): bool {
 
 export function resetReflectedValueTracking(): void {
   activeReflectedValueKeyValuePairCollections.length = 0;
+  activeReflectedValueReferences.length = 0;
 }
 
 export function getActiveReflectedValueKeyValuePairCollectionDepth(): i32 {
   return activeReflectedValueKeyValuePairCollections.length;
+}
+
+export function getActiveReflectedValueReferenceCount(): i32 {
+  return activeReflectedValueReferences.length;
+}
+
+export function hasActiveReflectedValueReference(reference: usize): bool {
+  return findActiveReflectedValueReferenceIndex(reference) >= 0;
 }
 
 export function getReflectedValueRuntimeTypeId(reference: usize): u32 {
@@ -162,6 +206,74 @@ export function createArrayBufferReflectedValue(
   return reflected;
 }
 
+export function createArrayReflectedValue<T>(
+  value: Array<T> | null,
+): ReflectedValue {
+  if (value === null) {
+    return createNullReflectedValue();
+  }
+
+  const reference = changetype<usize>(value);
+  if (hasActiveReflectedValueReference(reference)) {
+    return createCircularReferenceReflectedValue(reference);
+  }
+
+  pushActiveReflectedValueReference(reference);
+  const reflected = new ReflectedValue(ReflectedValueKind.ArrayLike);
+  reflected.runtimeTypeId = getReflectedValueRuntimeTypeId(reference);
+  const values = new Array<ReflectedValue>();
+  reflected.values = values;
+
+  for (let i = 0, length = value.length; i < length; i++) {
+    values.push(createReflectedValue<T>(value[i]));
+  }
+
+  popActiveReflectedValueReference();
+  return reflected;
+}
+
+export function createStaticArrayReflectedValue<T>(
+  value: StaticArray<T> | null,
+): ReflectedValue {
+  if (value === null) {
+    return createNullReflectedValue();
+  }
+
+  const reference = changetype<usize>(value);
+  if (hasActiveReflectedValueReference(reference)) {
+    return createCircularReferenceReflectedValue(reference);
+  }
+
+  pushActiveReflectedValueReference(reference);
+  const reflected = new ReflectedValue(ReflectedValueKind.ArrayLike);
+  reflected.runtimeTypeId = getReflectedValueRuntimeTypeId(reference);
+  const values = new Array<ReflectedValue>();
+  reflected.values = values;
+
+  for (let i = 0, length = value.length; i < length; i++) {
+    values.push(createReflectedValue<T>(unchecked(value[i])));
+  }
+
+  popActiveReflectedValueReference();
+  return reflected;
+}
+
+export function createArrayBufferViewReflectedValue(
+  value: ArrayBufferView | null,
+): ReflectedValue {
+  if (value === null) {
+    return createNullReflectedValue();
+  }
+
+  const reflected = new ReflectedValue(ReflectedValueKind.ArrayBufferView);
+  reflected.runtimeTypeId = getReflectedValueRuntimeTypeId(
+    changetype<usize>(value),
+  );
+  reflected.byteLength = value.byteLength;
+  reflected.bytes = cloneArrayBufferViewBytes(value);
+  return reflected;
+}
+
 export function createCircularReferenceReflectedValue(
   reference: usize,
 ): ReflectedValue {
@@ -211,14 +323,25 @@ export function createReflectedValue<T>(value: T): ReflectedValue {
       );
     }
 
-    if (
-      isArray<T>() ||
-      value instanceof StaticArray ||
-      ArrayBuffer.isView(value) ||
-      value instanceof Set ||
-      value instanceof Map ||
-      isFunction<T>()
-    ) {
+    if (isArray<T>()) {
+      return createArrayReflectedValue<valueof<T>>(
+        changetype<Array<valueof<T>> | null>(value),
+      );
+    }
+
+    if (value instanceof StaticArray) {
+      return createStaticArrayReflectedValue<valueof<T>>(
+        changetype<StaticArray<valueof<T>> | null>(value),
+      );
+    }
+
+    if (ArrayBuffer.isView(value)) {
+      return createArrayBufferViewReflectedValue(
+        changetype<ArrayBufferView | null>(value),
+      );
+    }
+
+    if (value instanceof Set || value instanceof Map || isFunction<T>()) {
       return createUnsupportedReflectedValue(reference);
     }
 
