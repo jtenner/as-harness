@@ -319,6 +319,7 @@ test("resolves node:test through the bundled harness library root", async () => 
 				"\tif (t.workerId != 0) unreachable();",
 				'\tt.diagnostic("compile diagnostic");',
 				"\tt.plan(1);",
+				"\tt.runOnly(true);",
 				"\tt.assert.equal<i32>(1, 1);",
 				'\tt.test("child");',
 				"\tt.beforeEach();",

@@ -17,8 +17,8 @@ executor for normal nodes. The currently implemented surface is:
   `t.beforeEach(...)`, and `t.afterEach(...)`
 - declaration-time metadata getters on `SuiteContext` and `TestContext` for
   `name`, `fullName`, `filePath`, and `signal`, plus first execution-scoped
-  `passed` / `attempt` state and `error` / `workerId` placeholders on
-  `TestContext`
+  `passed` / `attempt` state, first failure-message-backed `error` state, and
+  a `workerId` placeholder on `TestContext`
 - declaration-time `t.skip(...)` and `t.todo(...)` that retag the active node's
   declaration mode during callback discovery
 - `t.diagnostic(message)` with a first host-observed diagnostic event that
@@ -26,6 +26,8 @@ executor for normal nodes. The currently implemented surface is:
 - `t.plan(count)` with first-pass execution-scoped assertion counting for the
   bound `t.assert.*` methods, including mismatch failure at the end of the
   active node run
+- `t.runOnly(shouldRunOnlyTests)` with first-pass callback-scoped handling
+  that marks nested `context.test(...)` declarations as `only`
 - a first `t.assert` facade bound onto the current synchronous `node:assert`
   bridge for `ok`, strict `equal` / `notEqual`, strict
   `deepEqual` / `notDeepEqual`, `strictEqual`, `notStrictEqual`,

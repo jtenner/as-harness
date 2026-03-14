@@ -1,4 +1,5 @@
 import { DeclarationMode, HookKind, NodeKind } from "./imports";
+import { getActiveRunOnly, setActiveRunOnly } from "./execution-state";
 import { sharedSuiteContext, sharedTestContext, SuiteContext, TestContext } from "./context";
 import { HookCallback, HookRegistration } from "./hooks";
 
@@ -117,6 +118,7 @@ export class Node {
 
   invokeCallback(): void {
     const previousNode = currentNode;
+    const previousRunOnly = getActiveRunOnly();
     currentNode = this;
     if (this.suiteCallbackValue !== null) {
       this.suiteCallbackValue(sharedSuiteContext);
@@ -125,6 +127,7 @@ export class Node {
     } else {
       this.callback();
     }
+    setActiveRunOnly(previousRunOnly);
     currentNode = previousNode;
   }
 

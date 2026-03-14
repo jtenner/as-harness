@@ -41,8 +41,11 @@ function declareViaContext(context: TestContext): void {
   context.plan(2);
   context.assert.equal<i32>(1, 1);
   context.assert.deepEqual<i32>(2, 2);
+  context.runOnly(true);
+  context.test("run-only child", noopTest);
+  context.runOnly(false);
+  context.test("plain child", noopTest);
   context.beforeEach(noopHook);
-  context.test("context nested", noopTest);
 }
 
 function declareContextSkip(context: TestContext): void {
@@ -147,11 +150,17 @@ function testNodeTestContextMethods(): void {
   const nestedChildren = parent.getChildren();
   const hooks = parent.getHooks(HookKind.BeforeEach);
   assert(hooks.length == 1);
-  assert(nestedChildren.length == 1);
+  assert(nestedChildren.length == 2);
 
-  const nested = unchecked(nestedChildren[0]);
-  assert(nested.kind == NodeKind.Test);
-  assert(nested.name == "context nested");
+  const runOnlyNested = unchecked(nestedChildren[0]);
+  assert(runOnlyNested.kind == NodeKind.Test);
+  assert(runOnlyNested.name == "run-only child");
+  assert(runOnlyNested.only);
+
+  const plainNested = unchecked(nestedChildren[1]);
+  assert(plainNested.kind == NodeKind.Test);
+  assert(plainNested.name == "plain child");
+  assert(!plainNested.only);
 
   resetCurrentNode();
 }

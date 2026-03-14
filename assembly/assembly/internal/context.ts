@@ -3,11 +3,18 @@
 // runnable execution and per-attempt state exist.
 
 import { DeclarationMode, HookKind } from "./imports";
-import { declareTestNode, registerHook } from "./api";
+import {
+  declareTestNode,
+  NodeDeclarationOptions,
+  registerHook,
+} from "./api";
+import { getActiveErrorPointer } from "./failure-state";
 import {
   getActiveAttempt,
+  getActiveRunOnly,
   getActiveNodePassed,
   recordAssertionCall,
+  setActiveRunOnly,
   setPlannedAssertionCount,
 } from "./execution-state";
 import { diagnostic as emitDiagnostic } from "./events";
@@ -122,7 +129,14 @@ function declareNestedTest(
   name: string = "",
   callback: ((context: TestContext) => void) | null = null,
 ): void {
-  declareTestNode(name, callback);
+  if (!getActiveRunOnly()) {
+    declareTestNode(name, callback);
+    return;
+  }
+
+  const options = new NodeDeclarationOptions();
+  options.only = true;
+  declareTestNode(name, callback, options);
 }
 
 function registerContextHook(
@@ -192,7 +206,7 @@ export class TestContext {
   }
 
   get error(): usize {
-    return 0;
+    return getActiveErrorPointer();
   }
 
   get attempt(): i32 {
@@ -232,6 +246,10 @@ export class TestContext {
 
   plan(count: i32): void {
     setPlannedAssertionCount(count);
+  }
+
+  runOnly(shouldRunOnlyTests: bool): void {
+    setActiveRunOnly(shouldRunOnlyTests);
   }
 
   skip(_message: string | null = null): void {

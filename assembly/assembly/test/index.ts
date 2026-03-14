@@ -2,6 +2,7 @@
 import "./internal/assert-bridge";
 import "./internal/executor";
 import "./internal/events";
+import "./internal/failure-state";
 import "./internal/node";
 import "./internal/node-test";
 import "./internal/reflected-value";

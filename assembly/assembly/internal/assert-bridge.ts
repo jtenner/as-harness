@@ -1,4 +1,5 @@
 import { failMessage } from "./events";
+import { setActiveErrorMessage } from "./failure-state";
 import {
   compareStrictEqualityValue,
   resetStrictEqualityReferencePairTracking,
@@ -134,6 +135,8 @@ function isLooselyEqualStringAndPrimitive<T>(text: string, value: T): bool {
 }
 
 export function failAssertion(message: string | null = null): void {
+  setActiveErrorMessage(message);
+
   if (message !== null) {
     failMessage(message);
   }

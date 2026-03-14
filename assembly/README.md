@@ -45,6 +45,8 @@ Implemented today:
   facade bound onto the current synchronous `node:assert` bridge
 - first execution-scoped `TestContext.attempt` / `TestContext.passed` metadata
   backed by the shared node executor
+- first failure-message-backed `TestContext.error` state plus callback-scoped
+  `t.runOnly(...)` handling for nested `context.test(...)` declarations
 - a first internal `node:test` executor that runs normal node callbacks,
   emits `NodeStart` / `NodePass`, and executes registered lifecycle hooks in
   deterministic root-to-leaf / leaf-to-root order
@@ -85,9 +87,10 @@ For the current scope, standalone `node:assert` work is otherwise complete, and
 partial `t.assert` facade, first host-observed diagnostic events, first-pass
 `t.plan(...)` assertion counting for bound `t.assert.*` calls, and a first
 internal executor for normal callback and hook execution, including first
-execution-scoped `attempt` / `passed` metadata. The next work there is
-targeted traversal/discovery, failure propagation, and the remaining
-execution-oriented context APIs such as `t.runOnly(...)` and richer error
+execution-scoped `attempt` / `passed` metadata, first failure-message-backed
+`error` state, and callback-scoped `t.runOnly(...)` for nested subtests. The
+next work there is targeted traversal/discovery, failure propagation, and the
+remaining execution-oriented context APIs such as richer host-facing error
 state.
 
 ## Package Layout

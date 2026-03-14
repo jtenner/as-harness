@@ -1,3 +1,4 @@
+import { clearActiveErrorMessage } from "./failure-state";
 import { failAssertion } from "./assert-bridge";
 
 let assertionScopeActive: bool = false;
@@ -6,6 +7,7 @@ let observedAssertionCount: i32 = 0;
 let activeNodeName = "";
 let activeAttempt: i32 = 0;
 let activeNodePassed: bool = false;
+let activeRunOnly: bool = false;
 
 function resetAssertionScopeState(): void {
   assertionScopeActive = false;
@@ -14,6 +16,8 @@ function resetAssertionScopeState(): void {
   activeNodeName = "";
   activeAttempt = 0;
   activeNodePassed = false;
+  activeRunOnly = false;
+  clearActiveErrorMessage();
 }
 
 function planMismatchMessage(): string {
@@ -37,6 +41,8 @@ export function beginAssertionScope(
   activeNodeName = nodeName;
   activeAttempt = 1;
   activeNodePassed = false;
+  activeRunOnly = false;
+  clearActiveErrorMessage();
 }
 
 export function endAssertionScope(): void {
@@ -106,4 +112,12 @@ export function getActiveAttempt(): i32 {
 
 export function getActiveNodePassed(): bool {
   return activeNodePassed;
+}
+
+export function setActiveRunOnly(shouldRunOnlyTests: bool): void {
+  activeRunOnly = shouldRunOnlyTests;
+}
+
+export function getActiveRunOnly(): bool {
+  return activeRunOnly;
 }

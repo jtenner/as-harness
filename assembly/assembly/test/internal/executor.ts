@@ -52,11 +52,13 @@ function afterAllChild(_context: TestContext): void {
 function beforeEachMetadata(context: TestContext): void {
   assert(!context.passed);
   assert(context.attempt == 1);
+  assert(context.error == 0);
 }
 
 function afterEachMetadata(context: TestContext): void {
   assert(context.passed);
   assert(context.attempt == 1);
+  assert(context.error == 0);
 }
 
 function executeTestCallback(_context: TestContext): void {
