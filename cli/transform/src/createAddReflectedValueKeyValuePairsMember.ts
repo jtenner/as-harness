@@ -1,12 +1,16 @@
 import { CommonFlags, Node } from "assemblyscript/dist/assemblyscript.js";
 import type {
 	ClassDeclaration,
+	Expression,
 	MethodDeclaration,
-	Statement,
 	Range,
+	Statement,
 	TypeNode,
 } from "assemblyscript/dist/assemblyscript.js";
-import { ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME } from "./contracts.js";
+import {
+	ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME,
+	ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
+} from "./contracts.js";
 import type { ParticipatingMember } from "./memberSelection.js";
 
 function createNamedType(name: string, range: Range): TypeNode {
@@ -18,9 +22,20 @@ function createNamedType(name: string, range: Range): TypeNode {
 	);
 }
 
+function createThisMemberAccessExpression(
+	member: ParticipatingMember,
+	range: Range,
+): Expression {
+	return Node.createPropertyAccessExpression(
+		Node.createThisExpression(range),
+		Node.createIdentifierExpression(member.name, range),
+		range,
+	);
+}
+
 export function createAddReflectedValueKeyValuePairsMember(
 	classDeclaration: ClassDeclaration,
-	_participatingMembers: readonly ParticipatingMember[],
+	participatingMembers: readonly ParticipatingMember[],
 ): MethodDeclaration {
 	const range = classDeclaration.range.atEnd;
 	const statements: Statement[] = [];
@@ -46,6 +61,25 @@ export function createAddReflectedValueKeyValuePairsMember(
 					),
 					null,
 					[],
+					range,
+				),
+			),
+		);
+	}
+
+	for (const member of participatingMembers) {
+		statements.push(
+			Node.createExpressionStatement(
+				Node.createCallExpression(
+					Node.createIdentifierExpression(
+						ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME,
+						range,
+					),
+					null,
+					[
+						Node.createStringLiteralExpression(member.hash, range),
+						createThisMemberAccessExpression(member, range),
+					],
 					range,
 				),
 			),

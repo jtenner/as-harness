@@ -6,12 +6,16 @@ import {
 } from "assemblyscript/dist/assemblyscript.js";
 import type {
 	ClassDeclaration,
+	Expression,
 	MethodDeclaration,
-	Statement,
 	Range,
+	Statement,
 	TypeNode,
 } from "assemblyscript/dist/assemblyscript.js";
-import { STRICT_EQUALS_METHOD_NAME } from "./contracts.js";
+import {
+	STRICT_EQUALS_MEMBER_HELPER_NAME,
+	STRICT_EQUALS_METHOD_NAME,
+} from "./contracts.js";
 import type { ParticipatingMember } from "./memberSelection.js";
 
 function createNamedType(name: string, range: Range): TypeNode {
@@ -23,9 +27,20 @@ function createNamedType(name: string, range: Range): TypeNode {
 	);
 }
 
+function createThisMemberAccessExpression(
+	member: ParticipatingMember,
+	range: Range,
+): Expression {
+	return Node.createPropertyAccessExpression(
+		Node.createThisExpression(range),
+		Node.createIdentifierExpression(member.name, range),
+		range,
+	);
+}
+
 export function createStrictEqualsMember(
 	classDeclaration: ClassDeclaration,
-	_participatingMembers: readonly ParticipatingMember[],
+	participatingMembers: readonly ParticipatingMember[],
 ): MethodDeclaration {
 	const range = classDeclaration.range.atEnd;
 	const statements: Statement[] = [];
@@ -59,6 +74,39 @@ export function createStrictEqualsMember(
 		statements.push(
 			Node.createIfStatement(
 				Node.createUnaryPrefixExpression(Token.Exclamation, superCall, range),
+				Node.createBlockStatement(
+					[
+						Node.createReturnStatement(
+							Node.createFalseExpression(range),
+							range,
+						),
+					],
+					range,
+				),
+				null,
+				range,
+			),
+		);
+	}
+
+	for (const member of participatingMembers) {
+		const memberCheckCall = Node.createCallExpression(
+			Node.createIdentifierExpression(STRICT_EQUALS_MEMBER_HELPER_NAME, range),
+			null,
+			[
+				Node.createIdentifierExpression("other", range),
+				Node.createStringLiteralExpression(member.hash, range),
+				createThisMemberAccessExpression(member, range),
+			],
+			range,
+		);
+		statements.push(
+			Node.createIfStatement(
+				Node.createUnaryPrefixExpression(
+					Token.Exclamation,
+					memberCheckCall,
+					range,
+				),
 				Node.createBlockStatement(
 					[
 						Node.createReturnStatement(

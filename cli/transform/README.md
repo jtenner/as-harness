@@ -19,13 +19,16 @@ The current implementation now performs the first transform pass:
 
 - it walks non-library parser sources after parse
 - it recurses through nested namespaces
-- it injects placeholder instance methods named
+- it injects instance methods named
   `__asHarnessStrictEquals` and `__asHarnessAddReflectedValueKeyValuePairs`
 - it selects participating instance members from class fields and getters while
   excluding static members, setters, constructors, and regular methods
-- it emits inheritance-aware placeholder bodies that delegate into `super` when
-  a class extends a base class
+- it preserves class generic context while adding those hooks
+- it emits inheritance-aware bodies that delegate into `super` when a class
+  extends a base class
+- it emits per-member helper calls so selected fields and getters flow into the
+  shared strict-equality and reflected-value runtimes
 
-Those generated methods are still contract scaffolds. They establish the
-instrumentation path and method signatures before field/getter enumeration and
-runtime delegation logic are added.
+Those generated methods are still scaffold-level at the runtime boundary. The
+shared AssemblyScript helpers are placeholder entry points today, but the
+transform-side member enumeration and delegation shape are now fixed.

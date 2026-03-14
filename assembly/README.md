@@ -133,7 +133,10 @@ The AssemblyScript package is being organized around these internal module bound
 - `state`
 
 Only the earliest `events`, node metadata, import-boundary pieces, and the
-strict-equality contract scaffold exist right now.
+first strict-equality runtime helpers exist right now. That strict-equality
+work currently covers the shared contract constants plus primitive, nullable,
+and `NaN`-aware comparison helpers; collection and recursive graph handling are
+still pending.
 
 ## Event Model
 

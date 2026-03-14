@@ -29,6 +29,9 @@ export const enum StrictEqualityValueKind {
 export const STRICT_EQUALS_METHOD_NAME = "__asHarnessStrictEquals";
 export const ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME =
   "__asHarnessAddReflectedValueKeyValuePairs";
+export const STRICT_EQUALS_MEMBER_HELPER_NAME = "__asHarnessStrictEqualsMember";
+export const ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME =
+  "__asHarnessAddReflectedValueKeyValuePair";
 
 export function isDeferredStrictEqualityResult(
   result: StrictEqualityResult,
@@ -58,3 +61,52 @@ export function isSupportedStrictEqualityValueKind(
     kind == StrictEqualityValueKind.FunctionReference
   );
 }
+
+function isStrictEqualityFloatNaN<T>(value: T): bool {
+  if (!isFloat<T>()) {
+    return false;
+  }
+
+  if (sizeof<T>() == sizeof<f32>()) {
+    return isNaN<f32>(<f32>value);
+  }
+
+  return isNaN<f64>(<f64>value);
+}
+
+export function compareStrictEqualityPrimitive<T>(
+  left: T,
+  right: T,
+): StrictEqualityResult {
+  if (left == right) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (isStrictEqualityFloatNaN(left) && isStrictEqualityFloatNaN(right)) {
+    return StrictEqualityResult.Match;
+  }
+
+  return StrictEqualityResult.Fail;
+}
+
+export function compareStrictEqualityNullableReference<T>(
+  left: T,
+  right: T,
+): StrictEqualityResult {
+  return changetype<usize>(left) == changetype<usize>(right)
+    ? StrictEqualityResult.Match
+    : StrictEqualityResult.Fail;
+}
+
+export function __asHarnessStrictEqualsMember<T>(
+  _other: usize,
+  _memberHash: string,
+  _value: T,
+): bool {
+  return true;
+}
+
+export function __asHarnessAddReflectedValueKeyValuePair<T>(
+  _memberHash: string,
+  _value: T,
+): void {}

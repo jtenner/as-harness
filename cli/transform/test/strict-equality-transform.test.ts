@@ -16,7 +16,9 @@ import type {
 	UnaryPrefixExpression,
 } from "assemblyscript/dist/assemblyscript.js";
 import {
+	ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME,
 	ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
+	STRICT_EQUALS_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_METHOD_NAME,
 } from "../src/contracts.js";
 import { createParticipatingMemberHash } from "../src/hash.js";
@@ -381,4 +383,107 @@ class Derived extends Base {}
 		ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
 	);
 	expect(superCall.args).toHaveLength(0);
+});
+
+test("emits per-member strict-equality helper checks for participating fields and getters", () => {
+	const parser = parseSource(`
+class Example {
+  count: i32;
+
+  get size(): i32 {
+    return this.count;
+  }
+}
+`);
+
+	new StrictEqualityTransform().afterParse(parser);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Example",
+	);
+	const strictEqualsMethod = findMethod(
+		classDeclaration,
+		STRICT_EQUALS_METHOD_NAME,
+	);
+	const bodyStatements = getMethodBodyStatements(strictEqualsMethod);
+
+	expect(bodyStatements).toHaveLength(3);
+
+	const countCheck = bodyStatements[0] as IfStatement;
+	const sizeCheck = bodyStatements[1] as IfStatement;
+	const countCondition = countCheck.condition as UnaryPrefixExpression;
+	const sizeCondition = sizeCheck.condition as UnaryPrefixExpression;
+	const countCall = countCondition.operand as CallExpression;
+	const sizeCall = sizeCondition.operand as CallExpression;
+	const countMemberAccess = countCall.args[2] as PropertyAccessExpression;
+	const sizeMemberAccess = sizeCall.args[2] as PropertyAccessExpression;
+
+	expect(countCondition.operator).toBe(Token.Exclamation);
+	expect(sizeCondition.operator).toBe(Token.Exclamation);
+	expect(countCall.expression.kind).toBe(NodeKind.Identifier);
+	expect(sizeCall.expression.kind).toBe(NodeKind.Identifier);
+	expect(countCall.expression.text).toBe(STRICT_EQUALS_MEMBER_HELPER_NAME);
+	expect(sizeCall.expression.text).toBe(STRICT_EQUALS_MEMBER_HELPER_NAME);
+	expect(countCall.args).toHaveLength(3);
+	expect(sizeCall.args).toHaveLength(3);
+	expect(countCall.args[0]?.kind).toBe(NodeKind.Identifier);
+	expect(sizeCall.args[0]?.kind).toBe(NodeKind.Identifier);
+	expect((countCall.args[1] as { value: string }).value).toBe("field:count");
+	expect((sizeCall.args[1] as { value: string }).value).toBe("getter:size");
+	expect(countMemberAccess.expression.kind).toBe(NodeKind.This);
+	expect(sizeMemberAccess.expression.kind).toBe(NodeKind.This);
+	expect(countMemberAccess.property.text).toBe("count");
+	expect(sizeMemberAccess.property.text).toBe("size");
+	expect(bodyStatements[2]?.kind).toBe(NodeKind.Return);
+});
+
+test("emits per-member reflected key-value helper calls for participating fields and getters", () => {
+	const parser = parseSource(`
+class Example {
+  count: i32;
+
+  get size(): i32 {
+    return this.count;
+  }
+}
+`);
+
+	new StrictEqualityTransform().afterParse(parser);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Example",
+	);
+	const reflectedMethod = findMethod(
+		classDeclaration,
+		ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
+	);
+	const bodyStatements = getMethodBodyStatements(reflectedMethod);
+
+	expect(bodyStatements).toHaveLength(2);
+
+	const countStatement = bodyStatements[0] as ExpressionStatement;
+	const sizeStatement = bodyStatements[1] as ExpressionStatement;
+	const countCall = countStatement.expression as CallExpression;
+	const sizeCall = sizeStatement.expression as CallExpression;
+	const countMemberAccess = countCall.args[1] as PropertyAccessExpression;
+	const sizeMemberAccess = sizeCall.args[1] as PropertyAccessExpression;
+
+	expect(countCall.expression.kind).toBe(NodeKind.Identifier);
+	expect(sizeCall.expression.kind).toBe(NodeKind.Identifier);
+	expect(countCall.expression.text).toBe(
+		ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME,
+	);
+	expect(sizeCall.expression.text).toBe(
+		ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME,
+	);
+	expect(countCall.args).toHaveLength(2);
+	expect(sizeCall.args).toHaveLength(2);
+	expect((countCall.args[0] as { value: string }).value).toBe("field:count");
+	expect((sizeCall.args[0] as { value: string }).value).toBe("getter:size");
+	expect(countMemberAccess.expression.kind).toBe(NodeKind.This);
+	expect(sizeMemberAccess.expression.kind).toBe(NodeKind.This);
+	expect(countMemberAccess.property.text).toBe("count");
+	expect(sizeMemberAccess.property.text).toBe("size");
 });

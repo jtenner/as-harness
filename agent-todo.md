@@ -43,24 +43,24 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [x] Enumerate instance fields that should participate in structural comparison.
 - [x] Enumerate instance getters that should participate in structural comparison.
 - [x] Decide whether methods, static members, and computed members are excluded from generated comparison hooks.
-- [ ] Handle generic classes without losing generic context in generated methods.
-- [ ] Handle inheritance by delegating into `super` without double-comparing overridden members.
+- [x] Handle generic classes without losing generic context in generated methods.
+- [x] Handle inheritance by delegating into `super` without double-comparing overridden members.
 - [x] Decide how property-identity hashing or equivalent ignore-listing will be represented in generated code.
 
 ### Reflected Diagnostics Instrumentation
 
 - [x] Inject a generated instance method for reflected key/value extraction on instrumented classes.
 - [x] Define the generated method signature and parameter contract for reflected extraction.
-- [ ] Reuse the same field/getter selection rules between strict equality and reflected diagnostics.
-- [ ] Handle inheritance for reflected extraction without duplicating overridden members.
+- [x] Reuse the same field/getter selection rules between strict equality and reflected diagnostics.
+- [x] Handle inheritance for reflected extraction without duplicating overridden members.
 - [ ] Decide whether reflected extraction must support custom display overrides in v1 or later.
 
 ### Assembly Runtime Equality Core
 
-- [ ] Add a shared AssemblyScript runtime module for structural equality.
-- [ ] Implement fast-path primitive equality checks.
-- [ ] Define null-handling behavior for nullable reference comparisons.
-- [ ] Normalize `NaN` comparison semantics if float support requires it.
+- [x] Add a shared AssemblyScript runtime module for structural equality.
+- [x] Implement fast-path primitive equality checks.
+- [x] Define null-handling behavior for nullable reference comparisons.
+- [x] Normalize `NaN` comparison semantics if float support requires it.
 - [ ] Implement pair-cache tracking for already-proven reference matches.
 - [ ] Implement active-resolution stack tracking for recursive comparison.
 - [ ] Define and implement deferred-match behavior for cycles.

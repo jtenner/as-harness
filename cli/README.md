@@ -261,8 +261,9 @@ expects transform modules to exist as real JS files on disk.
 
 For strict-equality work, the wrapper also injects the bundled transform
 automatically when the requested library set includes `node:assert` or
-`node:assert/strict`. The current transform is still a no-op scaffold, but the
-activation path is now owned by the wrapper instead of individual callers.
+`node:assert/strict`. That transform now emits inheritance-aware class hooks and
+per-member helper calls into the shared AssemblyScript strict-equality runtime,
+so the activation path is owned by the wrapper instead of individual callers.
 
 ### Artifact model
 

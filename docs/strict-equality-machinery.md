@@ -326,9 +326,10 @@ Current placeholder signatures used to establish the instrumentation path:
 - `__asHarnessStrictEquals(other: usize): bool`
 - `__asHarnessAddReflectedValueKeyValuePairs(): void`
 
-These signatures are intentionally scaffold-level. The strict-equality hook will
-gain a richer runtime-context parameter contract when recursive comparison and
-field/getter delegation land.
+These method signatures are intentionally scaffold-level. The strict-equality
+hook will gain a richer runtime-context parameter contract when recursive
+comparison lands, but field/getter delegation is now part of the generated body
+shape.
 
 The transform-side responsibilities are:
 
@@ -343,6 +344,17 @@ The current generated-body scaffold already performs inheritance delegation:
   the generated `super` hook returns `false`
 - derived `__asHarnessAddReflectedValueKeyValuePairs(...)` methods call the
   generated `super` hook before subclass-local work
+- participating subclass members emit
+  `__asHarnessStrictEqualsMember(other, "<member-hash>", this.<member>)`
+  helper calls
+- participating subclass members emit
+  `__asHarnessAddReflectedValueKeyValuePair("<member-hash>", this.<member>)`
+  helper calls
+
+The AssemblyScript runtime now provides placeholder entry points for those
+member-helper calls so bundled library sources can reference the generated hook
+contract safely while the recursive comparison and reflected-value cores are
+still being implemented.
 
 The runtime-side responsibilities are:
 
@@ -353,6 +365,12 @@ The runtime-side responsibilities are:
   and function references
 - reflected-value construction
 - failure/result propagation
+
+The current runtime implementation now includes the first shared helpers for:
+
+- primitive equality fast paths
+- nullable-reference identity comparison
+- `NaN` normalization for float primitive comparisons
 
 ### Transform Activation Policy
 
