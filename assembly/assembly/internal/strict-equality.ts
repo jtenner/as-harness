@@ -266,6 +266,15 @@ export function compareStrictEqualitySet<T>(
   return result;
 }
 
+export function compareStrictEqualityFunctionReference<T>(
+  left: T,
+  right: T,
+): StrictEqualityResult {
+  return changetype<usize>(left) == changetype<usize>(right)
+    ? StrictEqualityResult.Match
+    : StrictEqualityResult.Fail;
+}
+
 export function compareStrictEqualityMap<K, V>(
   left: Map<K, V> | null,
   right: Map<K, V> | null,
@@ -485,7 +494,11 @@ export function compareStrictEqualityValue<T>(
       );
     }
 
-    if (left instanceof Set || left instanceof Map || isFunction<T>()) {
+    if (isFunction<T>()) {
+      return compareStrictEqualityFunctionReference(left, right);
+    }
+
+    if (left instanceof Set || left instanceof Map) {
       return StrictEqualityResult.Fail;
     }
 

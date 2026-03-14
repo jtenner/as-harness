@@ -140,8 +140,9 @@ helpers, `ArrayBuffer` bytewise comparison, ordered `Array<T>` /
 `StaticArray<T>` comparison, bytewise typed-array / `ArrayBufferView` /
 `DataView` comparison, dedicated generated-member helpers for `ArrayBuffer`,
 view-typed fields, `Set`, and `Map`, direct `Set` / `Map` comparison helpers,
-and managed-class recursion through generated hooks. Fully generic nested
-`Set` / `Map` dispatch plus the reflected-value runtime are still pending.
+function-reference identity comparison, and managed-class recursion through
+generated hooks. Fully generic nested `Set` / `Map` dispatch plus the
+reflected-value runtime are still pending.
 
 ## Event Model
 

@@ -368,6 +368,7 @@ of that contract:
 - ordered comparison for `Array<T>` and `StaticArray<T>`
 - bytewise typed-array / `ArrayBufferView` / `DataView` comparison
 - direct `Set` and `Map` comparison helpers
+- function-reference identity comparison
 - managed-class recursion through transform-generated hooks
 
 The member-helper path now covers `ArrayBuffer` plus typed arrays /
@@ -386,7 +387,7 @@ The runtime-side responsibilities are:
 - primitive and nullable handling
 - `NaN` normalization
 - pair-cache and active-stack tracking
-- generic nested `Set` / `Map` dispatch and function references
+- generic nested `Set` / `Map` dispatch
 - reflected-value construction
 - failure/result propagation
 

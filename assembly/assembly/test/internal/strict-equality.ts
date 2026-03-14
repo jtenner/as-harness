@@ -12,6 +12,7 @@ import {
   compareStrictEqualityArray,
   compareStrictEqualityArrayBuffer,
   compareStrictEqualityArrayBufferView,
+  compareStrictEqualityFunctionReference,
   compareStrictEqualityMap,
   compareStrictEqualitySet,
   compareStrictEqualityManagedClass,
@@ -44,6 +45,14 @@ import {
 
 class StrictEqualityReferenceBox {}
 class StrictEqualityOtherReferenceBox {}
+function strictEqualityFunctionOne(): i32 {
+  return 1;
+}
+
+function strictEqualityFunctionTwo(): i32 {
+  return 2;
+}
+
 class StrictEqualityRecursiveNode {
   label: string;
   next: StrictEqualityRecursiveNode | null = null;
@@ -686,6 +695,44 @@ function testStrictEqualityMapComparison(): void {
   assert(getProvenStrictEqualityReferencePairCount() == 0);
 }
 
+function testStrictEqualityFunctionReferenceComparison(): void {
+  const one = strictEqualityFunctionOne;
+  const same = strictEqualityFunctionOne;
+  const two = strictEqualityFunctionTwo;
+  const nullFunction = changetype<(() => i32) | null>(0);
+
+  assert(
+    compareStrictEqualityFunctionReference<() => i32>(one, same) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityFunctionReference<() => i32>(one, two) ==
+      StrictEqualityResult.Fail,
+  );
+  assert(
+    compareStrictEqualityFunctionReference<(() => i32) | null>(
+      nullFunction,
+      nullFunction,
+    ) == StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityFunctionReference<(() => i32) | null>(
+      one,
+      nullFunction,
+    ) == StrictEqualityResult.Fail,
+  );
+  assert(
+    compareStrictEqualityValue<() => i32>(one, same) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityValue<() => i32>(one, two) ==
+      StrictEqualityResult.Fail,
+  );
+  assert(__asHarnessStrictEqualsMember("field:fn", one, same));
+  assert(!__asHarnessStrictEqualsMember("field:fn", one, two));
+}
+
 function testStrictEqualityRuntimeTypeHelpers(): void {
   const value = new StrictEqualityReferenceBox();
   const other = new StrictEqualityOtherReferenceBox();
@@ -822,6 +869,7 @@ testStrictEqualityStaticArrayComparison();
 testStrictEqualityArrayBufferViewComparison();
 testStrictEqualitySetComparison();
 testStrictEqualityMapComparison();
+testStrictEqualityFunctionReferenceComparison();
 testStrictEqualityRuntimeTypeHelpers();
 testStrictEqualityReferencePairTracking();
 testStrictEqualityManagedClassComparison();
