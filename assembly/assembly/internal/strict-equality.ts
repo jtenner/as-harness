@@ -37,6 +37,28 @@ export const STRICT_EQUALS_MEMBER_HELPER_NAME = "__asHarnessStrictEqualsMember";
 export const ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME =
   "__asHarnessAddReflectedValueKeyValuePair";
 
+export type StrictEqualityReferencePairComparator = (
+  left: usize,
+  right: usize,
+) => StrictEqualityResult;
+
+const activeStrictEqualityReferencePairs = new Array<usize>();
+const provenStrictEqualityReferencePairs = new Array<usize>();
+
+function findStrictEqualityReferencePairIndex(
+  pairs: Array<usize>,
+  left: usize,
+  right: usize,
+): i32 {
+  for (let i = 0, length = pairs.length; i < length; i += 2) {
+    if (unchecked(pairs[i]) == left && unchecked(pairs[i + 1]) == right) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
 export function isDeferredStrictEqualityResult(
   result: StrictEqualityResult,
 ): bool {
@@ -127,6 +149,99 @@ export function compareStrictEqualityValue<T>(
   }
 
   return compareStrictEqualityPrimitive(left, right);
+}
+
+export function resetStrictEqualityReferencePairTracking(): void {
+  activeStrictEqualityReferencePairs.length = 0;
+  provenStrictEqualityReferencePairs.length = 0;
+}
+
+export function getActiveStrictEqualityReferencePairCount(): i32 {
+  return activeStrictEqualityReferencePairs.length >> 1;
+}
+
+export function getProvenStrictEqualityReferencePairCount(): i32 {
+  return provenStrictEqualityReferencePairs.length >> 1;
+}
+
+export function hasActiveStrictEqualityReferencePair(
+  left: usize,
+  right: usize,
+): bool {
+  return (
+    findStrictEqualityReferencePairIndex(
+      activeStrictEqualityReferencePairs,
+      left,
+      right,
+    ) >= 0
+  );
+}
+
+export function hasProvenStrictEqualityReferencePair(
+  left: usize,
+  right: usize,
+): bool {
+  return (
+    findStrictEqualityReferencePairIndex(
+      provenStrictEqualityReferencePairs,
+      left,
+      right,
+    ) >= 0
+  );
+}
+
+function pushActiveStrictEqualityReferencePair(left: usize, right: usize): void {
+  activeStrictEqualityReferencePairs.push(left);
+  activeStrictEqualityReferencePairs.push(right);
+}
+
+function popActiveStrictEqualityReferencePair(): void {
+  activeStrictEqualityReferencePairs.pop();
+  activeStrictEqualityReferencePairs.pop();
+}
+
+function recordProvenStrictEqualityReferencePair(
+  left: usize,
+  right: usize,
+): void {
+  if (hasProvenStrictEqualityReferencePair(left, right)) {
+    return;
+  }
+
+  provenStrictEqualityReferencePairs.push(left);
+  provenStrictEqualityReferencePairs.push(right);
+}
+
+export function compareStrictEqualityReferencePair(
+  left: usize,
+  right: usize,
+  comparePair: StrictEqualityReferencePairComparator,
+): StrictEqualityResult {
+  if (left == right) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (left == 0 || right == 0) {
+    return StrictEqualityResult.Fail;
+  }
+
+  if (hasProvenStrictEqualityReferencePair(left, right)) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (hasActiveStrictEqualityReferencePair(left, right)) {
+    return StrictEqualityResult.Defer;
+  }
+
+  pushActiveStrictEqualityReferencePair(left, right);
+  const result = comparePair(left, right);
+  popActiveStrictEqualityReferencePair();
+
+  if (result == StrictEqualityResult.Match) {
+    recordProvenStrictEqualityReferencePair(left, right);
+  }
+
+  return result;
 }
 
 export function getStrictEqualityRuntimeTypeId(reference: usize): u32 {

@@ -63,9 +63,9 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [x] Define null-handling behavior for nullable reference comparisons.
 - [x] Normalize `NaN` comparison semantics if float support requires it.
 - [x] Add runtime type-id helpers that generated class hooks can use before member comparison.
-- [ ] Implement pair-cache tracking for already-proven reference matches.
-- [ ] Implement active-resolution stack tracking for recursive comparison.
-- [ ] Define and implement deferred-match behavior for cycles.
+- [x] Implement pair-cache tracking for already-proven reference matches.
+- [x] Implement active-resolution stack tracking for recursive comparison.
+- [x] Define and implement deferred-match behavior for cycles.
 - [ ] Implement specialized comparison for `ArrayBuffer`.
 - [ ] Implement specialized comparison for arrays and arraylikes.
 - [ ] Implement specialized comparison for typed arrays / `ArrayBufferView`.

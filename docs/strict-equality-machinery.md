@@ -383,6 +383,9 @@ The current runtime implementation now includes the first shared helpers for:
 - nullable-reference identity comparison
 - `NaN` normalization for float primitive comparisons
 - runtime-type-id checks used by generated class hooks
+- pair-cache tracking for already-proven reference pairs
+- active-stack tracking for in-flight reference pairs
+- deferred-match handling for recursive reference cycles
 
 ### Transform Activation Policy
 

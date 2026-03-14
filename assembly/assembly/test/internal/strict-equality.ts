@@ -4,11 +4,17 @@ import {
   __asHarnessStrictEqualsMember,
   ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
   ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME,
+  compareStrictEqualityReferencePair,
   compareStrictEqualityString,
   compareStrictEqualityValue,
   compareStrictEqualityNullableReference,
   compareStrictEqualityPrimitive,
+  getActiveStrictEqualityReferencePairCount,
+  getProvenStrictEqualityReferencePairCount,
   getStrictEqualityRuntimeTypeId,
+  hasActiveStrictEqualityReferencePair,
+  hasProvenStrictEqualityReferencePair,
+  resetStrictEqualityReferencePairTracking,
   STRICT_EQUALS_METHOD_NAME,
   STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME,
   STRICT_EQUALS_MEMBER_HELPER_NAME,
@@ -21,6 +27,40 @@ import {
 
 class StrictEqualityReferenceBox {}
 class StrictEqualityOtherReferenceBox {}
+
+let strictEqualityCallbackRuns: i32 = 0;
+
+function returnMatchForStrictEqualityPair(
+  _left: usize,
+  _right: usize,
+): StrictEqualityResult {
+  strictEqualityCallbackRuns++;
+  return StrictEqualityResult.Match;
+}
+
+function returnFailForStrictEqualityPair(
+  _left: usize,
+  _right: usize,
+): StrictEqualityResult {
+  strictEqualityCallbackRuns++;
+  return StrictEqualityResult.Fail;
+}
+
+function reenterStrictEqualityPair(
+  left: usize,
+  right: usize,
+): StrictEqualityResult {
+  strictEqualityCallbackRuns++;
+
+  assert(getActiveStrictEqualityReferencePairCount() == 1);
+  assert(hasActiveStrictEqualityReferencePair(left, right));
+  assert(
+    compareStrictEqualityReferencePair(left, right, returnMatchForStrictEqualityPair) ==
+      StrictEqualityResult.Defer,
+  );
+
+  return StrictEqualityResult.Match;
+}
 
 function testStrictEqualityHookNames(): void {
   assert(STRICT_EQUALS_METHOD_NAME == "__asHarnessStrictEquals");
@@ -187,6 +227,55 @@ function testStrictEqualityRuntimeTypeHelpers(): void {
   );
 }
 
+function testStrictEqualityReferencePairTracking(): void {
+  const left = new StrictEqualityReferenceBox();
+  const right = new StrictEqualityReferenceBox();
+  const leftRef = changetype<usize>(left);
+  const rightRef = changetype<usize>(right);
+
+  resetStrictEqualityReferencePairTracking();
+  strictEqualityCallbackRuns = 0;
+
+  assert(
+    compareStrictEqualityReferencePair(leftRef, leftRef, returnFailForStrictEqualityPair) ==
+      StrictEqualityResult.Match,
+  );
+  assert(strictEqualityCallbackRuns == 0);
+
+  assert(
+    compareStrictEqualityReferencePair(leftRef, 0, returnMatchForStrictEqualityPair) ==
+      StrictEqualityResult.Fail,
+  );
+  assert(strictEqualityCallbackRuns == 0);
+
+  assert(
+    compareStrictEqualityReferencePair(leftRef, rightRef, reenterStrictEqualityPair) ==
+      StrictEqualityResult.Match,
+  );
+  assert(strictEqualityCallbackRuns == 1);
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+  assert(getProvenStrictEqualityReferencePairCount() == 1);
+  assert(hasProvenStrictEqualityReferencePair(leftRef, rightRef));
+
+  strictEqualityCallbackRuns = 0;
+  assert(
+    compareStrictEqualityReferencePair(leftRef, rightRef, returnFailForStrictEqualityPair) ==
+      StrictEqualityResult.Match,
+  );
+  assert(strictEqualityCallbackRuns == 0);
+
+  resetStrictEqualityReferencePairTracking();
+  strictEqualityCallbackRuns = 0;
+  assert(
+    compareStrictEqualityReferencePair(leftRef, rightRef, returnFailForStrictEqualityPair) ==
+      StrictEqualityResult.Fail,
+  );
+  assert(strictEqualityCallbackRuns == 1);
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+  assert(getProvenStrictEqualityReferencePairCount() == 0);
+  assert(!hasProvenStrictEqualityReferencePair(leftRef, rightRef));
+}
+
 testStrictEqualityHookNames();
 testStrictEqualityResultHelpers();
 testSupportedStrictEqualityValueKinds();
@@ -195,3 +284,4 @@ testStrictEqualityPrimitiveComparison();
 testStrictEqualityNullableReferenceComparison();
 testStrictEqualityStringComparison();
 testStrictEqualityRuntimeTypeHelpers();
+testStrictEqualityReferencePairTracking();
