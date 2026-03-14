@@ -155,10 +155,11 @@ Shared primitive candidates for the Wasm assertion bridge:
 - `doesNotMatch`
 - `ifError`
 
-APIs that likely need separate design work because they are not just synchronous boolean comparisons:
+APIs that still need separate design work because they are not yet covered by
+the current synchronous bridge slices:
 
-- `throws`
-- `doesNotThrow`
+- matcher-aware `throws(fn[, error][, message])`
+- matcher-aware `doesNotThrow(fn[, error][, message])`
 - `rejects`
 - `doesNotReject`
 - `partialDeepStrictEqual`
@@ -184,15 +185,15 @@ Practical first-pass split for this repo:
 
 - [x] List the `node:assert` APIs that the adapter must support first.
 - [x] Identify which APIs should lower directly into the shared assertion bridge.
-- [ ] Identify which APIs require message handling before failure emission.
-- [ ] Identify which APIs need strict-only behavior differences.
+- [x] Identify which APIs require message handling before failure emission.
+- [x] Identify which APIs need strict-only behavior differences.
 
 ## Runtime Integration
 
 - [x] Define the internal assertion primitive this adapter should call.
 - [x] Define how assertion failures emit `FailMessage` before becoming unreachable.
 - [ ] Ensure the adapter works the same inside tests and lifecycle callbacks.
-- [ ] Keep adapter code thin and free of host-side policy.
+- [x] Keep adapter code thin and free of host-side policy.
 
 ## Initial Deliverables
 

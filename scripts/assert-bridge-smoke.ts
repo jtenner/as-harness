@@ -9,9 +9,31 @@ const FAIL_MESSAGE_EVENT_KIND = 4;
 type SmokeModule = {
   memory: WebAssembly.Memory;
   __start(): void;
+  invoke(): void;
   runDeepStrictEqualPass(): void;
   runDeepStrictEqualFailWithMessage(): void;
   runDeepStrictEqualFailWithoutMessage(): void;
+  runThrowsPass?(): void;
+  runThrowsPassWithInnerFailMessage?(): void;
+  runDoesNotThrowPass?(): void;
+  runThrowsFailWithMessage?(): void;
+  runDoesNotThrowFailWithMessage?(): void;
+  runStrictEqualPass?(): void;
+  runStrictEqualFailWithMessage?(): void;
+  runNotStrictEqualPass?(): void;
+  runNotStrictEqualFailWithMessage?(): void;
+  runNotDeepStrictEqualPass?(): void;
+  runNotDeepStrictEqualFailWithMessage?(): void;
+  runOkPass?(): void;
+  runOkFailWithMessage?(): void;
+  runFailWithMessage?(): void;
+  runEqualPass?(): void;
+  runEqualFailWithMessage?(): void;
+  runNotEqualPass?(): void;
+  runNotEqualFailWithMessage?(): void;
+  runDeepEqualFailWithMessage?(): void;
+  runNotDeepEqualPass?(): void;
+  runNotDeepEqualFailWithMessage?(): void;
 };
 
 type FailEvent = {
@@ -44,7 +66,23 @@ async function instantiateSmokeModule(
         });
       },
       invoke_staged(): number {
-        return 1;
+        if (exports === null) {
+          throw new Error("Smoke module exports are not ready.");
+        }
+
+        try {
+          exports.invoke();
+          return 1;
+        } catch (error) {
+          if (
+            error instanceof WebAssembly.RuntimeError &&
+            /unreachable|Unreachable/.test(error.message)
+          ) {
+            return 0;
+          }
+
+          throw error;
+        }
       },
     },
     env: {
@@ -86,27 +124,164 @@ function expectUnreachableTrap(callback: () => void): void {
   assert.throws(callback, /unreachable|Unreachable/);
 }
 
+function expectNamedPass(
+  exports: SmokeModule,
+  exportName: keyof SmokeModule,
+  events: FailEvent[],
+  expectedEvents: FailEvent[] = [],
+): void {
+  const callback = exports[exportName];
+  assert.equal(typeof callback, "function");
+  (callback as () => void)();
+  assert.deepEqual(events, expectedEvents);
+  events.length = 0;
+}
+
+function expectNamedFailure(
+  exports: SmokeModule,
+  exportName: keyof SmokeModule,
+  expectedMessage: string | null,
+  events: FailEvent[],
+): void {
+  const callback = exports[exportName];
+  assert.equal(typeof callback, "function");
+  expectUnreachableTrap(() => {
+    (callback as () => void)();
+  });
+  assert.deepEqual(
+    events,
+    expectedMessage === null
+      ? []
+      : [
+          {
+            kind: FAIL_MESSAGE_EVENT_KIND,
+            message: expectedMessage,
+          },
+        ],
+  );
+  events.length = 0;
+}
+
 async function verifySmokeModule(relativePath: string): Promise<void> {
   const { events, exports } = await instantiateSmokeModule(relativePath);
 
-  exports.runDeepStrictEqualPass();
-  assert.deepEqual(events, []);
+  expectNamedPass(exports, "runDeepStrictEqualPass", events);
+  expectNamedFailure(
+    exports,
+    "runDeepStrictEqualFailWithMessage",
+    "deepStrictEqual mismatch",
+    events,
+  );
+  expectNamedFailure(
+    exports,
+    "runDeepStrictEqualFailWithoutMessage",
+    null,
+    events,
+  );
+  if (typeof exports.runThrowsPass == "function") {
+    expectNamedPass(exports, "runThrowsPass", events);
+  }
+  if (typeof exports.runThrowsPassWithInnerFailMessage == "function") {
+    expectNamedPass(exports, "runThrowsPassWithInnerFailMessage", events, [
+      {
+        kind: FAIL_MESSAGE_EVENT_KIND,
+        message: "throws inner mismatch",
+      },
+    ]);
+  }
+  if (typeof exports.runDoesNotThrowPass == "function") {
+    expectNamedPass(exports, "runDoesNotThrowPass", events);
+  }
+  if (typeof exports.runThrowsFailWithMessage == "function") {
+    expectNamedFailure(exports, "runThrowsFailWithMessage", "throws mismatch", events);
+  }
+  if (typeof exports.runDoesNotThrowFailWithMessage == "function") {
+    expectNamedFailure(
+      exports,
+      "runDoesNotThrowFailWithMessage",
+      "doesNotThrow mismatch",
+      events,
+    );
+  }
 
-  expectUnreachableTrap(() => {
-    exports.runDeepStrictEqualFailWithMessage();
-  });
-  assert.deepEqual(events, [
-    {
-      kind: FAIL_MESSAGE_EVENT_KIND,
-      message: "deepStrictEqual mismatch",
-    },
-  ]);
-
-  events.length = 0;
-  expectUnreachableTrap(() => {
-    exports.runDeepStrictEqualFailWithoutMessage();
-  });
-  assert.deepEqual(events, []);
+  if (typeof exports.runStrictEqualPass == "function") {
+    expectNamedPass(exports, "runStrictEqualPass", events);
+  }
+  if (typeof exports.runOkPass == "function") {
+    expectNamedPass(exports, "runOkPass", events);
+  }
+  if (typeof exports.runStrictEqualFailWithMessage == "function") {
+    expectNamedFailure(
+      exports,
+      "runStrictEqualFailWithMessage",
+      "strictEqual mismatch",
+      events,
+    );
+  }
+  if (typeof exports.runNotStrictEqualPass == "function") {
+    expectNamedPass(exports, "runNotStrictEqualPass", events);
+  }
+  if (typeof exports.runNotStrictEqualFailWithMessage == "function") {
+    expectNamedFailure(
+      exports,
+      "runNotStrictEqualFailWithMessage",
+      "notStrictEqual mismatch",
+      events,
+    );
+  }
+  if (typeof exports.runNotDeepStrictEqualPass == "function") {
+    expectNamedPass(exports, "runNotDeepStrictEqualPass", events);
+  }
+  if (typeof exports.runNotDeepStrictEqualFailWithMessage == "function") {
+    expectNamedFailure(
+      exports,
+      "runNotDeepStrictEqualFailWithMessage",
+      "notDeepStrictEqual mismatch",
+      events,
+    );
+  }
+  if (typeof exports.runOkFailWithMessage == "function") {
+    expectNamedFailure(exports, "runOkFailWithMessage", "ok mismatch", events);
+  }
+  if (typeof exports.runFailWithMessage == "function") {
+    expectNamedFailure(exports, "runFailWithMessage", "fail mismatch", events);
+  }
+  if (typeof exports.runEqualPass == "function") {
+    expectNamedPass(exports, "runEqualPass", events);
+  }
+  if (typeof exports.runEqualFailWithMessage == "function") {
+    expectNamedFailure(exports, "runEqualFailWithMessage", "equal mismatch", events);
+  }
+  if (typeof exports.runNotEqualPass == "function") {
+    expectNamedPass(exports, "runNotEqualPass", events);
+  }
+  if (typeof exports.runNotEqualFailWithMessage == "function") {
+    expectNamedFailure(
+      exports,
+      "runNotEqualFailWithMessage",
+      "notEqual mismatch",
+      events,
+    );
+  }
+  if (typeof exports.runDeepEqualFailWithMessage == "function") {
+    expectNamedFailure(
+      exports,
+      "runDeepEqualFailWithMessage",
+      "deepEqual mismatch",
+      events,
+    );
+  }
+  if (typeof exports.runNotDeepEqualPass == "function") {
+    expectNamedPass(exports, "runNotDeepEqualPass", events);
+  }
+  if (typeof exports.runNotDeepEqualFailWithMessage == "function") {
+    expectNamedFailure(
+      exports,
+      "runNotDeepEqualFailWithMessage",
+      "notDeepEqual mismatch",
+      events,
+    );
+  }
 }
 
 await verifySmokeModule("../assembly/build/assert-bridge-node-assert.wasm");

@@ -26,7 +26,11 @@ Implemented today:
 - an internal assertion bridge in `assembly/assembly/internal/assert-bridge.ts`
 - serializer-shape tests in `assembly/assembly/test/internal/events.ts`
 - `Node` metadata/discovery tests in `assembly/assembly/test/internal/node.ts`
-- `deepStrictEqual(...)` entry points for `node:assert` and `node:assert/strict`
+- `node:assert` and `node:assert/strict` bridge entry points for `ok(...)`,
+  `fail(...)`, `strictEqual(...)`, `notStrictEqual(...)`,
+  `deepStrictEqual(...)`, `notDeepStrictEqual(...)`, `throws(...)`, and
+  `doesNotThrow(...)`, plus strict-mode aliases for `equal(...)`,
+  `notEqual(...)`, `deepEqual(...)`, and `notDeepEqual(...)`
 - a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint with a
   host-callable `allocateNodeIndexBuffer(length)` export for NodeIndex writes
   plus the guest-side `invoke()` trampoline export
@@ -78,9 +82,11 @@ Current files:
 
 - `index.ts`: barrel entrypoint for internal tests
 - `node-assert-smoke.ts`: exported smoke fixture for host-observed
-  `node:assert` `deepStrictEqual(...)` success and failure behavior
+  `node:assert` bridge success and failure behavior across direct and
+  trampoline-backed assertions
 - `node-assert-strict-smoke.ts`: exported smoke fixture for host-observed
-  `node:assert/strict` `deepStrictEqual(...)` success and failure behavior
+  `node:assert/strict` bridge success and failure behavior across direct and
+  trampoline-backed assertions
 - `internal/events.ts`: tests for serializer output shape
 - `internal/assert-bridge.ts`: tests for the non-trapping assertion bridge
   helpers
