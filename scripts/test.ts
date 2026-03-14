@@ -20,13 +20,13 @@ await $`bun run ${rootDir}/scripts/test-bootstrap.ts`;
 
 console.log("Assembly test bootstrap completed.");
 
-console.log("Compiling node:assert deepStrictEqual smoke fixture...");
+console.log("Compiling node:assert bridge smoke fixture...");
 
 await $`npx asc assembly/test/node-assert-smoke.ts --debug --exportStart __start --outFile ${legacyAssertSmokeFile}`.cwd(
   assemblyDir,
 );
 
-console.log("Compiling node:assert/strict deepStrictEqual smoke fixture...");
+console.log("Compiling node:assert/strict bridge smoke fixture...");
 
 await $`npx asc assembly/test/node-assert-strict-smoke.ts --debug --exportStart __start --outFile ${strictAssertSmokeFile}`.cwd(
   assemblyDir,

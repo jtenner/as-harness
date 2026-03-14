@@ -10,6 +10,7 @@ import {
   strictEqual,
   throws,
 } from "../node:assert";
+import { strict } from "../node:assert";
 export { invoke } from "../internal/trampoline";
 
 export function runDeepStrictEqualPass(): void {
@@ -26,6 +27,10 @@ export function runOkPass(): void {
 
 export function runStrictEqualPass(): void {
   strictEqual<i32>(11, 11);
+}
+
+export function runStrictNamespaceEqualPass(): void {
+  strict.equal<i32>(11, 11);
 }
 
 export function runNotStrictEqualPass(): void {
@@ -74,6 +79,10 @@ export function runOkFailWithMessage(): void {
 
 export function runStrictEqualFailWithMessage(): void {
   strictEqual<i32>(11, 12, "strictEqual mismatch");
+}
+
+export function runStrictNamespaceEqualFailWithMessage(): void {
+  strict.equal<i32>(11, 12, "strict namespace equal mismatch");
 }
 
 export function runNotStrictEqualFailWithMessage(): void {

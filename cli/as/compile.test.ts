@@ -389,3 +389,142 @@ test("resolves the node:assert default export through the bundled harness librar
 		await rm(tempEntryFile, { force: true });
 	}
 });
+
+test("resolves the node:assert strict namespace through the bundled harness library root", async () => {
+	const tempLibDir = await mkdtemp(join(tmpdir(), "as-harness-lib-test-"));
+	const tempEntryFile = join(
+		tmpdir(),
+		`as-harness-lib-strict-namespace-test-${Date.now()}.ts`,
+	);
+	const dirMap = new Map<string, string[]>();
+
+	try {
+		for (const [virtualPath, contents] of bundledVirtualFiles) {
+			let currentDirectory = posix.dirname(virtualPath);
+			while (currentDirectory.startsWith(bundledVirtualRoot)) {
+				const entries = dirMap.get(currentDirectory) ?? [];
+				if (posix.dirname(virtualPath) === currentDirectory) {
+					entries.push(virtualPath);
+					entries.sort();
+					dirMap.set(currentDirectory, entries);
+				} else if (!dirMap.has(currentDirectory)) {
+					dirMap.set(currentDirectory, []);
+				}
+
+				if (currentDirectory === bundledVirtualRoot) {
+					break;
+				}
+
+				currentDirectory = posix.dirname(currentDirectory);
+			}
+
+			if (
+				virtualPath === BUNDLED_LIBRARY_COMPONENTS_PATH ||
+				!virtualPath.startsWith(`${BUNDLED_LIBRARY_COMPONENTS_PATH}/`)
+			) {
+				continue;
+			}
+
+			const relativePath = posix.relative(
+				BUNDLED_LIBRARY_COMPONENTS_PATH,
+				virtualPath,
+			);
+			const outputPath = join(tempLibDir, ...relativePath.split("/"));
+			await mkdir(dirname(outputPath), { recursive: true });
+			await writeFile(outputPath, contents, "utf8");
+		}
+
+		await writeFile(
+			tempEntryFile,
+			[
+				'import { strict } from "node:assert";',
+				"export function probe(): void {",
+				"\tstrict.equal<i32>(1, 1);",
+				"}",
+				"",
+			].join("\n"),
+			"utf8",
+		);
+
+		const stdout = createMemoryStream();
+		const stderr = createMemoryStream();
+		const { error } = await runAsc(
+			[
+				tempEntryFile,
+				"--target",
+				"debug",
+				"--outFile",
+				"output.wasm",
+				"--debug",
+				"--exportStart",
+				"",
+				"--noColors",
+				"--lib",
+				tempLibDir,
+			],
+			{
+				stdout,
+				stderr,
+				async readFile(filename, baseDir) {
+					const normalizedFilename = filename.replaceAll("\\", "/");
+					if (normalizedFilename.startsWith(bundledVirtualRoot)) {
+						return (
+							bundledVirtualFiles.get(posix.normalize(normalizedFilename)) ??
+							null
+						);
+					}
+
+					const normalizedBaseDir = baseDir.replaceAll("\\", "/");
+					if (normalizedBaseDir.startsWith(bundledVirtualRoot)) {
+						return (
+							bundledVirtualFiles.get(
+								posix.normalize(
+									posix.join(normalizedBaseDir, normalizedFilename),
+								),
+							) ?? null
+						);
+					}
+
+					try {
+						return await readFileFromDisk(resolve(baseDir, filename), "utf8");
+					} catch {
+						return null;
+					}
+				},
+				async listFiles(dirnameValue, baseDir) {
+					const normalizedDir = dirnameValue.replaceAll("\\", "/");
+					if (normalizedDir.startsWith(bundledVirtualRoot)) {
+						return dirMap.get(posix.normalize(normalizedDir)) ?? null;
+					}
+
+					const normalizedBaseDir = baseDir.replaceAll("\\", "/");
+					if (normalizedBaseDir.startsWith(bundledVirtualRoot)) {
+						return (
+							dirMap.get(
+								posix.normalize(posix.join(normalizedBaseDir, normalizedDir)),
+							) ?? null
+						);
+					}
+
+					try {
+						return (await readdir(resolve(baseDir, dirnameValue)))
+							.filter(
+								(entry) => entry.endsWith(".ts") && !entry.endsWith(".d.ts"),
+							)
+							.map((entry) => join(dirnameValue, entry));
+					} catch {
+						return null;
+					}
+				},
+				writeFile() {},
+			},
+		);
+
+		expect(stdout.toString()).toBe("");
+		expect(stderr.toString()).toBe("");
+		expect(error).toBeNull();
+	} finally {
+		await rm(tempLibDir, { force: true, recursive: true });
+		await rm(tempEntryFile, { force: true });
+	}
+});

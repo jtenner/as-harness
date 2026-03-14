@@ -1,4 +1,5 @@
 import {
+  assertIfError,
   assertTruthy,
   isDeepStrictlyEqual,
   isStrictlyEqual,
@@ -53,9 +54,14 @@ function testAssertTruthyAcceptsCommonTruthyValues(): void {
   assertTruthy([1, 2, 3]);
 }
 
+function testAssertIfErrorAcceptsNullReferences(): void {
+  assertIfError<string | null>(null);
+}
+
 testIsDeepStrictlyEqualMatchesEqualValues();
 testIsDeepStrictlyEqualRejectsDifferentValues();
 testIsDeepStrictlyEqualResetsStrictEqualityTracking();
 testIsStrictlyEqualMatchesPrimitiveObjectIsSemantics();
 testIsStrictlyEqualUsesValueSemanticsForStringsAndIdentityForReferences();
 testAssertTruthyAcceptsCommonTruthyValues();
+testAssertIfErrorAcceptsNullReferences();

@@ -1,3 +1,6 @@
+import * as strictAssert from "./strict";
+
+export { strictAssert as strict };
 export { default } from "./shared";
 export {
   deepStrictEqual,

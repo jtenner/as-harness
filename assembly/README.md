@@ -31,7 +31,8 @@ Implemented today:
   `strictEqual(...)`, `notStrictEqual(...)`, `deepStrictEqual(...)`,
   `notDeepStrictEqual(...)`, `throws(...)`, and `doesNotThrow(...)`, plus
   strict-mode aliases for `equal(...)`, `notEqual(...)`, `deepEqual(...)`,
-  and `notDeepEqual(...)`
+  and `notDeepEqual(...)`, plus `node:assert.strict` as a namespace alias for
+  the strict entry point
 - a dedicated `assembly/assembly/exports.ts` Wasm export entrypoint with a
   host-callable `allocateNodeIndexBuffer(length)` export for NodeIndex writes
   plus the guest-side `invoke()` trampoline export

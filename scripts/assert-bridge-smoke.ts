@@ -23,7 +23,9 @@ type SmokeModule = {
   runIfErrorPass?(): void;
   runIfErrorFailWithoutMessage?(): void;
   runStrictEqualPass?(): void;
+  runStrictNamespaceEqualPass?(): void;
   runStrictEqualFailWithMessage?(): void;
+  runStrictNamespaceEqualFailWithMessage?(): void;
   runNotStrictEqualPass?(): void;
   runNotStrictEqualFailWithMessage?(): void;
   runNotDeepStrictEqualPass?(): void;
@@ -228,6 +230,9 @@ async function verifySmokeModule(relativePath: string): Promise<void> {
   if (typeof exports.runStrictEqualPass == "function") {
     expectNamedPass(exports, "runStrictEqualPass", events);
   }
+  if (typeof exports.runStrictNamespaceEqualPass == "function") {
+    expectNamedPass(exports, "runStrictNamespaceEqualPass", events);
+  }
   if (typeof exports.runOkPass == "function") {
     expectNamedPass(exports, "runOkPass", events);
   }
@@ -236,6 +241,14 @@ async function verifySmokeModule(relativePath: string): Promise<void> {
       exports,
       "runStrictEqualFailWithMessage",
       "strictEqual mismatch",
+      events,
+    );
+  }
+  if (typeof exports.runStrictNamespaceEqualFailWithMessage == "function") {
+    expectNamedFailure(
+      exports,
+      "runStrictNamespaceEqualFailWithMessage",
+      "strict namespace equal mismatch",
       events,
     );
   }
