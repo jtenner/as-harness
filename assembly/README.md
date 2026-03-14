@@ -138,9 +138,10 @@ work currently covers the shared contract constants plus primitive, string,
 nullable, runtime-type-id, pair-cache, active-stack, `NaN`-aware comparison
 helpers, `ArrayBuffer` bytewise comparison, ordered `Array<T>` /
 `StaticArray<T>` comparison, bytewise typed-array / `ArrayBufferView` /
-`DataView` comparison, dedicated generated-member helpers for `ArrayBuffer`
-and view-typed fields, and managed-class recursion through generated hooks;
-sets, maps, and the reflected-value runtime are still pending.
+`DataView` comparison, dedicated generated-member helpers for `ArrayBuffer`,
+view-typed fields, `Set`, and `Map`, direct `Set` / `Map` comparison helpers,
+and managed-class recursion through generated hooks. Fully generic nested
+`Set` / `Map` dispatch plus the reflected-value runtime are still pending.
 
 ## Event Model
 

@@ -39,6 +39,10 @@ export const STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME =
   "__asHarnessStrictEqualsArrayBufferMember";
 export const STRICT_EQUALS_ARRAY_BUFFER_VIEW_MEMBER_HELPER_NAME =
   "__asHarnessStrictEqualsArrayBufferViewMember";
+export const STRICT_EQUALS_SET_MEMBER_HELPER_NAME =
+  "__asHarnessStrictEqualsSetMember";
+export const STRICT_EQUALS_MAP_MEMBER_HELPER_NAME =
+  "__asHarnessStrictEqualsMapMember";
 export const STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME =
   "__asHarnessStrictEqualsManagedClassMember";
 export const ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME =
@@ -204,6 +208,122 @@ export function compareStrictEqualityArrayBufferView(
   return memory.compare(leftView.dataStart, rightView.dataStart, <usize>byteLength) == 0
     ? StrictEqualityResult.Match
     : StrictEqualityResult.Fail;
+}
+
+export function compareStrictEqualitySet<T>(
+  left: Set<T> | null,
+  right: Set<T> | null,
+): StrictEqualityResult {
+  const leftReference = changetype<usize>(left);
+  const rightReference = changetype<usize>(right);
+
+  if (leftReference == rightReference) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (leftReference == 0 || rightReference == 0) {
+    return StrictEqualityResult.Fail;
+  }
+
+  if (hasProvenStrictEqualityReferencePair(leftReference, rightReference)) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (hasActiveStrictEqualityReferencePair(leftReference, rightReference)) {
+    return StrictEqualityResult.Defer;
+  }
+
+  pushActiveStrictEqualityReferencePair(leftReference, rightReference);
+
+  let result = StrictEqualityResult.Match;
+  const leftSet = changetype<Set<T>>(leftReference);
+  const rightSet = changetype<Set<T>>(rightReference);
+
+  if (leftSet.size != rightSet.size) {
+    result = StrictEqualityResult.Fail;
+  } else {
+    const leftValues = leftSet.values();
+    const rightValues = rightSet.values();
+    const length = leftValues.length;
+
+    for (let i = 0; i < length; i++) {
+      if (
+        compareStrictEqualityValue<T>(leftValues[i], rightValues[i]) ==
+        StrictEqualityResult.Fail
+      ) {
+        result = StrictEqualityResult.Fail;
+        break;
+      }
+    }
+  }
+
+  popActiveStrictEqualityReferencePair();
+
+  if (result == StrictEqualityResult.Match) {
+    recordProvenStrictEqualityReferencePair(leftReference, rightReference);
+  }
+
+  return result;
+}
+
+export function compareStrictEqualityMap<K, V>(
+  left: Map<K, V> | null,
+  right: Map<K, V> | null,
+): StrictEqualityResult {
+  const leftReference = changetype<usize>(left);
+  const rightReference = changetype<usize>(right);
+
+  if (leftReference == rightReference) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (leftReference == 0 || rightReference == 0) {
+    return StrictEqualityResult.Fail;
+  }
+
+  if (hasProvenStrictEqualityReferencePair(leftReference, rightReference)) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (hasActiveStrictEqualityReferencePair(leftReference, rightReference)) {
+    return StrictEqualityResult.Defer;
+  }
+
+  pushActiveStrictEqualityReferencePair(leftReference, rightReference);
+
+  let result = StrictEqualityResult.Match;
+  const leftMap = changetype<Map<K, V>>(leftReference);
+  const rightMap = changetype<Map<K, V>>(rightReference);
+
+  if (leftMap.size != rightMap.size) {
+    result = StrictEqualityResult.Fail;
+  } else {
+    const leftKeys = leftMap.keys();
+    const rightKeys = rightMap.keys();
+    const leftValues = leftMap.values();
+    const rightValues = rightMap.values();
+    const length = leftKeys.length;
+
+    for (let i = 0; i < length; i++) {
+      if (
+        compareStrictEqualityValue<K>(leftKeys[i], rightKeys[i]) ==
+          StrictEqualityResult.Fail ||
+        compareStrictEqualityValue<V>(leftValues[i], rightValues[i]) ==
+          StrictEqualityResult.Fail
+      ) {
+        result = StrictEqualityResult.Fail;
+        break;
+      }
+    }
+  }
+
+  popActiveStrictEqualityReferencePair();
+
+  if (result == StrictEqualityResult.Match) {
+    recordProvenStrictEqualityReferencePair(leftReference, rightReference);
+  }
+
+  return result;
 }
 
 export function compareStrictEqualityArray<T>(
@@ -549,6 +669,22 @@ export function __asHarnessStrictEqualsArrayBufferViewMember<T>(
     changetype<ArrayBufferView | null>(left),
     changetype<ArrayBufferView | null>(right),
   ) != StrictEqualityResult.Fail;
+}
+
+export function __asHarnessStrictEqualsSetMember<T>(
+  _memberHash: string,
+  left: Set<T> | null,
+  right: Set<T> | null,
+): bool {
+  return compareStrictEqualitySet(left, right) != StrictEqualityResult.Fail;
+}
+
+export function __asHarnessStrictEqualsMapMember<K, V>(
+  _memberHash: string,
+  left: Map<K, V> | null,
+  right: Map<K, V> | null,
+): bool {
+  return compareStrictEqualityMap(left, right) != StrictEqualityResult.Fail;
 }
 
 export function __asHarnessStrictEqualsManagedClassMember<T>(

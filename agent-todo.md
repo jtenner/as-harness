@@ -69,8 +69,9 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [x] Implement specialized comparison for `ArrayBuffer`.
 - [x] Implement specialized comparison for arrays and arraylikes.
 - [x] Implement specialized comparison for typed arrays / `ArrayBufferView`.
-- [ ] Implement specialized comparison for `Set`.
-- [ ] Implement specialized comparison for `Map`.
+- [x] Add dedicated strict-equality helpers for `Set` and generated-member routing.
+- [x] Add dedicated strict-equality helpers for `Map` and generated-member routing.
+- [ ] Route generic nested `Set` and `Map` values through the shared value dispatcher.
 - [ ] Implement function-reference comparison semantics.
 - [x] Delegate generic class comparison into the transform-generated structural hook.
 

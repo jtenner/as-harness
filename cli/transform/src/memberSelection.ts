@@ -13,6 +13,8 @@ export type StrictEqualityComparisonStrategy =
 	| "value"
 	| "arrayBuffer"
 	| "arrayBufferView"
+	| "set"
+	| "map"
 	| "managedClass";
 
 export type ParticipatingMember = {
@@ -140,6 +142,14 @@ function getStrictEqualityComparisonStrategy(
 
 	if (ARRAY_BUFFER_VIEW_TYPE_NAMES.has(typeName)) {
 		return "arrayBufferView";
+	}
+
+	if (typeName === "Set") {
+		return "set";
+	}
+
+	if (typeName === "Map") {
+		return "map";
 	}
 
 	if (

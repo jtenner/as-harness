@@ -15,6 +15,8 @@ import type {
 import {
 	STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_ARRAY_BUFFER_VIEW_MEMBER_HELPER_NAME,
+	STRICT_EQUALS_MAP_MEMBER_HELPER_NAME,
+	STRICT_EQUALS_SET_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME,
 	STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_MEMBER_HELPER_NAME,
@@ -194,6 +196,10 @@ export function createStrictEqualsMember(
 			helperName = STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME;
 		} else if (member.strictEqualityComparisonStrategy === "arrayBufferView") {
 			helperName = STRICT_EQUALS_ARRAY_BUFFER_VIEW_MEMBER_HELPER_NAME;
+		} else if (member.strictEqualityComparisonStrategy === "map") {
+			helperName = STRICT_EQUALS_MAP_MEMBER_HELPER_NAME;
+		} else if (member.strictEqualityComparisonStrategy === "set") {
+			helperName = STRICT_EQUALS_SET_MEMBER_HELPER_NAME;
 		} else if (member.strictEqualityComparisonStrategy === "managedClass") {
 			helperName = STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME;
 		}

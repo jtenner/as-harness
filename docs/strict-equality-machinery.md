@@ -367,19 +367,26 @@ of that contract:
 - `ArrayBuffer` bytewise comparison
 - ordered comparison for `Array<T>` and `StaticArray<T>`
 - bytewise typed-array / `ArrayBufferView` / `DataView` comparison
+- direct `Set` and `Map` comparison helpers
 - managed-class recursion through transform-generated hooks
 
 The member-helper path now covers `ArrayBuffer` plus typed arrays /
-`ArrayBufferView` / `DataView`, while `Set` and `Map` still remain pending.
-Ordered arrays / arraylikes and recursive managed-class comparison are also
-routed through shared runtime helpers in Phase 3.
+`ArrayBufferView` / `DataView`, `Set`, and `Map`. Ordered arrays / arraylikes
+and recursive managed-class comparison are also routed through shared runtime
+helpers in Phase 3.
+
+The remaining collection gap is the generic `compareStrictEqualityValue(...)`
+dispatcher for nested `Set` and `Map` values. AssemblyScript does not expose a
+usable type-argument extraction mechanism for arbitrary `Set<T>` / `Map<K, V>`
+specializations here, so the current runtime supports those collections via
+their direct helpers and dedicated generated-member helpers first.
 
 The runtime-side responsibilities are:
 
 - primitive and nullable handling
 - `NaN` normalization
 - pair-cache and active-stack tracking
-- specialized comparison for `Set`, `Map`, and function references
+- generic nested `Set` / `Map` dispatch and function references
 - reflected-value construction
 - failure/result propagation
 

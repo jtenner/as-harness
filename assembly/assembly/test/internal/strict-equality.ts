@@ -3,6 +3,8 @@ import {
   __asHarnessHasStrictEqualityRuntimeType,
   __asHarnessStrictEqualsArrayBufferMember,
   __asHarnessStrictEqualsArrayBufferViewMember,
+  __asHarnessStrictEqualsMapMember,
+  __asHarnessStrictEqualsSetMember,
   __asHarnessStrictEqualsManagedClassMember,
   __asHarnessStrictEqualsMember,
   ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
@@ -10,6 +12,8 @@ import {
   compareStrictEqualityArray,
   compareStrictEqualityArrayBuffer,
   compareStrictEqualityArrayBufferView,
+  compareStrictEqualityMap,
+  compareStrictEqualitySet,
   compareStrictEqualityManagedClass,
   compareStrictEqualityReferencePair,
   compareStrictEqualityStaticArray,
@@ -26,6 +30,8 @@ import {
   STRICT_EQUALS_METHOD_NAME,
   STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME,
   STRICT_EQUALS_ARRAY_BUFFER_VIEW_MEMBER_HELPER_NAME,
+  STRICT_EQUALS_MAP_MEMBER_HELPER_NAME,
+  STRICT_EQUALS_SET_MEMBER_HELPER_NAME,
   STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME,
   STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME,
   STRICT_EQUALS_MEMBER_HELPER_NAME,
@@ -115,6 +121,12 @@ function testStrictEqualityHookNames(): void {
   assert(
     STRICT_EQUALS_ARRAY_BUFFER_VIEW_MEMBER_HELPER_NAME ==
       "__asHarnessStrictEqualsArrayBufferViewMember",
+  );
+  assert(
+    STRICT_EQUALS_SET_MEMBER_HELPER_NAME == "__asHarnessStrictEqualsSetMember",
+  );
+  assert(
+    STRICT_EQUALS_MAP_MEMBER_HELPER_NAME == "__asHarnessStrictEqualsMapMember",
   );
   assert(
     STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME ==
@@ -535,6 +547,145 @@ function testStrictEqualityArrayBufferViewComparison(): void {
   );
 }
 
+function testStrictEqualitySetComparison(): void {
+  const left = new Set<i32>();
+  left.add(1);
+  left.add(2);
+  left.add(3);
+
+  const right = new Set<i32>();
+  right.add(1);
+  right.add(2);
+  right.add(3);
+
+  const mismatch = new Set<i32>();
+  mismatch.add(1);
+  mismatch.add(9);
+  mismatch.add(3);
+
+  const reordered = new Set<i32>();
+  reordered.add(3);
+  reordered.add(2);
+  reordered.add(1);
+
+  const shorter = new Set<i32>();
+  shorter.add(1);
+  shorter.add(2);
+
+  const nullSet = changetype<Set<i32> | null>(0);
+
+  assert(compareStrictEqualitySet(left, right) == StrictEqualityResult.Match);
+  assert(compareStrictEqualitySet(left, mismatch) == StrictEqualityResult.Fail);
+  assert(compareStrictEqualitySet(left, reordered) == StrictEqualityResult.Fail);
+  assert(compareStrictEqualitySet(left, shorter) == StrictEqualityResult.Fail);
+  assert(
+    compareStrictEqualitySet(nullSet, nullSet) == StrictEqualityResult.Match,
+  );
+  assert(compareStrictEqualitySet(left, nullSet) == StrictEqualityResult.Fail);
+  assert(__asHarnessStrictEqualsSetMember("field:set", left, right));
+  assert(!__asHarnessStrictEqualsSetMember("field:set", left, mismatch));
+  assert(!__asHarnessStrictEqualsSetMember("field:set", left, reordered));
+
+  const recursiveLeft = new Set<StrictEqualityRecursiveNode>();
+  recursiveLeft.add(createRecursiveCycle("root", "child"));
+  const recursiveRight = new Set<StrictEqualityRecursiveNode>();
+  recursiveRight.add(createRecursiveCycle("root", "child"));
+  const recursiveMismatch = new Set<StrictEqualityRecursiveNode>();
+  recursiveMismatch.add(createRecursiveCycle("root", "other"));
+
+  resetStrictEqualityReferencePairTracking();
+  assert(
+    compareStrictEqualitySet(recursiveLeft, recursiveRight) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    __asHarnessStrictEqualsSetMember("field:set", recursiveLeft, recursiveRight),
+  );
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+  assert(getProvenStrictEqualityReferencePairCount() == 3);
+
+  resetStrictEqualityReferencePairTracking();
+  assert(
+    compareStrictEqualitySet(recursiveLeft, recursiveMismatch) ==
+      StrictEqualityResult.Fail,
+  );
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+  assert(getProvenStrictEqualityReferencePairCount() == 0);
+}
+
+function testStrictEqualityMapComparison(): void {
+  const left = new Map<i32, string>();
+  left.set(1, "one");
+  left.set(2, "two");
+
+  const right = new Map<i32, string>();
+  right.set(1, "one");
+  right.set(2, "two");
+
+  const mismatchValue = new Map<i32, string>();
+  mismatchValue.set(1, "one");
+  mismatchValue.set(2, "other");
+
+  const mismatchKey = new Map<i32, string>();
+  mismatchKey.set(1, "one");
+  mismatchKey.set(9, "two");
+
+  const reordered = new Map<i32, string>();
+  reordered.set(2, "two");
+  reordered.set(1, "one");
+
+  const shorter = new Map<i32, string>();
+  shorter.set(1, "one");
+
+  const nullMap = changetype<Map<i32, string> | null>(0);
+
+  assert(compareStrictEqualityMap(left, right) == StrictEqualityResult.Match);
+  assert(
+    compareStrictEqualityMap(left, mismatchValue) == StrictEqualityResult.Fail,
+  );
+  assert(
+    compareStrictEqualityMap(left, mismatchKey) == StrictEqualityResult.Fail,
+  );
+  assert(
+    compareStrictEqualityMap(left, reordered) == StrictEqualityResult.Fail,
+  );
+  assert(compareStrictEqualityMap(left, shorter) == StrictEqualityResult.Fail);
+  assert(
+    compareStrictEqualityMap(nullMap, nullMap) == StrictEqualityResult.Match,
+  );
+  assert(compareStrictEqualityMap(left, nullMap) == StrictEqualityResult.Fail);
+  assert(__asHarnessStrictEqualsMapMember("field:map", left, right));
+  assert(!__asHarnessStrictEqualsMapMember("field:map", left, mismatchValue));
+  assert(!__asHarnessStrictEqualsMapMember("field:map", left, mismatchKey));
+  assert(!__asHarnessStrictEqualsMapMember("field:map", left, reordered));
+
+  const recursiveLeft = new Map<string, StrictEqualityRecursiveNode>();
+  recursiveLeft.set("root", createRecursiveCycle("root", "child"));
+  const recursiveRight = new Map<string, StrictEqualityRecursiveNode>();
+  recursiveRight.set("root", createRecursiveCycle("root", "child"));
+  const recursiveMismatch = new Map<string, StrictEqualityRecursiveNode>();
+  recursiveMismatch.set("root", createRecursiveCycle("root", "other"));
+
+  resetStrictEqualityReferencePairTracking();
+  assert(
+    compareStrictEqualityMap(recursiveLeft, recursiveRight) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    __asHarnessStrictEqualsMapMember("field:map", recursiveLeft, recursiveRight),
+  );
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+  assert(getProvenStrictEqualityReferencePairCount() == 3);
+
+  resetStrictEqualityReferencePairTracking();
+  assert(
+    compareStrictEqualityMap(recursiveLeft, recursiveMismatch) ==
+      StrictEqualityResult.Fail,
+  );
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+  assert(getProvenStrictEqualityReferencePairCount() == 0);
+}
+
 function testStrictEqualityRuntimeTypeHelpers(): void {
   const value = new StrictEqualityReferenceBox();
   const other = new StrictEqualityOtherReferenceBox();
@@ -669,6 +820,8 @@ testStrictEqualityArrayBufferComparison();
 testStrictEqualityArrayComparison();
 testStrictEqualityStaticArrayComparison();
 testStrictEqualityArrayBufferViewComparison();
+testStrictEqualitySetComparison();
+testStrictEqualityMapComparison();
 testStrictEqualityRuntimeTypeHelpers();
 testStrictEqualityReferencePairTracking();
 testStrictEqualityManagedClassComparison();

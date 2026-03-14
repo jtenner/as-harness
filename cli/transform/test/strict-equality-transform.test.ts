@@ -21,6 +21,8 @@ import {
 	ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
 	STRICT_EQUALS_ARRAY_BUFFER_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_ARRAY_BUFFER_VIEW_MEMBER_HELPER_NAME,
+	STRICT_EQUALS_MAP_MEMBER_HELPER_NAME,
+	STRICT_EQUALS_SET_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_MANAGED_CLASS_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_MEMBER_HELPER_NAME,
 	STRICT_EQUALS_RUNTIME_TYPE_HELPER_NAME,
@@ -419,6 +421,56 @@ class Example {
 	).toEqual(["arrayBufferView", "arrayBufferView", "arrayBufferView"]);
 });
 
+test("marks Set-typed members for dedicated set helper delegation", () => {
+	const parser = parseSource(`
+class Example {
+  values: Set<i32>;
+
+  get alias(): Set<i32> {
+    return this.values;
+  }
+}
+`);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Example",
+	);
+	const participatingMembers =
+		getParticipatingInstanceMembers(classDeclaration);
+
+	expect(
+		participatingMembers.map(
+			(member) => member.strictEqualityComparisonStrategy,
+		),
+	).toEqual(["set", "set"]);
+});
+
+test("marks Map-typed members for dedicated map helper delegation", () => {
+	const parser = parseSource(`
+class Example {
+  values: Map<string, i32>;
+
+  get alias(): Map<string, i32> {
+    return this.values;
+  }
+}
+`);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Example",
+	);
+	const participatingMembers =
+		getParticipatingInstanceMembers(classDeclaration);
+
+	expect(
+		participatingMembers.map(
+			(member) => member.strictEqualityComparisonStrategy,
+		),
+	).toEqual(["map", "map"]);
+});
+
 test("delegates into super from generated strict-equality hooks on derived classes", () => {
 	const parser = parseSource(`
 class Base {}
@@ -666,6 +718,60 @@ class Example {
 	);
 	expect((bytesCall.args[0] as { value: string }).value).toBe("field:bytes");
 	expect((viewCall.args[0] as { value: string }).value).toBe("field:view");
+});
+
+test("emits Set helper checks for participating Set-typed members", () => {
+	const parser = parseSource(`
+class Example {
+  values: Set<i32>;
+}
+`);
+
+	new StrictEqualityTransform().afterParse(parser);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Example",
+	);
+	const strictEqualsMethod = findMethod(
+		classDeclaration,
+		STRICT_EQUALS_METHOD_NAME,
+	);
+	const bodyStatements = getMethodBodyStatements(strictEqualsMethod);
+	const setCheck = bodyStatements[2] as IfStatement;
+	const setCall = (setCheck.condition as UnaryPrefixExpression)
+		.operand as CallExpression;
+
+	expect(setCall.expression.kind).toBe(NodeKind.Identifier);
+	expect(setCall.expression.text).toBe(STRICT_EQUALS_SET_MEMBER_HELPER_NAME);
+	expect((setCall.args[0] as { value: string }).value).toBe("field:values");
+});
+
+test("emits Map helper checks for participating Map-typed members", () => {
+	const parser = parseSource(`
+class Example {
+  values: Map<string, i32>;
+}
+`);
+
+	new StrictEqualityTransform().afterParse(parser);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Example",
+	);
+	const strictEqualsMethod = findMethod(
+		classDeclaration,
+		STRICT_EQUALS_METHOD_NAME,
+	);
+	const bodyStatements = getMethodBodyStatements(strictEqualsMethod);
+	const mapCheck = bodyStatements[2] as IfStatement;
+	const mapCall = (mapCheck.condition as UnaryPrefixExpression)
+		.operand as CallExpression;
+
+	expect(mapCall.expression.kind).toBe(NodeKind.Identifier);
+	expect(mapCall.expression.text).toBe(STRICT_EQUALS_MAP_MEMBER_HELPER_NAME);
+	expect((mapCall.args[0] as { value: string }).value).toBe("field:values");
 });
 
 test("emits per-member reflected key-value helper calls for participating fields and getters", () => {

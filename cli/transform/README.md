@@ -34,4 +34,6 @@ The current implementation now performs the first transform pass:
 Those generated methods are still scaffold-level at the runtime boundary. The
 shared AssemblyScript helpers now perform primitive, string, nullable,
 runtime-type, `ArrayBuffer`, typed-array / `ArrayBufferView`, ordered array /
-arraylike, and managed-class recursive checks. Sets and maps are still pending.
+arraylike, direct `Set` / `Map`, and managed-class recursive checks. Nested
+generic `Set` / `Map` dispatch outside dedicated member helpers is still
+pending.
