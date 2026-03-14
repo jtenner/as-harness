@@ -2,6 +2,7 @@ import * as strictAssert from "./node:assert/strict";
 
 export { strictAssert as strict };
 export { default } from "./node:assert/shared";
+export { equal, notEqual } from "./node:assert/legacy";
 export {
   deepStrictEqual,
   doesNotThrow,

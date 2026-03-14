@@ -2,6 +2,7 @@ import {
   assertIfError,
   assertTruthy,
   isDeepStrictlyEqual,
+  isLooselyEqual,
   isStrictlyEqual,
 } from "../../internal/assert-bridge";
 import {
@@ -58,6 +59,15 @@ function testAssertIfErrorAcceptsNullReferences(): void {
   assertIfError<string | null>(null);
 }
 
+function testIsLooselyEqualCoversLegacyCoerciveCases(): void {
+  assert(isLooselyEqual<i32, string>(1, "1"));
+  assert(isLooselyEqual<bool, string>(true, "1"));
+  assert(isLooselyEqual<f64, f64>(NaN, NaN));
+  assert(!isLooselyEqual<string, string>("1", "01"));
+  assert(!isLooselyEqual<string, f64>("NaN", NaN));
+  assert(!isLooselyEqual<i32, string>(1, "2"));
+}
+
 testIsDeepStrictlyEqualMatchesEqualValues();
 testIsDeepStrictlyEqualRejectsDifferentValues();
 testIsDeepStrictlyEqualResetsStrictEqualityTracking();
@@ -65,3 +75,4 @@ testIsStrictlyEqualMatchesPrimitiveObjectIsSemantics();
 testIsStrictlyEqualUsesValueSemanticsForStringsAndIdentityForReferences();
 testAssertTruthyAcceptsCommonTruthyValues();
 testAssertIfErrorAcceptsNullReferences();
+testIsLooselyEqualCoversLegacyCoerciveCases();

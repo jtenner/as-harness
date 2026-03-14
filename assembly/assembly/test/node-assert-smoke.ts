@@ -2,8 +2,10 @@ import assert from "../node:assert";
 import {
   deepStrictEqual,
   doesNotThrow,
+  equal,
   fail,
   ifError,
+  notEqual,
   notDeepStrictEqual,
   notStrictEqual,
   ok,
@@ -33,8 +35,16 @@ export function runStrictNamespaceEqualPass(): void {
   strict.equal<i32>(11, 11);
 }
 
+export function runEqualPass(): void {
+  equal<i32, string>(1, "1");
+}
+
 export function runNotStrictEqualPass(): void {
   notStrictEqual<i32>(11, 12);
+}
+
+export function runNotEqualPass(): void {
+  notEqual<i32, string>(1, "2");
 }
 
 export function runNotDeepStrictEqualPass(): void {
@@ -85,8 +95,16 @@ export function runStrictNamespaceEqualFailWithMessage(): void {
   strict.equal<i32>(11, 12, "strict namespace equal mismatch");
 }
 
+export function runEqualFailWithMessage(): void {
+  equal<i32, string>(1, "2", "equal mismatch");
+}
+
 export function runNotStrictEqualFailWithMessage(): void {
   notStrictEqual<i32>(11, 11, "notStrictEqual mismatch");
+}
+
+export function runNotEqualFailWithMessage(): void {
+  notEqual<i32, string>(1, "1", "notEqual mismatch");
 }
 
 export function runNotDeepStrictEqualFailWithMessage(): void {

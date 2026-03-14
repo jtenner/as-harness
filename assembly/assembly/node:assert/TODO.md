@@ -168,6 +168,8 @@ Shared primitive candidates for the Wasm assertion bridge:
 APIs that still need separate design work because they are not yet covered by
 the current synchronous bridge slices:
 
+- legacy `deepEqual`
+- legacy `notDeepEqual`
 - matcher-aware `throws(fn[, error][, message])`
 - matcher-aware `doesNotThrow(fn[, error][, message])`
 - `match`
