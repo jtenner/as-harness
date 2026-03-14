@@ -49,6 +49,35 @@ class ReflectedValueNode {
   }
 }
 
+@unmanaged
+class ReflectedValueUnmanagedPlain {
+  value: i32 = 0;
+}
+
+@unmanaged
+class ReflectedValueUnmanagedOverride {
+  value: i32 = 0;
+
+  __asHarnessAddReflectedValueKeyValuePairs(): void {
+    addReflectedValueKeyValuePair("field:value", this.value);
+  }
+}
+
+@unmanaged
+class ReflectedValueUnmanagedArrayLike {
+  first: i32 = 0;
+  second: i32 = 0;
+
+  get length(): i32 {
+    return 2;
+  }
+
+  @operator("[]")
+  __get(index: i32): i32 {
+    return index == 0 ? this.first : this.second;
+  }
+}
+
 function createArrayBufferFromBytes(values: StaticArray<u8>): ArrayBuffer {
   const output = new ArrayBuffer(values.length);
   memory.copy(
@@ -152,6 +181,21 @@ function testArrayLikeReflectedValues(): void {
   assert(staticValues.length == 2);
   assert(staticValues[0].signedIntegerValue == 4);
   assert(staticValues[1].signedIntegerValue == 5);
+
+  const unmanagedArrayLike = new ReflectedValueUnmanagedArrayLike();
+  unmanagedArrayLike.first = 6;
+  unmanagedArrayLike.second = 7;
+  reflected =
+    createReflectedValue<ReflectedValueUnmanagedArrayLike>(
+      unmanagedArrayLike,
+    );
+  assert(reflected.kind == ReflectedValueKind.ArrayLike);
+  assert(reflected.runtimeTypeId == 0);
+  assert(reflected.values !== null);
+  const unmanagedValues = changetype<Array<ReflectedValue>>(reflected.values);
+  assert(unmanagedValues.length == 2);
+  assert(unmanagedValues[0].signedIntegerValue == 6);
+  assert(unmanagedValues[1].signedIntegerValue == 7);
 }
 
 function testArrayBufferViewReflectedValues(): void {
@@ -254,6 +298,13 @@ function testUnsupportedReflectedValues(): void {
     reflectedValueFunction,
   );
   assert(functionReflected.kind == ReflectedValueKind.Unsupported);
+
+  const plainUnmanaged = new ReflectedValueUnmanagedPlain();
+  plainUnmanaged.value = 7;
+  const unmanagedReflected =
+    createReflectedValue<ReflectedValueUnmanagedPlain>(plainUnmanaged);
+  assert(unmanagedReflected.kind == ReflectedValueKind.Unsupported);
+  assert(unmanagedReflected.runtimeTypeId == 0);
 }
 
 function testManagedClassReflectedValues(): void {
@@ -300,7 +351,80 @@ function testManagedClassReflectedValues(): void {
   assert(safeRootPairs[2].value.kind == ReflectedValueKind.ArrayBuffer);
   assert(safeRootPairs[2].value.byteLength == 3);
   assert(safeRootPairs[3].key == "field:next");
-  assert(safeRootPairs[3].value.kind == ReflectedValueKind.Unsupported);
+  assert(safeRootPairs[3].value.kind == ReflectedValueKind.ManagedClass);
+  assert(getActiveReflectedValueKeyValuePairCollectionDepth() == 0);
+}
+
+function testClassHookReflectedValues(): void {
+  const leaf = new ReflectedValueLeaf("leaf");
+  resetReflectedValueTracking();
+
+  let reflected = createReflectedValue<ReflectedValueLeaf>(leaf);
+  assert(reflected.kind == ReflectedValueKind.ManagedClass);
+  assert(reflected.runtimeTypeId == idof<ReflectedValueLeaf>());
+  assert(reflected.keyValuePairs !== null);
+  let leafPairs = changetype<Array<ReflectedValueKeyValuePair>>(
+    reflected.keyValuePairs,
+  );
+  assert(leafPairs.length == 1);
+  assert(leafPairs[0].key == "field:label");
+  assert(leafPairs[0].value.kind == ReflectedValueKind.String);
+  assert(leafPairs[0].value.stringValue == "leaf");
+  assert(getActiveReflectedValueKeyValuePairCollectionDepth() == 0);
+
+  const root = new ReflectedValueNode(
+    1,
+    "root",
+    createArrayBufferFromBytes([7, 8, 9]),
+  );
+  const child = new ReflectedValueNode(
+    2,
+    "child",
+    createArrayBufferFromBytes([1, 2]),
+  );
+  root.next = child;
+  child.next = root;
+
+  resetReflectedValueTracking();
+  reflected = createReflectedValue<ReflectedValueNode>(root);
+  assert(reflected.kind == ReflectedValueKind.ManagedClass);
+  assert(reflected.runtimeTypeId == idof<ReflectedValueNode>());
+  assert(reflected.keyValuePairs !== null);
+  const rootPairs = changetype<Array<ReflectedValueKeyValuePair>>(
+    reflected.keyValuePairs,
+  );
+  assert(rootPairs.length == 4);
+  assert(rootPairs[0].key == "field:count");
+  assert(rootPairs[0].value.signedIntegerValue == 1);
+  assert(rootPairs[1].key == "field:label");
+  assert(rootPairs[1].value.stringValue == "root");
+  assert(rootPairs[2].key == "field:payload");
+  assert(rootPairs[2].value.kind == ReflectedValueKind.ArrayBuffer);
+  assert(rootPairs[3].key == "field:next");
+  assert(rootPairs[3].value.kind == ReflectedValueKind.ManagedClass);
+  assert(rootPairs[3].value.keyValuePairs !== null);
+  const childPairs = changetype<Array<ReflectedValueKeyValuePair>>(
+    rootPairs[3].value.keyValuePairs,
+  );
+  assert(childPairs.length == 4);
+  assert(childPairs[1].value.stringValue == "child");
+  assert(childPairs[3].value.kind == ReflectedValueKind.CircularReference);
+  assert(getActiveReflectedValueKeyValuePairCollectionDepth() == 0);
+
+  const unmanaged = new ReflectedValueUnmanagedOverride();
+  unmanaged.value = 42;
+  resetReflectedValueTracking();
+  reflected = createReflectedValue<ReflectedValueUnmanagedOverride>(unmanaged);
+  assert(reflected.kind == ReflectedValueKind.ManagedClass);
+  assert(reflected.runtimeTypeId == 0);
+  assert(reflected.keyValuePairs !== null);
+  const unmanagedPairs = changetype<Array<ReflectedValueKeyValuePair>>(
+    reflected.keyValuePairs,
+  );
+  assert(unmanagedPairs.length == 1);
+  assert(unmanagedPairs[0].key == "field:value");
+  assert(unmanagedPairs[0].value.kind == ReflectedValueKind.Integer);
+  assert(unmanagedPairs[0].value.signedIntegerValue == 42);
   assert(getActiveReflectedValueKeyValuePairCollectionDepth() == 0);
 }
 
@@ -313,3 +437,4 @@ testSetReflectedValues();
 testMapReflectedValues();
 testUnsupportedReflectedValues();
 testManagedClassReflectedValues();
+testClassHookReflectedValues();

@@ -112,6 +112,48 @@ function isStrictEqualityFloatNaN<T>(value: T): bool {
   return isNaN<f64>(<f64>value);
 }
 
+function compareStrictEqualityHookedClass<T>(
+  leftReference: usize,
+  rightReference: usize,
+): StrictEqualityResult {
+  if (leftReference == rightReference) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (leftReference == 0 || rightReference == 0) {
+    return StrictEqualityResult.Fail;
+  }
+
+  if (hasProvenStrictEqualityReferencePair(leftReference, rightReference)) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (hasActiveStrictEqualityReferencePair(leftReference, rightReference)) {
+    return StrictEqualityResult.Defer;
+  }
+
+  pushActiveStrictEqualityReferencePair(leftReference, rightReference);
+  let result = StrictEqualityResult.Fail;
+  // @ts-ignore The hook may be supplied either by the transform or explicitly
+  // by consumer-defined types.
+  if (isDefined(changetype<nonnull<T>>(leftReference).__asHarnessStrictEquals)) {
+    // @ts-ignore The hook may be supplied either by the transform or explicitly
+    // by consumer-defined types.
+    result = changetype<nonnull<T>>(leftReference).__asHarnessStrictEquals(
+      rightReference,
+    )
+      ? StrictEqualityResult.Match
+      : StrictEqualityResult.Fail;
+  }
+  popActiveStrictEqualityReferencePair();
+
+  if (result == StrictEqualityResult.Match) {
+    recordProvenStrictEqualityReferencePair(leftReference, rightReference);
+  }
+
+  return result;
+}
+
 export function compareStrictEqualityPrimitive<T>(
   left: T,
   right: T,
@@ -444,6 +486,59 @@ export function compareStrictEqualityStaticArray<T>(
   return result;
 }
 
+export function compareStrictEqualityArrayLike<T>(left: T, right: T): StrictEqualityResult {
+  const leftReference = changetype<usize>(left);
+  const rightReference = changetype<usize>(right);
+
+  if (leftReference == rightReference) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (leftReference == 0 || rightReference == 0) {
+    return StrictEqualityResult.Fail;
+  }
+
+  if (hasProvenStrictEqualityReferencePair(leftReference, rightReference)) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (hasActiveStrictEqualityReferencePair(leftReference, rightReference)) {
+    return StrictEqualityResult.Defer;
+  }
+
+  pushActiveStrictEqualityReferencePair(leftReference, rightReference);
+
+  let result = StrictEqualityResult.Match;
+  // @ts-ignore `isArrayLike<T>()` guarantees `length` and index access.
+  const length = left.length;
+  // @ts-ignore `isArrayLike<T>()` guarantees `length` and index access.
+  if (length != right.length) {
+    result = StrictEqualityResult.Fail;
+  } else {
+    for (let i = 0; i < length; i++) {
+      if (
+        compareStrictEqualityValue<valueof<T>>(
+          // @ts-ignore `isArrayLike<T>()` guarantees indexed access.
+          unchecked(left[i]),
+          // @ts-ignore `isArrayLike<T>()` guarantees indexed access.
+          unchecked(right[i]),
+        ) == StrictEqualityResult.Fail
+      ) {
+        result = StrictEqualityResult.Fail;
+        break;
+      }
+    }
+  }
+
+  popActiveStrictEqualityReferencePair();
+
+  if (result == StrictEqualityResult.Match) {
+    recordProvenStrictEqualityReferencePair(leftReference, rightReference);
+  }
+
+  return result;
+}
+
 export function compareStrictEqualityValue<T>(
   left: T,
   right: T,
@@ -467,11 +562,13 @@ export function compareStrictEqualityValue<T>(
       );
     }
 
-    if (idof<T>() == idof<ArrayBuffer>()) {
-      return compareStrictEqualityArrayBuffer(
-        changetype<ArrayBuffer | null>(left),
-        changetype<ArrayBuffer | null>(right),
-      );
+    if (isManaged<T>()) {
+      if (idof<T>() == idof<ArrayBuffer>()) {
+        return compareStrictEqualityArrayBuffer(
+          changetype<ArrayBuffer | null>(left),
+          changetype<ArrayBuffer | null>(right),
+        );
+      }
     }
 
     if (isArray<T>()) {
@@ -493,6 +590,10 @@ export function compareStrictEqualityValue<T>(
         changetype<ArrayBufferView | null>(left),
         changetype<ArrayBufferView | null>(right),
       );
+    }
+
+    if (isArrayLike<T>()) {
+      return compareStrictEqualityArrayLike<T>(left, right);
     }
 
     if (isFunction<T>()) {
@@ -517,7 +618,7 @@ export function compareStrictEqualityValue<T>(
       return compareStrictEqualityManagedClass(left, right);
     }
 
-    return compareStrictEqualityNullableReference(left, right);
+    return compareStrictEqualityHookedClass<T>(leftReference, rightReference);
   }
 
   return compareStrictEqualityPrimitive(left, right);
@@ -635,37 +736,10 @@ export function compareStrictEqualityManagedClass<T>(
   left: T,
   right: T,
 ): StrictEqualityResult {
-  const leftReference = changetype<usize>(left);
-  const rightReference = changetype<usize>(right);
-
-  if (leftReference == rightReference) {
-    return StrictEqualityResult.Match;
-  }
-
-  if (leftReference == 0 || rightReference == 0) {
-    return StrictEqualityResult.Fail;
-  }
-
-  if (hasProvenStrictEqualityReferencePair(leftReference, rightReference)) {
-    return StrictEqualityResult.Match;
-  }
-
-  if (hasActiveStrictEqualityReferencePair(leftReference, rightReference)) {
-    return StrictEqualityResult.Defer;
-  }
-
-  pushActiveStrictEqualityReferencePair(leftReference, rightReference);
-  // @ts-ignore The transform injects this hook only on participating classes.
-  const result = changetype<nonnull<T>>(leftReference).__asHarnessStrictEquals(rightReference)
-    ? StrictEqualityResult.Match
-    : StrictEqualityResult.Fail;
-  popActiveStrictEqualityReferencePair();
-
-  if (result == StrictEqualityResult.Match) {
-    recordProvenStrictEqualityReferencePair(leftReference, rightReference);
-  }
-
-  return result;
+  return compareStrictEqualityHookedClass<T>(
+    changetype<usize>(left),
+    changetype<usize>(right),
+  );
 }
 
 export function __asHarnessStrictEqualsMember<T>(

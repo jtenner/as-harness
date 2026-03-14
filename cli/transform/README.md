@@ -38,5 +38,10 @@ arraylike, direct `Set` / `Map`, function-reference identity, and managed-class
 recursive checks. The reflected-value side now also has a live collector plus
 primitive, string, `ArrayBuffer`, ordered array / `StaticArray`, and
 typed-array / `ArrayBufferView`, `Set`, and `Map` construction helpers behind
-`__asHarnessAddReflectedValueKeyValuePair(...)`. Generic managed-class
-reflected-value construction is still pending.
+`__asHarnessAddReflectedValueKeyValuePair(...)`. Recursive class reflected
+diagnostics now flow through the shared hook contract. The project also treats
+generic unmanaged deep comparison as out of scope by default: unmanaged values
+should use safe shared paths such as identity or existing arraylike handling,
+and any richer unmanaged equality or reflected diagnostics should be opt-in by
+defining the shared hook names manually. The transform only auto-generates
+those hooks for managed classes.

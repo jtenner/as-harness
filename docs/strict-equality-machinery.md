@@ -275,12 +275,38 @@ Out of scope for v1:
 
 - legacy loose `deepEqual(...)` coercion rules
 - runtime-reflection fallback for arbitrary non-instrumented classes
+- generic deep comparison for arbitrary unmanaged non-arraylike classes
 - static members, instance methods, constructors, and computed members in
   generated class hooks
 
 `NaN` should compare equal to `NaN` inside the strict structural core so the
 runtime matches deep-structural assertion expectations instead of raw `==`
 behavior.
+
+### Unmanaged References and User Overrides
+
+The runtime should default to safe unmanaged-reference behavior only.
+
+Safe v1 comparisons for unmanaged references are:
+
+- nullability checks
+- pointer identity checks
+- ordered arraylike comparison when the type already satisfies the shared
+  arraylike contract
+
+The runtime must not promise generic structural equality for arbitrary
+unmanaged class layouts. There is no safe runtime fallback for discovering an
+unmanaged shape, member list, or compatible recursive policy after compile
+time.
+
+For unmanaged non-arraylike classes, consumers should be encouraged to provide
+their own strict-equality semantics instead of relying on a generic fallback.
+That override contract now exists through the same
+`__asHarnessStrictEquals(other: usize): bool` hook name used by
+transform-instrumented managed classes. The difference is policy:
+
+- managed classes may receive the hook from the transform automatically
+- unmanaged classes must opt in explicitly by defining the hook themselves
 
 ### Class Member Selection and Inheritance
 
@@ -338,6 +364,11 @@ The transform-side responsibilities are:
 - `super` delegation
 - per-member delegation back into shared runtime helpers
 
+The transform should not imply that every class can be compared generically.
+Managed classes are the primary generated-hook target. Unmanaged classes are
+only supported through safe existing comparison paths, such as ordered
+arraylikes, unless a consumer explicitly defines the strict-equality hook.
+
 The current generated-body scaffold already performs inheritance delegation:
 
 - generated `__asHarnessStrictEquals(...)` methods return `true` immediately
@@ -385,6 +416,14 @@ The runtime-side responsibilities are:
 - reflected-value construction
 - failure/result propagation
 
+For unmanaged references specifically, the runtime policy is intentionally
+conservative:
+
+- use only safe shared comparison paths by default
+- do not add generic layout-walking for arbitrary unmanaged classes
+- leave domain-specific unmanaged equality to explicit consumer-defined hooks
+  in a later wave
+
 The current runtime implementation now includes the first shared helpers for:
 
 - primitive equality fast paths
@@ -400,18 +439,24 @@ The current runtime implementation now includes the first shared helpers for:
 - generic nested `Set<T>` and `Map<K, V>` dispatch through
   `compareStrictEqualityValue(...)`
 - managed-class recursion delegated back into transform-generated hooks
+- explicit hook-based recursion for unmanaged or domain-specific classes that
+  opt in by defining `__asHarnessStrictEquals(...)`
 - a reflected-value model plus primitive, string, and `ArrayBuffer`
   construction helpers
 - reflected values for ordered arrays / `StaticArray` / arraylikes
 - reflected values for typed arrays / `ArrayBufferView` / `DataView`
 - reflected values for `Set`
 - reflected values for `Map`
+- reflected values for class types that expose
+  `__asHarnessAddReflectedValueKeyValuePairs(...)`
 - a live reflected key/value collector behind
   `__asHarnessAddReflectedValueKeyValuePair(...)`
 
-Generic managed-class reflected-value construction is still pending. The
-generated reflection hook can now feed the shared collector, but the runtime
-does not yet build recursive managed-class reflected values automatically.
+Recursive class reflected-value construction now works through the shared
+`__asHarnessAddReflectedValueKeyValuePairs()` hook contract. As with strict
+equality, managed classes may receive that hook from the transform
+automatically, while unmanaged or other domain-specific types must opt in by
+defining it explicitly.
 
 ### Transform Activation Policy
 

@@ -23,9 +23,11 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [x] `Set`
 - [x] managed classes
 - [x] function references
+- [x] Decide how unmanaged references participate in v1 strict equality.
 - [x] Define cycle-handling semantics for recursive reference graphs.
 - [x] Define inheritance semantics for class-field comparison and reflected reporting.
 - [x] Define the boundary between transform-generated methods and shared AssemblyScript runtime helpers.
+- [x] Define an opt-in user override contract for custom strict equality on unmanaged or domain-specific types.
 
 ### CLI Transform Scaffolding
 
@@ -86,7 +88,8 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [x] Implement reflected values for typed arrays / `ArrayBufferView`.
 - [x] Implement reflected values for `Set`.
 - [x] Implement reflected values for `Map`.
-- [ ] Implement reflected values for managed classes via the transform-generated reflection hook.
+- [x] Implement reflected values for managed classes via the transform-generated reflection hook.
+- [x] Decide whether unmanaged reflected diagnostics should support an explicit user override hook instead of generic runtime extraction.
 - [ ] Define whether stack traces or source context attach to reflected values in v1 or later.
 
 ### Assertion Bridge Integration

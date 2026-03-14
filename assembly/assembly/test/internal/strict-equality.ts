@@ -10,6 +10,7 @@ import {
   ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
   ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME,
   compareStrictEqualityArray,
+  compareStrictEqualityArrayLike,
   compareStrictEqualityArrayBuffer,
   compareStrictEqualityArrayBufferView,
   compareStrictEqualityFunctionReference,
@@ -84,6 +85,48 @@ class StrictEqualityRecursiveNode {
         otherNode.next,
       )
     );
+  }
+}
+
+@unmanaged
+class StrictEqualityUnmanagedPlain {
+  value: i32 = 0;
+}
+
+@unmanaged
+class StrictEqualityUnmanagedOverride {
+  value: i32 = 0;
+
+  __asHarnessStrictEquals(other: usize): bool {
+    if (other == changetype<usize>(this)) {
+      return true;
+    }
+
+    if (other == 0) {
+      return false;
+    }
+
+    const otherValue = changetype<StrictEqualityUnmanagedOverride>(other);
+    return __asHarnessStrictEqualsMember(
+      "field:value",
+      this.value,
+      otherValue.value,
+    );
+  }
+}
+
+@unmanaged
+class StrictEqualityUnmanagedArrayLike {
+  first: i32 = 0;
+  second: i32 = 0;
+
+  get length(): i32 {
+    return 2;
+  }
+
+  @operator("[]")
+  __get(index: i32): i32 {
+    return index == 0 ? this.first : this.second;
   }
 }
 
@@ -915,6 +958,97 @@ function testStrictEqualityManagedClassComparison(): void {
   assert(getActiveStrictEqualityReferencePairCount() == 0);
 }
 
+function testStrictEqualityUnmanagedReferencePolicy(): void {
+  const plainLeft = new StrictEqualityUnmanagedPlain();
+  plainLeft.value = 7;
+  const plainRight = new StrictEqualityUnmanagedPlain();
+  plainRight.value = 7;
+
+  assert(
+    compareStrictEqualityValue<StrictEqualityUnmanagedPlain>(
+      plainLeft,
+      plainLeft,
+    ) == StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityValue<StrictEqualityUnmanagedPlain>(
+      plainLeft,
+      plainRight,
+    ) == StrictEqualityResult.Fail,
+  );
+
+  const overrideLeft = new StrictEqualityUnmanagedOverride();
+  overrideLeft.value = 11;
+  const overrideRight = new StrictEqualityUnmanagedOverride();
+  overrideRight.value = 11;
+  const overrideMismatch = new StrictEqualityUnmanagedOverride();
+  overrideMismatch.value = 12;
+
+  resetStrictEqualityReferencePairTracking();
+  assert(
+    compareStrictEqualityValue<StrictEqualityUnmanagedOverride>(
+      overrideLeft,
+      overrideRight,
+    ) == StrictEqualityResult.Match,
+  );
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+  assert(getProvenStrictEqualityReferencePairCount() == 1);
+
+  resetStrictEqualityReferencePairTracking();
+  assert(
+    compareStrictEqualityValue<StrictEqualityUnmanagedOverride>(
+      overrideLeft,
+      overrideMismatch,
+    ) == StrictEqualityResult.Fail,
+  );
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+  assert(getProvenStrictEqualityReferencePairCount() == 0);
+
+  assert(
+    __asHarnessStrictEqualsMember(
+      "field:value",
+      overrideLeft,
+      overrideRight,
+    ),
+  );
+  assert(
+    !__asHarnessStrictEqualsMember(
+      "field:value",
+      overrideLeft,
+      overrideMismatch,
+    ),
+  );
+
+  const arrayLikeLeft = new StrictEqualityUnmanagedArrayLike();
+  arrayLikeLeft.first = 1;
+  arrayLikeLeft.second = 2;
+  const arrayLikeRight = new StrictEqualityUnmanagedArrayLike();
+  arrayLikeRight.first = 1;
+  arrayLikeRight.second = 2;
+  const arrayLikeMismatch = new StrictEqualityUnmanagedArrayLike();
+  arrayLikeMismatch.first = 1;
+  arrayLikeMismatch.second = 9;
+
+  resetStrictEqualityReferencePairTracking();
+  assert(
+    compareStrictEqualityArrayLike<
+      StrictEqualityUnmanagedArrayLike
+    >(arrayLikeLeft, arrayLikeRight) == StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityValue<StrictEqualityUnmanagedArrayLike>(
+      arrayLikeLeft,
+      arrayLikeRight,
+    ) == StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityValue<StrictEqualityUnmanagedArrayLike>(
+      arrayLikeLeft,
+      arrayLikeMismatch,
+    ) == StrictEqualityResult.Fail,
+  );
+}
+
 testStrictEqualityHookNames();
 testStrictEqualityResultHelpers();
 testSupportedStrictEqualityValueKinds();
@@ -932,3 +1066,4 @@ testStrictEqualityFunctionReferenceComparison();
 testStrictEqualityRuntimeTypeHelpers();
 testStrictEqualityReferencePairTracking();
 testStrictEqualityManagedClassComparison();
+testStrictEqualityUnmanagedReferencePolicy();

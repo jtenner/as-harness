@@ -273,6 +273,39 @@ export function createStaticArrayReflectedValue<T>(
   return reflected;
 }
 
+export function createArrayLikeReflectedValue<T>(value: T): ReflectedValue {
+  const reference = changetype<usize>(value);
+
+  if (reference == 0) {
+    return createNullReflectedValue();
+  }
+
+  if (hasActiveReflectedValueReference(reference)) {
+    return createCircularReferenceReflectedValue(reference);
+  }
+
+  pushActiveReflectedValueReference(reference);
+  const reflected = new ReflectedValue(ReflectedValueKind.ArrayLike);
+  reflected.runtimeTypeId = isManaged<T>()
+    ? getReflectedValueRuntimeTypeId(reference)
+    : 0;
+  const values = new Array<ReflectedValue>();
+  reflected.values = values;
+
+  // @ts-ignore `isArrayLike<T>()` guarantees `length` and index access.
+  for (let i = 0, length = value.length; i < length; i++) {
+    values.push(
+      createReflectedValue<valueof<T>>(
+        // @ts-ignore `isArrayLike<T>()` guarantees indexed access.
+        unchecked(value[i]),
+      ),
+    );
+  }
+
+  popActiveReflectedValueReference();
+  return reflected;
+}
+
 export function createArrayBufferViewReflectedValue(
   value: ArrayBufferView | null,
 ): ReflectedValue {
@@ -361,6 +394,50 @@ export function createUnsupportedReflectedValue(reference: usize = 0): Reflected
   return reflected;
 }
 
+export function createClassReflectedValue<T>(value: T): ReflectedValue {
+  const reference = changetype<usize>(value);
+
+  if (reference == 0) {
+    return createNullReflectedValue();
+  }
+
+  if (hasActiveReflectedValueReference(reference)) {
+    return createCircularReferenceReflectedValue(reference);
+  }
+
+  pushActiveReflectedValueReference(reference);
+  beginReflectedValueKeyValuePairCollection();
+  let invokedHook = false;
+  // @ts-ignore The hook may be supplied either by the transform or explicitly
+  // by consumer-defined types.
+  if (
+    isDefined(
+      changetype<nonnull<T>>(reference).__asHarnessAddReflectedValueKeyValuePairs,
+    )
+  ) {
+    // @ts-ignore The hook may be supplied either by the transform or explicitly
+    // by consumer-defined types.
+    changetype<nonnull<T>>(reference).__asHarnessAddReflectedValueKeyValuePairs();
+    invokedHook = true;
+  }
+
+  const keyValuePairs = finishReflectedValueKeyValuePairCollection();
+  if (!invokedHook) {
+    popActiveReflectedValueReference();
+    return createUnsupportedReflectedValue(reference);
+  }
+
+  const reflected = new ReflectedValue(ReflectedValueKind.ManagedClass);
+  reflected.runtimeTypeId = isManaged<T>()
+    ? getReflectedValueRuntimeTypeId(reference)
+    : 0;
+  reflected.keyValuePairs =
+    keyValuePairs !== null ? keyValuePairs : new Array<ReflectedValueKeyValuePair>();
+
+  popActiveReflectedValueReference();
+  return reflected;
+}
+
 export function beginReflectedValueKeyValuePairCollection(): void {
   pushActiveReflectedValueKeyValuePairCollection(
     new Array<ReflectedValueKeyValuePair>(),
@@ -390,10 +467,12 @@ export function createReflectedValue<T>(value: T): ReflectedValue {
       return createStringReflectedValue(changetype<string | null>(value));
     }
 
-    if (idof<T>() == idof<ArrayBuffer>()) {
-      return createArrayBufferReflectedValue(
-        changetype<ArrayBuffer | null>(value),
-      );
+    if (isManaged<T>()) {
+      if (idof<T>() == idof<ArrayBuffer>()) {
+        return createArrayBufferReflectedValue(
+          changetype<ArrayBuffer | null>(value),
+        );
+      }
     }
 
     if (isArray<T>()) {
@@ -414,6 +493,10 @@ export function createReflectedValue<T>(value: T): ReflectedValue {
       );
     }
 
+    if (isArrayLike<T>()) {
+      return createArrayLikeReflectedValue<T>(value);
+    }
+
     if (value instanceof Set) {
       return createSetReflectedValue<indexof<T>>(
         changetype<Set<indexof<T>> | null>(value),
@@ -430,7 +513,7 @@ export function createReflectedValue<T>(value: T): ReflectedValue {
       return createUnsupportedReflectedValue(reference);
     }
 
-    return createUnsupportedReflectedValue(reference);
+    return createClassReflectedValue(value);
   }
 
   if (isBoolean<T>()) {

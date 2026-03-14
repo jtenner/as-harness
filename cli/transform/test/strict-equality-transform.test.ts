@@ -163,6 +163,25 @@ test("recurses into namespaces when instrumenting classes", () => {
 	).toBe(true);
 });
 
+test("does not auto-instrument unmanaged classes", () => {
+	const parser = parseSource("@unmanaged class Example {}");
+
+	new StrictEqualityTransform().afterParse(parser);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Example",
+	);
+	const memberNames = classDeclaration.members.map(
+		(member) => member.name.text,
+	);
+
+	expect(memberNames).not.toContain(STRICT_EQUALS_METHOD_NAME);
+	expect(memberNames).not.toContain(
+		ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
+	);
+});
+
 test("preserves pre-existing generated hook names without duplication", () => {
 	const parser = parseSource(`
 class Example {
@@ -368,6 +387,35 @@ class Box<T> {
 			(member) => member.strictEqualityComparisonStrategy,
 		),
 	).toEqual(["managedClass", "managedClass", "value", "value", "managedClass"]);
+});
+
+test("does not mark unmanaged class-typed members for managed-class helper delegation", () => {
+	const parser = parseSource(`
+@unmanaged class Child {}
+
+class Box {
+  child: Child | null;
+
+  get alias(): Child | null {
+    return this.child;
+  }
+}
+`);
+
+	const classDeclaration = findTopLevelClass(
+		getParsedStatements(parser),
+		"Box",
+	);
+	const participatingMembers = getParticipatingInstanceMembers(
+		classDeclaration,
+		new Set(["Box"]),
+	);
+
+	expect(
+		participatingMembers.map(
+			(member) => member.strictEqualityComparisonStrategy,
+		),
+	).toEqual(["value", "value"]);
 });
 
 test("marks ArrayBuffer-typed members for dedicated buffer helper delegation", () => {

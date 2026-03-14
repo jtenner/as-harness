@@ -2,6 +2,7 @@ import { Transform } from "assemblyscript/dist/transform.js";
 import { CommonFlags, NodeKind } from "assemblyscript/dist/assemblyscript.js";
 import type {
 	ClassDeclaration,
+	DecoratorNode,
 	NamespaceDeclaration,
 	Parser,
 	Statement,
@@ -25,13 +26,31 @@ function hasMethodNamed(
 	);
 }
 
+function hasDecoratorNamed(
+	classDeclaration: ClassDeclaration,
+	decoratorName: string,
+): boolean {
+	return (
+		classDeclaration.decorators?.some(
+			(decorator: DecoratorNode) => decorator.name.text === decoratorName,
+		) ?? false
+	);
+}
+
+function isTransformManagedClass(classDeclaration: ClassDeclaration): boolean {
+	return !hasDecoratorNamed(classDeclaration, "unmanaged");
+}
+
 function collectKnownClassNames(
 	statements: readonly Statement[],
 	knownClassNames: Set<string>,
 ): void {
 	for (const statement of statements) {
 		if (statement.kind === NodeKind.ClassDeclaration) {
-			knownClassNames.add((statement as ClassDeclaration).name.text);
+			const classDeclaration = statement as ClassDeclaration;
+			if (isTransformManagedClass(classDeclaration)) {
+				knownClassNames.add(classDeclaration.name.text);
+			}
 			continue;
 		}
 
@@ -48,7 +67,10 @@ function instrumentClassDeclaration(
 	classDeclaration: ClassDeclaration,
 	knownClassNames: ReadonlySet<string>,
 ): void {
-	if (classDeclaration.flags & CommonFlags.Ambient) {
+	if (
+		classDeclaration.flags & CommonFlags.Ambient ||
+		!isTransformManagedClass(classDeclaration)
+	) {
 		return;
 	}
 

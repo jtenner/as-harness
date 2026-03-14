@@ -148,8 +148,14 @@ function-reference identity comparison, managed-class recursion through
 generated hooks, and the first reflected-value runtime slice for primitive,
 string, `ArrayBuffer`, ordered array / `StaticArray`, and typed-array /
 `ArrayBufferView`, `Set`, and `Map` diagnostics plus the generated key/value
-collector. Recursive managed-class reflected-value construction is still
-pending.
+collector. Recursive class reflected-value construction is now done through the
+shared class-hook contract. Unmanaged references are
+intentionally conservative by default: only safe shared paths such as identity,
+nullability, and existing arraylike comparison should be relied on
+automatically. Rich unmanaged deep-equality and reflected diagnostics now come
+from explicit consumer-defined `__asHarnessStrictEquals(...)` and
+`__asHarnessAddReflectedValueKeyValuePairs()` hooks instead of a runtime
+fallback.
 
 ## Event Model
 
