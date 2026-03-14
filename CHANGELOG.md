@@ -2,6 +2,7 @@
 
 ## 2026-03-13
 
+- **docs: inventory node:test and node:assert adapter surfaces** Expand `assembly/assembly/node:test/TODO.md` and `assembly/assembly/node:assert/TODO.md` with Node `v25.8.x` API inventories, required function and type breakdowns, and an implementation-oriented design for the first `node:test` adapter pass so the Wasm runtime work can proceed from a concrete surface definition. GitHub: *@jtenner*
 - **docs: require checklist updates before commit** Update `AGENTS.md` to require marking completed `agent-todo.md` items before commit when the corresponding work is actually done. GitHub: *@jtenner*
 - **docs: audit assembly task checklist against implemented runtime work** Update `agent-todo.md` to mark only the AssemblyScript checklist items that are explicitly completed in the current codebase, leaving the remaining tasks unchecked instead of auto-completing inferred work. GitHub: *@jtenner*
 - **assembly: add a lazy-discovery Node runtime model** Add `assembly/assembly/internal/node.ts` with a `Node` class that stores core node metadata, parent linkage, the discovery callback, lazily discovered children via `getChildren()`, and a global `rootNode` / `currentNode` pair for parent-aware child creation directly through `node.createChild(...)`, add internal AssemblyScript coverage for the new behavior, regenerate the bundled virtual sources, and update assembly package docs. GitHub: *@jtenner*
