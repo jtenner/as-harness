@@ -6,9 +6,11 @@ import {
   __asHarnessStrictEqualsMember,
   ADD_REFLECTED_VALUE_KEY_VALUE_PAIRS_METHOD_NAME,
   ADD_REFLECTED_VALUE_KEY_VALUE_PAIR_HELPER_NAME,
+  compareStrictEqualityArray,
   compareStrictEqualityArrayBuffer,
   compareStrictEqualityManagedClass,
   compareStrictEqualityReferencePair,
+  compareStrictEqualityStaticArray,
   compareStrictEqualityString,
   compareStrictEqualityValue,
   compareStrictEqualityNullableReference,
@@ -177,6 +179,14 @@ function createArrayBufferFromBytes(values: StaticArray<u8>): ArrayBuffer {
   return output;
 }
 
+function createIntArray(values: StaticArray<i32>): Array<i32> {
+  const output = new Array<i32>(values.length);
+  for (let i = 0; i < values.length; i++) {
+    output[i] = unchecked(values[i]);
+  }
+  return output;
+}
+
 function createRecursiveCycle(
   rootLabel: string,
   childLabel: string,
@@ -316,6 +326,113 @@ function testStrictEqualityArrayBufferComparison(): void {
   );
 }
 
+function testStrictEqualityArrayComparison(): void {
+  const left = createIntArray([1, 2, 3]);
+  const right = createIntArray([1, 2, 3]);
+  const mismatch = createIntArray([1, 9, 3]);
+  const shorter = createIntArray([1, 2]);
+  const nullArray = changetype<Array<i32> | null>(0);
+
+  assert(compareStrictEqualityArray(left, right) == StrictEqualityResult.Match);
+  assert(
+    compareStrictEqualityArray(left, mismatch) == StrictEqualityResult.Fail,
+  );
+  assert(
+    compareStrictEqualityArray(left, shorter) == StrictEqualityResult.Fail,
+  );
+  assert(
+    compareStrictEqualityArray(nullArray, nullArray) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityArray(left, nullArray) == StrictEqualityResult.Fail,
+  );
+  assert(
+    compareStrictEqualityValue<Array<i32>>(left, right) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityValue<Array<i32>>(left, mismatch) ==
+      StrictEqualityResult.Fail,
+  );
+
+  const bufferLeft = [createArrayBufferFromBytes([1, 2]), createArrayBufferFromBytes([3])];
+  const bufferRight = [createArrayBufferFromBytes([1, 2]), createArrayBufferFromBytes([3])];
+  const bufferMismatch = [
+    createArrayBufferFromBytes([1, 2]),
+    createArrayBufferFromBytes([4]),
+  ];
+  assert(
+    compareStrictEqualityValue<Array<ArrayBuffer>>(bufferLeft, bufferRight) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityValue<Array<ArrayBuffer>>(bufferLeft, bufferMismatch) ==
+      StrictEqualityResult.Fail,
+  );
+
+  const recursiveLeft = [createRecursiveCycle("root", "child")];
+  const recursiveRight = [createRecursiveCycle("root", "child")];
+  const recursiveMismatch = [createRecursiveCycle("root", "other")];
+
+  resetStrictEqualityReferencePairTracking();
+  assert(
+    compareStrictEqualityValue<Array<StrictEqualityRecursiveNode>>(
+      recursiveLeft,
+      recursiveRight,
+    ) == StrictEqualityResult.Match,
+  );
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+  assert(getProvenStrictEqualityReferencePairCount() == 3);
+
+  resetStrictEqualityReferencePairTracking();
+  assert(
+    compareStrictEqualityValue<Array<StrictEqualityRecursiveNode>>(
+      recursiveLeft,
+      recursiveMismatch,
+    ) == StrictEqualityResult.Fail,
+  );
+  assert(getActiveStrictEqualityReferencePairCount() == 0);
+  assert(getProvenStrictEqualityReferencePairCount() == 0);
+}
+
+function testStrictEqualityStaticArrayComparison(): void {
+  const left: StaticArray<i32> = [1, 2, 3];
+  const right: StaticArray<i32> = [1, 2, 3];
+  const mismatch: StaticArray<i32> = [1, 9, 3];
+  const shorter: StaticArray<i32> = [1, 2];
+  const nullArray = changetype<StaticArray<i32> | null>(0);
+
+  assert(
+    compareStrictEqualityStaticArray(left, right) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityStaticArray(left, mismatch) ==
+      StrictEqualityResult.Fail,
+  );
+  assert(
+    compareStrictEqualityStaticArray(left, shorter) ==
+      StrictEqualityResult.Fail,
+  );
+  assert(
+    compareStrictEqualityStaticArray(nullArray, nullArray) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityStaticArray(left, nullArray) ==
+      StrictEqualityResult.Fail,
+  );
+  assert(
+    compareStrictEqualityValue<StaticArray<i32>>(left, right) ==
+      StrictEqualityResult.Match,
+  );
+  assert(
+    compareStrictEqualityValue<StaticArray<i32>>(left, mismatch) ==
+      StrictEqualityResult.Fail,
+  );
+}
+
 function testStrictEqualityRuntimeTypeHelpers(): void {
   const value = new StrictEqualityReferenceBox();
   const other = new StrictEqualityOtherReferenceBox();
@@ -447,6 +564,8 @@ testStrictEqualityPrimitiveComparison();
 testStrictEqualityNullableReferenceComparison();
 testStrictEqualityStringComparison();
 testStrictEqualityArrayBufferComparison();
+testStrictEqualityArrayComparison();
+testStrictEqualityStaticArrayComparison();
 testStrictEqualityRuntimeTypeHelpers();
 testStrictEqualityReferencePairTracking();
 testStrictEqualityManagedClassComparison();

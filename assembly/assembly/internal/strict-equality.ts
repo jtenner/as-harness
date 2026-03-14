@@ -168,11 +168,130 @@ export function compareStrictEqualityArrayBuffer(
     : StrictEqualityResult.Fail;
 }
 
+export function compareStrictEqualityArray<T>(
+  left: Array<T> | null,
+  right: Array<T> | null,
+): StrictEqualityResult {
+  const leftReference = changetype<usize>(left);
+  const rightReference = changetype<usize>(right);
+
+  if (leftReference == rightReference) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (leftReference == 0 || rightReference == 0) {
+    return StrictEqualityResult.Fail;
+  }
+
+  if (hasProvenStrictEqualityReferencePair(leftReference, rightReference)) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (hasActiveStrictEqualityReferencePair(leftReference, rightReference)) {
+    return StrictEqualityResult.Defer;
+  }
+
+  pushActiveStrictEqualityReferencePair(leftReference, rightReference);
+
+  let result = StrictEqualityResult.Match;
+  const leftArray = changetype<Array<T>>(leftReference);
+  const rightArray = changetype<Array<T>>(rightReference);
+  const length = leftArray.length;
+
+  if (length != rightArray.length) {
+    result = StrictEqualityResult.Fail;
+  } else {
+    for (let i = 0; i < length; i++) {
+      if (
+        compareStrictEqualityValue<T>(leftArray[i], rightArray[i]) ==
+        StrictEqualityResult.Fail
+      ) {
+        result = StrictEqualityResult.Fail;
+        break;
+      }
+    }
+  }
+
+  popActiveStrictEqualityReferencePair();
+
+  if (result == StrictEqualityResult.Match) {
+    recordProvenStrictEqualityReferencePair(leftReference, rightReference);
+  }
+
+  return result;
+}
+
+export function compareStrictEqualityStaticArray<T>(
+  left: StaticArray<T> | null,
+  right: StaticArray<T> | null,
+): StrictEqualityResult {
+  const leftReference = changetype<usize>(left);
+  const rightReference = changetype<usize>(right);
+
+  if (leftReference == rightReference) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (leftReference == 0 || rightReference == 0) {
+    return StrictEqualityResult.Fail;
+  }
+
+  if (hasProvenStrictEqualityReferencePair(leftReference, rightReference)) {
+    return StrictEqualityResult.Match;
+  }
+
+  if (hasActiveStrictEqualityReferencePair(leftReference, rightReference)) {
+    return StrictEqualityResult.Defer;
+  }
+
+  pushActiveStrictEqualityReferencePair(leftReference, rightReference);
+
+  let result = StrictEqualityResult.Match;
+  const leftArray = changetype<StaticArray<T>>(leftReference);
+  const rightArray = changetype<StaticArray<T>>(rightReference);
+  const length = leftArray.length;
+
+  if (length != rightArray.length) {
+    result = StrictEqualityResult.Fail;
+  } else {
+    for (let i = 0; i < length; i++) {
+      if (
+        compareStrictEqualityValue<T>(
+          unchecked(leftArray[i]),
+          unchecked(rightArray[i]),
+        ) == StrictEqualityResult.Fail
+      ) {
+        result = StrictEqualityResult.Fail;
+        break;
+      }
+    }
+  }
+
+  popActiveStrictEqualityReferencePair();
+
+  if (result == StrictEqualityResult.Match) {
+    recordProvenStrictEqualityReferencePair(leftReference, rightReference);
+  }
+
+  return result;
+}
+
 export function compareStrictEqualityValue<T>(
   left: T,
   right: T,
 ): StrictEqualityResult {
   if (isReference<T>()) {
+    const leftReference = changetype<usize>(left);
+    const rightReference = changetype<usize>(right);
+
+    if (leftReference == rightReference) {
+      return StrictEqualityResult.Match;
+    }
+
+    if (leftReference == 0 || rightReference == 0) {
+      return StrictEqualityResult.Fail;
+    }
+
     if (isString<T>()) {
       return compareStrictEqualityString(
         changetype<string>(left),
@@ -185,6 +304,32 @@ export function compareStrictEqualityValue<T>(
         changetype<ArrayBuffer | null>(left),
         changetype<ArrayBuffer | null>(right),
       );
+    }
+
+    if (isArray<T>()) {
+      return compareStrictEqualityArray<valueof<T>>(
+        changetype<Array<valueof<T>>>(left),
+        changetype<Array<valueof<T>>>(right),
+      );
+    }
+
+    if (left instanceof StaticArray) {
+      return compareStrictEqualityStaticArray<valueof<T>>(
+        changetype<StaticArray<valueof<T>>>(left),
+        changetype<StaticArray<valueof<T>>>(right),
+      );
+    }
+
+    if (ArrayBuffer.isView(left)) {
+      return StrictEqualityResult.Fail;
+    }
+
+    if (left instanceof Set || left instanceof Map || isFunction<T>()) {
+      return StrictEqualityResult.Fail;
+    }
+
+    if (isManaged<T>()) {
+      return compareStrictEqualityManagedClass(left, right);
     }
 
     return compareStrictEqualityNullableReference(left, right);

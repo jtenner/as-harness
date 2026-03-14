@@ -365,19 +365,19 @@ of that contract:
 - primitive and string value comparison
 - nullable-reference identity comparison
 - `ArrayBuffer` bytewise comparison
+- ordered comparison for `Array<T>` and `StaticArray<T>`
 - managed-class recursion through transform-generated hooks
 
-The member-helper path still stops short of arrays, typed arrays, `Set`, and
-`Map`, but `ArrayBuffer` and recursive managed-class comparison are now routed
-through shared runtime helpers in Phase 3.
+The member-helper path still stops short of typed arrays, `Set`, and `Map`,
+but `ArrayBuffer`, ordered arrays / arraylikes, and recursive managed-class
+comparison are now routed through shared runtime helpers in Phase 3.
 
 The runtime-side responsibilities are:
 
 - primitive and nullable handling
 - `NaN` normalization
 - pair-cache and active-stack tracking
-- specialized comparison for arrays, typed arrays, `Set`, `Map`, and function
-  references
+- specialized comparison for typed arrays, `Set`, `Map`, and function references
 - reflected-value construction
 - failure/result propagation
 
@@ -392,6 +392,7 @@ The current runtime implementation now includes the first shared helpers for:
 - active-stack tracking for in-flight reference pairs
 - deferred-match handling for recursive reference cycles
 - `ArrayBuffer` bytewise comparison
+- ordered comparison for `Array<T>` and `StaticArray<T>`
 - managed-class recursion delegated back into transform-generated hooks
 
 ### Transform Activation Policy

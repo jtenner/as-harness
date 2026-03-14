@@ -67,7 +67,7 @@ Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-mac
 - [x] Implement active-resolution stack tracking for recursive comparison.
 - [x] Define and implement deferred-match behavior for cycles.
 - [x] Implement specialized comparison for `ArrayBuffer`.
-- [ ] Implement specialized comparison for arrays and arraylikes.
+- [x] Implement specialized comparison for arrays and arraylikes.
 - [ ] Implement specialized comparison for typed arrays / `ArrayBufferView`.
 - [ ] Implement specialized comparison for `Set`.
 - [ ] Implement specialized comparison for `Map`.
