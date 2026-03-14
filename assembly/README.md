@@ -45,6 +45,9 @@ Not implemented yet:
 - declaration registration/runtime traversal
 - hook execution
 - assertion failure default messaging beyond optional explicit message text
+- function mocking, spies, and call-tracking assertions such as
+  `toBeCalled(...)` or `toHaveBeenCalledTimes(...)`; these stay unsupported
+  until AssemblyScript has usable closure support
 - host-facing ABI exports for traversal/discovery
 
 ## Package Layout

@@ -3,6 +3,13 @@
 
 Here is a list of all the test frameworks and assertion libraries that we want to support.
 
+Current explicit limitation:
+
+- function mocking, spies, and call-tracking assertions such as
+  `toBeCalled(...)`, `toHaveBeenCalled(...)`, or `toHaveBeenCalledTimes(...)`
+  are not planned until AssemblyScript has closure support that can model those
+  APIs coherently
+
 | Name          | Kind           | URL starting point                                                              |
 | ------------- | -------------- | ------------------------------------------------------------------------------- |
 | `node:test`   | test structure | `https://nodejs.org/api/test.html` ([Node.js][1])                               |

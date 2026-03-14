@@ -1,5 +1,15 @@
 # `node:test` Adapter TODO
 
+## Current Explicit Non-Goal
+
+Until AssemblyScript supports closures well enough to model mock callbacks and
+per-call tracking coherently, this adapter should treat the following as
+unsupported:
+
+- top-level and context `mock` APIs
+- `MockTracker`, `MockFunctionContext`, `MockPropertyContext`, `MockModuleContext`, and `MockTimers`
+- assertion surfaces that depend on function-call recording rather than direct value checks
+
 ## Investigated Surface
 
 Baseline used for this inventory:
