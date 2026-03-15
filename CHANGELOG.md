@@ -2,6 +2,7 @@
 
 ## 2026-03-14
 
+- **docs: trim completed checklist items from the backlog** Update `agent-todo.md` so it keeps only the remaining work items and release blockers, removing completed checklist entries and a few stale unchecked items that are already covered by the current implementation. GitHub: *@jtenner*
 - **docs: add explicit publish blockers for shipping the runner** Update `agent-todo.md` with a dedicated publish-blockers section covering the remaining product-definition, CLI runner, dual-host (`js` and `wazero`) shipping, ABI, UX, and release-engineering work required to ship this project as an AssemblyScript test runner. GitHub: *@jtenner*
 - **docs: align markdown with the current host and test layout** Update the project structure guide, assembly package README, both host READMEs, and the scripts README so they describe the live `js` and `wazero` host packages, the current package-local host smoke test entrypoints, and the root script/test workflow accurately after the new JavaScript host landed. GitHub: *@jtenner*
 - **js host: add a pure Node WebAssembly harness** Add a new `harness/js` package that mirrors the current `wazero` host API in JavaScript, including immediate wasm validation, decoded `write_event` callbacks, host-managed trampoline support via `invoke_staged()`, staged `discover(nodeIndex)` and `run(nodeIndex)` execution, and matching smoke coverage against the shared AssemblyScript fixtures. GitHub: *@jtenner*
