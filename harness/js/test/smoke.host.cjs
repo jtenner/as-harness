@@ -5,12 +5,21 @@ const path = require("node:path");
 const test = require("node:test");
 
 const addon = require("..");
+const { decorateHarness } = require("../../shared/start.cjs");
+const {
+	createHarness: createParallelStartHarness,
+} = require("./fixtures/parallel-start-harness.cjs");
 
 const repoDir = path.resolve(__dirname, "..", "..", "..");
 const assemblyDir = path.join(repoDir, "assembly");
 const compiledFixturePath = path.join(repoDir, "harness", "js", ".cache", "exports-smoke.wasm");
 const compiledNodeTestPath = path.join(repoDir, "harness", "js", ".cache", "node-test-smoke.wasm");
 const compiledTrampolinePath = path.join(repoDir, "harness", "js", ".cache", "trampoline-smoke.wasm");
+const parallelStartHarnessModulePath = path.join(
+	__dirname,
+	"fixtures",
+	"parallel-start-harness.cjs",
+);
 
 mkdirSync(path.dirname(compiledFixturePath), { recursive: true });
 execFileSync(
@@ -86,14 +95,15 @@ test("creates a harness with per-event registration methods", () => {
 	assert.equal(typeof harness.callI32, "function");
 	assert.equal(typeof harness.discover, "function");
 	assert.equal(typeof harness.run, "function");
+	assert.equal(typeof harness.start, "function");
 
-	harness.onNodeFound(() => {});
-	harness.onNodeStart(() => {});
-	harness.onNodePass(() => {});
-	harness.onFailMessage(() => {});
-	harness.onCallbackStart(() => {});
-	harness.onCallbackPass(() => {});
-	harness.onDiagnostic(() => {});
+	harness.onNodeFound(() => { });
+	harness.onNodeStart(() => { });
+	harness.onNodePass(() => { });
+	harness.onFailMessage(() => { });
+	harness.onCallbackStart(() => { });
+	harness.onCallbackPass(() => { });
+	harness.onDiagnostic(() => { });
 	assert.equal(harness.run([]), true);
 	assert.equal(harness.run("bad"), false);
 });
@@ -296,6 +306,79 @@ test("discover(nodeIndex) emits NodeFound events for top-level and nested node:t
 			name: "todo nested child",
 		},
 	]);
+});
+
+test("start() returns raw branch discovery and execution data", async () => {
+	const harness = addon.createHarness(compiledNodeTestWasm);
+	const pending = harness.start();
+
+	assert.equal(typeof pending?.then, "function");
+
+	const result = await pending;
+	const branchesByName = new Map(
+		result.branches.map((branch) => [branch.root.name, branch]),
+	);
+
+	assert.equal(result.discoveryOk, true);
+	assert.equal(result.ok, false);
+	assert.equal(result.discoveredTestCount, 10);
+	assert.equal(result.topLevelNodes.length, 7);
+	assert.ok(result.workerCount >= 1);
+	assert.ok(result.workerCount <= result.branches.length);
+	assert.deepEqual(
+		branchesByName.get("parent test").executions.map((execution) => execution.node.nodeIndex),
+		[[3], [3, 0]],
+	);
+	assert.deepEqual(
+		branchesByName.get("run-only parent").discovery.nodes.map((node) => node.name),
+		["run-only parent", "run-only nested child"],
+	);
+	assert.deepEqual(
+		branchesByName.get("todo parent").executions.map((execution) => execution.node.nodeIndex),
+		[[6, 0]],
+	);
+	assert.deepEqual(branchesByName.get("skipped parent").executions, []);
+	assert.equal(branchesByName.get("failing test").executions[0].ok, false);
+	assert.deepEqual(
+		branchesByName.get("passing test").executions[0].events,
+		[
+			{ type: "nodeStart", data: { nodeIndex: [0] } },
+			{ type: "callbackStart", data: { hook: 1, nodeIndex: [] } },
+			{ type: "callbackPass", data: { hook: 1, nodeIndex: [] } },
+			{ type: "callbackStart", data: { hook: 2, nodeIndex: [] } },
+			{ type: "callbackPass", data: { hook: 2, nodeIndex: [] } },
+			{
+				type: "diagnostic",
+				data: { nodeIndex: [0], message: "passing test diagnostic" },
+			},
+			{ type: "callbackStart", data: { hook: 3, nodeIndex: [] } },
+			{ type: "callbackPass", data: { hook: 3, nodeIndex: [] } },
+			{ type: "callbackStart", data: { hook: 4, nodeIndex: [] } },
+			{ type: "callbackPass", data: { hook: 4, nodeIndex: [] } },
+			{ type: "nodePass", data: { nodeIndex: [0] } },
+		],
+	);
+});
+
+test("start() runs per-branch discovery in worker threads like wazero", async () => {
+	const harness = decorateHarness(createParallelStartHarness(), {
+		bytes: Buffer.alloc(0),
+		createLocalHarness: createParallelStartHarness,
+		workerModulePath: parallelStartHarnessModulePath,
+	});
+
+	const result = await harness.start();
+
+	assert.equal(result.discoveryOk, true);
+	assert.equal(result.ok, true);
+	assert.equal(result.branches.length, 2);
+	assert.ok(result.workerCount >= 1);
+	for (const branch of result.branches) {
+		assert.match(
+			branch.discovery.nodes[1].name,
+			/^branch-[ab]-child-thread-[1-9][0-9]*$/,
+		);
+	}
 });
 
 test("observes trap status through the host-managed trampoline", () => {

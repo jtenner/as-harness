@@ -16,6 +16,7 @@ extern napi_value GoOnDiagnostic(napi_env env, napi_callback_info info);
 extern napi_value GoCallI32(napi_env env, napi_callback_info info);
 extern napi_value GoDiscoverHarness(napi_env env, napi_callback_info info);
 extern napi_value GoRunHarness(napi_env env, napi_callback_info info);
+extern napi_value GoStartHarness(napi_env env, napi_callback_info info);
 extern void GoFinalizeHarness(node_api_basic_env env, void* data, void* hint);
 */
 import "C"
@@ -23,6 +24,7 @@ import "C"
 import (
 	"context"
 	"encoding/binary"
+	goruntime "runtime"
 	"sync"
 	"unsafe"
 
@@ -46,6 +48,8 @@ const eventKindFailMessage = 4
 const eventKindCallbackStart = 5
 const eventKindCallbackPass = 6
 const eventKindDiagnostic = 7
+const nodeKindTest = 1
+const declarationModeNormal = 1
 
 type callbackSlot int
 
@@ -65,6 +69,73 @@ type harnessState struct {
 	compiled  wazero.CompiledModule
 	env       C.napi_env
 	callbacks [callbackSlotCount]C.napi_ref
+}
+
+type writeEventSink interface {
+	Handle(kind uint32, payload []byte)
+}
+
+type hostCallState struct {
+	harness *harnessState
+	sink    writeEventSink
+}
+
+type nodeSnapshot struct {
+	NodeIndex       []uint32
+	Kind            uint32
+	DeclarationMode uint32
+	Name            string
+}
+
+type immediateDiscoverySnapshot struct {
+	OK    bool
+	Nodes []nodeSnapshot
+}
+
+type discoverySnapshot struct {
+	OK       bool
+	Nodes     []nodeSnapshot
+	TestCount uint32
+}
+
+type eventSnapshot struct {
+	Type            string
+	NodeIndex       []uint32
+	Kind            uint32
+	DeclarationMode uint32
+	Name            string
+	Hook            uint32
+	Message         string
+}
+
+type executionSnapshot struct {
+	Node   nodeSnapshot
+	OK     bool
+	Events []eventSnapshot
+}
+
+type branchSnapshot struct {
+	Root       nodeSnapshot
+	Discovery  discoverySnapshot
+	Executions []executionSnapshot
+	OK         bool
+}
+
+type startSnapshot struct {
+	OK                 bool
+	DiscoveryOK        bool
+	DiscoveredTestCount uint32
+	TopLevelNodes      []nodeSnapshot
+	WorkerCount        uint32
+	Branches           []branchSnapshot
+}
+
+type nodeCollector struct {
+	nodes []nodeSnapshot
+}
+
+type eventCollector struct {
+	events []eventSnapshot
 }
 
 type hostCallStateContextKey struct{}
@@ -140,6 +211,15 @@ func undefined(env C.napi_env) C.napi_value {
 	return result
 }
 
+func createObject(env C.napi_env, message string) C.napi_value {
+	var result C.napi_value
+	if !must(C.napi_create_object(env, &result), env, message) {
+		return nil
+	}
+
+	return result
+}
+
 func createFunction(env C.napi_env, name string, callback C.napi_callback) C.napi_value {
 	cName := C.CString(name)
 	defer C.free(unsafe.Pointer(cName))
@@ -157,6 +237,20 @@ func setNamedProperty(env C.napi_env, target C.napi_value, name string, value C.
 	defer C.free(unsafe.Pointer(cName))
 
 	return must(C.napi_set_named_property(env, target, cName, value), env, "failed to set property")
+}
+
+func createResolvedPromise(env C.napi_env, value C.napi_value) C.napi_value {
+	var deferred C.napi_deferred
+	var promise C.napi_value
+	if !must(C.napi_create_promise(env, &deferred, &promise), env, "failed to create promise") {
+		return nil
+	}
+
+	if !must(C.napi_resolve_deferred(env, deferred, value), env, "failed to resolve promise") {
+		return nil
+	}
+
+	return promise
 }
 
 func createInt64(env C.napi_env, value int64) C.napi_value {
@@ -340,12 +434,39 @@ func stringFromValue(env C.napi_env, value C.napi_value) (string, bool) {
 }
 
 func contextWithHarnessState(ctx context.Context, state *harnessState) context.Context {
-	return context.WithValue(ctx, hostCallStateContextKey{}, state)
+	return context.WithValue(ctx, hostCallStateContextKey{}, &hostCallState{harness: state})
+}
+
+func contextWithWriteEventSink(ctx context.Context, state *harnessState, sink writeEventSink) context.Context {
+	return context.WithValue(ctx, hostCallStateContextKey{}, &hostCallState{harness: state, sink: sink})
 }
 
 func harnessStateFromContext(ctx context.Context) *harnessState {
-	state, _ := ctx.Value(hostCallStateContextKey{}).(*harnessState)
-	return state
+	callState, _ := ctx.Value(hostCallStateContextKey{}).(*hostCallState)
+	if callState == nil {
+		return nil
+	}
+
+	return callState.harness
+}
+
+func writeEventSinkFromContext(ctx context.Context) writeEventSink {
+	callState, _ := ctx.Value(hostCallStateContextKey{}).(*hostCallState)
+	if callState == nil {
+		return nil
+	}
+
+	return callState.sink
+}
+
+func cloneNodeIndex(nodeIndex []uint32) []uint32 {
+	if len(nodeIndex) == 0 {
+		return []uint32{}
+	}
+
+	copyOf := make([]uint32, len(nodeIndex))
+	copy(copyOf, nodeIndex)
+	return copyOf
 }
 
 func decodeUint32(payload []byte, offset int) (uint32, int, bool) {
@@ -392,8 +513,8 @@ func createNodeIndexValue(env C.napi_env, nodeIndex []uint32) (C.napi_value, boo
 }
 
 func createNodeEventObject(env C.napi_env, nodeIndex []uint32) (C.napi_value, bool) {
-	var result C.napi_value
-	if !must(C.napi_create_object(env, &result), env, "failed to create event object") {
+	result := createObject(env, "failed to create event object")
+	if result == nil {
 		return nil, false
 	}
 
@@ -409,34 +530,48 @@ func createNodeEventObject(env C.napi_env, nodeIndex []uint32) (C.napi_value, bo
 	return result, true
 }
 
-func createNodeFoundEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
+func decodeNodeFoundSnapshot(payload []byte) (nodeSnapshot, bool) {
 	nodeIndex, offset, ok := decodeNodeIndex(payload, 0)
 	if !ok || offset+8 > len(payload) {
-		return nil, false
-	}
-
-	result, ok := createNodeEventObject(env, nodeIndex)
-	if !ok {
-		return nil, false
+		return nodeSnapshot{}, false
 	}
 
 	kind := uint32(payload[offset])
 	mode := uint32(payload[offset+1])
 	nameLength, nextOffset, ok := decodeUint32(payload, offset+4)
 	if !ok {
-		return nil, false
+		return nodeSnapshot{}, false
 	}
 	if nextOffset+int(nameLength) > len(payload) {
+		return nodeSnapshot{}, false
+	}
+
+	return nodeSnapshot{
+		NodeIndex:       cloneNodeIndex(nodeIndex),
+		Kind:            kind,
+		DeclarationMode: mode,
+		Name:            string(payload[nextOffset : nextOffset+int(nameLength)]),
+	}, true
+}
+
+func createNodeFoundEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
+	node, ok := decodeNodeFoundSnapshot(payload)
+	if !ok {
 		return nil, false
 	}
 
-	if !setNamedProperty(env, result, "kind", createUint32(env, kind)) {
+	result, ok := createNodeEventObject(env, node.NodeIndex)
+	if !ok {
 		return nil, false
 	}
-	if !setNamedProperty(env, result, "declarationMode", createUint32(env, mode)) {
+
+	if !setNamedProperty(env, result, "kind", createUint32(env, node.Kind)) {
 		return nil, false
 	}
-	if !setNamedProperty(env, result, "name", createString(env, string(payload[nextOffset:nextOffset+int(nameLength)]))) {
+	if !setNamedProperty(env, result, "declarationMode", createUint32(env, node.DeclarationMode)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "name", createString(env, node.Name)) {
 		return nil, false
 	}
 
@@ -467,8 +602,8 @@ func createCallbackEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
 }
 
 func createFailMessageEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
-	var result C.napi_value
-	if !must(C.napi_create_object(env, &result), env, "failed to create event object") {
+	result := createObject(env, "failed to create event object")
+	if result == nil {
 		return nil, false
 	}
 
@@ -524,6 +659,107 @@ func createEventValue(env C.napi_env, kind uint32, payload []byte) (C.napi_value
 	default:
 		return nil, false
 	}
+}
+
+func decodeEventSnapshot(kind uint32, payload []byte) (eventSnapshot, bool) {
+	switch kind {
+	case eventKindNodeFound:
+		node, ok := decodeNodeFoundSnapshot(payload)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+
+		return eventSnapshot{
+			Type:            "nodeFound",
+			NodeIndex:       cloneNodeIndex(node.NodeIndex),
+			Kind:            node.Kind,
+			DeclarationMode: node.DeclarationMode,
+			Name:            node.Name,
+		}, true
+	case eventKindNodeStart:
+		nodeIndex, _, ok := decodeNodeIndex(payload, 0)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+
+		return eventSnapshot{Type: "nodeStart", NodeIndex: cloneNodeIndex(nodeIndex)}, true
+	case eventKindNodePass:
+		nodeIndex, _, ok := decodeNodeIndex(payload, 0)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+
+		return eventSnapshot{Type: "nodePass", NodeIndex: cloneNodeIndex(nodeIndex)}, true
+	case eventKindFailMessage:
+		return eventSnapshot{Type: "failMessage", Message: string(payload)}, true
+	case eventKindCallbackStart:
+		if len(payload) < 8 {
+			return eventSnapshot{}, false
+		}
+
+		hook := uint32(payload[0])
+		nodeIndex, _, ok := decodeNodeIndex(payload, 4)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+
+		return eventSnapshot{Type: "callbackStart", Hook: hook, NodeIndex: cloneNodeIndex(nodeIndex)}, true
+	case eventKindCallbackPass:
+		if len(payload) < 8 {
+			return eventSnapshot{}, false
+		}
+
+		hook := uint32(payload[0])
+		nodeIndex, _, ok := decodeNodeIndex(payload, 4)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+
+		return eventSnapshot{Type: "callbackPass", Hook: hook, NodeIndex: cloneNodeIndex(nodeIndex)}, true
+	case eventKindDiagnostic:
+		nodeIndex, offset, ok := decodeNodeIndex(payload, 0)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+
+		messageLength, nextOffset, ok := decodeUint32(payload, offset)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+		if nextOffset+int(messageLength) > len(payload) {
+			return eventSnapshot{}, false
+		}
+
+		return eventSnapshot{
+			Type:      "diagnostic",
+			NodeIndex: cloneNodeIndex(nodeIndex),
+			Message:   string(payload[nextOffset : nextOffset+int(messageLength)]),
+		}, true
+	default:
+		return eventSnapshot{}, false
+	}
+}
+
+func (collector *nodeCollector) Handle(kind uint32, payload []byte) {
+	if kind != eventKindNodeFound {
+		return
+	}
+
+	node, ok := decodeNodeFoundSnapshot(payload)
+	if !ok {
+		return
+	}
+
+	collector.nodes = append(collector.nodes, node)
+}
+
+func (collector *eventCollector) Handle(kind uint32, payload []byte) {
+	event, ok := decodeEventSnapshot(kind, payload)
+	if !ok {
+		return
+	}
+
+	collector.events = append(collector.events, event)
 }
 
 func callbackSlotForEventKind(kind uint32) (callbackSlot, bool) {
@@ -599,6 +835,12 @@ func handleWriteEvent(ctx context.Context, module api.Module, kind uint32, paylo
 
 	payload, ok := memory.Read(payloadPtr, payloadLen)
 	if !ok {
+		return
+	}
+
+	sink := writeEventSinkFromContext(ctx)
+	if sink != nil {
+		sink.Handle(kind, payload)
 		return
 	}
 
@@ -838,6 +1080,9 @@ func createHarnessObject(env C.napi_env, id int64) C.napi_value {
 	if !setNamedProperty(env, harness, "run", createFunction(env, "run", (C.napi_callback)(C.GoRunHarness))) {
 		return nil
 	}
+	if !setNamedProperty(env, harness, "start", createFunction(env, "start", (C.napi_callback)(C.GoStartHarness))) {
+		return nil
+	}
 
 	return harness
 }
@@ -899,8 +1144,444 @@ func nodeIndexFromValue(env C.napi_env, value C.napi_value) ([]uint32, bool) {
 	return nodeIndex, true
 }
 
+func countTestNodes(nodes []nodeSnapshot) uint32 {
+	var count uint32
+	for _, node := range nodes {
+		if node.Kind == nodeKindTest {
+			count += 1
+		}
+	}
+
+	return count
+}
+
+func listRunnableTests(nodes []nodeSnapshot) []nodeSnapshot {
+	runnable := make([]nodeSnapshot, 0, len(nodes))
+	for _, node := range nodes {
+		if node.Kind == nodeKindTest && node.DeclarationMode == declarationModeNormal {
+			runnable = append(runnable, node)
+		}
+	}
+
+	return runnable
+}
+
+func getWorkerCount(branchCount int) int {
+	if branchCount == 0 {
+		return 0
+	}
+
+	count := goruntime.NumCPU()
+	if count < 1 {
+		count = 1
+	}
+	if count > branchCount {
+		count = branchCount
+	}
+
+	return count
+}
+
+func discoverImmediateChildren(state *harnessState, nodeIndex []uint32) immediateDiscoverySnapshot {
+	collector := &nodeCollector{}
+	return immediateDiscoverySnapshot{
+		OK:    discoverNodeIndexWithSink(context.Background(), state, nodeIndex, collector),
+		Nodes: collector.nodes,
+	}
+}
+
+func discoverBranch(state *harnessState, rootNode nodeSnapshot) discoverySnapshot {
+	nodes := []nodeSnapshot{rootNode}
+	queue := []nodeSnapshot{rootNode}
+	ok := true
+
+	for len(queue) > 0 {
+		parent := queue[0]
+		queue = queue[1:]
+
+		discovered := discoverImmediateChildren(state, parent.NodeIndex)
+		if !discovered.OK {
+			if parent.Kind == nodeKindTest {
+				continue
+			}
+
+			ok = false
+			break
+		}
+
+		for _, child := range discovered.Nodes {
+			nodes = append(nodes, child)
+			queue = append(queue, child)
+		}
+	}
+
+	return discoverySnapshot{
+		OK:       ok,
+		Nodes:     nodes,
+		TestCount: countTestNodes(nodes),
+	}
+}
+
+func runBranchExecutions(state *harnessState, runTargets []nodeSnapshot) []executionSnapshot {
+	executions := make([]executionSnapshot, 0, len(runTargets))
+	for _, node := range runTargets {
+		collector := &eventCollector{}
+		ok := runNodeIndexWithSink(context.Background(), state, node.NodeIndex, collector)
+		executions = append(executions, executionSnapshot{
+			Node:   node,
+			OK:     ok,
+			Events: collector.events,
+		})
+	}
+
+	return executions
+}
+
+func startHarness(state *harnessState) startSnapshot {
+	topLevelDiscovery := discoverImmediateChildren(state, []uint32{})
+	topLevelNodes := topLevelDiscovery.Nodes
+	branches := make([]branchSnapshot, len(topLevelNodes))
+	for index, root := range topLevelNodes {
+		branches[index] = branchSnapshot{
+			Root:       root,
+			Discovery:  discoverySnapshot{OK: false, Nodes: []nodeSnapshot{}, TestCount: 0},
+			Executions: []executionSnapshot{},
+			OK:         false,
+		}
+	}
+
+	discoveryWorkers := getWorkerCount(len(topLevelNodes))
+	if discoveryWorkers > 0 {
+		semaphore := make(chan struct{}, discoveryWorkers)
+		var waitGroup sync.WaitGroup
+		for index, root := range topLevelNodes {
+			waitGroup.Add(1)
+			go func(branchIndex int, branchRoot nodeSnapshot) {
+				defer waitGroup.Done()
+				semaphore <- struct{}{}
+				branches[branchIndex].Discovery = discoverBranch(state, branchRoot)
+				<-semaphore
+			}(index, root)
+		}
+		waitGroup.Wait()
+	}
+
+	discoveryOK := topLevelDiscovery.OK
+	for index := range branches {
+		if !branches[index].Discovery.OK {
+			discoveryOK = false
+		}
+	}
+
+	workerCount := 0
+	if discoveryOK {
+		workerCount = getWorkerCount(len(branches))
+	}
+
+	if workerCount > 0 {
+		semaphore := make(chan struct{}, workerCount)
+		var waitGroup sync.WaitGroup
+		for index := range branches {
+			waitGroup.Add(1)
+			go func(branchIndex int) {
+				defer waitGroup.Done()
+				semaphore <- struct{}{}
+				branches[branchIndex].Executions = runBranchExecutions(state, listRunnableTests(branches[branchIndex].Discovery.Nodes))
+				<-semaphore
+			}(index)
+		}
+		waitGroup.Wait()
+	}
+
+	result := startSnapshot{
+		OK:                  discoveryOK,
+		DiscoveryOK:         discoveryOK,
+		DiscoveredTestCount: 0,
+		TopLevelNodes:       topLevelNodes,
+		WorkerCount:         uint32(workerCount),
+		Branches:            branches,
+	}
+
+	for index := range result.Branches {
+		branch := &result.Branches[index]
+		result.DiscoveredTestCount += branch.Discovery.TestCount
+		branch.OK = branch.Discovery.OK
+		for _, execution := range branch.Executions {
+			if !execution.OK {
+				branch.OK = false
+				break
+			}
+		}
+		if !branch.OK {
+			result.OK = false
+		}
+	}
+
+	return result
+}
+
+func createNodeSnapshotValue(env C.napi_env, node nodeSnapshot) (C.napi_value, bool) {
+	result, ok := createNodeEventObject(env, node.NodeIndex)
+	if !ok {
+		return nil, false
+	}
+
+	if !setNamedProperty(env, result, "kind", createUint32(env, node.Kind)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "declarationMode", createUint32(env, node.DeclarationMode)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "name", createString(env, node.Name)) {
+		return nil, false
+	}
+
+	return result, true
+}
+
+func createEventSnapshotValue(env C.napi_env, event eventSnapshot) (C.napi_value, bool) {
+	result := createObject(env, "failed to create event snapshot")
+	if result == nil {
+		return nil, false
+	}
+
+	if !setNamedProperty(env, result, "type", createString(env, event.Type)) {
+		return nil, false
+	}
+
+	var data C.napi_value
+	switch event.Type {
+	case "nodeFound":
+		var ok bool
+		data, ok = createNodeSnapshotValue(env, nodeSnapshot{
+			NodeIndex:       event.NodeIndex,
+			Kind:            event.Kind,
+			DeclarationMode: event.DeclarationMode,
+			Name:            event.Name,
+		})
+		if !ok {
+			return nil, false
+		}
+	case "nodeStart", "nodePass":
+		var ok bool
+		data, ok = createNodeEventObject(env, event.NodeIndex)
+		if !ok {
+			return nil, false
+		}
+	case "callbackStart", "callbackPass":
+		var ok bool
+		data, ok = createNodeEventObject(env, event.NodeIndex)
+		if !ok {
+			return nil, false
+		}
+		if !setNamedProperty(env, data, "hook", createUint32(env, event.Hook)) {
+			return nil, false
+		}
+	case "failMessage":
+		data = createObject(env, "failed to create event data")
+		if data == nil {
+			return nil, false
+		}
+		if !setNamedProperty(env, data, "message", createString(env, event.Message)) {
+			return nil, false
+		}
+	case "diagnostic":
+		var ok bool
+		data, ok = createNodeEventObject(env, event.NodeIndex)
+		if !ok {
+			return nil, false
+		}
+		if !setNamedProperty(env, data, "message", createString(env, event.Message)) {
+			return nil, false
+		}
+	default:
+		return nil, false
+	}
+
+	if !setNamedProperty(env, result, "data", data) {
+		return nil, false
+	}
+
+	return result, true
+}
+
+func createExecutionSnapshotValue(env C.napi_env, execution executionSnapshot) (C.napi_value, bool) {
+	result := createObject(env, "failed to create execution snapshot")
+	if result == nil {
+		return nil, false
+	}
+
+	nodeValue, ok := createNodeSnapshotValue(env, execution.Node)
+	if !ok {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "node", nodeValue) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "ok", createBoolean(env, execution.OK)) {
+		return nil, false
+	}
+
+	eventsValue := createArrayWithLength(env, uint32(len(execution.Events)))
+	if eventsValue == nil {
+		return nil, false
+	}
+	for index, event := range execution.Events {
+		eventValue, ok := createEventSnapshotValue(env, event)
+		if !ok {
+			return nil, false
+		}
+		if !setElement(env, eventsValue, uint32(index), eventValue) {
+			return nil, false
+		}
+	}
+	if !setNamedProperty(env, result, "events", eventsValue) {
+		return nil, false
+	}
+
+	return result, true
+}
+
+func createDiscoverySnapshotValue(env C.napi_env, discovery discoverySnapshot) (C.napi_value, bool) {
+	result := createObject(env, "failed to create discovery snapshot")
+	if result == nil {
+		return nil, false
+	}
+
+	if !setNamedProperty(env, result, "ok", createBoolean(env, discovery.OK)) {
+		return nil, false
+	}
+
+	nodesValue := createArrayWithLength(env, uint32(len(discovery.Nodes)))
+	if nodesValue == nil {
+		return nil, false
+	}
+	for index, node := range discovery.Nodes {
+		nodeValue, ok := createNodeSnapshotValue(env, node)
+		if !ok {
+			return nil, false
+		}
+		if !setElement(env, nodesValue, uint32(index), nodeValue) {
+			return nil, false
+		}
+	}
+	if !setNamedProperty(env, result, "nodes", nodesValue) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "testCount", createUint32(env, discovery.TestCount)) {
+		return nil, false
+	}
+
+	return result, true
+}
+
+func createBranchSnapshotValue(env C.napi_env, branch branchSnapshot) (C.napi_value, bool) {
+	result := createObject(env, "failed to create branch snapshot")
+	if result == nil {
+		return nil, false
+	}
+
+	rootValue, ok := createNodeSnapshotValue(env, branch.Root)
+	if !ok {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "root", rootValue) {
+		return nil, false
+	}
+
+	discoveryValue, ok := createDiscoverySnapshotValue(env, branch.Discovery)
+	if !ok {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "discovery", discoveryValue) {
+		return nil, false
+	}
+
+	executionsValue := createArrayWithLength(env, uint32(len(branch.Executions)))
+	if executionsValue == nil {
+		return nil, false
+	}
+	for index, execution := range branch.Executions {
+		executionValue, ok := createExecutionSnapshotValue(env, execution)
+		if !ok {
+			return nil, false
+		}
+		if !setElement(env, executionsValue, uint32(index), executionValue) {
+			return nil, false
+		}
+	}
+	if !setNamedProperty(env, result, "executions", executionsValue) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "ok", createBoolean(env, branch.OK)) {
+		return nil, false
+	}
+
+	return result, true
+}
+
+func createStartSnapshotValue(env C.napi_env, result startSnapshot) (C.napi_value, bool) {
+	value := createObject(env, "failed to create start snapshot")
+	if value == nil {
+		return nil, false
+	}
+
+	if !setNamedProperty(env, value, "ok", createBoolean(env, result.OK)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, value, "discoveryOk", createBoolean(env, result.DiscoveryOK)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, value, "discoveredTestCount", createUint32(env, result.DiscoveredTestCount)) {
+		return nil, false
+	}
+
+	topLevelNodesValue := createArrayWithLength(env, uint32(len(result.TopLevelNodes)))
+	if topLevelNodesValue == nil {
+		return nil, false
+	}
+	for index, node := range result.TopLevelNodes {
+		nodeValue, ok := createNodeSnapshotValue(env, node)
+		if !ok {
+			return nil, false
+		}
+		if !setElement(env, topLevelNodesValue, uint32(index), nodeValue) {
+			return nil, false
+		}
+	}
+	if !setNamedProperty(env, value, "topLevelNodes", topLevelNodesValue) {
+		return nil, false
+	}
+	if !setNamedProperty(env, value, "workerCount", createUint32(env, result.WorkerCount)) {
+		return nil, false
+	}
+
+	branchesValue := createArrayWithLength(env, uint32(len(result.Branches)))
+	if branchesValue == nil {
+		return nil, false
+	}
+	for index, branch := range result.Branches {
+		branchValue, ok := createBranchSnapshotValue(env, branch)
+		if !ok {
+			return nil, false
+		}
+		if !setElement(env, branchesValue, uint32(index), branchValue) {
+			return nil, false
+		}
+	}
+	if !setNamedProperty(env, value, "branches", branchesValue) {
+		return nil, false
+	}
+
+	return value, true
+}
+
 func runNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) bool {
-	ctx = contextWithHarnessState(ctx, state)
+	return runNodeIndexWithSink(ctx, state, nodeIndex, nil)
+}
+
+func runNodeIndexWithSink(ctx context.Context, state *harnessState, nodeIndex []uint32, sink writeEventSink) bool {
+	ctx = contextWithWriteEventSink(ctx, state, sink)
 
 	module, err := state.runtime.InstantiateModule(
 		ctx,
@@ -949,7 +1630,11 @@ func runNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) 
 }
 
 func discoverNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) bool {
-	ctx = contextWithHarnessState(ctx, state)
+	return discoverNodeIndexWithSink(ctx, state, nodeIndex, nil)
+}
+
+func discoverNodeIndexWithSink(ctx context.Context, state *harnessState, nodeIndex []uint32, sink writeEventSink) bool {
+	ctx = contextWithWriteEventSink(ctx, state, sink)
 
 	module, err := state.runtime.InstantiateModule(
 		ctx,
@@ -1136,6 +1821,26 @@ func GoRunHarness(env C.napi_env, info C.napi_callback_info) C.napi_value {
 	}
 
 	return createBoolean(env, runNodeIndex(context.Background(), state, nodeIndex))
+}
+
+//export GoStartHarness
+func GoStartHarness(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	_, thisArg, ok := getCallbackArguments(env, info, 0)
+	if !ok {
+		return nil
+	}
+
+	state, ok := requireHarness(env, thisArg)
+	if !ok {
+		return nil
+	}
+
+	resultValue, ok := createStartSnapshotValue(env, startHarness(state))
+	if !ok {
+		return nil
+	}
+
+	return createResolvedPromise(env, resultValue)
 }
 
 //export GoFinalizeHarness

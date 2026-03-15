@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-03-15
+
+- **js harness: parallelize start() branch discovery to match wazero** Update the shared JS `start()` orchestration so it no longer discovers top-level branches serially on the main thread; instead it now runs both branch discovery and branch execution through the same bounded worker-thread scheduling pattern used by the native `wazero` harness, adds focused smoke coverage for worker-owned branch discovery, and refreshes the JS host README wording to document the aligned behavior. GitHub: *@jtenner*
+- **wazero: move start scheduling into the native Go addon** Replace the temporary JS-side `decorateHarness(...)` wrapper in `harness/wazero` with a native addon-owned `start()` method that performs branch discovery and execution scheduling inside Go using goroutines, resolves a real JS `Promise` with the formalized raw start result shape, simplifies the CommonJS wrapper, tightens both host smoke suites to assert promise semantics, and updates the host READMEs to document the stabilized result contract. GitHub: *@jtenner*
+- **harness: add Promise-based start() orchestration to js and wazero** Add a shared host-side `start()` runner that performs full branch discovery, counts discovered tests, assigns top-level branches onto a worker-thread pool sized from host parallelism, and returns raw per-branch discovery and execution data; wire that surface into `harness/js` and a new JS wrapper for `harness/wazero`, expand both smoke suites to cover the new raw start results, and update the host READMEs to document the API. GitHub: *@jtenner*
+
 ## 2026-03-14
 
 - **docs: trim completed checklist items from the backlog** Update `agent-todo.md` so it keeps only the remaining work items and release blockers, removing completed checklist entries and a few stale unchecked items that are already covered by the current implementation. GitHub: *@jtenner*

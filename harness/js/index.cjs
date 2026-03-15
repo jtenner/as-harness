@@ -1,6 +1,7 @@
 "use strict";
 
 const textDecoder = new TextDecoder();
+const { decorateHarness } = require("../shared/start.cjs");
 
 const HARNESS_MODULE_NAME = "as-harness";
 const ABORT_MODULE_NAME = "env";
@@ -481,7 +482,15 @@ class Harness {
 function createHarness(bytes) {
 	const wasmBytes = toWasmBytes(bytes);
 	const compiledModule = new WebAssembly.Module(wasmBytes);
-	return new Harness(compiledModule);
+	return decorateHarness(new Harness(compiledModule), {
+		bytes: wasmBytes,
+		createLocalHarness,
+		workerModulePath: __filename,
+	});
+}
+
+function createLocalHarness(bytes) {
+	return new Harness(new WebAssembly.Module(toWasmBytes(bytes)));
 }
 
 module.exports = {
