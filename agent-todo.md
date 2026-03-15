@@ -64,7 +64,7 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 
 - [ ] Document the user-facing workflow for writing and running AssemblyScript tests with the shipped runner.
 - [ ] Document the supported feature matrix and explicit non-goals for the first release.
-- [ ] Document `js` vs `wazero` host tradeoffs, requirements, and platform caveats.
+- [x] Document `js` vs `wazero` host tradeoffs, requirements, and platform caveats.
 - [ ] Add troubleshooting guidance for compile failures, traps, assertion failures, and wazero addon build issues.
 - [ ] Ensure the README set and CLI help text describe the same shipped behavior.
 
