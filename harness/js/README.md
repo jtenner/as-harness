@@ -9,6 +9,7 @@ The package currently provides the same early host bridge surface as
 `harness/wazero`:
 
 - `createHarness(bytes)` validates wasm immediately and stores a compiled module
+- instantiation is fully in-process; there is no native addon build step
 - the host import module includes `invoke_staged()`, which calls back into the
   guest `invoke()` export and converts trap vs normal return into `0` or `1`
 - `run(nodeIndex)` stages a host-provided `NodeIndex`, calls the guest-side
@@ -47,6 +48,12 @@ declare function createHarness(
 ## Commands
 
 Run the smoke test:
+
+```bash
+node --test ./test/smoke.host.cjs
+```
+
+Or use the package script:
 
 ```bash
 npm test

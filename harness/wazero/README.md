@@ -1,7 +1,7 @@
 # `harness/wazero`
 
 `harness/wazero` is a standalone Go project that builds a native Node-API
-module for the future wazero-backed host runtime.
+module for an early wazero-backed host runtime.
 
 ## Current Scope
 
@@ -82,7 +82,7 @@ Run the smoke test:
 
 ```bash
 node ./scripts/build.mjs
-node --test ./test/smoke.test.cjs
+node --test ./test/smoke.host.cjs
 ```
 
 Or use the package scripts:
@@ -104,5 +104,6 @@ npm test
   used to point the build at a specific Node headers install.
 - Set `AS_HARNESS_SKIP_NODE_LIB_DOWNLOAD=1` to disable the fallback `node.lib`
   download on Windows and require an explicit local import library.
-- This is still scaffold-level functionality; the actual wazero runtime bridge
-  will replace the placeholder exports as host APIs are defined.
+- This is still an early host bridge, not the full eventual runtime. Deeper
+  traversal orchestration, replay validation, and richer host policy remain
+  follow-up work.

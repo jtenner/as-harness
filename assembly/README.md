@@ -55,9 +55,9 @@ Implemented today:
   `NodeIndex`
 - a first root discovery `discover()` export path that emits `NodeFound`
   events for already-registered top-level nodes without classifying outcomes
-- a first staged `discover(nodeIndex)` host path in wazero that can rediscover
-  immediate children under a known node and report interrupted discovery
-  separately from execution outcomes
+- first staged `discover(nodeIndex)` host paths in the `wazero` and `js`
+  harness packages that can rediscover immediate children under a known node
+  and report interrupted discovery separately from execution outcomes
 - first `skip` / `todo` discovery semantics for nested branches, where skipped
   parents are discovered but do not expose descendants while todo parents still
   allow descendant discovery
@@ -164,9 +164,11 @@ Current files:
   and collector helpers
 - `internal/traversal.ts`: tests for targeted `NodeIndex` lookup and execution
 - `node-test-smoke.ts`: exported smoke fixture for host-observed
-  `node:test` targeted run plus root discovery behavior
+  `node:test` targeted run plus root discovery behavior through the current
+  `js` and `wazero` harness packages
 - `trampoline-smoke.ts`: a host-runtime smoke fixture that probes the staged
-  callback trampoline with both normal-return and `unreachable` paths
+  callback trampoline with both normal-return and `unreachable` paths through
+  the current `js` and `wazero` host implementations
 
 `assembly/assembly/<framework>/`
 : Planned AssemblyScript `--lib` entry points for framework adapters.
