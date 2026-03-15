@@ -2,6 +2,80 @@
 
 Primary scope: `assembly/`. This checklist covers the Wasm-side runtime defined in `docs/primary-buildout.md` and excludes host orchestration work, except where noted for supporting compiler-side transform machinery.
 
+## Publish Blockers
+
+Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
+`harness/wazero`, and the top-level docs/release workflow.
+
+### Product Definition
+
+- [ ] Freeze the first shippable product scope for an AssemblyScript test runner.
+- [ ] Decide which surfaces are explicitly in scope for v1:
+- [ ] synchronous `node:test`
+- [ ] `node:assert`
+- [ ] `node:assert/strict`
+- [ ] `js` host
+- [ ] `wazero` host
+- [ ] Decide which currently deferred features stay out of scope for v1:
+- [ ] async / Promise-based test APIs
+- [ ] snapshots
+- [ ] worker-oriented execution controls
+- [ ] additional framework adapters beyond `node:test`
+
+### CLI Runner
+
+- [ ] Implement `as-harness run` as a real execution path instead of a scaffold.
+- [ ] Resolve entry files, compile them, and execute them through a selected host.
+- [ ] Forward the documented `run` compiler/runtime flags into the actual CLI implementation.
+- [ ] Decide and implement host selection policy for shipped builds:
+- [ ] default host
+- [ ] explicit host override
+- [ ] unsupported-host failure behavior
+- [ ] Emit stable process exit codes for pass, test failure, compile failure, and host/runtime failure.
+- [ ] Add human-readable run summaries and failure output suitable for normal CLI use.
+- [ ] Decide whether coverage is deferred or included in the first shipped release.
+
+### Host Runtime Shipping
+
+- [ ] Keep the shipped `js` and `wazero` host surfaces behaviorally aligned for:
+- [ ] event decoding
+- [ ] `callI32(exportName)`
+- [ ] `discover(nodeIndex)`
+- [ ] `run(nodeIndex)`
+- [ ] trampoline-backed trap observation
+- [ ] Decide the supported host/platform matrix for the first release.
+- [ ] Prove `harness/js` works on the supported Node versions for the release.
+- [ ] Prove `harness/wazero` builds and runs on the supported OS / architecture matrix.
+- [ ] Package or document the wazero native-addon build/install story so users can actually run it.
+- [ ] Decide how the CLI bundles, locates, or installs shipped host runtimes.
+- [ ] Add end-to-end CLI coverage for both the `js` and `wazero` execution paths.
+
+### Wasm Runtime / ABI
+
+- [ ] Finish the host-runner contract items that are still open below and are required for shipping.
+- [ ] Write protocol notes for host implementers that do not rely on reading AssemblyScript internals.
+- [ ] Keep the ABI flat, language-agnostic, and stable enough to support both shipped hosts.
+- [ ] Decide whether scheduler-step entrypoints are required for the shipped runner or explicitly deferred.
+- [ ] Add fixtures that cover replay invalidation, branch pruning, lifecycle callback failure propagation, and clean recovery after traps.
+
+### Reporting, UX, and Docs
+
+- [ ] Document the user-facing workflow for writing and running AssemblyScript tests with the shipped runner.
+- [ ] Document the supported feature matrix and explicit non-goals for the first release.
+- [ ] Document `js` vs `wazero` host tradeoffs, requirements, and platform caveats.
+- [ ] Add troubleshooting guidance for compile failures, traps, assertion failures, and wazero addon build issues.
+- [ ] Ensure the README set and CLI help text describe the same shipped behavior.
+
+### Release Engineering
+
+- [ ] Decide the first distribution channel:
+- [ ] standalone Bun-compiled CLI binaries
+- [ ] npm package
+- [ ] both
+- [ ] Add CI coverage for validation, root tests, host package smoke tests, and release-artifact verification.
+- [ ] Define release/versioning steps for the CLI package and shipped host runtimes.
+- [ ] Verify install and smoke-run flows from a clean environment on each supported platform.
+
 ## Strict Equality Machinery
 
 Cross-package scope: `cli/transform`, `assembly/`, and `docs/strict-equality-machinery.md`.
