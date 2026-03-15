@@ -2,6 +2,7 @@
   "name": "@as-harness/js",
   "private": true,
   "main": "./index.cjs",
+  "types": "./index.d.ts",
   "scripts": {
     "test": "node --test ./test/smoke.host.cjs"
   }

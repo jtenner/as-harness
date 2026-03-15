@@ -1,0 +1,22 @@
+export declare function createHarness(
+	bytes: import("../shared/harness-types").HarnessBytes,
+): import("../shared/harness-types").Harness;
+
+export type {
+	Harness,
+	HarnessBranch,
+	HarnessBranchDiscovery,
+	HarnessBytes,
+	HarnessCallbackEvent,
+	HarnessDiagnosticEvent,
+	HarnessEvent,
+	HarnessEventCallback,
+	HarnessEventMap,
+	HarnessEventType,
+	HarnessExecution,
+	HarnessFailMessageEvent,
+	HarnessNode,
+	HarnessNodeEvent,
+	HarnessNodeFoundEvent,
+	HarnessStartResult,
+} from "../shared/harness-types";

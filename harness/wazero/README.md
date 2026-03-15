@@ -30,9 +30,11 @@ The project currently proves out the Go-to-N-API build path:
 
 ## API
 
-The addon currently exports:
+The addon currently exports this API and now ships matching TypeScript declarations:
 
 ```ts
+type HarnessBytes = Buffer | ArrayBufferView | ArrayBuffer;
+
 type HarnessNode = {
   nodeIndex: Array<number>;
   kind: number;
@@ -40,16 +42,39 @@ type HarnessNode = {
   name: string;
 };
 
-type HarnessEvent = {
-  type:
-    | "nodeFound"
-    | "nodeStart"
-    | "nodePass"
-    | "failMessage"
-    | "callbackStart"
-    | "callbackPass"
-    | "diagnostic";
-  data: Record<string, unknown>;
+type HarnessNodeEvent = {
+  nodeIndex: Array<number>;
+};
+
+type HarnessCallbackEvent = {
+  hook: number;
+  nodeIndex: Array<number>;
+};
+
+type HarnessFailMessageEvent = {
+  message: string;
+};
+
+type HarnessDiagnosticEvent = {
+  nodeIndex: Array<number>;
+  message: string;
+};
+
+type HarnessEventMap = {
+  nodeFound: HarnessNode;
+  nodeStart: HarnessNodeEvent;
+  nodePass: HarnessNodeEvent;
+  failMessage: HarnessFailMessageEvent;
+  callbackStart: HarnessCallbackEvent;
+  callbackPass: HarnessCallbackEvent;
+  diagnostic: HarnessDiagnosticEvent;
+};
+
+type HarnessEvent<
+  T extends keyof HarnessEventMap = keyof HarnessEventMap,
+> = {
+  type: T;
+  data: HarnessEventMap[T];
 };
 
 type HarnessExecution = {
@@ -79,22 +104,20 @@ type HarnessStartResult = {
 };
 
 type Harness = {
-  onNodeFound(callback: (event: unknown) => void): void;
-  onNodeStart(callback: (event: unknown) => void): void;
-  onNodePass(callback: (event: unknown) => void): void;
-  onFailMessage(callback: (event: unknown) => void): void;
-  onCallbackStart(callback: (event: unknown) => void): void;
-  onCallbackPass(callback: (event: unknown) => void): void;
-  onDiagnostic(callback: (event: unknown) => void): void;
+  onNodeFound(callback: (event: HarnessNode) => void): void;
+  onNodeStart(callback: (event: HarnessNodeEvent) => void): void;
+  onNodePass(callback: (event: HarnessNodeEvent) => void): void;
+  onFailMessage(callback: (event: HarnessFailMessageEvent) => void): void;
+  onCallbackStart(callback: (event: HarnessCallbackEvent) => void): void;
+  onCallbackPass(callback: (event: HarnessCallbackEvent) => void): void;
+  onDiagnostic(callback: (event: HarnessDiagnosticEvent) => void): void;
   callI32(exportName: string): number;
   discover(nodeIndex: Array<number>): boolean;
   run(nodeIndex: Array<number>): boolean;
   start(): Promise<HarnessStartResult>;
 };
 
-declare function createHarness(
-  bytes: Buffer | Uint8Array | ArrayBuffer,
-): Harness;
+declare function createHarness(bytes: HarnessBytes): Harness;
 ```
 
 `createHarness(...)` rejects invalid wasm before returning a harness.
