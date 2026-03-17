@@ -4,6 +4,7 @@ import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
+const CLI_DIR = resolve(import.meta.dir, "..");
 const OUTPUT_FILE = resolve(import.meta.dir, "virtual-files.generated.ts");
 const GENERATED_DIR = resolve(import.meta.dir, ".generated");
 const BARREL_FILE = resolve(GENERATED_DIR, "virtual-files.barrel.ts");
@@ -17,6 +18,14 @@ const ASSEMBLY_SOURCE_DIR = resolve(
 const TRANSFORM_SOURCE_DIR = resolve(import.meta.dir, "..", "transform", "src");
 const VIRTUAL_ROOT = "~/.as-harness";
 const TRANSFORM_VIRTUAL_ROOT = `${VIRTUAL_ROOT}/transform`;
+const BIOME_BIN = resolve(
+	CLI_DIR,
+	"node_modules",
+	"@biomejs",
+	"biome",
+	"bin",
+	"biome",
+);
 
 const transformTranspiler = new Bun.Transpiler({
 	loader: "ts",
@@ -147,6 +156,23 @@ ${transformEntries.join("\n")}
 `;
 }
 
+async function formatGeneratedTypescriptFile(filePath: string): Promise<void> {
+	const processHandle = Bun.spawn(
+		[process.execPath, BIOME_BIN, "format", "--write", filePath],
+		{
+			cwd: CLI_DIR,
+			stderr: "inherit",
+			stdin: "inherit",
+			stdout: "inherit",
+		},
+	);
+
+	const exitCode = await processHandle.exited;
+	if (exitCode !== 0) {
+		throw new Error(`Failed to format generated file: ${filePath}`);
+	}
+}
+
 export async function generateBundledVirtualFiles(): Promise<void> {
 	const assemblySourceFiles = await collectSourceFiles(ASSEMBLY_SOURCE_DIR);
 	const transformSourceFiles = await collectSourceFiles(TRANSFORM_SOURCE_DIR);
@@ -176,6 +202,7 @@ export async function generateBundledVirtualFiles(): Promise<void> {
 		bundledTransformFiles,
 	);
 	await writeFile(OUTPUT_FILE, output, "utf8");
+	await formatGeneratedTypescriptFile(OUTPUT_FILE);
 }
 
 if (import.meta.main) {

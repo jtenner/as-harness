@@ -8,7 +8,12 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, posix, resolve } from "node:path";
-import { createMemoryStream, main as runAsc } from "assemblyscript/asc";
+import {
+	createMemoryStream,
+	libraryFiles as assemblyscriptLibraryFiles,
+	libraryPrefix,
+	main as runAsc,
+} from "assemblyscript/asc";
 import type { Runtime as HarnessRuntime } from "../runtime/types";
 import { jsRuntime } from "../runtime/js";
 import {
@@ -17,6 +22,9 @@ import {
 	bundledVirtualFiles,
 	bundledVirtualRoot,
 } from "./virtual-files.generated";
+import assemblyscriptRuntimeDeclarations from "../node_modules/assemblyscript/std/assembly/rt/index.d.ts" with {
+	type: "text",
+};
 
 export type Binding = "raw";
 
@@ -105,13 +113,39 @@ const STRICT_EQUALITY_LIBRARY_ENTRY_POINTS = new Set([
 	"node:assert",
 	"node:assert/strict",
 ]);
+const TRACE_COMPILE_FILE_SYSTEM =
+	process.env.AS_HARNESS_TRACE_COMPILE_FS === "1";
 
 type VirtualAssemblyFileSystem = {
 	files: Map<string, string>;
 	directories: Map<string, string[]>;
 };
 
-const virtualAssemblyFileSystem = createVirtualAssemblyFileSystem();
+const ASSEMBLYSCRIPT_LIBRARY_ROOT = libraryPrefix.endsWith("/")
+	? libraryPrefix.slice(0, -1)
+	: libraryPrefix;
+const virtualCompilerFiles = new Map<string, string>([
+	...bundledVirtualFiles.entries(),
+	...Object.entries(assemblyscriptLibraryFiles).map(
+		([name, contents]) =>
+			[`${ASSEMBLYSCRIPT_LIBRARY_ROOT}/${name}.ts`, contents] as const,
+	),
+	[
+		`${ASSEMBLYSCRIPT_LIBRARY_ROOT}/rt/index.d.ts`,
+		assemblyscriptRuntimeDeclarations,
+	],
+]);
+const virtualAssemblyFileSystem = createVirtualFileSystem(virtualCompilerFiles);
+const VIRTUAL_FILE_SYSTEM_ROOTS = [
+	bundledVirtualRoot,
+	ASSEMBLYSCRIPT_LIBRARY_ROOT,
+] as const;
+
+function traceCompileFileSystem(message: string) {
+	if (TRACE_COMPILE_FILE_SYSTEM) {
+		console.error(`[compile-fs] ${message}`);
+	}
+}
 
 function toUint8Array(contents: string | Uint8Array): Uint8Array {
 	return typeof contents === "string" ? textEncoder.encode(contents) : contents;
@@ -252,42 +286,47 @@ export function withBundledStrictEqualityTransform(
 
 function resolveVirtualPath(path: string, baseDir: string): string | null {
 	const normalizedPath = normalizeVirtualPath(path);
-	if (normalizedPath.startsWith(bundledVirtualRoot)) {
-		return normalizedPath;
-	}
-
 	const normalizedBaseDir = normalizeVirtualPath(baseDir);
-	if (normalizedBaseDir.startsWith(bundledVirtualRoot)) {
-		return posix.normalize(posix.join(normalizedBaseDir, normalizedPath));
+
+	for (const root of VIRTUAL_FILE_SYSTEM_ROOTS) {
+		if (normalizedPath === root || normalizedPath.startsWith(`${root}/`)) {
+			return normalizedPath;
+		}
+
+		if (
+			normalizedBaseDir === root ||
+			normalizedBaseDir.startsWith(`${root}/`)
+		) {
+			return posix.normalize(posix.join(normalizedBaseDir, normalizedPath));
+		}
 	}
 
 	return null;
 }
 
-function createVirtualAssemblyFileSystem(): VirtualAssemblyFileSystem {
+function createVirtualFileSystem(
+	files: ReadonlyMap<string, string>,
+): VirtualAssemblyFileSystem {
 	const directories = new Map<string, string[]>();
 
-	for (const virtualPath of bundledVirtualFiles.keys()) {
+	for (const virtualPath of files.keys()) {
 		let currentDirectory = posix.dirname(virtualPath);
 
-		while (currentDirectory.startsWith(bundledVirtualRoot)) {
+		while (true) {
 			if (!directories.has(currentDirectory)) {
 				directories.set(currentDirectory, []);
 			}
 
-			if (currentDirectory === bundledVirtualRoot) {
+			const parentDirectory = posix.dirname(currentDirectory);
+			if (parentDirectory === currentDirectory) {
 				break;
 			}
 
-			currentDirectory = posix.dirname(currentDirectory);
+			currentDirectory = parentDirectory;
 		}
 	}
 
-	if (!directories.has(bundledVirtualRoot)) {
-		directories.set(bundledVirtualRoot, []);
-	}
-
-	for (const virtualPath of bundledVirtualFiles.keys()) {
+	for (const virtualPath of files.keys()) {
 		const directory = posix.dirname(virtualPath);
 		const entries = directories.get(directory);
 		if (!entries) {
@@ -299,7 +338,7 @@ function createVirtualAssemblyFileSystem(): VirtualAssemblyFileSystem {
 	}
 
 	return {
-		files: bundledVirtualFiles,
+		files: new Map(files),
 		directories,
 	};
 }
@@ -410,20 +449,46 @@ async function readCompilerFile(
 	filename: string,
 	baseDir: string,
 ): Promise<string | null> {
+	traceCompileFileSystem(`read ${filename} (base ${baseDir})`);
+
 	const virtualPath = resolveVirtualPath(filename, baseDir);
 	if (virtualPath) {
 		const virtualFile = virtualAssemblyFileSystem.files.get(virtualPath);
 		if (virtualFile !== undefined) {
+			traceCompileFileSystem(`virtual hit ${virtualPath}`);
 			return virtualFile;
 		}
 	}
 
 	try {
-		return await readFileFromDisk(
+		const contents = await readFileFromDisk(
 			resolveFromBaseDir(filename, baseDir),
 			"utf8",
 		);
+		traceCompileFileSystem(`disk hit ${resolveFromBaseDir(filename, baseDir)}`);
+		return contents;
 	} catch {
+		traceCompileFileSystem(`miss ${resolveFromBaseDir(filename, baseDir)}`);
+
+		const normalizedFilename = normalizeVirtualPath(filename);
+		const normalizedBaseDir = normalizeVirtualPath(baseDir);
+		const normalizedCurrentConfigPath = normalizeVirtualPath(
+			join(process.cwd(), "asconfig.json"),
+		);
+		const normalizedResolvedPath = normalizeVirtualPath(
+			resolveFromBaseDir(filename, baseDir),
+		);
+		if (
+			normalizedFilename === "asconfig.json" &&
+			normalizedBaseDir === normalizeVirtualPath(process.cwd()) &&
+			normalizedResolvedPath === normalizedCurrentConfigPath
+		) {
+			traceCompileFileSystem(
+				`virtual default config ${normalizedCurrentConfigPath}`,
+			);
+			return "{}\n";
+		}
+
 		return null;
 	}
 }
@@ -432,20 +497,25 @@ async function listCompilerFiles(
 	dirname: string,
 	baseDir: string,
 ): Promise<string[] | null> {
+	traceCompileFileSystem(`list ${dirname} (base ${baseDir})`);
+
 	const virtualDir = resolveVirtualPath(dirname, baseDir);
 	if (virtualDir) {
 		const virtualFiles = virtualAssemblyFileSystem.directories.get(virtualDir);
 		if (virtualFiles !== undefined) {
+			traceCompileFileSystem(`virtual list ${virtualDir}`);
 			return virtualFiles;
 		}
 	}
 
 	try {
 		const entries = await readdir(resolveFromBaseDir(dirname, baseDir));
+		traceCompileFileSystem(`disk list ${resolveFromBaseDir(dirname, baseDir)}`);
 		return entries
 			.filter((entry) => SOURCE_FILE_PATTERN.test(entry))
 			.map((entry) => join(dirname, entry));
 	} catch {
+		traceCompileFileSystem(`list miss ${resolveFromBaseDir(dirname, baseDir)}`);
 		return null;
 	}
 }

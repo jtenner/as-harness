@@ -1,12 +1,28 @@
 #!/usr/bin/env bun
 
-import { mkdir, rm } from "node:fs/promises";
+import { copyFile, mkdir, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { generateBundledVirtualFiles } from "./as/generate-virtual-files";
+import {
+	isAvailableWazeroAddonTarget,
+	resolveCurrentWazeroAddonTarget,
+	resolveWazeroAddonTargetForCompileTarget,
+	wazeroAddonPathFromCliDir,
+} from "./runtime/wazero-targets";
 
+const CLI_DIR = import.meta.dir;
+const REPO_DIR = join(CLI_DIR, "..");
 const EXECUTABLE_NAME = "as-harness";
-const ENTRYPOINT = "./index.ts";
-const DIST_DIR = "dist";
+const ENTRYPOINT = join(CLI_DIR, "index.ts");
+const DIST_DIR = join(CLI_DIR, "dist");
+const LOCAL_WAZERO_ADDON_PATH = join(
+	REPO_DIR,
+	"harness",
+	"wazero",
+	"dist",
+	"wazero.node",
+);
 
 // Bun's compile-target grammar accepts more strings than the executable docs
 // currently list. This matrix sticks to the documented supported targets and
@@ -76,6 +92,7 @@ function outputPathForTarget(target: Bun.Build.CompileTarget) {
 
 async function buildTarget(
 	target: Bun.Build.CompileTarget,
+	wazeroTarget: string,
 	index: number,
 	total: number,
 ) {
@@ -91,9 +108,11 @@ async function buildTarget(
 			"--compile",
 			`--target=${target}`,
 			`--outfile=${outfile}`,
+			`--define=WAZERO_TARGET="${wazeroTarget}"`,
 			ENTRYPOINT,
 		],
 		{
+			cwd: CLI_DIR,
 			stdout: "inherit",
 			stderr: "inherit",
 			stdin: "inherit",
@@ -102,6 +121,50 @@ async function buildTarget(
 
 	const exitCode = await processHandle.exited;
 	return { exitCode, outfile, target };
+}
+
+async function ensureLocalWazeroAddonBuilt() {
+	if (existsSync(LOCAL_WAZERO_ADDON_PATH)) {
+		return;
+	}
+
+	console.log("building local wazero addon for CLI packaging");
+
+	const processHandle = Bun.spawn([process.execPath, "./scripts/build.mjs"], {
+		cwd: join(REPO_DIR, "harness", "wazero"),
+		stderr: "inherit",
+		stdin: "inherit",
+		stdout: "inherit",
+	});
+
+	const exitCode = await processHandle.exited;
+	if (exitCode !== 0) {
+		throw new Error("Failed to build the local wazero addon.");
+	}
+}
+
+async function prepareWazeroAddonForTarget(target: Bun.Build.CompileTarget) {
+	const wazeroTarget = resolveWazeroAddonTargetForCompileTarget(target);
+	if (!isAvailableWazeroAddonTarget(wazeroTarget)) {
+		return wazeroTarget;
+	}
+
+	const outputPath = wazeroAddonPathFromCliDir(CLI_DIR, wazeroTarget);
+	if (existsSync(outputPath)) {
+		return wazeroTarget;
+	}
+
+	if (resolveCurrentWazeroAddonTarget() !== wazeroTarget) {
+		console.warn(
+			`wazero addon for ${target} is not staged at ${outputPath}; building this CLI target without bundled wazero support.`,
+		);
+		return "unavailable";
+	}
+
+	await ensureLocalWazeroAddonBuilt();
+	await mkdir(dirname(outputPath), { recursive: true });
+	await copyFile(LOCAL_WAZERO_ADDON_PATH, outputPath);
+	return wazeroTarget;
 }
 
 async function main() {
@@ -118,7 +181,16 @@ async function main() {
 	await generateBundledVirtualFiles();
 
 	for (const [index, target] of targets.entries()) {
-		const result = await buildTarget(target, index + 1, targets.length);
+		const wazeroTarget = await prepareWazeroAddonForTarget(target);
+		const result = await buildTarget(
+			target,
+			wazeroTarget,
+			index + 1,
+			targets.length,
+		);
+		if (wazeroTarget !== "unavailable") {
+			console.log(`bundled wazero addon target for ${target}: ${wazeroTarget}`);
+		}
 
 		if (result.exitCode !== 0) {
 			failures.push(target);
