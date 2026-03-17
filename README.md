@@ -31,12 +31,11 @@ Implemented today:
 - The AssemblyScript package has real guest-side runtime code, internal event serialization, `node:assert` support, and an early `node:test` implementation.
 - The `JS host` exists as a working package with smoke tests.
 - The `wazero host` exists as a working Go `Node-API addon` package that builds a real `.node` binary and has smoke tests.
-- The CLI can discover entry files, list them, compile Bun targets with `bun --compile`, and bundle AssemblyScript support files into the executable build.
+- The CLI can discover entry files, list them, compile discovered test entries into Wasm, execute them through the default `JS host`, print basic pass/fail summaries, compile Bun targets with `bun --compile`, and bundle AssemblyScript support files into the executable build.
 
 Still scaffolded or planned:
 
-- The CLI `run` command is not yet the finished end-to-end compilation and execution flow.
-- CLI-level runtime selection is not yet a stable user-facing feature.
+- CLI-level runtime selection is not yet a stable user-facing feature beyond the default `JS host` path.
 - `cli/n-api/` is packaging scaffolding; the CLI does not yet prove an embedded `wazero host` path.
 - `harness/wasmtime/` is still scaffolded.
 - The final packaged single-file distribution story is still an active roadmap item.

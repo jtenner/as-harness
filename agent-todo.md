@@ -30,15 +30,15 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 
 ### CLI Runner
 
-- [ ] Implement `as-harness run` as a real execution path instead of a scaffold.
-- [ ] Resolve entry files, compile them, and execute them through a selected host.
+- [x] Implement `as-harness run` as a real execution path instead of a scaffold.
+- [x] Resolve entry files, compile them, and execute them through a selected host.
 - [ ] Forward the documented `run` compiler/runtime flags into the actual CLI implementation.
 - [ ] Decide and implement host selection policy for shipped builds:
 - [x] default host: `js`
 - [ ] explicit host override
 - [ ] unsupported-host failure behavior
-- [ ] Emit stable process exit codes for pass, test failure, compile failure, and host/runtime failure.
-- [ ] Add human-readable run summaries and failure output suitable for normal CLI use.
+- [x] Emit stable process exit codes for pass, test failure, compile failure, and host/runtime failure.
+- [x] Add human-readable run summaries and failure output suitable for normal CLI use.
 - [x] Decide whether coverage is deferred or included in the first shipped release. Coverage is deferred for `v0.1.0`.
 
 ### Host Runtime Shipping

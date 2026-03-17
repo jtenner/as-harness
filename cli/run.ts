@@ -1,0 +1,243 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { dirname, join, relative } from "node:path";
+import type {
+	HarnessEvent,
+	HarnessExecution,
+	HarnessStartResult,
+} from "../harness/shared/harness-types";
+import { compileEntrypoints, type CompilerOptions } from "./as/compile";
+import { jsRuntime } from "./runtime/js";
+import type { Runtime } from "./runtime/types";
+
+export enum RunExitCode {
+	Success = 0,
+	TestFailure = 1,
+	CompileFailure = 2,
+	HostFailure = 3,
+}
+
+export type RunLogger = {
+	info(message: string): void;
+	error(message: string): void;
+};
+
+export type RunCommandResult = {
+	discoveredTestCount: number;
+	exitCode: RunExitCode;
+};
+
+const DEFAULT_RUN_LIBRARIES = [
+	"node:test",
+	"node:assert",
+	"node:assert/strict",
+] as const;
+const TEMP_RUN_ENTRY_PREFIX = ".as-harness-run-";
+const TEMP_RUN_ENTRY_BASENAME = "entry.ts";
+
+type ExecutionFailure = {
+	messages: string[];
+	nodeName: string;
+};
+
+function createRunCompilerOptions(cwd: string): CompilerOptions {
+	return {
+		baseDir: cwd,
+		lib: [...DEFAULT_RUN_LIBRARIES],
+	};
+}
+
+function toPosixPath(path: string) {
+	return path.replaceAll("\\", "/");
+}
+
+function toImportPath(fromDirectory: string, targetPath: string) {
+	const relativePath = toPosixPath(relative(fromDirectory, targetPath));
+	return relativePath.startsWith(".") ? relativePath : `./${relativePath}`;
+}
+
+async function createRunEntrypoint(
+	entryFiles: readonly string[],
+	cwd: string,
+): Promise<{ cleanup(): Promise<void>; path: string }> {
+	const tempDirectory = await mkdtemp(join(cwd, TEMP_RUN_ENTRY_PREFIX));
+	const entrypointPath = join(tempDirectory, TEMP_RUN_ENTRY_BASENAME);
+	const entrypointDirectory = dirname(entrypointPath);
+	const sourceText = [
+		'export { allocateNodeIndexBuffer, discover, invoke, run } from "~/.as-harness/exports";',
+		...entryFiles.map(
+			(entryFile) =>
+				`import "${toImportPath(entrypointDirectory, entryFile)}";`,
+		),
+		"",
+	].join("\n");
+
+	await writeFile(entrypointPath, sourceText, "utf8");
+
+	return {
+		async cleanup() {
+			await rm(tempDirectory, { force: true, recursive: true });
+		},
+		path: entrypointPath,
+	};
+}
+
+function getWasmArtifactBytes(
+	wasmArtifacts: Awaited<ReturnType<typeof compileEntrypoints>>,
+) {
+	const wasmArtifact = wasmArtifacts.find((artifact) =>
+		artifact.path.endsWith(".wasm"),
+	);
+	if (!wasmArtifact) {
+		throw new Error("Compilation completed without emitting a wasm artifact.");
+	}
+
+	return wasmArtifact.contents;
+}
+
+function getFailMessageEvents(events: HarnessExecution["events"]) {
+	return events.filter(
+		(event): event is HarnessEvent<"failMessage"> =>
+			event.type === "failMessage",
+	);
+}
+
+function collectExecutionFailures(
+	result: HarnessStartResult,
+): ExecutionFailure[] {
+	const failures: ExecutionFailure[] = [];
+
+	for (const branch of result.branches) {
+		for (const execution of branch.executions) {
+			if (execution.ok) {
+				continue;
+			}
+
+			const messages = getFailMessageEvents(execution.events).map(
+				(event) => event.data.message,
+			);
+			failures.push({
+				messages,
+				nodeName: execution.node.name,
+			});
+		}
+	}
+
+	return failures;
+}
+
+function collectDiscoveryFailures(result: HarnessStartResult) {
+	return result.branches
+		.filter((branch) => !branch.discovery.ok)
+		.map((branch) => branch.root.name);
+}
+
+function printSuccessSummary(
+	result: HarnessStartResult,
+	runtime: Runtime,
+	logger: RunLogger,
+) {
+	logger.info(
+		`PASS ${result.discoveredTestCount} test(s) across ${result.topLevelNodes.length} top-level node(s) with ${runtime.name}.`,
+	);
+}
+
+function printExecutionFailureSummary(
+	result: HarnessStartResult,
+	failures: readonly ExecutionFailure[],
+	runtime: Runtime,
+	logger: RunLogger,
+) {
+	logger.error(
+		`FAIL ${failures.length} test(s) failed out of ${result.discoveredTestCount} discovered with ${runtime.name}.`,
+	);
+
+	for (const failure of failures) {
+		if (failure.messages.length === 0) {
+			logger.error(`- ${failure.nodeName}: failed without a fail message`);
+			continue;
+		}
+
+		for (const message of failure.messages) {
+			logger.error(`- ${failure.nodeName}: ${message}`);
+		}
+	}
+}
+
+function printDiscoveryFailureSummary(
+	discoveryFailures: readonly string[],
+	runtime: Runtime,
+	logger: RunLogger,
+) {
+	logger.error(
+		`Discovery failed while traversing the test tree with ${runtime.name}.`,
+	);
+
+	for (const nodeName of discoveryFailures) {
+		logger.error(`- ${nodeName}`);
+	}
+}
+
+export async function runEntryFiles(
+	entryFiles: readonly string[],
+	cwd: string,
+	logger: RunLogger,
+	runtime: Runtime = jsRuntime,
+): Promise<RunCommandResult> {
+	let wasmBytes: Uint8Array;
+	const temporaryEntrypoint = await createRunEntrypoint(entryFiles, cwd);
+
+	try {
+		const artifacts = await compileEntrypoints(
+			[temporaryEntrypoint.path],
+			createRunCompilerOptions(cwd),
+			runtime,
+		);
+		wasmBytes = getWasmArtifactBytes(artifacts);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		logger.error(`Compilation failed: ${message}`);
+		return {
+			discoveredTestCount: 0,
+			exitCode: RunExitCode.CompileFailure,
+		};
+	} finally {
+		await temporaryEntrypoint.cleanup();
+	}
+
+	let result: HarnessStartResult;
+
+	try {
+		result = await runtime.createHarness(wasmBytes).start();
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		logger.error(`Host execution failed: ${message}`);
+		return {
+			discoveredTestCount: 0,
+			exitCode: RunExitCode.HostFailure,
+		};
+	}
+
+	const discoveryFailures = collectDiscoveryFailures(result);
+	if (discoveryFailures.length > 0) {
+		printDiscoveryFailureSummary(discoveryFailures, runtime, logger);
+		return {
+			discoveredTestCount: result.discoveredTestCount,
+			exitCode: RunExitCode.HostFailure,
+		};
+	}
+
+	const executionFailures = collectExecutionFailures(result);
+	if (executionFailures.length > 0) {
+		printExecutionFailureSummary(result, executionFailures, runtime, logger);
+		return {
+			discoveredTestCount: result.discoveredTestCount,
+			exitCode: RunExitCode.TestFailure,
+		};
+	}
+
+	printSuccessSummary(result, runtime, logger);
+	return {
+		discoveredTestCount: result.discoveredTestCount,
+		exitCode: RunExitCode.Success,
+	};
+}

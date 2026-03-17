@@ -10,6 +10,7 @@ import {
 	sep,
 } from "node:path";
 import packageJson from "./package.json";
+import { runEntryFiles } from "./run";
 
 const CLI_NAME = "as-harness";
 const CLI_VERSION = packageJson.version;
@@ -42,7 +43,7 @@ Usage:
 Commands:
   help                 Show this help text
   list                 List discovered entry files
-  run                  Resolve entry files and run a compilation scaffold
+  run                  Resolve entry files, compile them, and execute them
 
 Entry Discovery:
   Ordinal arguments are treated as file paths by default.
@@ -371,10 +372,15 @@ async function runRunCommand(command: ParsedCommand, cwd: string) {
 		console.error("Coverage is not implemented yet.");
 	}
 
-	console.error(
-		`Resolved ${entries.length} entry file(s). Compilation execution is not implemented yet.`,
-	);
-	process.exitCode = 1;
+	const result = await runEntryFiles(entries, cwd, {
+		error(message) {
+			console.error(message);
+		},
+		info(message) {
+			console.log(message);
+		},
+	});
+	process.exitCode = result.exitCode;
 }
 
 async function main(args: string[]) {

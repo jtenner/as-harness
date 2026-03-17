@@ -95,6 +95,7 @@ const TEMP_LIBRARY_DIRECTORY_PREFIX = "as-harness-lib-";
 const TEMP_TRANSFORM_DIRECTORY_PREFIX = "as-harness-transform-";
 export const BUNDLED_LIBRARY_COMPONENTS_PATH = `${bundledVirtualRoot}/lib`;
 export const BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH = `${bundledTransformRoot}/index.js`;
+export const BUNDLED_HARNESS_EXPORTS_ENTRY_PATH = `${bundledVirtualRoot}/exports.ts`;
 const BUNDLED_HARNESS_LIBRARY_ENTRY_POINTS = new Set([
 	"node:test",
 	"node:assert",
@@ -657,25 +658,31 @@ function buildCompilerArguments(
 	return argumentsList;
 }
 
-export async function compile(
+function buildCompilationArguments(
+	entryFiles: readonly string[],
 	compilerOptions: CompilerOptions,
+	harnessRuntime: HarnessRuntime,
+) {
+	return [
+		...entryFiles,
+		...buildCompilerArguments(compilerOptions, harnessRuntime),
+	];
+}
+
+async function compileWithArguments(
+	compilerOptions: CompilerOptions,
+	createCompilerArguments: (
+		preparedCompilerOptions: CompilerOptions,
+	) => string[],
 ): Promise<Artifact[]> {
 	const artifacts = new Map<string, Artifact>();
 	const stdout = createMemoryStream();
 	const stderr = createMemoryStream();
-	const harnessRuntime = jsRuntime;
-
-	if (Object.keys(compilerOptions).length === 0) {
-		return [];
-	}
 	const preparedCompilerOptions = await prepareCompilerOptions(compilerOptions);
 
 	try {
 		const { error } = await runAsc(
-			buildCompilerArguments(
-				preparedCompilerOptions.compilerOptions,
-				harnessRuntime,
-			),
+			createCompilerArguments(preparedCompilerOptions.compilerOptions),
 			{
 				stdout,
 				stderr,
@@ -713,4 +720,36 @@ export async function compile(
 	} finally {
 		await preparedCompilerOptions.cleanup();
 	}
+}
+
+export async function compile(
+	compilerOptions: CompilerOptions,
+): Promise<Artifact[]> {
+	const harnessRuntime = jsRuntime;
+
+	if (Object.keys(compilerOptions).length === 0) {
+		return [];
+	}
+
+	return compileWithArguments(compilerOptions, (preparedCompilerOptions) =>
+		buildCompilerArguments(preparedCompilerOptions, harnessRuntime),
+	);
+}
+
+export async function compileEntrypoints(
+	entryFiles: readonly string[],
+	compilerOptions: CompilerOptions,
+	harnessRuntime: HarnessRuntime = jsRuntime,
+): Promise<Artifact[]> {
+	if (entryFiles.length === 0) {
+		return [];
+	}
+
+	return compileWithArguments(compilerOptions, (preparedCompilerOptions) =>
+		buildCompilationArguments(
+			entryFiles,
+			preparedCompilerOptions,
+			harnessRuntime,
+		),
+	);
 }

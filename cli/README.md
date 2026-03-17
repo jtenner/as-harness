@@ -1,35 +1,37 @@
 # `@as-harness/cli`
 
-`cli/` is the Bun-based CLI package and intended distribution surface for the project. Today it proves the executable entrypoint, entry discovery, AssemblyScript compiler wrapper, bundled support-file handling, and multi-target Bun compilation. The finished end-to-end compile-and-run product is still in progress.
+`cli/` is the Bun-based CLI package and intended distribution surface for the project. Today it provides the executable entrypoint, entry discovery, a real default-`js` compile-and-run path, the AssemblyScript compiler wrapper, bundled support-file handling, and multi-target Bun compilation. The broader shipped runner surface is still in progress.
 
 ## Current Status
 
 Implemented today:
 
 - A Bun CLI entrypoint at `index.ts`
-- `help`, `list`, and a scaffolded `run` command
+- `help`, `list`, and a real `run` command for the default `js` host
 - Entry discovery with default globs, explicit file paths, glob mode, and ignore filters
 - A programmatic AssemblyScript compiler wrapper in `as/compile.ts`
 - Bundled virtual AssemblyScript support files generated from `../assembly/assembly/**/*.ts`
+- A first end-to-end `run` flow that compiles discovered entries, instantiates them through `harness/js`, and prints basic pass/fail summaries
 - A multi-target Bun build script that emits one `single-file Bun executable` per Bun target
 
 Planned or incomplete:
 
-- `run` still exits as a scaffold instead of driving the full compile-and-run flow
 - Coverage flags are placeholders
-- The runtime abstraction exists, but runtime-specific compiler mutations are still stubs
-- A user-facing runtime selector is not wired up yet
+- The runtime abstraction now supports the default `js` host flow, but runtime selection is not yet a stable user-facing feature
+- The documented `run` compiler/runtime flags are not fully wired through the command parser yet
 - `cli/n-api/` is still packaging scaffolding rather than a finished embedded native path
 
 ## What The CLI Currently Does
 
 - Lists candidate AssemblyScript test entry files.
-- Documents the intended `run` surface and forced compiler defaults.
+- Compiles discovered AssemblyScript test entries together with the bundled harness exports.
+- Executes compiled test modules through the default `js` host.
+- Prints basic pass/fail summaries and failing test messages.
 - Wraps `assemblyscript/asc` programmatically instead of shelling out.
 - Captures compiler outputs in memory.
 - Builds target-specific Bun executables under `dist/<target>/`.
 
-The CLI does not yet prove the final product flow of compiling user tests and executing them through a selected host runtime.
+The CLI now proves the first compile-and-run flow through the default `js` host, but it does not yet offer stable runtime selection or the final dual-host packaging story.
 
 ## Bundled Support Files
 
@@ -44,13 +46,13 @@ This matters for packaging because a compiled Bun executable cannot rely on the 
 
 ## Runtime Selection
 
-There is an internal runtime abstraction in `runtime/` with `js`, `wazero`, and `wasmtime` entries, but those implementations are currently stubs that only satisfy a shared interface. The intended MVP is to ship both the `JS host` and the `wazero host`, but the CLI does not yet offer a stable runtime-selection feature, and it does not yet load the `wazero host` `Node-API addon`.
+There is an internal runtime abstraction in `runtime/` with `js`, `wazero`, and `wasmtime` entries. The default `js` path now drives the real `run` command, while `wazero` and broader runtime-selection behavior still need CLI wiring and packaging work. The intended MVP is still to ship both the `JS host` and the `wazero host`, but the CLI does not yet offer a stable runtime selector, and it does not yet prove the packaged `wazero host` `Node-API addon` path.
 
 ## Packaging Notes
 
 - Bun can compile this CLI into a target-specific `single-file Bun executable`.
 - `build.ts` regenerates bundled AssemblyScript support files before each executable build.
-- The current build matrix includes macOS, Linux, Linux `musl`, and Windows Bun targets.
+- The current build matrix includes macOS, Linux, Linux `musl`, and Windows Bun targets, even though the first release direction does not promise Linux `musl` support.
 - The intended MVP is to support both runtime paths from the CLI:
   - the `JS host` as the portable baseline
   - the `wazero host` as the native companion path where a matching addon exists
