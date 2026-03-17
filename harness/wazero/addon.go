@@ -5,6 +5,31 @@ package main
 #include <stdlib.h>
 #include <node_api.h>
 
+static inline size_t as_harness_typed_array_byte_length(napi_typedarray_type array_type, size_t length) {
+	switch (array_type) {
+		case napi_int8_array:
+		case napi_uint8_array:
+		case napi_uint8_clamped_array:
+			return length;
+		case napi_int16_array:
+		case napi_uint16_array:
+#ifdef NODE_API_HAS_FLOAT16_ARRAY
+		case napi_float16_array:
+#endif
+			return length * 2;
+		case napi_int32_array:
+		case napi_uint32_array:
+		case napi_float32_array:
+			return length * 4;
+		case napi_float64_array:
+		case napi_bigint64_array:
+		case napi_biguint64_array:
+			return length * 8;
+		default:
+			return 0;
+	}
+}
+
 extern napi_value GoCreateHarness(napi_env env, napi_callback_info info);
 extern napi_value GoOnNodeFound(napi_env env, napi_callback_info info);
 extern napi_value GoOnNodeStart(napi_env env, napi_callback_info info);
@@ -319,21 +344,6 @@ func getCallbackArguments(env C.napi_env, info C.napi_callback_info, argc C.size
 	return args[:int(actual)], thisArg, true
 }
 
-func typedArrayByteLength(arrayType C.napi_typedarray_type, length C.size_t) C.size_t {
-	switch arrayType {
-	case C.napi_int8_array, C.napi_uint8_array, C.napi_uint8_clamped_array:
-		return length
-	case C.napi_int16_array, C.napi_uint16_array, C.napi_float16_array:
-		return length * 2
-	case C.napi_int32_array, C.napi_uint32_array, C.napi_float32_array:
-		return length * 4
-	case C.napi_float64_array, C.napi_bigint64_array, C.napi_biguint64_array:
-		return length * 8
-	default:
-		return 0
-	}
-}
-
 func copyBytes(ptr unsafe.Pointer, length C.size_t) []byte {
 	if ptr == nil || length == 0 {
 		return []byte{}
@@ -379,7 +389,7 @@ func bytesFromValue(env C.napi_env, value C.napi_value) ([]byte, bool) {
 		_ = arrayBuffer
 		_ = byteOffset
 
-		return copyBytes(data, typedArrayByteLength(arrayType, length)), true
+		return copyBytes(data, C.as_harness_typed_array_byte_length(arrayType, length)), true
 	}
 
 	var isArrayBuffer C.bool
