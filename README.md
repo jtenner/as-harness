@@ -15,6 +15,7 @@ The project goal is to make AssemblyScript tests compile into Wasm and run throu
 - CLI usage and packaging: [cli/README.md](/home/jtenner/Projects/as-harness/cli/README.md)
 - Harness ABI for third-party host authors: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
 - Release operations and artifact expectations: [docs/release-process.md](/home/jtenner/Projects/as-harness/docs/release-process.md)
+- Project license: [LICENSE](/home/jtenner/Projects/as-harness/LICENSE)
 - Current runtime and product backlog: [agent-todo.md](/home/jtenner/Projects/as-harness/agent-todo.md)
 - Guest runtime architecture: [docs/primary-buildout.md](/home/jtenner/Projects/as-harness/docs/primary-buildout.md)
 - Strict equality and reflected diagnostics: [docs/strict-equality-machinery.md](/home/jtenner/Projects/as-harness/docs/strict-equality-machinery.md)
@@ -158,6 +159,12 @@ Detailed host-specific notes live in:
 - [harness/js/README.md](/home/jtenner/Projects/as-harness/harness/js/README.md)
 - [harness/wazero/README.md](/home/jtenner/Projects/as-harness/harness/wazero/README.md)
 - [cli/n-api/README.md](/home/jtenner/Projects/as-harness/cli/n-api/README.md)
+
+## License
+
+The `as-harness` project is licensed under MIT. See [LICENSE](/home/jtenner/Projects/as-harness/LICENSE).
+
+Third-party release notices and license texts live in [THIRD_PARTY_NOTICES.md](/home/jtenner/Projects/as-harness/THIRD_PARTY_NOTICES.md) and [licenses/](/home/jtenner/Projects/as-harness/licenses).
 
 ## Release Flow
 

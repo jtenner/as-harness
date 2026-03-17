@@ -2,7 +2,7 @@
 
 This project ships packaged CLI binaries that include or depend on third-party software. This file identifies the third-party components that are part of the current `v0.1.0` release path and points to the corresponding license texts included in this repository.
 
-This file covers third-party notices only. It is not the license for the `as-harness` project itself.
+This file covers third-party notices only. The `as-harness` project itself is licensed under MIT in [LICENSE](/home/jtenner/Projects/as-harness/LICENSE).
 
 ## Included Components
 

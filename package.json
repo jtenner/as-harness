@@ -1,5 +1,6 @@
 {
   "name": "as-harness",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "release:manifest": "bun run ./scripts/release-manifest.ts",

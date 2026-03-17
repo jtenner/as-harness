@@ -1,5 +1,6 @@
 {
   "name": "@as-harness/js",
+  "license": "MIT",
   "private": true,
   "main": "./index.cjs",
   "types": "./index.d.ts",

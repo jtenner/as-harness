@@ -75,6 +75,7 @@ The release-manifest generator will fail if those drift.
 The release workflow publishes:
 
 - one packaged executable per release target
+- `LICENSE`
 - `THIRD_PARTY_NOTICES.md`
 - tracked third-party license texts copied from `licenses/`
 - `release-manifest.json`

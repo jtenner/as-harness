@@ -2,6 +2,7 @@
 
 ## 2026-03-17
 
+- **license: add the project MIT license and align package metadata** Add a root MIT `LICENSE`, mark the package manifests as MIT-licensed, and update the main docs plus third-party notices so the project license is explicit alongside the release-time dependency notice bundle. GitHub: *@jtenner*
 - **release: stage third-party notices and unblock Bun wazero release smoke** Make the CLI `wazero` runtime load lazily so Bun no longer hangs while resolving it during `runEntryFiles(...)`, harden packaged smoke verification with a subprocess timeout, add tracked third-party notice and license files plus a release-legal staging script, and wire the release workflow/docs to publish that legal bundle with each release artifact set. GitHub: *@jtenner*
 - **docs: refresh markdown for the release-ready project state** Tighten the root, assembly, wazero, and native-addon staging READMEs so they reflect the current hosted release matrix, packaged Windows `js`-only behavior, the remaining clean-environment proof work, and the post-CI release posture instead of older “still being wired up” wording. GitHub: *@jtenner*
 - **release: tighten versioning and published artifact metadata for v0.1.0** Set the CLI package version to `0.1.0`, mark the shipped harness-selection policy complete in `agent-todo.md`, add a dedicated release-process operator guide, and extend the release-manifest generator so publish-time metadata now enforces tag/version consistency and emits `SHA256SUMS.txt` alongside `release-manifest.json`. GitHub: *@jtenner*

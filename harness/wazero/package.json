@@ -1,5 +1,6 @@
 {
   "name": "@as-harness/wazero",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "main": "./index.cjs",

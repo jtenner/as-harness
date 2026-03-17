@@ -17,6 +17,10 @@ type LegalAsset = {
 
 const LEGAL_ASSETS: LegalAsset[] = [
 	{
+		destinationFilename: "LICENSE",
+		sourcePath: join(REPO_DIR, "LICENSE"),
+	},
+	{
 		destinationFilename: "THIRD_PARTY_NOTICES.md",
 		sourcePath: join(REPO_DIR, "THIRD_PARTY_NOTICES.md"),
 	},
