@@ -35,7 +35,7 @@ The build script supports:
 - `NODE_API_LIB_FILE`
 - `npm_config_nodedir`
 
-On Windows, the build script can also download a matching `node.lib` into `.cache/` when one is not already available.
+On Windows, the build script can also download a matching `node.lib` into `.cache/` when one is not already available, and it stages the import library under `.cache/` before passing `-L... -l:node.lib` into cgo so hosted builds do not depend on raw absolute library paths.
 
 ## Install And Packaging Story
 

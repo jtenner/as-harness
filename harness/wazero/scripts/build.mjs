@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,7 +26,15 @@ if (process.platform === "linux") {
 	env.CGO_LDFLAGS = [process.env.CGO_LDFLAGS, "-Wl,-undefined,dynamic_lookup"].filter(Boolean).join(" ");
 } else if (process.platform === "win32") {
 	const nodeLibrary = await resolveWindowsNodeLibrary();
-	env.CGO_LDFLAGS = [process.env.CGO_LDFLAGS, nodeLibrary].filter(Boolean).join(" ");
+	const nodeLibraryDirectory = toCgoPath(path.dirname(nodeLibrary));
+	const nodeLibraryFilename = path.basename(nodeLibrary);
+	env.CGO_LDFLAGS = [
+		process.env.CGO_LDFLAGS,
+		`-L${nodeLibraryDirectory}`,
+		`-l:${nodeLibraryFilename}`,
+	]
+		.filter(Boolean)
+		.join(" ");
 } else {
 	throw new Error(`Unsupported platform for Go N-API build: ${process.platform}`);
 }
@@ -125,7 +133,7 @@ async function resolveDownloadedNodeIncludeDir() {
 
 async function resolveWindowsNodeLibrary() {
 	if (process.env.NODE_API_LIB_FILE && existsSync(process.env.NODE_API_LIB_FILE)) {
-		return process.env.NODE_API_LIB_FILE;
+		return cacheWindowsNodeLibrary(process.env.NODE_API_LIB_FILE);
 	}
 
 	const candidates = [
@@ -137,7 +145,7 @@ async function resolveWindowsNodeLibrary() {
 
 	for (const candidate of candidates) {
 		if (candidate && existsSync(candidate)) {
-			return candidate;
+			return cacheWindowsNodeLibrary(candidate);
 		}
 	}
 
@@ -167,6 +175,21 @@ async function resolveWindowsNodeLibrary() {
 
 	writeFileSync(downloadPath, Buffer.from(await response.arrayBuffer()));
 	return downloadPath;
+}
+
+function cacheWindowsNodeLibrary(sourcePath) {
+	const cacheDirectory = path.join(cacheDir, "node", `v${process.versions.node}`, windowsReleaseArch());
+	const cachedPath = path.join(cacheDirectory, "node.lib");
+	mkdirSync(cacheDirectory, { recursive: true });
+	if (path.resolve(sourcePath) !== path.resolve(cachedPath)) {
+		copyFileSync(sourcePath, cachedPath);
+	}
+
+	return cachedPath;
+}
+
+function toCgoPath(value) {
+	return value.replaceAll("\\", "/");
 }
 
 function windowsReleaseArch() {
