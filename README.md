@@ -50,6 +50,7 @@ What works today:
 - packaged Bun executables can run the local smoke path for the supported `js`/`wazero` release matrix
 - `wasmtime` currently stays source-only and is not bundled into the packaged Bun release artifacts
 - the host parity smoke suite now covers event decoding, `callI32`, `discover`, `run`, `start`, and trampoline behavior across `js`, `wazero`, and `wasmtime`
+- CI now runs a source-host smoke matrix across the supported GitHub-hosted runners while keeping the packaged release matrix limited to the proven `js`/`wazero` artifact set
 - the release workflows can build and smoke-test the packaged CLI across the intended release targets
 - the release workflow now publishes `release-manifest.json`, `SHA256SUMS.txt`, and generated release notes alongside the packaged executables
 - the release workflow now stages third-party licensing files alongside the packaged executables
@@ -154,6 +155,7 @@ The CLI currently resolves built-in harnesses, but the ABI guide is written so e
 ```bash
 bun validate
 bun test
+bun run host:matrix
 cd harness/js && npm test
 cd harness/wazero && npm test
 cd harness/wasmtime && npm test

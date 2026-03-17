@@ -1,6 +1,7 @@
 const EXECUTABLE_NAME = "as-harness";
 
 export type PackagedHarness = "js" | "wazero";
+export type SourceHarness = "js" | "wazero" | "wasmtime";
 
 // Bun's compile-target grammar accepts more strings than the executable docs
 // currently list. This matrix sticks to the documented supported targets and
@@ -28,6 +29,13 @@ export type ReleaseBuildTarget = {
 	compileTarget: Bun.Build.CompileTarget;
 	packagedHarnesses: PackagedHarness[];
 	runner: string;
+};
+
+export type HostValidationTarget = {
+	architecture: "arm64" | "x64";
+	label: string;
+	runner: string;
+	sourceHarnesses: SourceHarness[];
 };
 
 // These are the first release artifacts we actually intend to ship and smoke on
@@ -68,6 +76,43 @@ export const RELEASE_BUILD_TARGETS: ReleaseBuildTarget[] = [
 export const RELEASE_COMPILE_TARGETS = RELEASE_BUILD_TARGETS.map(
 	({ compileTarget }) => compileTarget,
 );
+
+// These are the hosted runners where we expect source-based host builds and
+// smoke tests to work. This matrix is intentionally broader than the packaged
+// release matrix because source hosts and packaged CLI artifacts have different
+// constraints.
+export const HOST_VALIDATION_TARGETS: HostValidationTarget[] = [
+	{
+		architecture: "x64",
+		label: "linux-x64",
+		runner: "ubuntu-24.04",
+		sourceHarnesses: ["js", "wazero", "wasmtime"],
+	},
+	{
+		architecture: "arm64",
+		label: "linux-arm64",
+		runner: "ubuntu-24.04-arm",
+		sourceHarnesses: ["js", "wazero", "wasmtime"],
+	},
+	{
+		architecture: "arm64",
+		label: "macos-arm64",
+		runner: "macos-15",
+		sourceHarnesses: ["js", "wazero", "wasmtime"],
+	},
+	{
+		architecture: "x64",
+		label: "macos-x64",
+		runner: "macos-15-intel",
+		sourceHarnesses: ["js", "wazero", "wasmtime"],
+	},
+	{
+		architecture: "x64",
+		label: "windows-x64",
+		runner: "windows-2025",
+		sourceHarnesses: ["js", "wazero", "wasmtime"],
+	},
+];
 
 export function releaseBuildTargetForCompileTarget(target: string) {
 	return (

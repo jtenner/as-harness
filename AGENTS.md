@@ -2,7 +2,7 @@
 
 - `cli/`: main Bun CLI package; entrypoint, compiler wrapper, runtime stubs, build script.
 - `assembly/`: AssemblyScript package for Wasm-side work; config, roadmap, build/test scripts.
-- `harness/`: host-runtime packages; `js/` and `wazero/` are early working hosts, `wasmtime/` is still scaffolded.
+- `harness/`: host-runtime packages; `js/`, `wazero/`, and `wasmtime/` are working hosts.
 - `docs/`: architecture, ABI, and planning docs.
 - `CHANGELOG.md`: repo change history.
 

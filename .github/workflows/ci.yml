@@ -26,6 +26,56 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install CLI dependencies
+        working-directory: ./cli
+        run: bun install --frozen-lockfile
+
+      - name: Run validation
+        run: bun validate
+
+      - name: Run root tests
+        run: bun test
+
+  host-validation-matrix:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.host-validation-matrix.outputs.matrix }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Emit host validation matrix
+        id: host-validation-matrix
+        run: printf 'matrix=%s\n' "$(bun run ./scripts/host-validation-matrix.ts)" >> "$GITHUB_OUTPUT"
+
+  source-hosts:
+    name: Source Hosts (${{ matrix.label }})
+    needs:
+      - host-validation-matrix
+      - validate-and-test
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.host-validation-matrix.outputs.matrix) }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -42,21 +92,18 @@ jobs:
         working-directory: ./assembly
         run: npm ci
 
-      - name: Run validation
-        run: bun validate
-
-      - name: Run root tests
-        run: bun test
-
       - name: Run JS harness smoke tests
+        if: contains(matrix.sourceHarnesses, 'js')
         working-directory: ./harness/js
         run: npm test
 
       - name: Run wazero harness smoke tests
+        if: contains(matrix.sourceHarnesses, 'wazero')
         working-directory: ./harness/wazero
         run: npm test
 
       - name: Run wasmtime harness smoke tests
+        if: contains(matrix.sourceHarnesses, 'wasmtime')
         working-directory: ./harness/wasmtime
         run: npm test
 

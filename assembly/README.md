@@ -8,6 +8,8 @@ The most important rule is:
 - host code instantiates, schedules, decodes, and reports
 
 The guest/host boundary used by the shipped hosts is documented in [docs/harness-abi.md](../docs/harness-abi.md).
+The current source-host set exercising that boundary is `harness/js`,
+`harness/wazero`, and `harness/wasmtime`.
 
 ## What Lives Here
 
@@ -69,12 +71,15 @@ test("works", (t) => {
 
 That source is compiled into Wasm by the CLI, then executed by a harness.
 
+The current source-host validation matrix exercises the same guest runtime
+through JavaScript, Go/wazero, and Rust/Wasmtime hosts.
+
 ## Commands
 
 ```bash
 cd assembly
 npm ci
-npm test
+npm run asbuild
 ```
 
 For the broader repo flow:

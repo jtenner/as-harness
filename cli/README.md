@@ -10,6 +10,7 @@
 - the compiler wrapper bundles guest support files into the CLI build
 - `build.ts` emits target-specific Bun executables
 - the release workflows use the same build metadata and packaged smoke scripts as local development
+- CI also drives a separate source-host validation matrix so `wasmtime` can be proven without being added to packaged artifacts yet
 
 ## What It Does Not Do Yet
 
@@ -67,6 +68,8 @@ The packaged executable flow is:
 Shared release-target metadata lives in [build-targets.ts](./build-targets.ts).
 
 That metadata now also declares which packaged harnesses each release artifact is expected to support, and the release workflow uses the same source of truth to generate `release-manifest.json` plus release notes.
+
+The same module also defines the source-host validation matrix consumed by CI.
 
 The release metadata path now also emits `SHA256SUMS.txt` and validates that the Git tag matches the CLI package version before publish.
 

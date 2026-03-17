@@ -47,6 +47,7 @@ Current status:
 - the shared smoke suite covers event decoding, `callI32`, `discover`, `run`,
   `start`, traps, and replay behavior
 - CLI source execution supports `--harness wasmtime`
+- the CI source-host matrix runs this package on the supported hosted runners
 
 Not in scope yet:
 

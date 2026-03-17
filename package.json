@@ -3,6 +3,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
+    "host:matrix": "bun run ./scripts/host-validation-matrix.ts",
     "release:manifest": "bun run ./scripts/release-manifest.ts",
     "release:matrix": "bun run ./scripts/release-matrix.ts",
     "test": "bun run ./scripts/test.ts",

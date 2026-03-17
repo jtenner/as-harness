@@ -12,6 +12,10 @@ The current release channel is:
 4. tag `vX.Y.Z`
 5. let the release workflow build, verify, and publish the packaged executables
 
+This is separate from the source-host validation matrix in normal CI. Packaged
+release verification and source-host verification are intentionally not the same
+matrix.
+
 The packaged targets currently intended for release are:
 
 - `bun-darwin-arm64`
@@ -52,18 +56,23 @@ cd cli
 bun run build:list-release-targets
 ```
 
+If you want to inspect the source-host validation matrix locally:
+
+```bash
+bun run host:matrix
+```
+
 ## CI Expectations
 
 The main workflow should be green before tagging:
 
 - repo validation
 - root Bun tests
-- `harness/js` smoke
-- `harness/wazero` smoke
-- `harness/wasmtime` smoke
+- source-host smoke coverage across the explicit CI matrix runners
 - packaged CLI verification on the release matrix
 
 The packaged verification path is owned by [verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts).
+The source-host matrix is emitted by [host-validation-matrix.ts](../scripts/host-validation-matrix.ts).
 
 ## Tagging
 
