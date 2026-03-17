@@ -142,7 +142,7 @@ host-runner work.
 
 ## Node Execution
 
-- [ ] Honor `todo` by suppressing self-outcome significance without preventing descendant discovery.
+- [x] Honor `todo` by suppressing self-outcome significance without preventing descendant discovery.
 - [ ] Surface traps and unreachable conditions to the host without classifying final failure on the Wasm side.
 
 ## Hooks and Lifecycle
@@ -179,6 +179,6 @@ host-runner work.
 - [ ] For each module, define inputs, outputs, owned state, and forbidden decisions.
 - [x] Add fixtures that cover deterministic rediscovery for nested `describe` and `test` trees.
 - [x] Add fixtures that prove `skip` prevents subtree traversal.
-- [ ] Add fixtures that prove `todo` preserves descendant traversal while suppressing self-outcome significance.
+- [x] Add fixtures that prove `todo` preserves descendant traversal while suppressing self-outcome significance.
 - [x] Add fixtures for lifecycle ordering and lifecycle failure propagation.
 - [x] Add fixtures for unreachable branch pruning and clean replay after failure.

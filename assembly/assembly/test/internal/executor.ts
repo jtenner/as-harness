@@ -127,8 +127,11 @@ function testExecuteNodeSkipsNonRunnableModes(): void {
 
   const skipped = new Node(NodeKind.Test, "skipped", DeclarationMode.Skip);
   skipped.setTestCallback(executeTestCallback);
+  const todo = new Node(NodeKind.Test, "todo", DeclarationMode.Todo);
+  todo.setTestCallback(executeTestCallback);
 
   executeNode(skipped);
+  executeNode(todo);
 
   assert(executionTrace.length == 0);
 }

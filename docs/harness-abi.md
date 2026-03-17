@@ -62,6 +62,7 @@ The host must expect these guest exports:
 - consumes the staged `NodeIndex`
 - returns `1` when the targeted node completed without trapping
 - returns `0` when the target does not exist, no `NodeIndex` was staged, or execution failed
+- for `todo` nodes, a direct targeted run is a structural no-op: the node is considered resolved, but it should not emit normal execution events or count as a meaningful self outcome
 
 `invoke()`:
 
@@ -192,6 +193,12 @@ A harness implementation is responsible for:
 
 The host is also the durable source of truth for reporting and scheduling policy. The guest emits execution facts; the host decides how to aggregate them.
 
+`DeclarationMode` affects host scheduling:
+
+- `normal` nodes may be scheduled for execution
+- `skip` nodes remain discoverable but their children should be pruned
+- `todo` nodes remain discoverable, their descendants may still be discovered, but the host should suppress the `todo` node's own execution significance
+
 ## Public Host Surface
 
 The current host interface lives in [harness-types.d.ts](/home/jtenner/Projects/as-harness/harness/shared/harness-types.d.ts).
@@ -237,6 +244,7 @@ It is useful for host-level probes such as trampoline status checks.
 - returns `true` when the node completed successfully
 - returns `false` on invalid input, missing node, or failed execution
 - should emit the normal event stream for that execution attempt
+- for `todo` targets, success means the node was resolved without trapping, but the host should expect no normal execution events for the `todo` node itself
 
 ### `start()`
 

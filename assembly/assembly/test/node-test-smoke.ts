@@ -48,6 +48,8 @@ test.todo("todo parent", (context: TestContext): void => {
   context.test("todo nested child", (_nestedContext: TestContext): void => {});
 });
 
+test.todo("top-level todo leaf", (_context: TestContext): void => {});
+
 test("hook failure parent", (context: TestContext): void => {
   context.beforeEach((hookContext: TestContext): void => {
     hookContext.assert.strictEqual<i32>(31, 32, "hook beforeEach mismatch");
