@@ -29,7 +29,7 @@ Planned first release scope:
 - `node:assert/strict`
 - `js` host
 - `wazero` host
-- basic pass/fail reporting with failure messages
+- deterministic result-tree reporting with pass/fail counts, failure messages, and failed-test logs
 - GitHub build/tag/release distribution
 
 Explicit non-goals for `v0.1.0`:
@@ -50,6 +50,7 @@ What works today:
 - packaged Bun executables can run the local smoke path for the supported `js`/`wazero` release matrix
 - `wasmtime` currently stays source-only and is not bundled into the packaged Bun release artifacts
 - the host parity smoke suite now covers event decoding, `callI32`, `discover`, `run`, `start`, and trampoline behavior across `js`, `wazero`, and `wasmtime`
+- AssemblyScript `trace(...)` calls now surface through first-class host `log` events
 - CI now runs a source-host smoke matrix across the supported GitHub-hosted runners while keeping the packaged release matrix limited to the proven `js`/`wazero` artifact set
 - each source-host CI job now emits a per-target verification report so host proof is tied to an explicit matrix label instead of only raw job logs
 - the release workflows can build and smoke-test the packaged CLI across the intended release targets
@@ -171,6 +172,7 @@ bun run verify:packaged-cli --target bun-linux-x64
 Common failure classes:
 
 - compile failures: check `--lib` usage, entry discovery, and AssemblyScript diagnostics from the CLI
+- missing log output: the default reporter only prints `diagnostic` and `trace` logs for failed executions
 - host failures: verify the selected harness exists and that `wazero` has a matching native addon
 - wasmtime host failures: verify that Rust is installed and `harness/wasmtime/dist/wasmtime.node` has been built
 - trap-related failures: inspect `FailMessage`, callback, and node event ordering first

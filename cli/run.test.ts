@@ -95,7 +95,7 @@ test("passing test", (_context: TestContext): void => {});
 			expect(result.exitCode).toBe(0);
 			expect(result.stderr).toBe("");
 			expect(result.stdout).toContain(
-				"PASS 1 test(s) across 1 top-level node(s) with js.",
+				"PASS 1 passed, 0 failed, 1 discovered with js.",
 			);
 		},
 	);
@@ -104,7 +104,14 @@ test("passing test", (_context: TestContext): void => {});
 		`
 import { test, TestContext } from "node:test";
 
+test("passing test", (context: TestContext): void => {
+  context.diagnostic("passing diagnostic");
+  trace("passing trace", 1, 1);
+});
+
 test("failing test", (context: TestContext): void => {
+  context.diagnostic("failing diagnostic");
+  trace("failing trace", 2, 12, 13);
   context.assert.strictEqual<i32>(11, 12, "shape mismatch");
 });
 `,
@@ -114,9 +121,14 @@ test("failing test", (context: TestContext): void => {
 			expect(result.exitCode).toBe(1);
 			expect(result.stdout).toBe("");
 			expect(result.stderr).toContain(
-				"FAIL 1 test(s) failed out of 1 discovered with js.",
+				"FAIL 1 passed, 1 failed, 2 discovered with js.",
 			);
-			expect(result.stderr).toContain("- failing test: shape mismatch");
+			expect(result.stderr).toContain("- failing test");
+			expect(result.stderr).toContain("  fail: shape mismatch");
+			expect(result.stderr).toContain("  diagnostic: failing diagnostic");
+			expect(result.stderr).toContain("  trace: failing trace (12, 13)");
+			expect(result.stderr).not.toContain("passing diagnostic");
+			expect(result.stderr).not.toContain("passing trace");
 		},
 	);
 

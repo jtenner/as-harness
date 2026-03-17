@@ -16,6 +16,7 @@ const EVENT_TYPES = [
 	["onCallbackPass", "callbackPass"],
 	["onCallbackFail", "callbackFail"],
 	["onDiagnostic", "diagnostic"],
+	["onLog", "log"],
 ];
 const workerScriptPath = path.join(__dirname, "start-worker.cjs");
 

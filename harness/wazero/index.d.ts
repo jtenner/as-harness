@@ -15,6 +15,7 @@ export type {
 	HarnessEventType,
 	HarnessExecution,
 	HarnessFailMessageEvent,
+	HarnessLogEvent,
 	HarnessNode,
 	HarnessNodeEvent,
 	HarnessNodeFoundEvent,

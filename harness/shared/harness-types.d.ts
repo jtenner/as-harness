@@ -40,6 +40,12 @@ export interface HarnessDiagnosticEvent {
 	message: string;
 }
 
+export interface HarnessLogEvent {
+	message: string;
+	source: "trace";
+	values: Array<number>;
+}
+
 export interface HarnessEventMap {
 	nodeFound: HarnessNodeFoundEvent;
 	nodeStart: HarnessNodeEvent;
@@ -50,6 +56,7 @@ export interface HarnessEventMap {
 	callbackPass: HarnessCallbackEvent;
 	callbackFail: HarnessCallbackFailureEvent;
 	diagnostic: HarnessDiagnosticEvent;
+	log: HarnessLogEvent;
 }
 
 export type HarnessEventType = keyof HarnessEventMap;
@@ -101,6 +108,7 @@ export interface Harness {
 	onCallbackPass(callback: HarnessEventCallback<"callbackPass">): void;
 	onCallbackFail(callback: HarnessEventCallback<"callbackFail">): void;
 	onDiagnostic(callback: HarnessEventCallback<"diagnostic">): void;
+	onLog(callback: HarnessEventCallback<"log">): void;
 	callI32(exportName: string): number;
 	discover(nodeIndex: Array<number>): boolean;
 	run(nodeIndex: Array<number>): boolean;

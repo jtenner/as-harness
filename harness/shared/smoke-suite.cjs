@@ -11,6 +11,7 @@ const PASSING_TEST_EVENTS = [
 	["callbackStart", { hook: 2, nodeIndex: [] }],
 	["callbackPass", { hook: 2, nodeIndex: [] }],
 	["diagnostic", { nodeIndex: [0], message: "passing test diagnostic" }],
+	["log", { message: "passing test trace", source: "trace", values: [11, 12] }],
 	["callbackStart", { hook: 3, nodeIndex: [] }],
 	["callbackPass", { hook: 3, nodeIndex: [] }],
 	["callbackStart", { hook: 4, nodeIndex: [] }],
@@ -24,6 +25,7 @@ const FAILING_TEST_EVENTS = [
 	["callbackPass", { hook: 1, nodeIndex: [] }],
 	["callbackStart", { hook: 2, nodeIndex: [] }],
 	["callbackPass", { hook: 2, nodeIndex: [] }],
+	["log", { message: "failing test trace", source: "trace", values: [12] }],
 	["failMessage", { message: "node:test smoke mismatch" }],
 	["nodeFail", { nodeIndex: [1], failureKind: 1 }],
 ];
@@ -186,6 +188,10 @@ const PASSING_BRANCH_EVENTS = [
 		type: "diagnostic",
 		data: { nodeIndex: [0], message: "passing test diagnostic" },
 	},
+	{
+		type: "log",
+		data: { message: "passing test trace", source: "trace", values: [11, 12] },
+	},
 	{ type: "callbackStart", data: { hook: 3, nodeIndex: [] } },
 	{ type: "callbackPass", data: { hook: 3, nodeIndex: [] } },
 	{ type: "callbackStart", data: { hook: 4, nodeIndex: [] } },
@@ -287,6 +293,7 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(typeof harness.onCallbackPass, "function");
 		assert.equal(typeof harness.onCallbackFail, "function");
 		assert.equal(typeof harness.onDiagnostic, "function");
+		assert.equal(typeof harness.onLog, "function");
 		assert.equal(typeof harness.callI32, "function");
 		assert.equal(typeof harness.discover, "function");
 		assert.equal(typeof harness.run, "function");
@@ -301,6 +308,7 @@ function registerHarnessSmokeSuite(options) {
 		harness.onCallbackPass(() => {});
 		harness.onCallbackFail(() => {});
 		harness.onDiagnostic(() => {});
+		harness.onLog(() => {});
 		assert.equal(harness.discover("bad"), false);
 		assert.equal(harness.run([]), true);
 		assert.equal(harness.run("bad"), false);
@@ -360,6 +368,9 @@ function registerHarnessSmokeSuite(options) {
 		harness.onDiagnostic((event) => {
 			events.push(["diagnostic", event]);
 		});
+		harness.onLog((event) => {
+			events.push(["log", event]);
+		});
 
 		assert.equal(harness.run([0]), true);
 		assert.deepEqual(events, PASSING_TEST_EVENTS);
@@ -390,6 +401,9 @@ function registerHarnessSmokeSuite(options) {
 		});
 		harness.onFailMessage((event) => {
 			events.push(["failMessage", event]);
+		});
+		harness.onLog((event) => {
+			events.push(["log", event]);
 		});
 
 		assert.equal(harness.run([1]), false);
@@ -548,6 +562,9 @@ function registerHarnessSmokeSuite(options) {
 		});
 		harness.onDiagnostic((event) => {
 			(trapPhase ? trappedEvents : recoveryEvents).push(["diagnostic", event]);
+		});
+		harness.onLog((event) => {
+			(trapPhase ? trappedEvents : recoveryEvents).push(["log", event]);
 		});
 		harness.onFailMessage((event) => {
 			(trapPhase ? trappedEvents : recoveryEvents).push(["failMessage", event]);

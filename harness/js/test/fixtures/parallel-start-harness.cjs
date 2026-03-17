@@ -17,6 +17,7 @@ class FakeHarness {
 		callbackPass: null,
 		callbackFail: null,
 		diagnostic: null,
+		log: null,
 	};
 
 	onNodeFound(callback) {
@@ -53,6 +54,10 @@ class FakeHarness {
 
 	onDiagnostic(callback) {
 		this.#callbacks.diagnostic = callback;
+	}
+
+	onLog(callback) {
+		this.#callbacks.log = callback;
 	}
 
 	close() {}

@@ -17,10 +17,12 @@ after((_context: TestContext): void => {});
 test("passing test", (context: TestContext): void => {
   context.plan(1);
   context.diagnostic("passing test diagnostic");
+  trace("passing test trace", 2, 11, 12);
   context.assert.strictEqual<i32>(11, 11);
 });
 
 test("failing test", (context: TestContext): void => {
+  trace("failing test trace", 1, 12);
   context.assert.strictEqual<i32>(11, 12, "node:test smoke mismatch");
 });
 

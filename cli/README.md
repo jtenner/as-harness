@@ -12,6 +12,7 @@
 - the release workflows use the same build metadata and packaged smoke scripts as local development
 - CI also drives a separate source-host validation matrix so `wasmtime` can be proven without being added to packaged artifacts yet
 - the source-host validation path now emits per-target JSON and Markdown reports for CI artifacts and summaries
+- `run` now builds a deterministic result tree and feeds it through a reporter contract instead of formatting directly from live callbacks
 
 ## What It Does Not Do Yet
 
@@ -28,6 +29,12 @@ The CLI works in two layers:
 2. hand the Wasm bytes to a selected host runtime
 
 The host runtime contract used by the CLI is the `Runtime` interface in [types.ts](./runtime/types.ts). The lower-level host ABI itself is documented in [docs/harness-abi.md](../docs/harness-abi.md).
+
+The default reporter currently:
+
+- prints passed / failed / discovered counts
+- prints failure messages for failing executions
+- prints `diagnostic` and `trace` logs only for failed executions
 
 ## Built-In Harnesses
 

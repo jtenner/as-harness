@@ -31,6 +31,7 @@ export const enum EventKind {
   Diagnostic = 7,
   NodeFail = 8,
   CallbackFail = 9,
+  Log = 10,
 }
 
 export const enum FailureKind {

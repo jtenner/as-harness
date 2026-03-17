@@ -21,6 +21,7 @@ const EVENT_KIND_CALLBACK_PASS = 6;
 const EVENT_KIND_DIAGNOSTIC = 7;
 const EVENT_KIND_NODE_FAIL = 8;
 const EVENT_KIND_CALLBACK_FAIL = 9;
+const EVENT_KIND_LOG = 10;
 
 function toWasmBytes(value) {
 	if (Buffer.isBuffer(value)) {
@@ -212,6 +213,51 @@ function decodeDiagnosticEvent(bytes) {
 	};
 }
 
+function decodeFloat64(bytes, offset) {
+	if (offset + 8 > bytes.byteLength) {
+		return null;
+	}
+
+	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+	return {
+		value: view.getFloat64(offset, true),
+		offset: offset + 8,
+	};
+}
+
+function decodeLogEvent(bytes) {
+	const valueCount = decodeUint32(bytes, 0);
+	if (valueCount === null) {
+		return null;
+	}
+
+	const values = [];
+	let offset = valueCount.offset;
+	for (let index = 0; index < valueCount.value; index += 1) {
+		const decoded = decodeFloat64(bytes, offset);
+		if (decoded === null) {
+			return null;
+		}
+
+		values.push(decoded.value);
+		offset = decoded.offset;
+	}
+
+	const messageLength = decodeUint32(bytes, offset);
+	if (messageLength === null) {
+		return null;
+	}
+	if (messageLength.offset + messageLength.value > bytes.byteLength) {
+		return null;
+	}
+
+	return {
+		message: readUtf8(bytes, messageLength.offset, messageLength.value),
+		source: "trace",
+		values,
+	};
+}
+
 function decodeEvent(kind, bytes) {
 	switch (kind) {
 		case EVENT_KIND_NODE_FOUND:
@@ -230,6 +276,8 @@ function decodeEvent(kind, bytes) {
 			return decodeNodeFailureEvent(bytes);
 		case EVENT_KIND_CALLBACK_FAIL:
 			return decodeCallbackFailureEvent(bytes);
+		case EVENT_KIND_LOG:
+			return decodeLogEvent(bytes);
 		default:
 			return null;
 	}
@@ -248,20 +296,35 @@ function createAbortError(exports, messagePtr, fileNamePtr, line, column) {
 		return new Error(`abort at <unknown>:${line}:${column}`);
 	}
 
-	const utf16 = new Uint16Array(memory.buffer);
-	const readString = (pointer) => {
-		if (pointer === 0) {
-			return "";
-		}
-
-		const start = pointer >>> 1;
-		const length = utf16[start - 1] >>> 1;
-		return String.fromCharCode(...utf16.subarray(start, start + length));
-	};
-
 	return new Error(
-		`abort: ${readString(messagePtr)} at ${readString(fileNamePtr)}:${line}:${column}`,
+		`abort: ${readAssemblyString(exports, messagePtr)} at ${readAssemblyString(exports, fileNamePtr)}:${line}:${column}`,
 	);
+}
+
+function readAssemblyString(exports, pointer) {
+	if (pointer === 0) {
+		return "";
+	}
+
+	const memory = exports.memory;
+	if (!(memory instanceof WebAssembly.Memory)) {
+		return "";
+	}
+
+	const utf16 = new Uint16Array(memory.buffer);
+	const view = new DataView(memory.buffer);
+	const start = pointer >>> 1;
+	const byteLength = view.getUint32((pointer >>> 0) - 4, true);
+	const length = byteLength >>> 1;
+	return String.fromCharCode(...utf16.subarray(start, start + length));
+}
+
+function clampTraceValueCount(value) {
+	if (!Number.isFinite(value)) {
+		return 0;
+	}
+
+	return Math.max(0, Math.min(5, value | 0));
 }
 
 class Harness {
@@ -276,6 +339,7 @@ class Harness {
 		callbackPass: null,
 		callbackFail: null,
 		diagnostic: null,
+		log: null,
 	};
 
 	constructor(compiledModule) {
@@ -325,6 +389,11 @@ class Harness {
 	onDiagnostic(callback) {
 		assertCallback(callback);
 		this.#callbacks.diagnostic = callback;
+	}
+
+	onLog(callback) {
+		assertCallback(callback);
+		this.#callbacks.log = callback;
 	}
 
 	close() {}
@@ -473,6 +542,25 @@ class Harness {
 						column | 0,
 					);
 				},
+				trace: (messagePtr, n, a0, a1, a2, a3, a4) => {
+					if (exports === null) {
+						throw new Error("Harness exports are not ready.");
+					}
+
+					const callback = this.#callbacks.log;
+					if (callback === null) {
+						return;
+					}
+
+					callback({
+						message: readAssemblyString(exports, messagePtr >>> 0),
+						source: "trace",
+						values: [a0, a1, a2, a3, a4].slice(
+							0,
+							clampTraceValueCount(n),
+						),
+					});
+				},
 			},
 		});
 
@@ -530,6 +618,8 @@ class Harness {
 				return this.#callbacks.callbackFail;
 			case EVENT_KIND_DIAGNOSTIC:
 				return this.#callbacks.diagnostic;
+			case EVENT_KIND_LOG:
+				return this.#callbacks.log;
 			default:
 				return null;
 		}

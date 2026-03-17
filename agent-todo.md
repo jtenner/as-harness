@@ -13,7 +13,7 @@ Accepted `v0.1.0` release scope:
 - `node:assert/strict`
 - shipped hosts: `js`, `wazero`
 - source-only host under active validation: `wasmtime`
-- basic pass/fail reporting with failure messages
+- deterministic result-tree reporting with pass/fail counts, failure messages, and failed-test logs
 - GitHub build/tag/release distribution
 
 Explicitly deferred for now:

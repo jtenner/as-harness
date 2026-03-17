@@ -1,11 +1,12 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, win32 } from "node:path";
-import type {
-	HarnessEvent,
-	HarnessExecution,
-	HarnessStartResult,
-} from "../harness/shared/harness-types";
+import type { HarnessStartResult } from "../harness/shared/harness-types";
 import { compileEntrypoints, type CompilerOptions } from "./as/compile";
+import {
+	createHarnessRunReport,
+	defaultRunReporter,
+	type RunReporter,
+} from "./reporter";
 import { jsRuntime } from "./runtime/js";
 import { assertSupportedRuntime, resolveRuntime } from "./runtime/resolve";
 import type { Runtime } from "./runtime/types";
@@ -34,11 +35,6 @@ const DEFAULT_RUN_LIBRARIES = [
 ] as const;
 const TEMP_RUN_ENTRY_PREFIX = ".as-harness-run-";
 const TEMP_RUN_ENTRY_BASENAME = "entry.ts";
-
-type ExecutionFailure = {
-	messages: string[];
-	nodeName: string;
-};
 
 function createRunCompilerOptions(cwd: string): CompilerOptions {
 	return {
@@ -146,95 +142,13 @@ function getWasmArtifactBytes(
 	return wasmArtifact.contents;
 }
 
-function getFailMessageEvents(events: HarnessExecution["events"]) {
-	return events.filter(
-		(event): event is HarnessEvent<"failMessage"> =>
-			event.type === "failMessage",
-	);
-}
-
-function collectExecutionFailures(
-	result: HarnessStartResult,
-): ExecutionFailure[] {
-	const failures: ExecutionFailure[] = [];
-
-	for (const branch of result.branches) {
-		for (const execution of branch.executions) {
-			if (execution.ok) {
-				continue;
-			}
-
-			const messages = getFailMessageEvents(execution.events).map(
-				(event) => event.data.message,
-			);
-			failures.push({
-				messages,
-				nodeName: execution.node.name,
-			});
-		}
-	}
-
-	return failures;
-}
-
-function collectDiscoveryFailures(result: HarnessStartResult) {
-	return result.branches
-		.filter((branch) => !branch.discovery.ok)
-		.map((branch) => branch.root.name);
-}
-
-function printSuccessSummary(
-	result: HarnessStartResult,
-	runtime: Runtime,
-	logger: RunLogger,
-) {
-	logger.info(
-		`PASS ${result.discoveredTestCount} test(s) across ${result.topLevelNodes.length} top-level node(s) with ${runtime.name}.`,
-	);
-}
-
-function printExecutionFailureSummary(
-	result: HarnessStartResult,
-	failures: readonly ExecutionFailure[],
-	runtime: Runtime,
-	logger: RunLogger,
-) {
-	logger.error(
-		`FAIL ${failures.length} test(s) failed out of ${result.discoveredTestCount} discovered with ${runtime.name}.`,
-	);
-
-	for (const failure of failures) {
-		if (failure.messages.length === 0) {
-			logger.error(`- ${failure.nodeName}: failed without a fail message`);
-			continue;
-		}
-
-		for (const message of failure.messages) {
-			logger.error(`- ${failure.nodeName}: ${message}`);
-		}
-	}
-}
-
-function printDiscoveryFailureSummary(
-	discoveryFailures: readonly string[],
-	runtime: Runtime,
-	logger: RunLogger,
-) {
-	logger.error(
-		`Discovery failed while traversing the test tree with ${runtime.name}.`,
-	);
-
-	for (const nodeName of discoveryFailures) {
-		logger.error(`- ${nodeName}`);
-	}
-}
-
 export async function runEntryFiles(
 	entryFiles: readonly string[],
 	cwd: string,
 	logger: RunLogger,
 	runtimeSelection: Runtime | string | undefined = jsRuntime,
 	compilerOptions: CompilerOptions = {},
+	reporter: RunReporter = defaultRunReporter,
 ): Promise<RunCommandResult> {
 	let wasmBytes: Uint8Array;
 	const temporaryEntrypoint = await createRunEntrypoint(entryFiles, cwd);
@@ -307,27 +221,26 @@ export async function runEntryFiles(
 		harness?.close?.();
 	}
 
-	const discoveryFailures = collectDiscoveryFailures(result);
-	if (discoveryFailures.length > 0) {
-		printDiscoveryFailureSummary(discoveryFailures, runtime, logger);
+	const report = createHarnessRunReport(result);
+	if (!report.discoveryOk) {
+		reporter.accept(report, { harnessName: runtime.name, logger });
 		return {
-			discoveredTestCount: result.discoveredTestCount,
+			discoveredTestCount: report.discoveredTestCount,
 			exitCode: RunExitCode.HostFailure,
 		};
 	}
 
-	const executionFailures = collectExecutionFailures(result);
-	if (executionFailures.length > 0) {
-		printExecutionFailureSummary(result, executionFailures, runtime, logger);
+	if (report.failedTestCount > 0) {
+		reporter.accept(report, { harnessName: runtime.name, logger });
 		return {
-			discoveredTestCount: result.discoveredTestCount,
+			discoveredTestCount: report.discoveredTestCount,
 			exitCode: RunExitCode.TestFailure,
 		};
 	}
 
-	printSuccessSummary(result, runtime, logger);
+	reporter.accept(report, { harnessName: runtime.name, logger });
 	return {
-		discoveredTestCount: result.discoveredTestCount,
+		discoveredTestCount: report.discoveredTestCount,
 		exitCode: RunExitCode.Success,
 	};
 }

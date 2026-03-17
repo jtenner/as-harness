@@ -55,7 +55,7 @@ test("cli run executes tests through the wasmtime harness", () => {
 		assert.equal(result.stderr, "");
 		assert.match(
 			result.stdout,
-			/PASS 1 test\(s\) across 1 top-level node\(s\) with wasmtime\./,
+			/PASS 1 passed, 0 failed, 1 discovered with wasmtime\./,
 		);
 	} finally {
 		rmSync(tempDirectory, { force: true, recursive: true });

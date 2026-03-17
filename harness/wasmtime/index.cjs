@@ -14,6 +14,7 @@ const EVENT_KIND_CALLBACK_PASS = 6;
 const EVENT_KIND_DIAGNOSTIC = 7;
 const EVENT_KIND_NODE_FAIL = 8;
 const EVENT_KIND_CALLBACK_FAIL = 9;
+const EVENT_KIND_LOG = 10;
 
 const textDecoder = new TextDecoder();
 
@@ -196,6 +197,51 @@ function decodeDiagnosticEvent(bytes) {
 	};
 }
 
+function decodeFloat64(bytes, offset) {
+	if (offset + 8 > bytes.byteLength) {
+		return null;
+	}
+
+	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+	return {
+		value: view.getFloat64(offset, true),
+		offset: offset + 8,
+	};
+}
+
+function decodeLogEvent(bytes) {
+	const valueCount = decodeUint32(bytes, 0);
+	if (valueCount === null) {
+		return null;
+	}
+
+	const values = [];
+	let offset = valueCount.offset;
+	for (let index = 0; index < valueCount.value; index += 1) {
+		const decoded = decodeFloat64(bytes, offset);
+		if (decoded === null) {
+			return null;
+		}
+
+		values.push(decoded.value);
+		offset = decoded.offset;
+	}
+
+	const messageLength = decodeUint32(bytes, offset);
+	if (messageLength === null) {
+		return null;
+	}
+	if (messageLength.offset + messageLength.value > bytes.byteLength) {
+		return null;
+	}
+
+	return {
+		message: readUtf8(bytes, messageLength.offset, messageLength.value),
+		source: "trace",
+		values,
+	};
+}
+
 function decodeEvent(kind, bytes) {
 	switch (kind) {
 		case EVENT_KIND_NODE_FOUND:
@@ -214,6 +260,8 @@ function decodeEvent(kind, bytes) {
 			return decodeNodeFailureEvent(bytes);
 		case EVENT_KIND_CALLBACK_FAIL:
 			return decodeCallbackFailureEvent(bytes);
+		case EVENT_KIND_LOG:
+			return decodeLogEvent(bytes);
 		default:
 			return null;
 	}
@@ -231,6 +279,7 @@ class Harness {
 		callbackPass: null,
 		callbackFail: null,
 		diagnostic: null,
+		log: null,
 	};
 
 	constructor(nativeHarness) {
@@ -280,6 +329,11 @@ class Harness {
 	onDiagnostic(callback) {
 		assertCallback(callback);
 		this.#callbacks.diagnostic = callback;
+	}
+
+	onLog(callback) {
+		assertCallback(callback);
+		this.#callbacks.log = callback;
 	}
 
 	callI32(exportName) {
@@ -369,6 +423,8 @@ class Harness {
 				return this.#callbacks.callbackFail;
 			case EVENT_KIND_DIAGNOSTIC:
 				return this.#callbacks.diagnostic;
+			case EVENT_KIND_LOG:
+				return this.#callbacks.log;
 			default:
 				return null;
 		}

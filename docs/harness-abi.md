@@ -31,6 +31,7 @@ The guest module imports from module name `as-harness`:
 The guest may also rely on the normal AssemblyScript abort import from module `env`:
 
 - `abort(messagePtr, fileNamePtr, line, column)`
+- `trace(messagePtr, valueCount, a0, a1, a2, a3, a4)`
 
 ### Required Exports
 
@@ -108,6 +109,7 @@ These values are part of the wire contract today.
 - `7`: `Diagnostic`
 - `8`: `NodeFail`
 - `9`: `CallbackFail`
+- `10`: `Log`
 
 ### `FailureKind`
 
@@ -204,6 +206,18 @@ All integer fields are little-endian.
 [message: utf8 bytes]
 ```
 
+### `Log`
+
+This is the host-side payload used when intercepting AssemblyScript `trace(...)`
+calls.
+
+```text
+[value_count: u32]
+[value_0: f64] ... [value_n: f64]
+[message_byte_length: u32]
+[message: utf8 bytes]
+```
+
 ## Host Responsibilities
 
 A harness implementation is responsible for:
@@ -225,6 +239,7 @@ Structured failure events are intentionally low-level:
 - `callbackFail` means a lifecycle callback failed before node completion
 - `failureKind` distinguishes assertion-driven failures from traps
 - the guest does not classify user-facing outcome text beyond emitted `FailMessage` facts
+- `Log` is the host-facing form of guest `trace(...)` calls
 
 `DeclarationMode` affects host scheduling:
 
@@ -247,6 +262,7 @@ At a high level, a harness must expose:
 - `onCallbackPass(callback)`
 - `onCallbackFail(callback)`
 - `onDiagnostic(callback)`
+- `onLog(callback)`
 - `callI32(exportName)`
 - `discover(nodeIndex)`
 - `run(nodeIndex)`
@@ -282,6 +298,7 @@ It is useful for host-level probes such as trampoline status checks.
 - should emit the normal event stream for that execution attempt
 - should emit `nodeFail` for node-level assertion mismatches, traps, and end-of-scope plan failures
 - should emit `callbackFail` when a lifecycle callback fails before node completion
+- should surface guest `trace(...)` calls through `log` events
 - for `todo` targets, success means the node was resolved without trapping, but the host should expect no normal execution events for the `todo` node itself
 
 ### `start()`
@@ -293,6 +310,11 @@ It is useful for host-level probes such as trampoline status checks.
 - identify runnable tests
 - execute each branch
 - return a `HarnessStartResult`
+
+The current CLI reporter model consumes the final `HarnessStartResult` tree
+rather than streaming output directly from callbacks. Hosts should therefore
+preserve deterministic branch / execution results even when live callbacks are
+also supported.
 
 The current result shape is documented in [harness-types.d.ts](../harness/shared/harness-types.d.ts).
 

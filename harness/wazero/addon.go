@@ -40,6 +40,7 @@ extern napi_value GoOnCallbackStart(napi_env env, napi_callback_info info);
 extern napi_value GoOnCallbackPass(napi_env env, napi_callback_info info);
 extern napi_value GoOnCallbackFail(napi_env env, napi_callback_info info);
 extern napi_value GoOnDiagnostic(napi_env env, napi_callback_info info);
+extern napi_value GoOnLog(napi_env env, napi_callback_info info);
 extern napi_value GoCallI32(napi_env env, napi_callback_info info);
 extern napi_value GoDiscoverHarness(napi_env env, napi_callback_info info);
 extern napi_value GoRunHarness(napi_env env, napi_callback_info info);
@@ -52,8 +53,10 @@ import "C"
 import (
 	"context"
 	"encoding/binary"
+	"math"
 	goruntime "runtime"
 	"sync"
+	"unicode/utf16"
 	"unsafe"
 
 	"github.com/tetratelabs/wazero"
@@ -78,6 +81,7 @@ const eventKindCallbackPass = 6
 const eventKindDiagnostic = 7
 const eventKindNodeFail = 8
 const eventKindCallbackFail = 9
+const eventKindLog = 10
 const nodeKindTest = 1
 const declarationModeNormal = 1
 
@@ -93,6 +97,7 @@ const (
 	callbackPassSlot
 	callbackFailSlot
 	diagnosticSlot
+	logSlot
 	callbackSlotCount
 )
 
@@ -139,6 +144,7 @@ type eventSnapshot struct {
 	Hook            uint32
 	FailureKind     uint32
 	Message         string
+	Values          []float64
 }
 
 type executionSnapshot struct {
@@ -298,6 +304,15 @@ func createInt64(env C.napi_env, value int64) C.napi_value {
 func createUint32(env C.napi_env, value uint32) C.napi_value {
 	var result C.napi_value
 	if !must(C.napi_create_uint32(env, C.uint32_t(value), &result), env, "failed to create uint32") {
+		return nil
+	}
+
+	return result
+}
+
+func createDouble(env C.napi_env, value float64) C.napi_value {
+	var result C.napi_value
+	if !must(C.napi_create_double(env, C.double(value), &result), env, "failed to create double") {
 		return nil
 	}
 
@@ -515,6 +530,37 @@ func decodeNodeIndex(payload []byte, offset int) ([]uint32, int, bool) {
 	return nodeIndex, nextOffset + requiredByteLength, true
 }
 
+func readAssemblyString(memory api.Memory, pointer uint32) (string, bool) {
+	if pointer == 0 {
+		return "", true
+	}
+	if pointer < 4 {
+		return "", false
+	}
+
+	lengthBytes, ok := memory.Read(pointer-4, 4)
+	if !ok {
+		return "", false
+	}
+
+	byteLength := binary.LittleEndian.Uint32(lengthBytes)
+	utf16Bytes, ok := memory.Read(pointer, byteLength)
+	if !ok {
+		return "", false
+	}
+	if len(utf16Bytes)%2 != 0 {
+		return "", false
+	}
+
+	codeUnits := make([]uint16, len(utf16Bytes)/2)
+	for index := 0; index < len(codeUnits); index++ {
+		offset := index * 2
+		codeUnits[index] = binary.LittleEndian.Uint16(utf16Bytes[offset : offset+2])
+	}
+
+	return string(utf16.Decode(codeUnits)), true
+}
+
 func createNodeIndexValue(env C.napi_env, nodeIndex []uint32) (C.napi_value, bool) {
 	result := createArrayWithLength(env, uint32(len(nodeIndex)))
 	if result == nil {
@@ -705,6 +751,89 @@ func createDiagnosticEvent(env C.napi_env, payload []byte) (C.napi_value, bool) 
 	return result, true
 }
 
+func decodeLogPayload(payload []byte) (string, []float64, bool) {
+	valueCount, offset, ok := decodeUint32(payload, 0)
+	if !ok {
+		return "", nil, false
+	}
+
+	values := make([]float64, 0, int(valueCount))
+	for index := uint32(0); index < valueCount; index++ {
+		if offset+8 > len(payload) {
+			return "", nil, false
+		}
+
+		valueBits := binary.LittleEndian.Uint64(payload[offset : offset+8])
+		values = append(values, math.Float64frombits(valueBits))
+		offset += 8
+	}
+
+	messageLength, nextOffset, ok := decodeUint32(payload, offset)
+	if !ok {
+		return "", nil, false
+	}
+	if nextOffset+int(messageLength) > len(payload) {
+		return "", nil, false
+	}
+
+	return string(payload[nextOffset : nextOffset+int(messageLength)]), values, true
+}
+
+func encodeLogPayload(message string, values []float64) []byte {
+	messageBytes := []byte(message)
+	payload := make([]byte, 4+len(values)*8+4+len(messageBytes))
+	binary.LittleEndian.PutUint32(payload[0:4], uint32(len(values)))
+	offset := 4
+
+	for _, value := range values {
+		binary.LittleEndian.PutUint64(
+			payload[offset:offset+8],
+			math.Float64bits(value),
+		)
+		offset += 8
+	}
+
+	binary.LittleEndian.PutUint32(payload[offset:offset+4], uint32(len(messageBytes)))
+	offset += 4
+	copy(payload[offset:], messageBytes)
+	return payload
+}
+
+func createLogEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
+	message, values, ok := decodeLogPayload(payload)
+	if !ok {
+		return nil, false
+	}
+
+	result := createObject(env, "failed to create event object")
+	if result == nil {
+		return nil, false
+	}
+
+	if !setNamedProperty(env, result, "message", createString(env, message)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "source", createString(env, "trace")) {
+		return nil, false
+	}
+
+	valuesValue := createArrayWithLength(env, uint32(len(values)))
+	if valuesValue == nil {
+		return nil, false
+	}
+	for index, value := range values {
+		if !setElement(env, valuesValue, uint32(index), createDouble(env, value)) {
+			return nil, false
+		}
+	}
+
+	if !setNamedProperty(env, result, "values", valuesValue) {
+		return nil, false
+	}
+
+	return result, true
+}
+
 func createEventValue(env C.napi_env, kind uint32, payload []byte) (C.napi_value, bool) {
 	switch kind {
 	case eventKindNodeFound:
@@ -725,6 +854,8 @@ func createEventValue(env C.napi_env, kind uint32, payload []byte) (C.napi_value
 		return createCallbackFailEvent(env, payload)
 	case eventKindDiagnostic:
 		return createDiagnosticEvent(env, payload)
+	case eventKindLog:
+		return createLogEvent(env, payload)
 	default:
 		return nil, false
 	}
@@ -836,6 +967,17 @@ func decodeEventSnapshot(kind uint32, payload []byte) (eventSnapshot, bool) {
 			FailureKind: uint32(payload[1]),
 			NodeIndex:   cloneNodeIndex(nodeIndex),
 		}, true
+	case eventKindLog:
+		message, values, ok := decodeLogPayload(payload)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+
+		return eventSnapshot{
+			Type:    "log",
+			Message: message,
+			Values:  append([]float64(nil), values...),
+		}, true
 	default:
 		return eventSnapshot{}, false
 	}
@@ -883,6 +1025,8 @@ func callbackSlotForEventKind(kind uint32) (callbackSlot, bool) {
 		return callbackFailSlot, true
 	case eventKindDiagnostic:
 		return diagnosticSlot, true
+	case eventKindLog:
+		return logSlot, true
 	default:
 		return 0, false
 	}
@@ -960,6 +1104,42 @@ func compileHarness(bytes []byte) (*harnessState, error) {
 		NewFunctionBuilder().
 		WithFunc(func(context.Context, uint32, uint32, uint32, uint32) {}).
 		Export("abort").
+		NewFunctionBuilder().
+		WithFunc(func(ctx context.Context, module api.Module, messagePtr uint32, valueCount int32, a0 float64, a1 float64, a2 float64, a3 float64, a4 float64) {
+			state := harnessStateFromContext(ctx)
+			if state == nil {
+				return
+			}
+
+			memory := module.Memory()
+			if memory == nil {
+				return
+			}
+
+			message, ok := readAssemblyString(memory, messagePtr)
+			if !ok {
+				return
+			}
+
+			values := []float64{a0, a1, a2, a3, a4}
+			clampedValueCount := valueCount
+			if clampedValueCount < 0 {
+				clampedValueCount = 0
+			}
+			if clampedValueCount > int32(len(values)) {
+				clampedValueCount = int32(len(values))
+			}
+
+			payload := encodeLogPayload(message, values[:clampedValueCount])
+			sink := writeEventSinkFromContext(ctx)
+			if sink != nil {
+				sink.Handle(eventKindLog, payload)
+				return
+			}
+
+			dispatchEventPayload(state, eventKindLog, payload)
+		}).
+		Export("trace").
 		Instantiate(ctx)
 	if err != nil {
 		_ = runtime.Close(ctx)
@@ -1180,6 +1360,9 @@ func createHarnessObject(env C.napi_env, id int64) C.napi_value {
 		return nil
 	}
 	if !setNamedProperty(env, harness, "onDiagnostic", createFunction(env, "onDiagnostic", (C.napi_callback)(C.GoOnDiagnostic))) {
+		return nil
+	}
+	if !setNamedProperty(env, harness, "onLog", createFunction(env, "onLog", (C.napi_callback)(C.GoOnLog))) {
 		return nil
 	}
 	if !setNamedProperty(env, harness, "callI32", createFunction(env, "callI32", (C.napi_callback)(C.GoCallI32))) {
@@ -1527,6 +1710,29 @@ func createEventSnapshotValue(env C.napi_env, event eventSnapshot) (C.napi_value
 			return nil, false
 		}
 		if !setNamedProperty(env, data, "message", createString(env, event.Message)) {
+			return nil, false
+		}
+	case "log":
+		data = createObject(env, "failed to create event data")
+		if data == nil {
+			return nil, false
+		}
+		if !setNamedProperty(env, data, "message", createString(env, event.Message)) {
+			return nil, false
+		}
+		if !setNamedProperty(env, data, "source", createString(env, "trace")) {
+			return nil, false
+		}
+		valuesValue := createArrayWithLength(env, uint32(len(event.Values)))
+		if valuesValue == nil {
+			return nil, false
+		}
+		for index, value := range event.Values {
+			if !setElement(env, valuesValue, uint32(index), createDouble(env, value)) {
+				return nil, false
+			}
+		}
+		if !setNamedProperty(env, data, "values", valuesValue) {
 			return nil, false
 		}
 	default:
@@ -1886,6 +2092,11 @@ func GoOnCallbackFail(env C.napi_env, info C.napi_callback_info) C.napi_value {
 //export GoOnDiagnostic
 func GoOnDiagnostic(env C.napi_env, info C.napi_callback_info) C.napi_value {
 	return registerCallback(env, info, diagnosticSlot)
+}
+
+//export GoOnLog
+func GoOnLog(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	return registerCallback(env, info, logSlot)
 }
 
 //export GoCallI32
