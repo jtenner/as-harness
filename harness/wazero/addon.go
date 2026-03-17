@@ -34,9 +34,11 @@ extern napi_value GoCreateHarness(napi_env env, napi_callback_info info);
 extern napi_value GoOnNodeFound(napi_env env, napi_callback_info info);
 extern napi_value GoOnNodeStart(napi_env env, napi_callback_info info);
 extern napi_value GoOnNodePass(napi_env env, napi_callback_info info);
+extern napi_value GoOnNodeFail(napi_env env, napi_callback_info info);
 extern napi_value GoOnFailMessage(napi_env env, napi_callback_info info);
 extern napi_value GoOnCallbackStart(napi_env env, napi_callback_info info);
 extern napi_value GoOnCallbackPass(napi_env env, napi_callback_info info);
+extern napi_value GoOnCallbackFail(napi_env env, napi_callback_info info);
 extern napi_value GoOnDiagnostic(napi_env env, napi_callback_info info);
 extern napi_value GoCallI32(napi_env env, napi_callback_info info);
 extern napi_value GoDiscoverHarness(napi_env env, napi_callback_info info);
@@ -74,6 +76,8 @@ const eventKindFailMessage = 4
 const eventKindCallbackStart = 5
 const eventKindCallbackPass = 6
 const eventKindDiagnostic = 7
+const eventKindNodeFail = 8
+const eventKindCallbackFail = 9
 const nodeKindTest = 1
 const declarationModeNormal = 1
 
@@ -83,9 +87,11 @@ const (
 	nodeFoundSlot callbackSlot = iota
 	nodeStartSlot
 	nodePassSlot
+	nodeFailSlot
 	failMessageSlot
 	callbackStartSlot
 	callbackPassSlot
+	callbackFailSlot
 	diagnosticSlot
 	callbackSlotCount
 )
@@ -131,6 +137,7 @@ type eventSnapshot struct {
 	DeclarationMode uint32
 	Name            string
 	Hook            uint32
+	FailureKind     uint32
 	Message         string
 }
 
@@ -612,6 +619,53 @@ func createCallbackEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
 	return result, true
 }
 
+func createNodeFailEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
+	if len(payload) < 8 {
+		return nil, false
+	}
+
+	nodeIndex, _, ok := decodeNodeIndex(payload, 4)
+	if !ok {
+		return nil, false
+	}
+
+	result, ok := createNodeEventObject(env, nodeIndex)
+	if !ok {
+		return nil, false
+	}
+
+	if !setNamedProperty(env, result, "failureKind", createUint32(env, uint32(payload[0]))) {
+		return nil, false
+	}
+
+	return result, true
+}
+
+func createCallbackFailEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
+	if len(payload) < 8 {
+		return nil, false
+	}
+
+	nodeIndex, _, ok := decodeNodeIndex(payload, 4)
+	if !ok {
+		return nil, false
+	}
+
+	result, ok := createNodeEventObject(env, nodeIndex)
+	if !ok {
+		return nil, false
+	}
+
+	if !setNamedProperty(env, result, "hook", createUint32(env, uint32(payload[0]))) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "failureKind", createUint32(env, uint32(payload[1]))) {
+		return nil, false
+	}
+
+	return result, true
+}
+
 func createFailMessageEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
 	result := createObject(env, "failed to create event object")
 	if result == nil {
@@ -665,6 +719,10 @@ func createEventValue(env C.napi_env, kind uint32, payload []byte) (C.napi_value
 		return createFailMessageEvent(env, payload)
 	case eventKindCallbackStart, eventKindCallbackPass:
 		return createCallbackEvent(env, payload)
+	case eventKindNodeFail:
+		return createNodeFailEvent(env, payload)
+	case eventKindCallbackFail:
+		return createCallbackFailEvent(env, payload)
 	case eventKindDiagnostic:
 		return createDiagnosticEvent(env, payload)
 	default:
@@ -746,6 +804,38 @@ func decodeEventSnapshot(kind uint32, payload []byte) (eventSnapshot, bool) {
 			NodeIndex: cloneNodeIndex(nodeIndex),
 			Message:   string(payload[nextOffset : nextOffset+int(messageLength)]),
 		}, true
+	case eventKindNodeFail:
+		if len(payload) < 8 {
+			return eventSnapshot{}, false
+		}
+
+		nodeIndex, _, ok := decodeNodeIndex(payload, 4)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+
+		return eventSnapshot{
+			Type:        "nodeFail",
+			FailureKind: uint32(payload[0]),
+			NodeIndex:   cloneNodeIndex(nodeIndex),
+		}, true
+	case eventKindCallbackFail:
+		if len(payload) < 8 {
+			return eventSnapshot{}, false
+		}
+
+		hook := uint32(payload[0])
+		nodeIndex, _, ok := decodeNodeIndex(payload, 4)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+
+		return eventSnapshot{
+			Type:        "callbackFail",
+			Hook:        hook,
+			FailureKind: uint32(payload[1]),
+			NodeIndex:   cloneNodeIndex(nodeIndex),
+		}, true
 	default:
 		return eventSnapshot{}, false
 	}
@@ -781,12 +871,16 @@ func callbackSlotForEventKind(kind uint32) (callbackSlot, bool) {
 		return nodeStartSlot, true
 	case eventKindNodePass:
 		return nodePassSlot, true
+	case eventKindNodeFail:
+		return nodeFailSlot, true
 	case eventKindFailMessage:
 		return failMessageSlot, true
 	case eventKindCallbackStart:
 		return callbackStartSlot, true
 	case eventKindCallbackPass:
 		return callbackPassSlot, true
+	case eventKindCallbackFail:
+		return callbackFailSlot, true
 	case eventKindDiagnostic:
 		return diagnosticSlot, true
 	default:
@@ -1070,6 +1164,9 @@ func createHarnessObject(env C.napi_env, id int64) C.napi_value {
 	if !setNamedProperty(env, harness, "onNodePass", createFunction(env, "onNodePass", (C.napi_callback)(C.GoOnNodePass))) {
 		return nil
 	}
+	if !setNamedProperty(env, harness, "onNodeFail", createFunction(env, "onNodeFail", (C.napi_callback)(C.GoOnNodeFail))) {
+		return nil
+	}
 	if !setNamedProperty(env, harness, "onFailMessage", createFunction(env, "onFailMessage", (C.napi_callback)(C.GoOnFailMessage))) {
 		return nil
 	}
@@ -1077,6 +1174,9 @@ func createHarnessObject(env C.napi_env, id int64) C.napi_value {
 		return nil
 	}
 	if !setNamedProperty(env, harness, "onCallbackPass", createFunction(env, "onCallbackPass", (C.napi_callback)(C.GoOnCallbackPass))) {
+		return nil
+	}
+	if !setNamedProperty(env, harness, "onCallbackFail", createFunction(env, "onCallbackFail", (C.napi_callback)(C.GoOnCallbackFail))) {
 		return nil
 	}
 	if !setNamedProperty(env, harness, "onDiagnostic", createFunction(env, "onDiagnostic", (C.napi_callback)(C.GoOnDiagnostic))) {
@@ -1382,6 +1482,15 @@ func createEventSnapshotValue(env C.napi_env, event eventSnapshot) (C.napi_value
 		if !ok {
 			return nil, false
 		}
+	case "nodeFail":
+		var ok bool
+		data, ok = createNodeEventObject(env, event.NodeIndex)
+		if !ok {
+			return nil, false
+		}
+		if !setNamedProperty(env, data, "failureKind", createUint32(env, event.FailureKind)) {
+			return nil, false
+		}
 	case "callbackStart", "callbackPass":
 		var ok bool
 		data, ok = createNodeEventObject(env, event.NodeIndex)
@@ -1389,6 +1498,18 @@ func createEventSnapshotValue(env C.napi_env, event eventSnapshot) (C.napi_value
 			return nil, false
 		}
 		if !setNamedProperty(env, data, "hook", createUint32(env, event.Hook)) {
+			return nil, false
+		}
+	case "callbackFail":
+		var ok bool
+		data, ok = createNodeEventObject(env, event.NodeIndex)
+		if !ok {
+			return nil, false
+		}
+		if !setNamedProperty(env, data, "hook", createUint32(env, event.Hook)) {
+			return nil, false
+		}
+		if !setNamedProperty(env, data, "failureKind", createUint32(env, event.FailureKind)) {
 			return nil, false
 		}
 	case "failMessage":
@@ -1737,6 +1858,11 @@ func GoOnNodePass(env C.napi_env, info C.napi_callback_info) C.napi_value {
 	return registerCallback(env, info, nodePassSlot)
 }
 
+//export GoOnNodeFail
+func GoOnNodeFail(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	return registerCallback(env, info, nodeFailSlot)
+}
+
 //export GoOnFailMessage
 func GoOnFailMessage(env C.napi_env, info C.napi_callback_info) C.napi_value {
 	return registerCallback(env, info, failMessageSlot)
@@ -1750,6 +1876,11 @@ func GoOnCallbackStart(env C.napi_env, info C.napi_callback_info) C.napi_value {
 //export GoOnCallbackPass
 func GoOnCallbackPass(env C.napi_env, info C.napi_callback_info) C.napi_value {
 	return registerCallback(env, info, callbackPassSlot)
+}
+
+//export GoOnCallbackFail
+func GoOnCallbackFail(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	return registerCallback(env, info, callbackFailSlot)
 }
 
 //export GoOnDiagnostic

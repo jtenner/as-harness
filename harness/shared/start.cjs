@@ -10,9 +10,11 @@ const EVENT_TYPES = [
 	["onNodeFound", "nodeFound"],
 	["onNodeStart", "nodeStart"],
 	["onNodePass", "nodePass"],
+	["onNodeFail", "nodeFail"],
 	["onFailMessage", "failMessage"],
 	["onCallbackStart", "callbackStart"],
 	["onCallbackPass", "callbackPass"],
+	["onCallbackFail", "callbackFail"],
 	["onDiagnostic", "diagnostic"],
 ];
 const workerScriptPath = path.join(__dirname, "start-worker.cjs");

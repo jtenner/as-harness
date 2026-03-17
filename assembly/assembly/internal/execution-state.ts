@@ -60,6 +60,10 @@ export function endAssertionScope(): void {
   resetAssertionScopeState();
 }
 
+export function abandonAssertionScope(): void {
+  resetAssertionScopeState();
+}
+
 export function recordAssertionCall(): void {
   if (!assertionScopeActive) {
     return;

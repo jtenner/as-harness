@@ -19,6 +19,8 @@ const EVENT_KIND_FAIL_MESSAGE = 4;
 const EVENT_KIND_CALLBACK_START = 5;
 const EVENT_KIND_CALLBACK_PASS = 6;
 const EVENT_KIND_DIAGNOSTIC = 7;
+const EVENT_KIND_NODE_FAIL = 8;
+const EVENT_KIND_CALLBACK_FAIL = 9;
 
 function toWasmBytes(value) {
 	if (Buffer.isBuffer(value)) {
@@ -151,6 +153,39 @@ function decodeCallbackEvent(bytes) {
 	};
 }
 
+function decodeNodeFailureEvent(bytes) {
+	if (bytes.byteLength < 8) {
+		return null;
+	}
+
+	const decodedNodeIndex = decodeNodeIndex(bytes, 4);
+	if (decodedNodeIndex === null) {
+		return null;
+	}
+
+	return {
+		failureKind: bytes[0],
+		nodeIndex: decodedNodeIndex.nodeIndex,
+	};
+}
+
+function decodeCallbackFailureEvent(bytes) {
+	if (bytes.byteLength < 8) {
+		return null;
+	}
+
+	const decodedNodeIndex = decodeNodeIndex(bytes, 4);
+	if (decodedNodeIndex === null) {
+		return null;
+	}
+
+	return {
+		hook: bytes[0],
+		failureKind: bytes[1],
+		nodeIndex: decodedNodeIndex.nodeIndex,
+	};
+}
+
 function decodeFailMessageEvent(bytes) {
 	return {
 		message: readUtf8(bytes, 0, bytes.byteLength),
@@ -191,6 +226,10 @@ function decodeEvent(kind, bytes) {
 			return decodeCallbackEvent(bytes);
 		case EVENT_KIND_DIAGNOSTIC:
 			return decodeDiagnosticEvent(bytes);
+		case EVENT_KIND_NODE_FAIL:
+			return decodeNodeFailureEvent(bytes);
+		case EVENT_KIND_CALLBACK_FAIL:
+			return decodeCallbackFailureEvent(bytes);
 		default:
 			return null;
 	}
@@ -231,9 +270,11 @@ class Harness {
 		nodeFound: null,
 		nodeStart: null,
 		nodePass: null,
+		nodeFail: null,
 		failMessage: null,
 		callbackStart: null,
 		callbackPass: null,
+		callbackFail: null,
 		diagnostic: null,
 	};
 
@@ -256,6 +297,11 @@ class Harness {
 		this.#callbacks.nodePass = callback;
 	}
 
+	onNodeFail(callback) {
+		assertCallback(callback);
+		this.#callbacks.nodeFail = callback;
+	}
+
 	onFailMessage(callback) {
 		assertCallback(callback);
 		this.#callbacks.failMessage = callback;
@@ -269,6 +315,11 @@ class Harness {
 	onCallbackPass(callback) {
 		assertCallback(callback);
 		this.#callbacks.callbackPass = callback;
+	}
+
+	onCallbackFail(callback) {
+		assertCallback(callback);
+		this.#callbacks.callbackFail = callback;
 	}
 
 	onDiagnostic(callback) {
@@ -467,12 +518,16 @@ class Harness {
 				return this.#callbacks.nodeStart;
 			case EVENT_KIND_NODE_PASS:
 				return this.#callbacks.nodePass;
+			case EVENT_KIND_NODE_FAIL:
+				return this.#callbacks.nodeFail;
 			case EVENT_KIND_FAIL_MESSAGE:
 				return this.#callbacks.failMessage;
 			case EVENT_KIND_CALLBACK_START:
 				return this.#callbacks.callbackStart;
 			case EVENT_KIND_CALLBACK_PASS:
 				return this.#callbacks.callbackPass;
+			case EVENT_KIND_CALLBACK_FAIL:
+				return this.#callbacks.callbackFail;
 			case EVENT_KIND_DIAGNOSTIC:
 				return this.#callbacks.diagnostic;
 			default:

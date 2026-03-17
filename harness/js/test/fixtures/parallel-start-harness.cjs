@@ -11,9 +11,11 @@ class FakeHarness {
 		nodeFound: null,
 		nodeStart: null,
 		nodePass: null,
+		nodeFail: null,
 		failMessage: null,
 		callbackStart: null,
 		callbackPass: null,
+		callbackFail: null,
 		diagnostic: null,
 	};
 
@@ -29,6 +31,10 @@ class FakeHarness {
 		this.#callbacks.nodePass = callback;
 	}
 
+	onNodeFail(callback) {
+		this.#callbacks.nodeFail = callback;
+	}
+
 	onFailMessage(callback) {
 		this.#callbacks.failMessage = callback;
 	}
@@ -39,6 +45,10 @@ class FakeHarness {
 
 	onCallbackPass(callback) {
 		this.#callbacks.callbackPass = callback;
+	}
+
+	onCallbackFail(callback) {
+		this.#callbacks.callbackFail = callback;
 	}
 
 	onDiagnostic(callback) {

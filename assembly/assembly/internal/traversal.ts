@@ -72,8 +72,7 @@ export function runNodeByIndexFrom(
     return false;
   }
 
-  executeNode(node);
-  return true;
+  return executeNode(node);
 }
 
 export function runNodeByIndex(nodeIndex: StaticArray<u32>): bool {

@@ -25,6 +25,7 @@ const FAILING_TEST_EVENTS = [
 	["callbackStart", { hook: 2, nodeIndex: [] }],
 	["callbackPass", { hook: 2, nodeIndex: [] }],
 	["failMessage", { message: "node:test smoke mismatch" }],
+	["nodeFail", { nodeIndex: [1], failureKind: 1 }],
 ];
 
 const PLANNED_MISMATCH_EVENTS = [
@@ -44,6 +45,7 @@ const PLANNED_MISMATCH_EVENTS = [
 				'node:test plan mismatch in "planned mismatch test": expected 2 assertion(s), saw 1',
 		},
 	],
+	["nodeFail", { nodeIndex: [2], failureKind: 1 }],
 ];
 
 const HOOK_FAILURE_EVENTS = [
@@ -54,6 +56,7 @@ const HOOK_FAILURE_EVENTS = [
 	["callbackPass", { hook: 2, nodeIndex: [] }],
 	["callbackStart", { hook: 2, nodeIndex: [8] }],
 	["failMessage", { message: "hook beforeEach mismatch" }],
+	["callbackFail", { hook: 2, nodeIndex: [8], failureKind: 1 }],
 ];
 
 const TRAP_EVENTS = [
@@ -62,6 +65,7 @@ const TRAP_EVENTS = [
 	["callbackPass", { hook: 1, nodeIndex: [] }],
 	["callbackStart", { hook: 2, nodeIndex: [] }],
 	["callbackPass", { hook: 2, nodeIndex: [] }],
+	["nodeFail", { nodeIndex: [9, 0], failureKind: 2 }],
 ];
 
 const DISCOVERY_TRAP_ROOT_EVENTS = [
@@ -70,6 +74,7 @@ const DISCOVERY_TRAP_ROOT_EVENTS = [
 	["callbackPass", { hook: 1, nodeIndex: [] }],
 	["callbackStart", { hook: 2, nodeIndex: [] }],
 	["callbackPass", { hook: 2, nodeIndex: [] }],
+	["nodeFail", { nodeIndex: [10], failureKind: 2 }],
 ];
 
 const DISCOVERED_NODES = [
@@ -276,9 +281,11 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(typeof harness.onNodeFound, "function");
 		assert.equal(typeof harness.onNodeStart, "function");
 		assert.equal(typeof harness.onNodePass, "function");
+		assert.equal(typeof harness.onNodeFail, "function");
 		assert.equal(typeof harness.onFailMessage, "function");
 		assert.equal(typeof harness.onCallbackStart, "function");
 		assert.equal(typeof harness.onCallbackPass, "function");
+		assert.equal(typeof harness.onCallbackFail, "function");
 		assert.equal(typeof harness.onDiagnostic, "function");
 		assert.equal(typeof harness.callI32, "function");
 		assert.equal(typeof harness.discover, "function");
@@ -288,9 +295,11 @@ function registerHarnessSmokeSuite(options) {
 		harness.onNodeFound(() => {});
 		harness.onNodeStart(() => {});
 		harness.onNodePass(() => {});
+		harness.onNodeFail(() => {});
 		harness.onFailMessage(() => {});
 		harness.onCallbackStart(() => {});
 		harness.onCallbackPass(() => {});
+		harness.onCallbackFail(() => {});
 		harness.onDiagnostic(() => {});
 		assert.equal(harness.discover("bad"), false);
 		assert.equal(harness.run([]), true);
@@ -367,11 +376,17 @@ function registerHarnessSmokeSuite(options) {
 		harness.onNodePass((event) => {
 			events.push(["nodePass", event]);
 		});
+		harness.onNodeFail((event) => {
+			events.push(["nodeFail", event]);
+		});
 		harness.onCallbackStart((event) => {
 			events.push(["callbackStart", event]);
 		});
 		harness.onCallbackPass((event) => {
 			events.push(["callbackPass", event]);
+		});
+		harness.onCallbackFail((event) => {
+			events.push(["callbackFail", event]);
 		});
 		harness.onFailMessage((event) => {
 			events.push(["failMessage", event]);
@@ -392,11 +407,17 @@ function registerHarnessSmokeSuite(options) {
 		harness.onNodePass((event) => {
 			events.push(["nodePass", event]);
 		});
+		harness.onNodeFail((event) => {
+			events.push(["nodeFail", event]);
+		});
 		harness.onCallbackStart((event) => {
 			events.push(["callbackStart", event]);
 		});
 		harness.onCallbackPass((event) => {
 			events.push(["callbackPass", event]);
+		});
+		harness.onCallbackFail((event) => {
+			events.push(["callbackFail", event]);
 		});
 		harness.onFailMessage((event) => {
 			events.push(["failMessage", event]);
@@ -489,6 +510,9 @@ function registerHarnessSmokeSuite(options) {
 		harness.onCallbackPass((event) => {
 			events.push(["callbackPass", event]);
 		});
+		harness.onCallbackFail((event) => {
+			events.push(["callbackFail", event]);
+		});
 		harness.onFailMessage((event) => {
 			events.push(["failMessage", event]);
 		});
@@ -510,11 +534,17 @@ function registerHarnessSmokeSuite(options) {
 		harness.onNodePass((event) => {
 			(trapPhase ? trappedEvents : recoveryEvents).push(["nodePass", event]);
 		});
+		harness.onNodeFail((event) => {
+			(trapPhase ? trappedEvents : recoveryEvents).push(["nodeFail", event]);
+		});
 		harness.onCallbackStart((event) => {
 			(trapPhase ? trappedEvents : recoveryEvents).push(["callbackStart", event]);
 		});
 		harness.onCallbackPass((event) => {
 			(trapPhase ? trappedEvents : recoveryEvents).push(["callbackPass", event]);
+		});
+		harness.onCallbackFail((event) => {
+			(trapPhase ? trappedEvents : recoveryEvents).push(["callbackFail", event]);
 		});
 		harness.onDiagnostic((event) => {
 			(trapPhase ? trappedEvents : recoveryEvents).push(["diagnostic", event]);

@@ -143,16 +143,16 @@ host-runner work.
 ## Node Execution
 
 - [x] Honor `todo` by suppressing self-outcome significance without preventing descendant discovery.
-- [ ] Surface traps and unreachable conditions to the host without classifying final failure on the Wasm side.
+- [x] Surface traps and unreachable conditions to the host without classifying final failure on the Wasm side.
 
 ## Hooks and Lifecycle
 
-- [ ] Allow failure metadata emission from inside lifecycle callbacks.
-- [ ] Propagate unreachable conditions from lifecycle callbacks back to the host as callback failure.
+- [x] Allow failure metadata emission from inside lifecycle callbacks.
+- [x] Propagate unreachable conditions from lifecycle callbacks back to the host as callback failure.
 
 ## Assertion Bridge
 
-- [ ] Ensure assertion failures behave the same inside node callbacks and lifecycle callbacks.
+- [x] Ensure assertion failures behave the same inside node callbacks and lifecycle callbacks.
 
 ## Events and Encoding
 

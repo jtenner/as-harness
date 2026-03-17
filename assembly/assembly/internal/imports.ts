@@ -29,6 +29,13 @@ export const enum EventKind {
   CallbackStart = 5,
   CallbackPass = 6,
   Diagnostic = 7,
+  NodeFail = 8,
+  CallbackFail = 9,
+}
+
+export const enum FailureKind {
+  Assertion = 1,
+  Trap = 2,
 }
 
 /**

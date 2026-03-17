@@ -106,6 +106,13 @@ These values are part of the wire contract today.
 - `5`: `CallbackStart`
 - `6`: `CallbackPass`
 - `7`: `Diagnostic`
+- `8`: `NodeFail`
+- `9`: `CallbackFail`
+
+### `FailureKind`
+
+- `1`: assertion-driven failure
+- `2`: trap or unreachable condition observed through the trampoline boundary
 
 ## Event Payload Layouts
 
@@ -151,6 +158,15 @@ All integer fields are little-endian.
 [message: utf8 bytes]
 ```
 
+### `NodeFail`
+
+```text
+[failure_kind: u8]
+[padding: 3 bytes]
+[node_index_length: u32]
+[node_index: ...u32 bytes]
+```
+
 ### `CallbackStart`
 
 ```text
@@ -165,6 +181,16 @@ All integer fields are little-endian.
 ```text
 [hook: u8]
 [padding: 3 bytes]
+[node_index_length: u32]
+[node_index: ...u32 bytes]
+```
+
+### `CallbackFail`
+
+```text
+[hook: u8]
+[failure_kind: u8]
+[padding: 2 bytes]
 [node_index_length: u32]
 [node_index: ...u32 bytes]
 ```
@@ -193,6 +219,13 @@ A harness implementation is responsible for:
 
 The host is also the durable source of truth for reporting and scheduling policy. The guest emits execution facts; the host decides how to aggregate them.
 
+Structured failure events are intentionally low-level:
+
+- `nodeFail` means the targeted node did not complete successfully
+- `callbackFail` means a lifecycle callback failed before node completion
+- `failureKind` distinguishes assertion-driven failures from traps
+- the guest does not classify user-facing outcome text beyond emitted `FailMessage` facts
+
 `DeclarationMode` affects host scheduling:
 
 - `normal` nodes may be scheduled for execution
@@ -208,9 +241,11 @@ At a high level, a harness must expose:
 - `onNodeFound(callback)`
 - `onNodeStart(callback)`
 - `onNodePass(callback)`
+- `onNodeFail(callback)`
 - `onFailMessage(callback)`
 - `onCallbackStart(callback)`
 - `onCallbackPass(callback)`
+- `onCallbackFail(callback)`
 - `onDiagnostic(callback)`
 - `callI32(exportName)`
 - `discover(nodeIndex)`
@@ -245,6 +280,8 @@ It is useful for host-level probes such as trampoline status checks.
 - returns `true` when the node completed successfully
 - returns `false` on invalid input, missing node, or failed execution
 - should emit the normal event stream for that execution attempt
+- should emit `nodeFail` for node-level assertion mismatches, traps, and end-of-scope plan failures
+- should emit `callbackFail` when a lifecycle callback fails before node completion
 - for `todo` targets, success means the node was resolved without trapping, but the host should expect no normal execution events for the `todo` node itself
 
 ### `start()`

@@ -20,6 +20,17 @@ export interface HarnessCallbackEvent {
 	nodeIndex: Array<number>;
 }
 
+export interface HarnessFailureEvent {
+	nodeIndex: Array<number>;
+	failureKind: number;
+}
+
+export interface HarnessCallbackFailureEvent {
+	hook: number;
+	nodeIndex: Array<number>;
+	failureKind: number;
+}
+
 export interface HarnessFailMessageEvent {
 	message: string;
 }
@@ -33,9 +44,11 @@ export interface HarnessEventMap {
 	nodeFound: HarnessNodeFoundEvent;
 	nodeStart: HarnessNodeEvent;
 	nodePass: HarnessNodeEvent;
+	nodeFail: HarnessFailureEvent;
 	failMessage: HarnessFailMessageEvent;
 	callbackStart: HarnessCallbackEvent;
 	callbackPass: HarnessCallbackEvent;
+	callbackFail: HarnessCallbackFailureEvent;
 	diagnostic: HarnessDiagnosticEvent;
 }
 
@@ -82,9 +95,11 @@ export interface Harness {
 	onNodeFound(callback: HarnessEventCallback<"nodeFound">): void;
 	onNodeStart(callback: HarnessEventCallback<"nodeStart">): void;
 	onNodePass(callback: HarnessEventCallback<"nodePass">): void;
+	onNodeFail(callback: HarnessEventCallback<"nodeFail">): void;
 	onFailMessage(callback: HarnessEventCallback<"failMessage">): void;
 	onCallbackStart(callback: HarnessEventCallback<"callbackStart">): void;
 	onCallbackPass(callback: HarnessEventCallback<"callbackPass">): void;
+	onCallbackFail(callback: HarnessEventCallback<"callbackFail">): void;
 	onDiagnostic(callback: HarnessEventCallback<"diagnostic">): void;
 	callI32(exportName: string): number;
 	discover(nodeIndex: Array<number>): boolean;

@@ -1,10 +1,11 @@
 import { failMessage } from "./events";
-import { setActiveErrorMessage } from "./failure-state";
+import { setActiveErrorMessage, setActiveFailureKind } from "./failure-state";
 import {
   compareStrictEqualityValue,
   resetStrictEqualityReferencePairTracking,
   StrictEqualityResult,
 } from "./strict-equality";
+import { FailureKind } from "./imports";
 import { TrapCallback, didCallbackTrap } from "./trampoline";
 
 function isStrictlyEqualFloat<T>(left: T, right: T): bool {
@@ -136,6 +137,7 @@ function isLooselyEqualStringAndPrimitive<T>(text: string, value: T): bool {
 
 export function failAssertion(message: string | null = null): void {
   setActiveErrorMessage(message);
+  setActiveFailureKind(<u8>FailureKind.Assertion);
 
   if (message !== null) {
     failMessage(message);
