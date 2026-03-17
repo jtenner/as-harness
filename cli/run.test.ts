@@ -160,6 +160,10 @@ import { beforeEach, describe, expect, test, TestContext } from "jest";
 
 let beforeEachCount = 0;
 
+function throwsUnreachable(): void {
+  unreachable();
+}
+
 beforeEach((_context: TestContext): void => {
   beforeEachCount += 1;
 });
@@ -170,6 +174,8 @@ describe("jest adapter", (_context): void => {
     expect<i32>(beforeEachCount).not.toBe(2);
     expect<Array<i32>>([1, 2]).toEqual([1, 2]);
     expect<Array<i32>>([1, 2]).not.toEqual([1, 3]);
+    expect<() => void>(throwsUnreachable).toThrow();
+    expect<() => void>(((): void => {})).not.toThrow();
     context.diagnostic("jest adapter diagnostic");
   });
 });

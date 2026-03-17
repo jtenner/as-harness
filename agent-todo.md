@@ -75,8 +75,8 @@ Cross-package scope: `cli/transform`, `assembly/`, and
 
 Current note: a thin `jest` adapter now exists for `test` / `it` / `describe`,
 skip/todo/only aliases, core hooks, and a small shared-assertion-backed
-`expect(...)` surface. Full matcher parity, mocking, and async Jest helpers
-remain deferred.
+`expect(...)` surface including `toThrow()`. Full matcher parity, mocking, and
+async Jest helpers remain deferred.
 
 - [ ] Define the exported declarations each framework entry point must provide to match that framework's test-definition surface. Do this incrementally as adapter capabilities land through `v1.0`.
 - [ ] Map each framework's declaration surface onto shared internal representations for `test`, `describe`, `skip`, `todo`, hooks, and assertion integration.

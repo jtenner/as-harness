@@ -19,6 +19,10 @@ let beforeEachCount = 0;
 let afterEachCount = 0;
 let suiteSetupCount = 0;
 
+function throwsUnreachable(): void {
+  unreachable();
+}
+
 beforeAll((_context: TestContext): void => {
   suiteSetupCount = 1;
 });
@@ -50,6 +54,8 @@ describe("jest adapter", (_context): void => {
     expect<i32>(afterEachCount).toBeFalsy();
     expect<Array<i32>>([1, 2, 3]).toEqual([1, 2, 3]);
     expect<Array<i32>>([1, 2, 3]).not.toEqual([1, 2, 4]);
+    expect<() => void>(throwsUnreachable).toThrow();
+    expect<() => void>(((): void => {})).not.toThrow();
     context.diagnostic("jest smoke diagnostic");
   });
 });

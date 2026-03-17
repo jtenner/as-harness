@@ -1,11 +1,14 @@
 import {
   assertCondition,
   assertDeepStrictEqual,
+  assertDoesNotThrow,
   assertNotDeepStrictEqual,
   assertNotStrictEqual,
   assertStrictEqual,
+  assertThrows,
   assertTruthy,
 } from "../internal/assert-bridge";
+import { TrapCallback } from "../internal/trampoline";
 
 function isTruthyExpectationValue<T>(value: T): bool {
   if (isReference<T>()) {
@@ -81,6 +84,10 @@ export class NegatedExpectation<T> {
   toBeDefined(message: string | null = null): void {
     assertCondition(isNullishExpectationValue(this.actual), message);
   }
+
+  toThrow(message: string | null = null): void {
+    assertDoesNotThrow(changetype<TrapCallback>(this.actual), message);
+  }
 }
 
 export class Expectation<T> {
@@ -120,6 +127,10 @@ export class Expectation<T> {
 
   toBeDefined(message: string | null = null): void {
     assertCondition(!isNullishExpectationValue(this.actual), message);
+  }
+
+  toThrow(message: string | null = null): void {
+    assertThrows(changetype<TrapCallback>(this.actual), message);
   }
 }
 

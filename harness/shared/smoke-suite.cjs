@@ -667,6 +667,8 @@ function registerHarnessSmokeSuite(options) {
 
 		assert.equal(harness.callI32("didTrapWhenCallbackReturns"), 0);
 		assert.equal(harness.callI32("didTrapWhenCallbackTraps"), 1);
+		assert.equal(harness.callI32("didTrapWhenNestedCallbackReturns"), 0);
+		assert.equal(harness.callI32("didTrapWhenNestedCallbackTraps"), 0);
 		closeHarness(harness);
 	});
 

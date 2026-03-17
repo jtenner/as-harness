@@ -2,22 +2,18 @@ import { invokeStaged } from "./imports";
 
 export type TrapCallback = () => void;
 
-let stagedTrapCallback: TrapCallback | null = null;
+const stagedTrapCallbacks = new Array<TrapCallback>();
 
 /**
  * Returns `true` when the callback trapped across the host-managed boundary.
  *
- * The callback slot is always cleared before this function returns, regardless
- * of whether the staged callback completed or trapped.
+ * Nested trap observation is supported so assertion helpers such as
+ * `throws(...)` can be used from within already-running test callbacks.
  */
 export function didCallbackTrap(callback: TrapCallback): bool {
-  if (stagedTrapCallback !== null) {
-    unreachable();
-  }
-
-  stagedTrapCallback = callback;
+  stagedTrapCallbacks.push(callback);
   const status = invokeStaged();
-  stagedTrapCallback = null;
+  stagedTrapCallbacks.pop();
   return status == 0;
 }
 
@@ -26,10 +22,11 @@ export function didCallbackTrap(callback: TrapCallback): bool {
  * callback. The host owns trap observation around this call.
  */
 export function invoke(): void {
-  const callback = stagedTrapCallback;
-  if (callback === null) {
+  const depth = stagedTrapCallbacks.length;
+  if (depth == 0) {
     unreachable();
   }
 
+  const callback = unchecked(stagedTrapCallbacks[depth - 1]);
   callback();
 }

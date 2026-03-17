@@ -37,7 +37,7 @@ Implemented today:
 - targeted `run()` by staged `NodeIndex`
 - top-level and immediate-child `discover()` flows
 - a synchronous `node:test` declaration and execution core
-- a thin synchronous `jest` adapter for `test` / `it` / `describe`, core hooks, and a small `expect(...)` surface
+- a thin synchronous `jest` adapter for `test` / `it` / `describe`, core hooks, and a small `expect(...)` surface including `toThrow()`
 - `node:assert` and `node:assert/strict` bridge work
 - trampoline-backed callback trap observation
 
@@ -86,8 +86,10 @@ describe("suite", () => {
 });
 ```
 
-That adapter currently covers declaration and hook shape only. It does not try to
-provide broad matcher parity, mocks, spies, or async Jest helpers.
+That adapter currently covers the declaration shape, core hooks, and a small
+shared-assertion-backed matcher set including `toBe(...)`, `toEqual(...)`,
+nullish/truthy helpers, and `toThrow()`. It does not try to provide broad
+matcher parity, mocks, spies, or async Jest helpers.
 
 The current source-host validation matrix exercises the same guest runtime
 through JavaScript, Go/wazero, and Rust/Wasmtime hosts.

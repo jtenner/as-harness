@@ -15,6 +15,6 @@ First implementation slice:
 Current non-goals:
 
 - mocks, spies, and call-tracking helpers
-- `expect(...).toThrow()` and trap-observing matcher chains
+- matcher-aware throw inspection beyond a basic `expect(...).toThrow()` / `.not.toThrow()` bridge
 - Promise-based matchers such as `.resolves` and `.rejects`
 - `expect(...)` matcher parity beyond the shared assertion/context surface
