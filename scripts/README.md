@@ -16,6 +16,8 @@
   Emits the release-target matrix consumed by GitHub Actions.
 - `host-validation-matrix.ts`
   Emits the source-host validation matrix consumed by GitHub Actions.
+- `verify-source-hosts.ts`
+  Runs the expected source-host package checks for one matrix target and writes JSON/Markdown proof reports.
 - `release-manifest.ts`
   Emits `release-manifest.json`, `SHA256SUMS.txt`, and release-notes text from the shared release-target metadata.
 - `stage-release-legal.ts`
@@ -29,6 +31,7 @@
 - the guest runtime still compiles
 - the assertion bridge still works
 - the source-host matrix is explicit rather than hard-coded into one CI job
+- source-host proof now produces persisted per-target reports instead of relying only on CI step names
 - the packaged CLI path still works locally for a selected release target
 - the release workflow can publish explicit artifact metadata instead of relying on inferred platform behavior
 - the published release assets have checksums and tag/version consistency checks
@@ -48,6 +51,7 @@ Those are still release-proof tasks above the local helper layer.
 bun validate
 bun test
 bun run host:matrix
+bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-host-reports
 cd harness/js && npm test
 cd harness/wazero && npm test
 cd harness/wasmtime && npm test

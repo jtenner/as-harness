@@ -8,6 +8,7 @@
     "release:matrix": "bun run ./scripts/release-matrix.ts",
     "test": "bun run ./scripts/test.ts",
     "validate": "bun run ./scripts/validate.ts",
+    "verify:source-hosts": "bun run ./scripts/verify-source-hosts.ts",
     "verify:packaged-cli": "bun run ./scripts/verify-packaged-cli.ts"
   }
 }

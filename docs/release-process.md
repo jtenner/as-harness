@@ -62,6 +62,13 @@ If you want to inspect the source-host validation matrix locally:
 bun run host:matrix
 ```
 
+If you want to run one source-host proof target locally and emit the same
+report shape CI uploads:
+
+```bash
+bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-host-reports
+```
+
 ## CI Expectations
 
 The main workflow should be green before tagging:
@@ -73,6 +80,7 @@ The main workflow should be green before tagging:
 
 The packaged verification path is owned by [verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts).
 The source-host matrix is emitted by [host-validation-matrix.ts](../scripts/host-validation-matrix.ts).
+The per-target source-host verification reports are emitted by [verify-source-hosts.ts](../scripts/verify-source-hosts.ts).
 
 ## Tagging
 

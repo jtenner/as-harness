@@ -37,6 +37,7 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 - [ ] Prove `harness/js` works on the supported Node versions for the release.
 - [ ] Prove `harness/wazero` builds and runs on the supported OS / architecture matrix.
 - [ ] Prove `harness/wasmtime` builds and runs across the intended source-host validation matrix.
+- [ ] Decide whether the source-host matrix should expand beyond Node.js `22` or whether that is the explicit first supported Node baseline.
 
 ### Wasm Runtime / ABI
 

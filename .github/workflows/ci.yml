@@ -74,7 +74,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ matrix.nodeVersion }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -92,20 +92,16 @@ jobs:
         working-directory: ./assembly
         run: npm ci
 
-      - name: Run JS harness smoke tests
-        if: contains(matrix.sourceHarnesses, 'js')
-        working-directory: ./harness/js
-        run: npm test
+      - name: Verify source hosts
+        run: bun run ./scripts/verify-source-hosts.ts --target "${{ matrix.label }}" --report-dir ./dist/source-host-reports
 
-      - name: Run wazero harness smoke tests
-        if: contains(matrix.sourceHarnesses, 'wazero')
-        working-directory: ./harness/wazero
-        run: npm test
-
-      - name: Run wasmtime harness smoke tests
-        if: contains(matrix.sourceHarnesses, 'wasmtime')
-        working-directory: ./harness/wasmtime
-        run: npm test
+      - name: Upload source-host report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: source-host-${{ matrix.label }}
+          path: ./dist/source-host-reports/*
 
   release-matrix:
     runs-on: ubuntu-24.04

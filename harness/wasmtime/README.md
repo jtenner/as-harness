@@ -48,6 +48,7 @@ Current status:
   `start`, traps, and replay behavior
 - CLI source execution supports `--harness wasmtime`
 - the CI source-host matrix runs this package on the supported hosted runners
+- the shared source-host verification script emits per-target proof reports that include the `wasmtime` result
 
 Not in scope yet:
 

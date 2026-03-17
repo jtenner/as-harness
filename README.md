@@ -51,6 +51,7 @@ What works today:
 - `wasmtime` currently stays source-only and is not bundled into the packaged Bun release artifacts
 - the host parity smoke suite now covers event decoding, `callI32`, `discover`, `run`, `start`, and trampoline behavior across `js`, `wazero`, and `wasmtime`
 - CI now runs a source-host smoke matrix across the supported GitHub-hosted runners while keeping the packaged release matrix limited to the proven `js`/`wazero` artifact set
+- each source-host CI job now emits a per-target verification report so host proof is tied to an explicit matrix label instead of only raw job logs
 - the release workflows can build and smoke-test the packaged CLI across the intended release targets
 - the release workflow now publishes `release-manifest.json`, `SHA256SUMS.txt`, and generated release notes alongside the packaged executables
 - the release workflow now stages third-party licensing files alongside the packaged executables
@@ -156,6 +157,7 @@ The CLI currently resolves built-in harnesses, but the ABI guide is written so e
 bun validate
 bun test
 bun run host:matrix
+bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-host-reports
 cd harness/js && npm test
 cd harness/wazero && npm test
 cd harness/wasmtime && npm test

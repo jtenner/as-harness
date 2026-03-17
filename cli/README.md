@@ -11,6 +11,7 @@
 - `build.ts` emits target-specific Bun executables
 - the release workflows use the same build metadata and packaged smoke scripts as local development
 - CI also drives a separate source-host validation matrix so `wasmtime` can be proven without being added to packaged artifacts yet
+- the source-host validation path now emits per-target JSON and Markdown reports for CI artifacts and summaries
 
 ## What It Does Not Do Yet
 
