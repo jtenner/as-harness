@@ -1,5 +1,5 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { dirname, join, relative } from "node:path";
+import { dirname, join, relative, win32 } from "node:path";
 import type {
 	HarnessEvent,
 	HarnessExecution,
@@ -63,6 +63,42 @@ function toPosixPath(path: string) {
 	return path.replaceAll("\\", "/");
 }
 
+function resolveWindowsDriveRoot(path: string): string | null {
+	const match = /^[A-Za-z]:[\\/]/.exec(path);
+	return match ? match[0].slice(0, 2).toUpperCase() : null;
+}
+
+export function resolveRunEntrypointBaseDirectory(
+	entryFiles: readonly string[],
+	cwd: string,
+	platform: NodeJS.Platform = process.platform,
+) {
+	if (platform !== "win32" || entryFiles.length === 0) {
+		return cwd;
+	}
+
+	const pathModule = platform === "win32" ? win32 : { dirname };
+	const firstEntryDirectory = pathModule.dirname(entryFiles[0]);
+	const firstDrive = resolveWindowsDriveRoot(firstEntryDirectory);
+	if (!firstDrive) {
+		return firstEntryDirectory;
+	}
+
+	for (const entryFile of entryFiles.slice(1)) {
+		const entryDrive = resolveWindowsDriveRoot(pathModule.dirname(entryFile));
+		if (entryDrive && entryDrive !== firstDrive) {
+			throw new Error(
+				[
+					"as-harness run does not support entry files on multiple Windows drives.",
+					`Saw both ${firstDrive} and ${entryDrive}.`,
+				].join(" "),
+			);
+		}
+	}
+
+	return firstEntryDirectory;
+}
+
 function toImportPath(fromDirectory: string, targetPath: string) {
 	const relativePath = toPosixPath(relative(fromDirectory, targetPath));
 	return relativePath.startsWith(".") ? relativePath : `./${relativePath}`;
@@ -72,7 +108,10 @@ async function createRunEntrypoint(
 	entryFiles: readonly string[],
 	cwd: string,
 ): Promise<{ cleanup(): Promise<void>; path: string }> {
-	const tempDirectory = await mkdtemp(join(cwd, TEMP_RUN_ENTRY_PREFIX));
+	const tempBaseDirectory = resolveRunEntrypointBaseDirectory(entryFiles, cwd);
+	const tempDirectory = await mkdtemp(
+		join(tempBaseDirectory, TEMP_RUN_ENTRY_PREFIX),
+	);
 	const entrypointPath = join(tempDirectory, TEMP_RUN_ENTRY_BASENAME);
 	const entrypointDirectory = dirname(entrypointPath);
 	const sourceText = [

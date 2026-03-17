@@ -2,6 +2,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "bun:test";
+import { resolveRunEntrypointBaseDirectory } from "./run";
 
 const cliEntrypointPath = join(import.meta.dir, "index.ts");
 
@@ -52,6 +53,31 @@ async function runCliWithArguments(
 async function runCli(entryFile: string, cwd: string): Promise<CliRunResult> {
 	return runCliWithArguments(["run", entryFile], cwd);
 }
+
+test("resolveRunEntrypointBaseDirectory keeps Windows temp wrappers on the entry drive", () => {
+	expect(
+		resolveRunEntrypointBaseDirectory(
+			["C:\\Users\\runner\\AppData\\Local\\Temp\\suite.test.ts"],
+			"D:\\a\\as-harness",
+			"win32",
+		),
+	).toBe("C:\\Users\\runner\\AppData\\Local\\Temp");
+});
+
+test("resolveRunEntrypointBaseDirectory rejects mixed Windows drive entry sets", () => {
+	expect(() =>
+		resolveRunEntrypointBaseDirectory(
+			[
+				"C:\\Users\\runner\\AppData\\Local\\Temp\\suite-a.test.ts",
+				"D:\\a\\as-harness\\suite-b.test.ts",
+			],
+			"D:\\a\\as-harness",
+			"win32",
+		),
+	).toThrow(
+		"as-harness run does not support entry files on multiple Windows drives.",
+	);
+});
 
 test("cli run executes passing and failing node:test entry files through the js host", async () => {
 	await withTempEntryFile(
