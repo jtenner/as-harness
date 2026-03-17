@@ -65,7 +65,7 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 - [x] Write protocol notes for host implementers that do not rely on reading AssemblyScript internals.
 - [ ] Keep the ABI flat, language-agnostic, and stable enough to support both shipped hosts.
 - [ ] Decide whether scheduler-step entrypoints are required for the shipped runner or explicitly deferred. This decision is deferred for now.
-- [ ] Add fixtures that cover replay invalidation, branch pruning, lifecycle callback failure propagation, and clean recovery after traps.
+- [x] Add fixtures that cover replay invalidation, branch pruning, lifecycle callback failure propagation, and clean recovery after traps.
 
 ### Reporting, UX, and Docs
 
@@ -137,8 +137,8 @@ host-runner work.
 - [ ] Enforce declaration-mode traversal semantics:
 - [ ] `skip`: emit discovery metadata, stop traversal at that node, and do not traverse children.
 - [ ] `todo`: emit discovery metadata, continue descendant traversal, and suppress the node's own outcome significance.
-- [ ] Stop traversal cleanly when a branch becomes unreachable.
-- [ ] Return control to the host after branch pruning without corrupting local traversal state.
+- [x] Stop traversal cleanly when a branch becomes unreachable.
+- [x] Return control to the host after branch pruning without corrupting local traversal state.
 
 ## Node Execution
 
@@ -177,8 +177,8 @@ host-runner work.
 
 - [ ] Write a module-by-module contract for `api`, `registry`, `traversal`, `executor`, `hooks`, `assert_bridge`, `events`, `abi`, and `state`.
 - [ ] For each module, define inputs, outputs, owned state, and forbidden decisions.
-- [ ] Add fixtures that cover deterministic rediscovery for nested `describe` and `test` trees.
+- [x] Add fixtures that cover deterministic rediscovery for nested `describe` and `test` trees.
 - [x] Add fixtures that prove `skip` prevents subtree traversal.
 - [ ] Add fixtures that prove `todo` preserves descendant traversal while suppressing self-outcome significance.
 - [x] Add fixtures for lifecycle ordering and lifecycle failure propagation.
-- [ ] Add fixtures for unreachable branch pruning and clean replay after failure.
+- [x] Add fixtures for unreachable branch pruning and clean replay after failure.

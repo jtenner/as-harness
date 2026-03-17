@@ -64,6 +64,14 @@ const TRAP_EVENTS = [
 	["callbackPass", { hook: 2, nodeIndex: [] }],
 ];
 
+const DISCOVERY_TRAP_ROOT_EVENTS = [
+	["nodeStart", { nodeIndex: [9] }],
+	["callbackStart", { hook: 1, nodeIndex: [] }],
+	["callbackPass", { hook: 1, nodeIndex: [] }],
+	["callbackStart", { hook: 2, nodeIndex: [] }],
+	["callbackPass", { hook: 2, nodeIndex: [] }],
+];
+
 const DISCOVERED_NODES = [
 	{
 		nodeIndex: [0],
@@ -118,6 +126,12 @@ const DISCOVERED_NODES = [
 		kind: 1,
 		declarationMode: 1,
 		name: "trap parent",
+	},
+	{
+		nodeIndex: [9],
+		kind: 1,
+		declarationMode: 1,
+		name: "discovery trap parent",
 	},
 	{
 		nodeIndex: [3, 0],
@@ -277,6 +291,7 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.run([7, 0]), false);
 		assert.equal(harness.run([8, 0]), false);
 		assert.equal(harness.run([9]), false);
+		assert.equal(harness.run([10]), false);
 	});
 
 	test("run(nodeIndex) emits decoded node and lifecycle events for a passing test", () => {
@@ -366,8 +381,32 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.discover([6]), true);
 		assert.equal(harness.discover([7]), true);
 		assert.equal(harness.discover([8]), true);
+		assert.equal(harness.discover([9]), false);
 		assert.equal(harness.discover([1]), false);
 		assert.deepEqual(found, DISCOVERED_NODES);
+	});
+
+	test("discover(nodeIndex) prunes a trapping branch and recovers on the same harness", () => {
+		const harness = addon.createHarness(compiledNodeTestWasm);
+		const found = [];
+
+		harness.onNodeFound((event) => {
+			found.push(event);
+		});
+
+		assert.equal(harness.discover([9]), false);
+		assert.deepEqual(found, []);
+
+		found.length = 0;
+		assert.equal(harness.discover([3]), true);
+		assert.deepEqual(found, [
+			{
+				nodeIndex: [3, 0],
+				kind: 1,
+				declarationMode: 1,
+				name: "nested child",
+			},
+		]);
 	});
 
 	test("run(nodeIndex) emits hook failure events when a lifecycle callback fails", () => {
@@ -440,8 +479,8 @@ function registerHarnessSmokeSuite(options) {
 
 		assert.equal(result.discoveryOk, true);
 		assert.equal(result.ok, false);
-		assert.equal(result.discoveredTestCount, 14);
-		assert.equal(result.topLevelNodes.length, 9);
+		assert.equal(result.discoveredTestCount, 15);
+		assert.equal(result.topLevelNodes.length, 10);
 		assert.ok(result.workerCount >= 1);
 		assert.ok(result.workerCount <= result.branches.length);
 		assert.deepEqual(
@@ -477,6 +516,29 @@ function registerHarnessSmokeSuite(options) {
 				[[8], true],
 				[[8, 0], false],
 			],
+		);
+		assert.deepEqual(
+			branchesByName.get("discovery trap parent").discovery.nodes,
+			[
+				{
+					nodeIndex: [9],
+					kind: 1,
+					declarationMode: 1,
+					name: "discovery trap parent",
+				},
+			],
+		);
+		assert.deepEqual(
+			branchesByName
+				.get("discovery trap parent")
+				.executions.map((execution) => [execution.node.nodeIndex, execution.ok]),
+			[
+				[[9], false],
+			],
+		);
+		assert.deepEqual(
+			branchesByName.get("discovery trap parent").executions[0].events,
+			DISCOVERY_TRAP_ROOT_EVENTS.map(([type, data]) => ({ type, data })),
 		);
 		assert.deepEqual(branchesByName.get("skipped parent").executions, []);
 		assert.equal(branchesByName.get("failing test").executions[0].ok, false);

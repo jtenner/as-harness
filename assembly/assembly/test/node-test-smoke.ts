@@ -61,3 +61,8 @@ test("trap parent", (context: TestContext): void => {
     unreachable();
   });
 });
+
+test("discovery trap parent", (context: TestContext): void => {
+  context.test("pruned child", (_nestedContext: TestContext): void => {});
+  unreachable();
+});

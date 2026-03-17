@@ -61,6 +61,20 @@ function declareOnlyNestedSuite(_context: SuiteContext): void {
   plainNested.setTestCallback(plainTestCallback);
 }
 
+function stableLeafTestCallback(_context: TestContext): void {
+  pushTrace("stable leaf");
+}
+
+function stableParentTestCallback(_context: TestContext): void {
+  const stableLeaf = currentNode.createChild(NodeKind.Test, "stable leaf");
+  stableLeaf.setTestCallback(stableLeafTestCallback);
+}
+
+function declareStableReplaySuite(_context: SuiteContext): void {
+  const stableParent = currentNode.createChild(NodeKind.Test, "stable parent");
+  stableParent.setTestCallback(stableParentTestCallback);
+}
+
 function testFindNodeByIndexFromDiscoversNestedChildren(): void {
   const localRoot = new Node(NodeKind.Root, "local root");
   const plain = localRoot.createChild(NodeKind.Test, "plain");
@@ -220,6 +234,37 @@ function testDiscoverAndRunNestedOnlyChildren(): void {
   assert(executionTrace[0] == "nested test");
 }
 
+function testReplayDeterministicallyRediscoversNestedDescribeAndTestTrees(): void {
+  resetExecutionTrace();
+
+  const localRoot = new Node(NodeKind.Root, "local root");
+  const suite = localRoot.createChild(NodeKind.Describe, "stable suite");
+  suite.setSuiteCallback(declareStableReplaySuite);
+
+  assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
+  assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
+  assert(discoverChildrenByIndexFrom(localRoot, [0, 0] as StaticArray<u32>) == 1);
+  assert(discoverChildrenByIndexFrom(localRoot, [0, 0] as StaticArray<u32>) == 1);
+
+  const firstLeaf = findNodeByIndexFrom(localRoot, [0, 0, 0] as StaticArray<u32>);
+  assert(firstLeaf !== null);
+  if (firstLeaf !== null) {
+    assert(firstLeaf.name == "stable leaf");
+  }
+
+  const secondLeaf = findNodeByIndexFrom(localRoot, [0, 0, 0] as StaticArray<u32>);
+  assert(secondLeaf !== null);
+  if (secondLeaf !== null) {
+    assert(secondLeaf.name == "stable leaf");
+  }
+
+  assert(runNodeByIndexFrom(localRoot, [0, 0, 0] as StaticArray<u32>));
+  assert(runNodeByIndexFrom(localRoot, [0, 0, 0] as StaticArray<u32>));
+  assert(executionTrace.length == 2);
+  assert(executionTrace[0] == "stable leaf");
+  assert(executionTrace[1] == "stable leaf");
+}
+
 testFindNodeByIndexFromDiscoversNestedChildren();
 testFindNodeByIndexFromRejectsMissingOrdinals();
 testRunNodeByIndexFromExecutesResolvedNode();
@@ -233,3 +278,4 @@ testFindNodeByIndexFromRediscoversAncestorsOnEveryAttempt();
 testDiscoverImmediateChildrenOfFiltersOnlyChildren();
 testRunNodeByIndexFromRejectsNonOnlyTargets();
 testDiscoverAndRunNestedOnlyChildren();
+testReplayDeterministicallyRediscoversNestedDescribeAndTestTrees();
