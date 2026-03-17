@@ -8,7 +8,7 @@
 - no per-platform build artifact
 - easiest host to understand when implementing the ABI in another language
 
-If you want to understand the contract before reading the Go addon, start here and pair it with [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md).
+If you want to understand the contract before reading the Go addon, start here and pair it with [docs/harness-abi.md](../../docs/harness-abi.md).
 
 ## Surface
 
@@ -16,7 +16,7 @@ The package exports:
 
 - `createHarness(bytes)`
 
-The returned harness implements the shared host API from [harness-types.d.ts](/home/jtenner/Projects/as-harness/harness/shared/harness-types.d.ts).
+The returned harness implements the shared host API from [harness-types.d.ts](../shared/harness-types.d.ts).
 
 ## Responsibilities
 
@@ -47,6 +47,6 @@ npm test
 
 ## Related Docs
 
-- Repo overview: [README.md](/home/jtenner/Projects/as-harness/README.md)
-- Harness ABI: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
-- Shared smoke parity suite: [smoke-suite.cjs](/home/jtenner/Projects/as-harness/harness/shared/smoke-suite.cjs)
+- Repo overview: [README.md](../../README.md)
+- Harness ABI: [docs/harness-abi.md](../../docs/harness-abi.md)
+- Shared smoke parity suite: [smoke-suite.cjs](../shared/smoke-suite.cjs)

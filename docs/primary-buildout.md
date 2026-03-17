@@ -2,7 +2,7 @@
 
 This document explains the intended split between guest runtime work and host harness work.
 
-For the concrete host boundary, use [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md). This document is the architectural view above that ABI.
+For the concrete host boundary, use [docs/harness-abi.md](./harness-abi.md). This document is the architectural view above that ABI.
 
 ## Core Principle
 
@@ -81,7 +81,7 @@ The repo now has shared smoke coverage for those parity areas, but the host boun
 
 ## Recommended Reading Order
 
-1. [README.md](/home/jtenner/Projects/as-harness/README.md)
-2. [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
-3. [assembly/README.md](/home/jtenner/Projects/as-harness/assembly/README.md)
-4. [agent-todo.md](/home/jtenner/Projects/as-harness/agent-todo.md)
+1. [README.md](../README.md)
+2. [docs/harness-abi.md](./harness-abi.md)
+3. [assembly/README.md](../assembly/README.md)
+4. [agent-todo.md](../agent-todo.md)

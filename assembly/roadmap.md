@@ -43,4 +43,4 @@ Each adapter TODO page should answer:
 - what current non-goals apply
 - what the first minimal fixture should prove
 
-All adapter work still has to lower into the same guest runtime and the same host ABI described in [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md).
+All adapter work still has to lower into the same guest runtime and the same host ABI described in [docs/harness-abi.md](../docs/harness-abi.md).

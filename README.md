@@ -11,14 +11,14 @@ The project goal is to make AssemblyScript tests compile into Wasm and run throu
 
 ## Start Here
 
-- Project overview: [assembly/README.md](/home/jtenner/Projects/as-harness/assembly/README.md)
-- CLI usage and packaging: [cli/README.md](/home/jtenner/Projects/as-harness/cli/README.md)
-- Harness ABI for third-party host authors: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
-- Release operations and artifact expectations: [docs/release-process.md](/home/jtenner/Projects/as-harness/docs/release-process.md)
-- Project license: [LICENSE](/home/jtenner/Projects/as-harness/LICENSE)
-- Current runtime and product backlog: [agent-todo.md](/home/jtenner/Projects/as-harness/agent-todo.md)
-- Guest runtime architecture: [docs/primary-buildout.md](/home/jtenner/Projects/as-harness/docs/primary-buildout.md)
-- Strict equality and reflected diagnostics: [docs/strict-equality-machinery.md](/home/jtenner/Projects/as-harness/docs/strict-equality-machinery.md)
+- Project overview: [assembly/README.md](./assembly/README.md)
+- CLI usage and packaging: [cli/README.md](./cli/README.md)
+- Harness ABI for third-party host authors: [docs/harness-abi.md](./docs/harness-abi.md)
+- Release operations and artifact expectations: [docs/release-process.md](./docs/release-process.md)
+- Project license: [LICENSE](./LICENSE)
+- Current runtime and product backlog: [agent-todo.md](./agent-todo.md)
+- Guest runtime architecture: [docs/primary-buildout.md](./docs/primary-buildout.md)
+- Strict equality and reflected diagnostics: [docs/strict-equality-machinery.md](./docs/strict-equality-machinery.md)
 
 ## v0.1.0 Scope
 
@@ -58,7 +58,7 @@ What is still open:
 
 - clean-environment install and smoke verification for each shipped release artifact
 - final end-user release proof beyond CI, especially download-and-run verification on each supported platform
-- the remaining host-runner contract and ABI-stability cleanup listed in [agent-todo.md](/home/jtenner/Projects/as-harness/agent-todo.md)
+- the remaining host-runner contract and ABI-stability cleanup listed in [agent-todo.md](./agent-todo.md)
 - deferred framework adapters and fuller `node:test` runner semantics
 
 ## Quick Start
@@ -119,9 +119,9 @@ For `wazero`, every supported release target needs a matching `.node` addon buil
 
 The repo is no longer documenting the host boundary only through implementation details. If you want to provide your own harness:
 
-1. read [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
+1. read [docs/harness-abi.md](./docs/harness-abi.md)
 2. implement the Wasm import/export boundary described there
-3. implement the public host surface from [harness-types.d.ts](/home/jtenner/Projects/as-harness/harness/shared/harness-types.d.ts)
+3. implement the public host surface from [harness-types.d.ts](./harness/shared/harness-types.d.ts)
 4. smoke-test your harness against the same guest exports and event semantics
 
 The CLI currently resolves built-in harnesses, but the ABI guide is written so external harness implementations can target the same contract.
@@ -168,15 +168,15 @@ Common failure classes:
 
 Detailed host-specific notes live in:
 
-- [harness/js/README.md](/home/jtenner/Projects/as-harness/harness/js/README.md)
-- [harness/wazero/README.md](/home/jtenner/Projects/as-harness/harness/wazero/README.md)
-- [cli/n-api/README.md](/home/jtenner/Projects/as-harness/cli/n-api/README.md)
+- [harness/js/README.md](./harness/js/README.md)
+- [harness/wazero/README.md](./harness/wazero/README.md)
+- [cli/n-api/README.md](./cli/n-api/README.md)
 
 ## License
 
-The `as-harness` project is licensed under MIT. See [LICENSE](/home/jtenner/Projects/as-harness/LICENSE).
+The `as-harness` project is licensed under MIT. See [LICENSE](./LICENSE).
 
-Third-party release notices and license texts live in [THIRD_PARTY_NOTICES.md](/home/jtenner/Projects/as-harness/THIRD_PARTY_NOTICES.md) and [licenses/](/home/jtenner/Projects/as-harness/licenses).
+Third-party release notices and license texts live in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) and [licenses/](./licenses).
 
 ## Release Flow
 
@@ -188,4 +188,4 @@ The intended release path is:
 4. let the release workflow build, verify, upload, and publish the packaged executables
 5. let the publish job stage `THIRD_PARTY_NOTICES.md` plus third-party license texts, then generate `release-manifest.json`, `SHA256SUMS.txt`, and release notes before creating or updating the GitHub release
 
-The full operator guide for that path now lives in [docs/release-process.md](/home/jtenner/Projects/as-harness/docs/release-process.md).
+The full operator guide for that path now lives in [docs/release-process.md](./docs/release-process.md).

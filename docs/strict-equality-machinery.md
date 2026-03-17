@@ -78,6 +78,6 @@ Still open:
 
 ## Related Docs
 
-- Transform overview: [cli/transform/README.md](/home/jtenner/Projects/as-harness/cli/transform/README.md)
-- Guest architecture: [docs/primary-buildout.md](/home/jtenner/Projects/as-harness/docs/primary-buildout.md)
-- Host ABI: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
+- Transform overview: [cli/transform/README.md](../cli/transform/README.md)
+- Guest architecture: [docs/primary-buildout.md](./primary-buildout.md)
+- Host ABI: [docs/harness-abi.md](./harness-abi.md)

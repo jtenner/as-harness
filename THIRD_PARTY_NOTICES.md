@@ -2,7 +2,7 @@
 
 This project ships packaged CLI binaries that include or depend on third-party software. This file identifies the third-party components that are part of the current `v0.1.0` release path and points to the corresponding license texts included in this repository.
 
-This file covers third-party notices only. The `as-harness` project itself is licensed under MIT in [LICENSE](/home/jtenner/Projects/as-harness/LICENSE).
+This file covers third-party notices only. The `as-harness` project itself is licensed under MIT in [LICENSE](./LICENSE).
 
 ## Included Components
 
@@ -12,8 +12,8 @@ This file covers third-party notices only. The `as-harness` project itself is li
 - Version: `0.28.10`
 - License: `Apache-2.0`
 - Included texts:
-  - [licenses/assemblyscript/LICENSE](/home/jtenner/Projects/as-harness/licenses/assemblyscript/LICENSE)
-  - [licenses/assemblyscript/NOTICE](/home/jtenner/Projects/as-harness/licenses/assemblyscript/NOTICE)
+  - [licenses/assemblyscript/LICENSE](./licenses/assemblyscript/LICENSE)
+  - [licenses/assemblyscript/NOTICE](./licenses/assemblyscript/NOTICE)
 - Repository: <https://github.com/AssemblyScript/assemblyscript>
 
 ### wazero
@@ -22,8 +22,8 @@ This file covers third-party notices only. The `as-harness` project itself is li
 - Version: `v1.11.0`
 - License: `Apache-2.0`
 - Included texts:
-  - [licenses/wazero/LICENSE](/home/jtenner/Projects/as-harness/licenses/wazero/LICENSE)
-  - [licenses/wazero/NOTICE](/home/jtenner/Projects/as-harness/licenses/wazero/NOTICE)
+  - [licenses/wazero/LICENSE](./licenses/wazero/LICENSE)
+  - [licenses/wazero/NOTICE](./licenses/wazero/NOTICE)
 - Repository: <https://github.com/tetratelabs/wazero>
 
 This component is relevant to release artifacts that package the `wazero` host.
@@ -34,7 +34,7 @@ This component is relevant to release artifacts that package the `wazero` host.
 - Version: `v0.38.0`
 - License: BSD-style license from the Go authors
 - Included text:
-  - [licenses/golang.org-x-sys/LICENSE](/home/jtenner/Projects/as-harness/licenses/golang.org-x-sys/LICENSE)
+  - [licenses/golang.org-x-sys/LICENSE](./licenses/golang.org-x-sys/LICENSE)
 - Repository: <https://go.googlesource.com/sys>
 
 This component is relevant to release artifacts that package the `wazero` host.

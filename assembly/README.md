@@ -7,7 +7,7 @@ The most important rule is:
 - guest code declares, traverses, and emits facts
 - host code instantiates, schedules, decodes, and reports
 
-The guest/host boundary used by the shipped hosts is documented in [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md).
+The guest/host boundary used by the shipped hosts is documented in [docs/harness-abi.md](../docs/harness-abi.md).
 
 ## What Lives Here
 
@@ -53,7 +53,7 @@ Hosts compile or receive Wasm built from this package and then:
 4. call `discover()` and `run()`
 5. decode events emitted through `write_event(...)`
 
-If you are implementing a harness, start with [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md) before reading the guest internals.
+If you are implementing a harness, start with [docs/harness-abi.md](../docs/harness-abi.md) before reading the guest internals.
 
 ## Writing Tests
 
@@ -85,7 +85,7 @@ bun test
 
 ## Related Docs
 
-- Repo overview: [README.md](/home/jtenner/Projects/as-harness/README.md)
-- Harness ABI: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
-- Guest runtime architecture: [docs/primary-buildout.md](/home/jtenner/Projects/as-harness/docs/primary-buildout.md)
-- Guest roadmap: [assembly/roadmap.md](/home/jtenner/Projects/as-harness/assembly/roadmap.md)
+- Repo overview: [README.md](../README.md)
+- Harness ABI: [docs/harness-abi.md](../docs/harness-abi.md)
+- Guest runtime architecture: [docs/primary-buildout.md](../docs/primary-buildout.md)
+- Guest roadmap: [assembly/roadmap.md](./roadmap.md)

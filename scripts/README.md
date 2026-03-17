@@ -51,7 +51,7 @@ bun run verify:packaged-cli --target bun-linux-x64
 
 ## Related Docs
 
-- Repo overview: [README.md](/home/jtenner/Projects/as-harness/README.md)
-- CLI docs: [cli/README.md](/home/jtenner/Projects/as-harness/cli/README.md)
-- Release process: [docs/release-process.md](/home/jtenner/Projects/as-harness/docs/release-process.md)
-- Third-party notices: [THIRD_PARTY_NOTICES.md](/home/jtenner/Projects/as-harness/THIRD_PARTY_NOTICES.md)
+- Repo overview: [README.md](../README.md)
+- CLI docs: [cli/README.md](../cli/README.md)
+- Release process: [docs/release-process.md](../docs/release-process.md)
+- Third-party notices: [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)

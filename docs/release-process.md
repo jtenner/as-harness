@@ -36,7 +36,7 @@ bun validate
 bun test
 cd harness/js && npm test
 cd harness/wazero && npm test
-cd /home/jtenner/Projects/as-harness
+cd /path/to/as-harness
 bun run release:matrix
 bun run verify:packaged-cli --target bun-linux-x64
 ```
@@ -58,13 +58,13 @@ The main workflow should be green before tagging:
 - `harness/wazero` smoke
 - packaged CLI verification on the release matrix
 
-The packaged verification path is owned by [verify-packaged-cli.ts](/home/jtenner/Projects/as-harness/scripts/verify-packaged-cli.ts).
+The packaged verification path is owned by [verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts).
 
 ## Tagging
 
 The release workflow triggers on tags matching `v*`.
 
-The tag must match the CLI package version in [package.json](/home/jtenner/Projects/as-harness/cli/package.json). For example:
+The tag must match the CLI package version in [package.json](../cli/package.json). For example:
 
 - CLI version `0.1.0`
 - release tag `v0.1.0`
@@ -93,7 +93,7 @@ The release workflow publishes:
 
 `SHA256SUMS.txt` contains the binary checksums in a standard two-column format.
 
-The legal bundle is staged by [stage-release-legal.ts](/home/jtenner/Projects/as-harness/scripts/stage-release-legal.ts).
+The legal bundle is staged by [stage-release-legal.ts](../scripts/stage-release-legal.ts).
 
 ## Clean-Environment Smoke Expectation
 
@@ -110,13 +110,13 @@ Windows packaged artifacts are expected to stop at step 2 because they are inten
 
 - packaged build failure: inspect the target-specific packaged smoke step first
 - `wazero` build failure: inspect the Node headers, Go toolchain, or addon staging path on that runner
-- tag/version mismatch: update [package.json](/home/jtenner/Projects/as-harness/cli/package.json) or retag to match
+- tag/version mismatch: update [package.json](../cli/package.json) or retag to match
 - manifest/checksum failure: confirm the release asset directory contains the expected packaged executables before publish
 
 ## Related Files
 
-- Workflow: [.github/workflows/release.yml](/home/jtenner/Projects/as-harness/.github/workflows/release.yml)
-- Release metadata: [scripts/release-manifest.ts](/home/jtenner/Projects/as-harness/scripts/release-manifest.ts)
-- Legal staging: [scripts/stage-release-legal.ts](/home/jtenner/Projects/as-harness/scripts/stage-release-legal.ts)
-- Packaged smoke verification: [scripts/verify-packaged-cli.ts](/home/jtenner/Projects/as-harness/scripts/verify-packaged-cli.ts)
-- Release target map: [cli/build-targets.ts](/home/jtenner/Projects/as-harness/cli/build-targets.ts)
+- Workflow: [.github/workflows/release.yml](../.github/workflows/release.yml)
+- Release metadata: [scripts/release-manifest.ts](../scripts/release-manifest.ts)
+- Legal staging: [scripts/stage-release-legal.ts](../scripts/stage-release-legal.ts)
+- Packaged smoke verification: [scripts/verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts)
+- Release target map: [cli/build-targets.ts](../cli/build-targets.ts)

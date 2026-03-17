@@ -22,7 +22,7 @@ The hosted matrix is now the canonical way the release gathers the packaged targ
 
 ## Related Docs
 
-- Repo overview: [README.md](/home/jtenner/Projects/as-harness/README.md)
-- CLI packaging docs: [cli/README.md](/home/jtenner/Projects/as-harness/cli/README.md)
-- Harness ABI: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
-- wazero host package: [harness/wazero/README.md](/home/jtenner/Projects/as-harness/harness/wazero/README.md)
+- Repo overview: [README.md](../../README.md)
+- CLI packaging docs: [cli/README.md](../README.md)
+- Harness ABI: [docs/harness-abi.md](../../docs/harness-abi.md)
+- wazero host package: [harness/wazero/README.md](../../harness/wazero/README.md)

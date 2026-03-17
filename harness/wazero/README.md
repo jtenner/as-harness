@@ -77,6 +77,6 @@ Package-local extra coverage still exists for:
 
 ## Related Docs
 
-- Repo overview: [README.md](/home/jtenner/Projects/as-harness/README.md)
-- Harness ABI: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
-- CLI native addon staging: [cli/n-api/README.md](/home/jtenner/Projects/as-harness/cli/n-api/README.md)
+- Repo overview: [README.md](../../README.md)
+- Harness ABI: [docs/harness-abi.md](../../docs/harness-abi.md)
+- CLI native addon staging: [cli/n-api/README.md](../../cli/n-api/README.md)

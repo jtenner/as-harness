@@ -234,7 +234,7 @@ Structured failure events are intentionally low-level:
 
 ## Public Host Surface
 
-The current host interface lives in [harness-types.d.ts](/home/jtenner/Projects/as-harness/harness/shared/harness-types.d.ts).
+The current host interface lives in [harness-types.d.ts](../harness/shared/harness-types.d.ts).
 
 At a high level, a harness must expose:
 
@@ -294,7 +294,7 @@ It is useful for host-level probes such as trampoline status checks.
 - execute each branch
 - return a `HarnessStartResult`
 
-The current result shape is documented in [harness-types.d.ts](/home/jtenner/Projects/as-harness/harness/shared/harness-types.d.ts).
+The current result shape is documented in [harness-types.d.ts](../harness/shared/harness-types.d.ts).
 
 ### `close()`
 
@@ -327,9 +327,9 @@ Before treating a new harness as compatible, verify:
 
 The current reference implementations are:
 
-- [harness/js/index.cjs](/home/jtenner/Projects/as-harness/harness/js/index.cjs)
-- [harness/wazero/index.cjs](/home/jtenner/Projects/as-harness/harness/wazero/index.cjs)
-- [smoke-suite.cjs](/home/jtenner/Projects/as-harness/harness/shared/smoke-suite.cjs)
+- [harness/js/index.cjs](../harness/js/index.cjs)
+- [harness/wazero/index.cjs](../harness/wazero/index.cjs)
+- [smoke-suite.cjs](../harness/shared/smoke-suite.cjs)
 
 ## Non-Goals
 
