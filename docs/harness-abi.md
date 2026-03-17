@@ -216,6 +216,7 @@ At a high level, a harness must expose:
 - `discover(nodeIndex)`
 - `run(nodeIndex)`
 - `start()`
+- `close()`
 
 ### Event Callbacks
 
@@ -257,6 +258,13 @@ It is useful for host-level probes such as trampoline status checks.
 - return a `HarnessStartResult`
 
 The current result shape is documented in [harness-types.d.ts](/home/jtenner/Projects/as-harness/harness/shared/harness-types.d.ts).
+
+### `close()`
+
+- releases any host-owned runtime resources associated with the harness
+- should be idempotent
+- should make it safe for the embedding process to exit without waiting on guest-runtime cleanup
+- callers should prefer explicit `close()` over relying on GC or finalizers
 
 ## Minimal Implementation Checklist
 

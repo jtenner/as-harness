@@ -291,9 +291,11 @@ export async function runEntryFiles(
 	}
 
 	let result: HarnessStartResult;
+	let harness = null;
 
 	try {
-		result = await runtime.createHarness(wasmBytes).start();
+		harness = runtime.createHarness(wasmBytes);
+		result = await harness.start();
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		logger.error(`Host execution failed: ${message}`);
@@ -301,6 +303,8 @@ export async function runEntryFiles(
 			discoveredTestCount: 0,
 			exitCode: RunExitCode.HostFailure,
 		};
+	} finally {
+		harness?.close();
 	}
 
 	const discoveryFailures = collectDiscoveryFailures(result);

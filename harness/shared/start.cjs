@@ -17,6 +17,12 @@ const EVENT_TYPES = [
 ];
 const workerScriptPath = path.join(__dirname, "start-worker.cjs");
 
+function closeHarness(harness) {
+	if (harness && typeof harness.close === "function") {
+		harness.close();
+	}
+}
+
 function cloneEvent(event) {
 	const copy = {};
 	for (const [key, value] of Object.entries(event)) {
@@ -210,7 +216,13 @@ async function runTasksInWorkerPool(
 
 async function startHarness(options) {
 	const discoveryHarness = options.createLocalHarness(options.bytes);
-	const topLevelDiscovery = discoverImmediateChildren(discoveryHarness, []);
+	let topLevelDiscovery;
+
+	try {
+		topLevelDiscovery = discoverImmediateChildren(discoveryHarness, []);
+	} finally {
+		closeHarness(discoveryHarness);
+	}
 	const topLevelNodes = topLevelDiscovery.nodes;
 	const branches = topLevelNodes.map((root) => ({
 		root,
@@ -301,6 +313,7 @@ function decorateHarness(harness, options) {
 
 module.exports = {
 	cloneEvent,
+	closeHarness,
 	discoverBranch,
 	decorateHarness,
 	EVENT_TYPES,

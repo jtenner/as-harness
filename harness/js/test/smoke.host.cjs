@@ -50,4 +50,6 @@ test("start() runs per-branch discovery in worker threads like wazero", async ()
 			/^branch-[ab]-child-thread-[1-9][0-9]*$/,
 		);
 	}
+
+	harness.close();
 });

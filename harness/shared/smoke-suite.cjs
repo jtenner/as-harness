@@ -240,9 +240,37 @@ function registerHarnessSmokeSuite(options) {
 		compiledTrampolineWasm,
 		test,
 	} = options;
+	const liveHarnesses = new Set();
+
+	function createHarness(bytes) {
+		const harness = addon.createHarness(bytes);
+		liveHarnesses.add(harness);
+		return harness;
+	}
+
+	function closeHarness(harness) {
+		if (!liveHarnesses.has(harness)) {
+			return;
+		}
+
+		liveHarnesses.delete(harness);
+		if (typeof harness.close === "function") {
+			harness.close();
+		}
+	}
+
+	test.after(() => {
+		for (const harness of liveHarnesses) {
+			if (typeof harness.close === "function") {
+				harness.close();
+			}
+		}
+
+		liveHarnesses.clear();
+	});
 
 	test("creates a harness with per-event registration methods", () => {
-		const harness = addon.createHarness(compiledExportsWasm);
+		const harness = createHarness(compiledExportsWasm);
 
 		assert.equal(typeof addon.createHarness, "function");
 		assert.equal(typeof harness.onNodeFound, "function");
@@ -267,10 +295,11 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.discover("bad"), false);
 		assert.equal(harness.run([]), true);
 		assert.equal(harness.run("bad"), false);
+		closeHarness(harness);
 	});
 
 	test("callI32 validates export names and reports missing exports", () => {
-		const harness = addon.createHarness(compiledTrampolineWasm);
+		const harness = createHarness(compiledTrampolineWasm);
 
 		assert.throws(() => harness.callI32(123), {
 			name: "TypeError",
@@ -280,10 +309,11 @@ function registerHarnessSmokeSuite(options) {
 			name: "Error",
 			message: "failed to call zero-argument i32 export",
 		});
+		closeHarness(harness);
 	});
 
 	test("run(nodeIndex) executes the targeted node:test path", () => {
-		const harness = addon.createHarness(compiledNodeTestWasm);
+		const harness = createHarness(compiledNodeTestWasm);
 
 		assert.equal(harness.run([0]), true);
 		assert.equal(harness.run([1]), false);
@@ -299,10 +329,11 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.run([9, 0]), false);
 		assert.equal(harness.run([10]), false);
 		assert.equal(harness.run([11]), false);
+		closeHarness(harness);
 	});
 
 	test("run(nodeIndex) emits decoded node and lifecycle events for a passing test", () => {
-		const harness = addon.createHarness(compiledNodeTestWasm);
+		const harness = createHarness(compiledNodeTestWasm);
 		const events = [];
 
 		harness.onNodeStart((event) => {
@@ -323,10 +354,11 @@ function registerHarnessSmokeSuite(options) {
 
 		assert.equal(harness.run([0]), true);
 		assert.deepEqual(events, PASSING_TEST_EVENTS);
+		closeHarness(harness);
 	});
 
 	test("run(nodeIndex) emits FailMessage and stops pass events on a failing test", () => {
-		const harness = addon.createHarness(compiledNodeTestWasm);
+		const harness = createHarness(compiledNodeTestWasm);
 		const events = [];
 
 		harness.onNodeStart((event) => {
@@ -347,10 +379,11 @@ function registerHarnessSmokeSuite(options) {
 
 		assert.equal(harness.run([1]), false);
 		assert.deepEqual(events, FAILING_TEST_EVENTS);
+		closeHarness(harness);
 	});
 
 	test("run(nodeIndex) emits FailMessage for planned assertion mismatches after cleanup hooks", () => {
-		const harness = addon.createHarness(compiledNodeTestWasm);
+		const harness = createHarness(compiledNodeTestWasm);
 		const events = [];
 
 		harness.onNodeStart((event) => {
@@ -371,10 +404,11 @@ function registerHarnessSmokeSuite(options) {
 
 		assert.equal(harness.run([2]), false);
 		assert.deepEqual(events, PLANNED_MISMATCH_EVENTS);
+		closeHarness(harness);
 	});
 
 	test("discover(nodeIndex) emits NodeFound events for top-level and nested node:test declarations", () => {
-		const harness = addon.createHarness(compiledNodeTestWasm);
+		const harness = createHarness(compiledNodeTestWasm);
 		const found = [];
 
 		harness.onNodeFound((event) => {
@@ -392,10 +426,11 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.discover([10]), false);
 		assert.equal(harness.discover([1]), false);
 		assert.deepEqual(found, DISCOVERED_NODES);
+		closeHarness(harness);
 	});
 
 	test("run(nodeIndex) suppresses self-outcome significance for todo nodes", () => {
-		const harness = addon.createHarness(compiledNodeTestWasm);
+		const harness = createHarness(compiledNodeTestWasm);
 		const events = [];
 
 		harness.onNodeStart((event) => {
@@ -411,10 +446,11 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.run([6]), true);
 		assert.equal(harness.run([7]), true);
 		assert.deepEqual(events, []);
+		closeHarness(harness);
 	});
 
 	test("discover(nodeIndex) prunes a trapping branch and recovers on the same harness", () => {
-		const harness = addon.createHarness(compiledNodeTestWasm);
+		const harness = createHarness(compiledNodeTestWasm);
 		const found = [];
 
 		harness.onNodeFound((event) => {
@@ -434,10 +470,11 @@ function registerHarnessSmokeSuite(options) {
 				name: "nested child",
 			},
 		]);
+		closeHarness(harness);
 	});
 
 	test("run(nodeIndex) emits hook failure events when a lifecycle callback fails", () => {
-		const harness = addon.createHarness(compiledNodeTestWasm);
+		const harness = createHarness(compiledNodeTestWasm);
 		const events = [];
 
 		harness.onNodeStart((event) => {
@@ -458,10 +495,11 @@ function registerHarnessSmokeSuite(options) {
 
 		assert.equal(harness.run([8, 0]), false);
 		assert.deepEqual(events, HOOK_FAILURE_EVENTS);
+		closeHarness(harness);
 	});
 
 	test("run(nodeIndex) recovers cleanly after a trapped execution attempt", () => {
-		const harness = addon.createHarness(compiledNodeTestWasm);
+		const harness = createHarness(compiledNodeTestWasm);
 		const trappedEvents = [];
 		const recoveryEvents = [];
 		let trapPhase = true;
@@ -491,10 +529,11 @@ function registerHarnessSmokeSuite(options) {
 
 		assert.deepEqual(trappedEvents, TRAP_EVENTS);
 		assert.deepEqual(recoveryEvents, PASSING_TEST_EVENTS);
+		closeHarness(harness);
 	});
 
 	test("start() returns raw branch discovery and execution data", async () => {
-		const harness = addon.createHarness(compiledNodeTestWasm);
+		const harness = createHarness(compiledNodeTestWasm);
 		const pending = harness.start();
 
 		assert.equal(typeof pending?.then, "function");
@@ -581,6 +620,7 @@ function registerHarnessSmokeSuite(options) {
 
 		assert.equal(harness.callI32("didTrapWhenCallbackReturns"), 0);
 		assert.equal(harness.callI32("didTrapWhenCallbackTraps"), 1);
+		closeHarness(harness);
 	});
 
 	test("rejects non-byte input", () => {

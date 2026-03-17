@@ -90,4 +90,5 @@ export interface Harness {
 	discover(nodeIndex: Array<number>): boolean;
 	run(nodeIndex: Array<number>): boolean;
 	start(): Promise<HarnessStartResult>;
+	close(): void;
 }

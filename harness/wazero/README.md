@@ -22,6 +22,7 @@ This host:
 - decodes the same event protocol as `harness/js`
 - implements `callI32`, `discover`, `run`, and `start`
 - keeps branch discovery and execution scheduling inside the native addon
+- now requires explicit `close()` to release the native runtime promptly instead of waiting for GC finalization
 
 ## Build Requirements
 

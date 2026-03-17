@@ -1,7 +1,7 @@
 "use strict";
 
 const { parentPort, workerData } = require("node:worker_threads");
-const { cloneEvent, discoverBranch, EVENT_TYPES } = require("./start.cjs");
+const { cloneEvent, closeHarness, discoverBranch, EVENT_TYPES } = require("./start.cjs");
 
 if (parentPort === null) {
 	throw new Error("start worker requires a parent port");
@@ -14,38 +14,49 @@ function runBranch(branch) {
 	const harness = harnessModule.createHarness(wasmBytes);
 	let currentEvents = null;
 
-	for (const [registrationName, type] of EVENT_TYPES) {
-		harness[registrationName]((event) => {
-			if (currentEvents === null) {
-				return;
-			}
+	try {
+		for (const [registrationName, type] of EVENT_TYPES) {
+			harness[registrationName]((event) => {
+				if (currentEvents === null) {
+					return;
+				}
 
-			currentEvents.push({
-				type,
-				data: cloneEvent(event),
+				currentEvents.push({
+					type,
+					data: cloneEvent(event),
+				});
 			});
-		});
-	}
+		}
 
-	const executions = [];
-	for (const node of branch.runTargets) {
-		currentEvents = [];
-		const ok = harness.run(node.nodeIndex);
-		executions.push({
-			node,
-			ok,
-			events: currentEvents,
-		});
-		currentEvents = null;
-	}
+		const executions = [];
+		for (const node of branch.runTargets) {
+			currentEvents = [];
+			const ok = harness.run(node.nodeIndex);
+			executions.push({
+				node,
+				ok,
+				events: currentEvents,
+			});
+			currentEvents = null;
+		}
 
-	return executions;
+		return executions;
+	} finally {
+		closeHarness(harness);
+	}
 }
 
 function runTask(message) {
 	switch (message.type) {
 		case "discoverBranch":
-			return discoverBranch(harnessModule.createHarness(wasmBytes), message.task.root);
+			{
+				const harness = harnessModule.createHarness(wasmBytes);
+				try {
+					return discoverBranch(harness, message.task.root);
+				} finally {
+					closeHarness(harness);
+				}
+			}
 		case "runBranch":
 			return runBranch(message.task);
 		default:

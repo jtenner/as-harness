@@ -45,6 +45,8 @@ class FakeHarness {
 		this.#callbacks.diagnostic = callback;
 	}
 
+	close() {}
+
 	discover(nodeIndex) {
 		switch (Array.isArray(nodeIndex) ? nodeIndex.join(".") : "<invalid>") {
 			case "":

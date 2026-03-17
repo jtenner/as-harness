@@ -276,6 +276,8 @@ class Harness {
 		this.#callbacks.diagnostic = callback;
 	}
 
+	close() {}
+
 	callI32(exportName) {
 		assertExportName(exportName);
 

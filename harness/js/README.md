@@ -28,6 +28,7 @@ This host:
 - stages `NodeIndex` values for `discover()` and `run()`
 - observes traps through the trampoline boundary
 - provides `start()` scheduling through worker threads
+- supports explicit `close()` calls for interface parity, though it does not hold native resources
 
 ## Testing
 

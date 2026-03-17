@@ -42,6 +42,7 @@ extern napi_value GoCallI32(napi_env env, napi_callback_info info);
 extern napi_value GoDiscoverHarness(napi_env env, napi_callback_info info);
 extern napi_value GoRunHarness(napi_env env, napi_callback_info info);
 extern napi_value GoStartHarness(napi_env env, napi_callback_info info);
+extern napi_value GoCloseHarness(napi_env env, napi_callback_info info);
 extern void GoFinalizeHarness(node_api_basic_env env, void* data, void* hint);
 */
 import "C"
@@ -118,7 +119,7 @@ type immediateDiscoverySnapshot struct {
 }
 
 type discoverySnapshot struct {
-	OK       bool
+	OK        bool
 	Nodes     []nodeSnapshot
 	TestCount uint32
 }
@@ -147,12 +148,12 @@ type branchSnapshot struct {
 }
 
 type startSnapshot struct {
-	OK                 bool
-	DiscoveryOK        bool
+	OK                  bool
+	DiscoveryOK         bool
 	DiscoveredTestCount uint32
-	TopLevelNodes      []nodeSnapshot
-	WorkerCount        uint32
-	Branches           []branchSnapshot
+	TopLevelNodes       []nodeSnapshot
+	WorkerCount         uint32
+	Branches            []branchSnapshot
 }
 
 type nodeCollector struct {
@@ -1093,6 +1094,9 @@ func createHarnessObject(env C.napi_env, id int64) C.napi_value {
 	if !setNamedProperty(env, harness, "start", createFunction(env, "start", (C.napi_callback)(C.GoStartHarness))) {
 		return nil
 	}
+	if !setNamedProperty(env, harness, "close", createFunction(env, "close", (C.napi_callback)(C.GoCloseHarness))) {
+		return nil
+	}
 
 	return harness
 }
@@ -1226,7 +1230,7 @@ func discoverBranch(state *harnessState, rootNode nodeSnapshot) discoverySnapsho
 	}
 
 	return discoverySnapshot{
-		OK:       ok,
+		OK:        ok,
 		Nodes:     nodes,
 		TestCount: countTestNodes(nodes),
 	}
@@ -1851,6 +1855,22 @@ func GoStartHarness(env C.napi_env, info C.napi_callback_info) C.napi_value {
 	}
 
 	return createResolvedPromise(env, resultValue)
+}
+
+//export GoCloseHarness
+func GoCloseHarness(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	_, thisArg, ok := getCallbackArguments(env, info, 0)
+	if !ok {
+		return nil
+	}
+
+	id, ok := getHarnessID(env, thisArg)
+	if !ok {
+		return nil
+	}
+
+	deleteHarness(id, C.node_api_basic_env(env))
+	return undefined(env)
 }
 
 //export GoFinalizeHarness
