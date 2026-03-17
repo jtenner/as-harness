@@ -1,89 +1,52 @@
 # Harness Buildout Tasks
 
-Primary scope: `assembly/`. This checklist covers the remaining Wasm-side
-runtime work defined in `docs/primary-buildout.md` plus the release-gating host
-and CLI work needed to ship the runner.
+Primary scope: `assembly/`. This checklist tracks the remaining Wasm-side
+runtime work from [docs/primary-buildout.md](./docs/primary-buildout.md) plus
+the host, CLI, and release follow-through that is still open.
 
-Decision notes in this file reflect accepted `v0.1.0` scope unless a line says
-the decision is deferred.
+## Accepted Scope Notes
+
+Accepted `v0.1.0` release scope:
+
+- synchronous `node:test`
+- `node:assert`
+- `node:assert/strict`
+- shipped hosts: `js`, `wazero`
+- source-only host under active validation: `wasmtime`
+- basic pass/fail reporting with failure messages
+- GitHub build/tag/release distribution
+
+Explicitly deferred for now:
+
+- async or Promise-based test APIs
+- snapshots
+- worker-oriented user controls
+- additional framework adapters beyond `node:test`
+- Linux `musl`
+- coverage in the first shipped release
+- scheduler-step entrypoint decision
+- reflected custom display-override decision
 
 ## Publish Blockers
 
 Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 `harness/wazero`, `harness/wasmtime`, and the top-level docs/release workflow.
 
-### Product Definition
-
-- [x] Freeze the first shippable product scope for an AssemblyScript test runner as `v0.1.0`.
-- [x] Decide which surfaces are explicitly in scope for `v0.1.0`:
-- [x] synchronous `node:test`
-- [x] `node:assert`
-- [x] `node:assert/strict`
-- [x] `js` host
-- [x] `wazero` host
-- [x] basic reporting for failed tests and failure messages
-- [x] Decide which currently deferred features stay out of scope for `v0.1.0`:
-- [x] async / Promise-based test APIs
-- [x] snapshots
-- [x] worker-oriented execution controls
-- [x] additional framework adapters beyond `node:test`
-
-### CLI Runner
-
-- [x] Implement `as-harness run` as a real execution path instead of a scaffold.
-- [x] Resolve entry files, compile them, and execute them through a selected host.
-- [x] Forward the documented `run` compiler/runtime flags into the actual CLI implementation.
-- [x] Decide and implement host selection policy for shipped builds:
-- [x] default host: `js`
-- [x] explicit host override
-- [x] unsupported-host failure behavior
-- [x] Emit stable process exit codes for pass, test failure, compile failure, and host/runtime failure.
-- [x] Add human-readable run summaries and failure output suitable for normal CLI use.
-- [x] Decide whether coverage is deferred or included in the first shipped release. Coverage is deferred for `v0.1.0`.
-
 ### Host Runtime Shipping
 
-- [x] Keep the shipped `js` and `wazero` host surfaces behaviorally aligned for:
-- [x] event decoding
-- [x] `callI32(exportName)`
-- [x] `discover(nodeIndex)`
-- [x] `run(nodeIndex)`
-- [x] trampoline-backed trap observation
-- [x] Decide the supported host/platform matrix for the first release.
-- [x] Release targets: macOS, Windows, and Linux.
-- [x] Support `arm64` where practical once proven by host-specific validation.
-- [x] Do not support Linux `musl` in `v0.1.0`.
 - [ ] Prove `harness/js` works on the supported Node versions for the release.
 - [ ] Prove `harness/wazero` builds and runs on the supported OS / architecture matrix.
-- [x] Add a source-based `wasmtime` host path that satisfies the shared Node harness contract and runs in CI.
 - [ ] Prove `harness/wasmtime` builds and runs across the intended source-host validation matrix.
-- [x] Package or document the wazero native-addon build/install story so users can actually run it.
-- [x] Decide how the CLI bundles, locates, or installs shipped host runtimes.
-- [x] Add end-to-end CLI coverage for both the `js` and `wazero` execution paths.
 
 ### Wasm Runtime / ABI
 
-- [ ] Finish the host-runner contract items that are still open below and are required for shipping.
-- [x] Write protocol notes for host implementers that do not rely on reading AssemblyScript internals.
-- [ ] Keep the ABI flat, language-agnostic, and stable enough to support both shipped hosts.
-- [ ] Decide whether scheduler-step entrypoints are required for the shipped runner or explicitly deferred. This decision is deferred for now.
-- [x] Add fixtures that cover replay invalidation, branch pruning, lifecycle callback failure propagation, and clean recovery after traps.
-
-### Reporting, UX, and Docs
-
-- [x] Document the user-facing workflow for writing and running AssemblyScript tests with the shipped runner.
-- [x] Document the supported feature matrix and explicit non-goals for the first release.
-- [x] Document `js` vs `wazero` host tradeoffs, requirements, and platform caveats.
-- [x] Add troubleshooting guidance for compile failures, traps, assertion failures, and wazero addon build issues.
-- [x] Ensure the README set and CLI help text describe the same shipped behavior.
+- [ ] Finish the remaining host-runner contract items required for shipping.
+- [ ] Keep the ABI flat, language-agnostic, and stable enough to support multiple shipped or source hosts.
+- [ ] Decide whether scheduler-step entrypoints are required for the shipped runner or explicitly deferred.
 
 ### Release Engineering
 
-- [x] Decide the first distribution channel.
-- [x] Use a GitHub build/tag/release flow for `v0.1.0`.
 - [ ] Revisit standalone Bun-compiled CLI binaries vs `npm` packaging after the first release workflow is proven.
-- [x] Add CI coverage for validation, root tests, host package smoke tests, and release-artifact verification.
-- [x] Define release/versioning steps for the CLI package and shipped host runtimes.
 - [ ] Verify install and smoke-run flows from a clean environment on each supported platform.
 
 ## Strict Equality Machinery
@@ -93,19 +56,7 @@ Cross-package scope: `cli/transform`, `assembly/`, and
 
 ### Reflected Diagnostics Instrumentation
 
-- [ ] Decide whether reflected extraction must support custom display overrides in v1 or later. This decision is deferred for now.
-
-### Assembly Runtime Reflected Value Core
-
-- [x] Define whether stack traces or source context attach to reflected values in v1 or later.
-- [x] Guest code owns stack-trace construction; the host should not infer guest execution frames.
-- [x] Add a host/guest ABI so the host can request the current guest stack trace and lift it as a string.
-- [x] Allow reflected values and diagnostics to attach that guest-produced stack string when available.
-
-### Assertion Bridge Integration
-
-- [x] Decide whether default deep-equality failure messages are generated in the guest, in the host, or deferred.
-- [x] Test authors own failure message text; default reporting stays minimal and only reports that compared shapes do not match.
+- [ ] Decide whether reflected extraction must support custom display overrides in v1 or later.
 
 ### Compiler Wrapper Integration
 
@@ -130,41 +81,19 @@ Cross-package scope: `cli/transform`, `assembly/`, and
 ## Traversal and Replay
 
 Note: after the current `node:test` closeout, the remaining unchecked items in
-this section are deferred unless the project explicitly resumes fuller
+this section stay deferred unless the project explicitly resumes fuller
 host-runner work.
 
 - [ ] Investigate AST traversal / transform-generated test-shape extraction as an alternative to replay-driven runtime visitation.
-- [ ] Define the targeted traversal input contract for replaying toward a requested node path. This decision is deferred for now.
+- [ ] Define the targeted traversal input contract for replaying toward a requested node path.
 - [ ] Emit `NodeFound` during discovery for every structurally visible node.
-- [ ] Enforce declaration-mode traversal semantics:
-- [ ] `skip`: emit discovery metadata, stop traversal at that node, and do not traverse children.
-- [ ] `todo`: emit discovery metadata, continue descendant traversal, and suppress the node's own outcome significance.
-- [x] Stop traversal cleanly when a branch becomes unreachable.
-- [x] Return control to the host after branch pruning without corrupting local traversal state.
-
-## Node Execution
-
-- [x] Honor `todo` by suppressing self-outcome significance without preventing descendant discovery.
-- [x] Surface traps and unreachable conditions to the host without classifying final failure on the Wasm side.
-
-## Hooks and Lifecycle
-
-- [x] Allow failure metadata emission from inside lifecycle callbacks.
-- [x] Propagate unreachable conditions from lifecycle callbacks back to the host as callback failure.
-
-## Assertion Bridge
-
-- [x] Ensure assertion failures behave the same inside node callbacks and lifecycle callbacks.
-
-## Events and Encoding
-
-- [x] Write protocol notes that the host can implement without AssemblyScript-specific knowledge.
+- [ ] Enforce declaration-mode traversal semantics for `skip`: emit discovery metadata, stop traversal at that node, and do not traverse children.
+- [ ] Enforce declaration-mode traversal semantics for `todo`: emit discovery metadata, continue descendant traversal, and suppress the node's own outcome significance.
 
 ## ABI Boundary
 
 - [ ] Decide whether scheduler-step entrypoints are required now or deferred.
 - [ ] Keep the ABI simple, flat, and language-agnostic.
-- [x] Add an ABI path for the host to request the current guest stack trace as a string without inferring stack structure itself.
 
 ## Ephemeral Runtime State
 
@@ -179,8 +108,3 @@ host-runner work.
 
 - [ ] Write a module-by-module contract for `api`, `registry`, `traversal`, `executor`, `hooks`, `assert_bridge`, `events`, `abi`, and `state`.
 - [ ] For each module, define inputs, outputs, owned state, and forbidden decisions.
-- [x] Add fixtures that cover deterministic rediscovery for nested `describe` and `test` trees.
-- [x] Add fixtures that prove `skip` prevents subtree traversal.
-- [x] Add fixtures that prove `todo` preserves descendant traversal while suppressing self-outcome significance.
-- [x] Add fixtures for lifecycle ordering and lifecycle failure propagation.
-- [x] Add fixtures for unreachable branch pruning and clean replay after failure.
