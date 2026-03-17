@@ -37,7 +37,7 @@ Implemented today:
 - targeted `run()` by staged `NodeIndex`
 - top-level and immediate-child `discover()` flows
 - a synchronous `node:test` declaration and execution core
-- a thin synchronous `jest` declaration adapter for `test` / `it` / `describe` and core hooks
+- a thin synchronous `jest` adapter for `test` / `it` / `describe`, core hooks, and a small `expect(...)` surface
 - `node:assert` and `node:assert/strict` bridge work
 - trampoline-backed callback trap observation
 
@@ -77,15 +77,17 @@ That source is compiled into Wasm by the CLI, then executed by a harness.
 A thin Jest-shaped declaration path also exists when you opt into `--lib jest`:
 
 ```ts
-import { describe, test } from "jest";
+import { describe, expect, test } from "jest";
 
 describe("suite", () => {
-	test("works", () => {});
+	test("works", () => {
+		expect<i32>(1 + 1).toBe(2);
+	});
 });
 ```
 
 That adapter currently covers declaration and hook shape only. It does not try to
-provide matcher parity, mocks, spies, or async Jest helpers.
+provide broad matcher parity, mocks, spies, or async Jest helpers.
 
 The current source-host validation matrix exercises the same guest runtime
 through JavaScript, Go/wazero, and Rust/Wasmtime hosts.

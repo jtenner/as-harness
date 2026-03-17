@@ -1,4 +1,5 @@
 import { DeclarationMode, HookKind } from "../internal/imports";
+export * from "./expect";
 import {
   declareHook,
   declareModifiedSuite,

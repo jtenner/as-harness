@@ -3,6 +3,7 @@ import {
   beforeAll,
   beforeEach,
   describe,
+  expect,
   fit,
   fdescribe,
   test,
@@ -44,9 +45,11 @@ describe("jest adapter", (_context): void => {
   });
 
   test("runs hooks and assertions", (context: TestContext): void => {
-    context.assert.strictEqual<i32>(suiteSetupCount, 1);
-    context.assert.strictEqual<i32>(beforeEachCount, 1);
-    context.assert.strictEqual<i32>(afterEachCount, 0);
+    expect<i32>(suiteSetupCount).toBe(1);
+    expect<i32>(beforeEachCount).toBe(1);
+    expect<i32>(afterEachCount).toBeFalsy();
+    expect<Array<i32>>([1, 2, 3]).toEqual([1, 2, 3]);
+    expect<Array<i32>>([1, 2, 3]).not.toEqual([1, 2, 4]);
     context.diagnostic("jest smoke diagnostic");
   });
 });

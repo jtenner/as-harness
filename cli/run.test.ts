@@ -156,7 +156,7 @@ test("passing test", (_context: TestContext): void => {});
 test("cli run executes a thin jest adapter entry when --lib jest is provided", async () => {
 	await withTempEntryFile(
 		`
-import { beforeEach, describe, test, TestContext } from "jest";
+import { beforeEach, describe, expect, test, TestContext } from "jest";
 
 let beforeEachCount = 0;
 
@@ -166,7 +166,10 @@ beforeEach((_context: TestContext): void => {
 
 describe("jest adapter", (_context): void => {
   test("passes through jest adapter", (context: TestContext): void => {
-    context.assert.strictEqual<i32>(beforeEachCount, 1);
+    expect<i32>(beforeEachCount).toBe(1);
+    expect<i32>(beforeEachCount).not.toBe(2);
+    expect<Array<i32>>([1, 2]).toEqual([1, 2]);
+    expect<Array<i32>>([1, 2]).not.toEqual([1, 3]);
     context.diagnostic("jest adapter diagnostic");
   });
 });
