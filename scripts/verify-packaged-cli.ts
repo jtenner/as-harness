@@ -20,7 +20,10 @@ type CommandResult = {
 	exitCode: number;
 	stderr: string;
 	stdout: string;
+	timedOut: boolean;
 };
+
+const COMMAND_TIMEOUT_MS = 60_000;
 
 function parseArguments(argv: string[]): ParsedArguments {
 	let assetDir: string | undefined;
@@ -60,14 +63,23 @@ async function runCommand(
 		stderr: "pipe",
 		stdout: "pipe",
 	});
+	let timedOut = false;
+	const timeoutHandle = setTimeout(() => {
+		timedOut = true;
+		processHandle.kill();
+	}, COMMAND_TIMEOUT_MS);
 
-	const [stdout, stderr, exitCode] = await Promise.all([
-		new Response(processHandle.stdout).text(),
-		new Response(processHandle.stderr).text(),
-		processHandle.exited,
-	]);
+	try {
+		const [stdout, stderr, exitCode] = await Promise.all([
+			new Response(processHandle.stdout).text(),
+			new Response(processHandle.stderr).text(),
+			processHandle.exited,
+		]);
 
-	return { exitCode, stderr, stdout };
+		return { exitCode, stderr, stdout, timedOut };
+	} finally {
+		clearTimeout(timeoutHandle);
+	}
 }
 
 function assertContains(text: string, expected: string, context: string) {
@@ -100,6 +112,7 @@ async function main() {
 		throw new Error(
 			[
 				`Failed to build ${target}.`,
+				buildResult.timedOut ? `Timed out after ${COMMAND_TIMEOUT_MS}ms.` : "",
 				buildResult.stdout,
 				buildResult.stderr,
 			].join("\n"),
@@ -134,6 +147,9 @@ async function main() {
 			throw new Error(
 				[
 					`Packaged js smoke failed for ${target}.`,
+					jsRunResult.timedOut
+						? `Timed out after ${COMMAND_TIMEOUT_MS}ms.`
+						: "",
 					jsRunResult.stdout,
 					jsRunResult.stderr,
 				].join("\n"),
@@ -158,6 +174,9 @@ async function main() {
 				throw new Error(
 					[
 						`Packaged wazero smoke failed for ${target}.`,
+						wazeroRunResult.timedOut
+							? `Timed out after ${COMMAND_TIMEOUT_MS}ms.`
+							: "",
 						wazeroRunResult.stdout,
 						wazeroRunResult.stderr,
 					].join("\n"),

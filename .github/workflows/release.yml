@@ -87,6 +87,9 @@ jobs:
           merge-multiple: true
           path: ./dist/release-assets
 
+      - name: Stage release legal files
+        run: bun run ./scripts/stage-release-legal.ts --asset-dir ./dist/release-assets
+
       - name: Generate release manifest and notes
         run: bun run ./scripts/release-manifest.ts --tag "$GITHUB_REF_NAME" --asset-dir ./dist/release-assets --notes-file ./dist/release-notes.md
 

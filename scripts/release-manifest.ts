@@ -88,6 +88,7 @@ function renderReleaseNotes(tag: string) {
 		"- Packaged Windows artifacts are currently `js`-only.",
 		"- Packaged `wazero` support is currently shipped on macOS and Linux release artifacts.",
 		"- Source-based Windows `wazero` development remains supported outside the packaged executable path.",
+		"- `THIRD_PARTY_NOTICES.md` and the tracked third-party license texts are included in the release asset set.",
 		"- `SHA256SUMS.txt` contains checksums for the packaged executables in this release.",
 		"",
 	];

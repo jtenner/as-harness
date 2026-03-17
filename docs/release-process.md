@@ -75,6 +75,8 @@ The release-manifest generator will fail if those drift.
 The release workflow publishes:
 
 - one packaged executable per release target
+- `THIRD_PARTY_NOTICES.md`
+- tracked third-party license texts copied from `licenses/`
 - `release-manifest.json`
 - `SHA256SUMS.txt`
 
@@ -88,6 +90,8 @@ The release workflow publishes:
 - SHA-256 checksum per packaged executable
 
 `SHA256SUMS.txt` contains the binary checksums in a standard two-column format.
+
+The legal bundle is staged by [stage-release-legal.ts](/home/jtenner/Projects/as-harness/scripts/stage-release-legal.ts).
 
 ## Clean-Environment Smoke Expectation
 
@@ -111,5 +115,6 @@ Windows packaged artifacts are expected to stop at step 2 because they are inten
 
 - Workflow: [.github/workflows/release.yml](/home/jtenner/Projects/as-harness/.github/workflows/release.yml)
 - Release metadata: [scripts/release-manifest.ts](/home/jtenner/Projects/as-harness/scripts/release-manifest.ts)
+- Legal staging: [scripts/stage-release-legal.ts](/home/jtenner/Projects/as-harness/scripts/stage-release-legal.ts)
 - Packaged smoke verification: [scripts/verify-packaged-cli.ts](/home/jtenner/Projects/as-harness/scripts/verify-packaged-cli.ts)
 - Release target map: [cli/build-targets.ts](/home/jtenner/Projects/as-harness/cli/build-targets.ts)

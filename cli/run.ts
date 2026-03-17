@@ -304,7 +304,7 @@ export async function runEntryFiles(
 			exitCode: RunExitCode.HostFailure,
 		};
 	} finally {
-		harness?.close();
+		harness?.close?.();
 	}
 
 	const discoveryFailures = collectDiscoveryFailures(result);

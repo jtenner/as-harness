@@ -50,6 +50,7 @@ What works today:
 - the host parity smoke suite now covers event decoding, `callI32`, `discover`, `run`, `start`, and trampoline behavior across `js` and `wazero`
 - the release workflows can build and smoke-test the packaged CLI across the intended release targets
 - the release workflow now publishes `release-manifest.json`, `SHA256SUMS.txt`, and generated release notes alongside the packaged executables
+- the release workflow now stages third-party licensing files alongside the packaged executables
 - the packaged release path now enforces Git tag to CLI version alignment for `v0.1.0`
 
 What is still open:
@@ -126,6 +127,10 @@ The CLI currently resolves built-in harnesses, but the ABI guide is written so e
   ABI, architecture, and planning documents.
 - `scripts/`
   Root validation, smoke, and release-matrix helpers.
+- `licenses/`
+  Third-party license texts staged into release assets.
+- `THIRD_PARTY_NOTICES.md`
+  Human-readable notice summary for shipped third-party components.
 
 ## Development Commands
 
@@ -162,6 +167,6 @@ The intended release path is:
 2. push to GitHub and let the CI matrix run
 3. tag `v*`
 4. let the release workflow build, verify, upload, and publish the packaged executables
-5. let the publish job generate `release-manifest.json`, `SHA256SUMS.txt`, and release notes from the shared target metadata before creating or updating the GitHub release
+5. let the publish job stage `THIRD_PARTY_NOTICES.md` plus third-party license texts, then generate `release-manifest.json`, `SHA256SUMS.txt`, and release notes before creating or updating the GitHub release
 
 The full operator guide for that path now lives in [docs/release-process.md](/home/jtenner/Projects/as-harness/docs/release-process.md).

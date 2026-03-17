@@ -61,6 +61,8 @@ That metadata now also declares which packaged harnesses each release artifact i
 
 The release metadata path now also emits `SHA256SUMS.txt` and validates that the Git tag matches the CLI package version before publish.
 
+The publish path now also stages `THIRD_PARTY_NOTICES.md` and the tracked third-party license texts into the release asset set.
+
 ## Commands
 
 ```bash
@@ -90,5 +92,6 @@ Common CLI failure classes:
 - Repo overview: [README.md](/home/jtenner/Projects/as-harness/README.md)
 - Harness ABI: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
 - Release process: [docs/release-process.md](/home/jtenner/Projects/as-harness/docs/release-process.md)
+- Third-party notices: [THIRD_PARTY_NOTICES.md](/home/jtenner/Projects/as-harness/THIRD_PARTY_NOTICES.md)
 - Native addon staging: [cli/n-api/README.md](/home/jtenner/Projects/as-harness/cli/n-api/README.md)
 - Strict-equality transform: [cli/transform/README.md](/home/jtenner/Projects/as-harness/cli/transform/README.md)

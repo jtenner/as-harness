@@ -10,6 +10,7 @@ type WazeroHarnessModule = {
 };
 
 const sourceRequire = createRequire(import.meta.url);
+let cachedHarnessModule: WazeroHarnessModule | null = null;
 
 function loadSourceWazeroHarnessModule(): WazeroHarnessModule {
 	const sourceSpecifier = ["..", "..", "harness", "wazero", "index.cjs"].join(
@@ -34,7 +35,14 @@ function loadBundledWazeroHarnessModule(): WazeroHarnessModule {
 	return require(WAZERO_NODE_PATH) as WazeroHarnessModule;
 }
 
-const { createHarness } = loadBundledWazeroHarnessModule();
+function resolveWazeroHarnessModule() {
+	if (cachedHarnessModule !== null) {
+		return cachedHarnessModule;
+	}
+
+	cachedHarnessModule = loadBundledWazeroHarnessModule();
+	return cachedHarnessModule;
+}
 
 export const wazeroRuntime: Runtime = {
 	name: "wazero",
@@ -42,6 +50,6 @@ export const wazeroRuntime: Runtime = {
 		setCompilerOptionValue(compilerArguments, "--exportStart", "__start");
 	},
 	createHarness(wasmBytes) {
-		return createHarness(wasmBytes);
+		return resolveWazeroHarnessModule().createHarness(wasmBytes);
 	},
 };
