@@ -4,6 +4,8 @@ import {
   assertDoesNotThrow,
   assertNotDeepStrictEqual,
   assertNotStrictEqual,
+  isDeepStrictlyEqual,
+  isStrictlyEqual,
   assertStrictEqual,
   assertThrows,
   assertTruthy,
@@ -50,6 +52,143 @@ function isNullishExpectationValue<T>(value: T): bool {
   return changetype<usize>(value) == 0;
 }
 
+function isExpectationNaNValue<T>(value: T): bool {
+  if (!isFloat<T>()) {
+    return false;
+  }
+
+  return sizeof<T>() == sizeof<f32>()
+    ? isNaN<f32>(<f32>value)
+    : isNaN<f64>(<f64>value);
+}
+
+function isGreaterThanExpectationValue<T>(actual: T, expected: T): bool {
+  if (isFloat<T>()) {
+    return sizeof<T>() == sizeof<f32>()
+      ? <f32>actual > <f32>expected
+      : <f64>actual > <f64>expected;
+  }
+
+  if (isInteger<T>()) {
+    return actual > expected;
+  }
+
+  return false;
+}
+
+function isLessThanExpectationValue<T>(actual: T, expected: T): bool {
+  if (isFloat<T>()) {
+    return sizeof<T>() == sizeof<f32>()
+      ? <f32>actual < <f32>expected
+      : <f64>actual < <f64>expected;
+  }
+
+  if (isInteger<T>()) {
+    return actual < expected;
+  }
+
+  return false;
+}
+
+function matchesExpectedContainmentValue<Actual, Expected>(
+  actual: Actual,
+  expected: Expected,
+  deep: bool,
+): bool {
+  return deep
+    ? isDeepStrictlyEqual<Expected>(changetype<Expected>(actual), expected)
+    : isStrictlyEqual<Expected>(changetype<Expected>(actual), expected);
+}
+
+function containsExpectedValue<Actual, Expected>(
+  value: Actual,
+  expected: Expected,
+  deep: bool,
+): bool {
+  if (isReference<Actual>() && changetype<usize>(value) == 0) {
+    return false;
+  }
+
+  if (isArrayLike<Actual>()) {
+    // @ts-ignore `isArrayLike<Actual>()` guarantees `length` and indexed access.
+    for (let i = 0, length = value.length; i < length; i++) {
+      if (
+        matchesExpectedContainmentValue<Expected, Expected>(
+          // @ts-ignore `isArrayLike<Actual>()` guarantees indexed access.
+          changetype<Expected>(unchecked(value[i])),
+          expected,
+          deep,
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  if (idof<Actual>() == idof<Set<Expected>>()) {
+    const values = changetype<Set<Expected>>(value).values();
+    for (let i = 0, length = values.length; i < length; i++) {
+      if (
+        matchesExpectedContainmentValue<Expected, Expected>(
+          unchecked(values[i]),
+          expected,
+          deep,
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  if (idof<Actual>() == idof<Map<Expected, valueof<Actual>>>()) {
+    const keys = changetype<Map<Expected, valueof<Actual>>>(value).keys();
+    for (let i = 0, length = keys.length; i < length; i++) {
+      if (
+        matchesExpectedContainmentValue<Expected, Expected>(
+          unchecked(keys[i]),
+          expected,
+          deep,
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  return false;
+}
+
+function getExpectationLength<T>(value: T): i32 {
+  if (isReference<T>() && changetype<usize>(value) == 0) {
+    return -1;
+  }
+
+  if (isString<T>()) {
+    return changetype<string>(value).length;
+  }
+
+  if (isArrayLike<T>()) {
+    // @ts-ignore `isArrayLike<T>()` guarantees `length`.
+    return value.length;
+  }
+
+  if (idof<T>() == idof<Set<indexof<T>>>()) {
+    return changetype<Set<indexof<T>>>(value).size;
+  }
+
+  if (idof<T>() == idof<Map<indexof<T>, valueof<T>>>()) {
+    return changetype<Map<indexof<T>, valueof<T>>>(value).size;
+  }
+
+  return -1;
+}
+
 export class NegatedExpectation<T> {
   constructor(private readonly actual: T) {}
 
@@ -83,6 +222,47 @@ export class NegatedExpectation<T> {
 
   toBeDefined(message: string | null = null): void {
     assertCondition(isNullishExpectationValue(this.actual), message);
+  }
+
+  toContain<Expected>(expected: Expected, message: string | null = null): void {
+    assertCondition(
+      !containsExpectedValue<T, Expected>(
+        this.actual,
+        expected,
+        false,
+      ),
+      message,
+    );
+  }
+
+  toContainEqual<Expected>(
+    expected: Expected,
+    message: string | null = null,
+  ): void {
+    assertCondition(
+      !containsExpectedValue<T, Expected>(
+        this.actual,
+        expected,
+        true,
+      ),
+      message,
+    );
+  }
+
+  toHaveLength(expected: i32, message: string | null = null): void {
+    assertCondition(getExpectationLength(this.actual) != expected, message);
+  }
+
+  toBeGreaterThan(expected: T, message: string | null = null): void {
+    assertCondition(!isGreaterThanExpectationValue(this.actual, expected), message);
+  }
+
+  toBeLessThan(expected: T, message: string | null = null): void {
+    assertCondition(!isLessThanExpectationValue(this.actual, expected), message);
+  }
+
+  toBeNaN(message: string | null = null): void {
+    assertCondition(!isExpectationNaNValue(this.actual), message);
   }
 
   toThrow(message: string | null = null): void {
@@ -127,6 +307,47 @@ export class Expectation<T> {
 
   toBeDefined(message: string | null = null): void {
     assertCondition(!isNullishExpectationValue(this.actual), message);
+  }
+
+  toContain<Expected>(expected: Expected, message: string | null = null): void {
+    assertCondition(
+      containsExpectedValue<T, Expected>(
+        this.actual,
+        expected,
+        false,
+      ),
+      message,
+    );
+  }
+
+  toContainEqual<Expected>(
+    expected: Expected,
+    message: string | null = null,
+  ): void {
+    assertCondition(
+      containsExpectedValue<T, Expected>(
+        this.actual,
+        expected,
+        true,
+      ),
+      message,
+    );
+  }
+
+  toHaveLength(expected: i32, message: string | null = null): void {
+    assertCondition(getExpectationLength(this.actual) == expected, message);
+  }
+
+  toBeGreaterThan(expected: T, message: string | null = null): void {
+    assertCondition(isGreaterThanExpectationValue(this.actual, expected), message);
+  }
+
+  toBeLessThan(expected: T, message: string | null = null): void {
+    assertCondition(isLessThanExpectationValue(this.actual, expected), message);
+  }
+
+  toBeNaN(message: string | null = null): void {
+    assertCondition(isExpectationNaNValue(this.actual), message);
   }
 
   toThrow(message: string | null = null): void {

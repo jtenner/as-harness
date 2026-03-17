@@ -39,7 +39,8 @@ The default reporter currently:
 On the guest-library side, the CLI also bundles a thin Jest-shaped adapter
 behind `--lib jest`. That adapter currently covers test/suite declarations,
 core hooks, and a small `expect(...)` surface backed by the shared assertion
-machinery, including `toThrow()`.
+machinery, including containment, length/size checks, numeric checks, `NaN`,
+and `toThrow()`.
 
 For the exact guest-facing Jest surface, see [docs/Jest.md](../docs/Jest.md).
 

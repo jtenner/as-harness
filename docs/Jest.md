@@ -26,6 +26,8 @@ Supported today:
 - `only` / `skip` / `todo` modifiers and the common `x*` / `f*` aliases
 - `beforeAll`, `afterAll`, `beforeEach`, and `afterEach`
 - a small `expect(...)` matcher surface backed by the shared assertion bridge
+  for equality, containment, length/size checks, numeric comparisons, `NaN`,
+  and trap observation
 
 Explicitly out of scope today:
 
@@ -93,6 +95,12 @@ The supported matcher surface is intentionally small.
 - `expect<T>(actual).toBeNull(message?)`
 - `expect<T>(actual).toBeUndefined(message?)`
 - `expect<T>(actual).toBeDefined(message?)`
+- `expect(actual).toContain(expected, message?)`
+- `expect(actual).toContainEqual(expected, message?)`
+- `expect(actual).toHaveLength(expected, message?)`
+- `expect<T>(actual).toBeGreaterThan(expected, message?)`
+- `expect<T>(actual).toBeLessThan(expected, message?)`
+- `expect<T>(actual).toBeNaN(message?)`
 - `expect<() => void>(callback).toThrow(message?)`
 
 ### Negated Matchers
@@ -107,6 +115,12 @@ The `.not` property exposes the same currently-supported matcher family:
 - `expect<T>(actual).not.toBeNull(message?)`
 - `expect<T>(actual).not.toBeUndefined(message?)`
 - `expect<T>(actual).not.toBeDefined(message?)`
+- `expect(actual).not.toContain(expected, message?)`
+- `expect(actual).not.toContainEqual(expected, message?)`
+- `expect(actual).not.toHaveLength(expected, message?)`
+- `expect<T>(actual).not.toBeGreaterThan(expected, message?)`
+- `expect<T>(actual).not.toBeLessThan(expected, message?)`
+- `expect<T>(actual).not.toBeNaN(message?)`
 - `expect<() => void>(callback).not.toThrow(message?)`
 
 ### Equality Semantics
@@ -116,6 +130,54 @@ The `.not` property exposes the same currently-supported matcher family:
   deep strict-equality machinery.
 - The deep-equality behavior is defined by the guest runtime, not by upstream
   Jest's full matcher semantics.
+
+### Containment and Length Semantics
+
+`toContain(...)` and `toContainEqual(...)` currently support these container
+families:
+
+- arrays
+- array-like values such as typed arrays
+- `Set`
+- `Map`
+
+For container expectations:
+
+- `toContain(...)` uses shared strict equality over contained values
+- `toContainEqual(...)` uses the shared deep strict-equality machinery
+- `Map` containment is defined over keys, not values
+- `toHaveLength(...)` reads `.length` for arrays, typed arrays, and strings
+- `toHaveLength(...)` reads `.size` for `Set` and `Map`
+
+Examples:
+
+```ts
+import { expect } from "jest";
+
+const values = [1, 2, 3];
+expect(values).toContain(2);
+expect(values).toHaveLength(3);
+
+const keys = new Map<Array<i32>, string>();
+keys.set([1, 2], "value");
+expect(keys).toContainEqual([1, 2]);
+expect(keys).toHaveLength(1);
+```
+
+### Numeric Matchers
+
+The current numeric matcher set is:
+
+- `toBeGreaterThan(...)`
+- `toBeLessThan(...)`
+- `toBeNaN()`
+
+These stay intentionally narrow:
+
+- `toBeGreaterThan(...)` and `toBeLessThan(...)` are meaningful for integer and
+  float values
+- `toBeNaN()` is meaningful for float values
+- non-numeric or unsupported value kinds simply fail the matcher
 
 ### `toThrow()` Semantics
 

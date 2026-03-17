@@ -47,7 +47,7 @@ What works today:
 
 - the CLI discovers entry files, compiles them, and runs them
 - `--harness js`, `--harness wazero`, and `--harness wasmtime` all work in source mode
-- a thin Jest-shaped adapter is available when the compile path includes `--lib jest`, including a small `expect(...)` surface with `toThrow()`
+- a thin Jest-shaped adapter is available when the compile path includes `--lib jest`, including a small `expect(...)` surface for equality, containment, length/size checks, numeric checks, `NaN`, and `toThrow()`
 - packaged Bun executables can run the local smoke path for the supported `js`/`wazero` release matrix
 - `wasmtime` currently stays source-only and is not bundled into the packaged Bun release artifacts
 - the host parity smoke suite now covers event decoding, `callI32`, `discover`, `run`, `start`, and trampoline behavior across `js`, `wazero`, and `wasmtime`
@@ -65,7 +65,7 @@ What is still open:
 - final end-user release proof beyond CI, especially download-and-run verification on each supported platform
 - the remaining host-runner contract and ABI-stability cleanup listed in [agent-todo.md](./agent-todo.md)
 - deferred framework adapters and fuller `node:test` runner semantics
-- fuller Jest compatibility beyond thin declarations, core hooks, and the small shared-assertion-backed `expect(...)` surface with `toThrow()`
+- fuller Jest compatibility beyond thin declarations, core hooks, and the small shared-assertion-backed `expect(...)` surface for equality, containment, length/size checks, numeric checks, `NaN`, and `toThrow()`
 
 ## Quick Start
 

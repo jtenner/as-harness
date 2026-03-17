@@ -17,5 +17,6 @@ Current non-goals:
 
 - mocks, spies, and call-tracking helpers
 - matcher-aware throw inspection beyond a basic `expect(...).toThrow()` / `.not.toThrow()` bridge
+- richer container and matcher parity beyond the current equality, containment, length/size, numeric, `NaN`, and trap-observation surface
 - Promise-based matchers such as `.resolves` and `.rejects`
 - `expect(...)` matcher parity beyond the shared assertion/context surface

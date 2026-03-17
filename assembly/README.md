@@ -38,7 +38,7 @@ Implemented today:
 - targeted `run()` by staged `NodeIndex`
 - top-level and immediate-child `discover()` flows
 - a synchronous `node:test` declaration and execution core
-- a thin synchronous `jest` adapter for `test` / `it` / `describe`, core hooks, and a small `expect(...)` surface including `toThrow()`
+- a thin synchronous `jest` adapter for `test` / `it` / `describe`, core hooks, and a small `expect(...)` surface including containment, length/size, numeric checks, `NaN`, and `toThrow()`
 - `node:assert` and `node:assert/strict` bridge work
 - trampoline-backed callback trap observation
 
@@ -88,9 +88,9 @@ describe("suite", () => {
 ```
 
 That adapter currently covers the declaration shape, core hooks, and a small
-shared-assertion-backed matcher set including `toBe(...)`, `toEqual(...)`,
-nullish/truthy helpers, and `toThrow()`. It does not try to provide broad
-matcher parity, mocks, spies, or async Jest helpers.
+shared-assertion-backed matcher set including equality, containment,
+length/size checks, numeric comparisons, `NaN`, and `toThrow()`. It does not
+try to provide broad matcher parity, mocks, spies, or async Jest helpers.
 
 The exact supported API and the current `toThrow()` callback contract are
 described in [docs/Jest.md](../docs/Jest.md).
