@@ -13,7 +13,7 @@ const nodeRoot = path.dirname(path.dirname(process.execPath));
 mkdirSync(cacheDir, { recursive: true });
 mkdirSync(distDir, { recursive: true });
 
-const includeDir = resolveNodeIncludeDir();
+const includeDir = await resolveNodeIncludeDir();
 const env = {
 	...process.env,
 	CGO_CFLAGS: [process.env.CGO_CFLAGS, `-I${includeDir}`].filter(Boolean).join(" "),
@@ -41,7 +41,7 @@ execFileSync(
 	},
 );
 
-function resolveNodeIncludeDir() {
+async function resolveNodeIncludeDir() {
 	const candidates = [
 		process.env.NODE_API_INCLUDE_DIR,
 		process.env.npm_config_nodedir ? path.join(process.env.npm_config_nodedir, "include", "node") : null,
@@ -56,10 +56,69 @@ function resolveNodeIncludeDir() {
 		}
 	}
 
+	const downloadedIncludeDir = await resolveDownloadedNodeIncludeDir();
+	if (downloadedIncludeDir) {
+		return downloadedIncludeDir;
+	}
+
 	throw new Error(
 		[
 			"Unable to find node_api.h.",
-			"Set NODE_API_INCLUDE_DIR or npm_config_nodedir to a Node headers directory.",
+			"Set NODE_API_INCLUDE_DIR, set npm_config_nodedir, or allow the default Node headers download.",
+		].join(" "),
+	);
+}
+
+async function resolveDownloadedNodeIncludeDir() {
+	const headersUrl = process.release?.headersUrl;
+	if (!headersUrl) {
+		return null;
+	}
+
+	const version = process.version;
+	const downloadDir = path.join(cacheDir, "node", version, "headers");
+	const extractedRoot = path.join(downloadDir, `node-${version}`);
+	const includeDir = path.join(extractedRoot, "include", "node");
+	const includeHeader = path.join(includeDir, "node_api.h");
+	if (existsSync(includeHeader)) {
+		return includeDir;
+	}
+
+	if (process.env.AS_HARNESS_SKIP_NODE_HEADERS_DOWNLOAD === "1") {
+		throw new Error(
+			[
+				"Unable to find node_api.h for the active Node installation.",
+				"Set NODE_API_INCLUDE_DIR, set npm_config_nodedir, or allow the default Node headers download.",
+			].join(" "),
+		);
+	}
+
+	mkdirSync(downloadDir, { recursive: true });
+
+	const archivePath = path.join(downloadDir, path.basename(new URL(headersUrl).pathname));
+	if (!existsSync(archivePath)) {
+		const response = await fetch(headersUrl);
+		if (!response.ok) {
+			throw new Error(
+				`Failed to download ${headersUrl}: ${response.status} ${response.statusText}`,
+			);
+		}
+
+		writeFileSync(archivePath, Buffer.from(await response.arrayBuffer()));
+	}
+
+	execFileSync("tar", ["-xzf", archivePath, "-C", downloadDir], {
+		stdio: "inherit",
+	});
+
+	if (existsSync(includeHeader)) {
+		return includeDir;
+	}
+
+	throw new Error(
+		[
+			`Downloaded Node headers from ${headersUrl},`,
+			"but could not find include/node/node_api.h after extraction.",
 		].join(" "),
 	);
 }
