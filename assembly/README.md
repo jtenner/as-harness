@@ -19,6 +19,8 @@ The current source-host set exercising that boundary is `harness/js`,
   The exported Wasm surface expected by hosts.
 - `assembly/assembly/node_test/`
   The current test-declaration adapter.
+- `assembly/assembly/jest/`
+  A thin Jest-shaped declaration adapter built on the same runtime primitives.
 - `assembly/assembly/node_assert/`
   The current assertion adapters.
 - `assembly/assembly/test/`
@@ -35,6 +37,7 @@ Implemented today:
 - targeted `run()` by staged `NodeIndex`
 - top-level and immediate-child `discover()` flows
 - a synchronous `node:test` declaration and execution core
+- a thin synchronous `jest` declaration adapter for `test` / `it` / `describe` and core hooks
 - `node:assert` and `node:assert/strict` bridge work
 - trampoline-backed callback trap observation
 
@@ -70,6 +73,19 @@ test("works", (t) => {
 ```
 
 That source is compiled into Wasm by the CLI, then executed by a harness.
+
+A thin Jest-shaped declaration path also exists when you opt into `--lib jest`:
+
+```ts
+import { describe, test } from "jest";
+
+describe("suite", () => {
+	test("works", () => {});
+});
+```
+
+That adapter currently covers declaration and hook shape only. It does not try to
+provide matcher parity, mocks, spies, or async Jest helpers.
 
 The current source-host validation matrix exercises the same guest runtime
 through JavaScript, Go/wazero, and Rust/Wasmtime hosts.

@@ -152,3 +152,36 @@ test("passing test", (_context: TestContext): void => {});
 		},
 	);
 });
+
+test("cli run executes a thin jest adapter entry when --lib jest is provided", async () => {
+	await withTempEntryFile(
+		`
+import { beforeEach, describe, test, TestContext } from "jest";
+
+let beforeEachCount = 0;
+
+beforeEach((_context: TestContext): void => {
+  beforeEachCount += 1;
+});
+
+describe("jest adapter", (_context): void => {
+  test("passes through jest adapter", (context: TestContext): void => {
+    context.assert.strictEqual<i32>(beforeEachCount, 1);
+    context.diagnostic("jest adapter diagnostic");
+  });
+});
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", "--lib", "jest", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 1 passed, 0 failed, 1 discovered with js.",
+			);
+		},
+	);
+});

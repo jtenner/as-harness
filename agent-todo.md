@@ -73,6 +73,10 @@ Cross-package scope: `cli/transform`, `assembly/`, and
 
 ## Framework Library Entry Points and Declaration Adapters
 
+Current note: a thin `jest` declaration adapter now exists for `test` / `it` /
+`describe`, skip/todo/only aliases, and core hooks. Full matcher parity,
+mocking, and async Jest helpers remain deferred.
+
 - [ ] Define the exported declarations each framework entry point must provide to match that framework's test-definition surface. Do this incrementally as adapter capabilities land through `v1.0`.
 - [ ] Map each framework's declaration surface onto shared internal representations for `test`, `describe`, `skip`, `todo`, hooks, and assertion integration.
 - [ ] Route the shared internal declaration representations through WebAssembly imports as required by the current design.

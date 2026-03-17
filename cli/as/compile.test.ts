@@ -55,6 +55,14 @@ test("rewrites node:assert/strict to the bundled harness library root", () => {
 	expect(result.lib).toEqual([BUNDLED_LIBRARY_COMPONENTS_PATH]);
 });
 
+test("rewrites jest to the bundled harness library root", () => {
+	const result = withBundledHarnessLibraryComponents({
+		lib: ["jest"],
+	});
+
+	expect(result.lib).toEqual([BUNDLED_LIBRARY_COMPONENTS_PATH]);
+});
+
 test("preserves non-harness library paths when appending the bundled harness library root", () => {
 	const result = withBundledHarnessLibraryComponents({
 		lib: ["./custom-lib", "node:assert"],
@@ -130,12 +138,18 @@ test("bundles Windows-safe assembly paths alongside public node:* library aliase
 	expect(
 		bundledVirtualFiles.get(`${bundledVirtualRoot}/lib/node_test_lib.ts`),
 	).toBe(bundledVirtualFiles.get(`${bundledVirtualRoot}/lib/node:test.ts`));
+	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/lib/jest.ts`)).toBe(
+		true,
+	);
 	expect(
 		bundledVirtualFiles.has(`${bundledVirtualRoot}/node_assert/index.ts`),
 	).toBe(true);
 	expect(
 		bundledVirtualFiles.has(`${bundledVirtualRoot}/node_test/index.ts`),
 	).toBe(true);
+	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/jest/index.ts`)).toBe(
+		true,
+	);
 });
 
 test("compileEntrypoints works inside a compiled Bun executable with bundled strict-equality support", async () => {

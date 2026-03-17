@@ -33,7 +33,8 @@ Tracked adapters:
 - `jasmine`
 - `qunit`
 
-Only the Node-shaped adapters are currently active implementation work.
+The active adapter work today is the shipped Node-shaped surface plus a thin
+Jest declaration adapter.
 
 ## How To Read The Adapter TODO Pages
 

@@ -36,6 +36,10 @@ The default reporter currently:
 - prints failure messages for failing executions
 - prints `diagnostic` and `trace` logs only for failed executions
 
+On the guest-library side, the CLI also bundles a thin Jest-shaped declaration
+adapter behind `--lib jest`. That adapter currently covers test/suite
+declarations and core hooks only.
+
 ## Built-In Harnesses
 
 - `js`

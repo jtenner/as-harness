@@ -109,6 +109,7 @@ const BUNDLED_HARNESS_LIBRARY_ENTRY_POINTS = new Set([
 	"node:test",
 	"node:assert",
 	"node:assert/strict",
+	"jest",
 ]);
 const STRICT_EQUALITY_LIBRARY_ENTRY_POINTS = new Set([
 	"node:assert",
