@@ -17,7 +17,10 @@ Use this document if you are:
 
 ## Stability
 
-The project intends this ABI to stay flat and language-agnostic. It is still early and not yet versioned independently, so treat it as the current contract for `v0.1.0` work rather than a permanent frozen standard.
+The project intends this ABI to stay flat and language-agnostic. It is still early and not yet versioned independently, so treat it as the current contract for `v0.2.0` work rather than a permanent frozen standard.
+
+For coverage-enabled runs, the current CLI-level report contract is `text`,
+`json`, `yaml`, `csv`, `lcov`, and `cobertura`.
 
 ## Guest Wasm ABI
 
@@ -32,6 +35,12 @@ The guest may also rely on the normal AssemblyScript abort import from module `e
 
 - `abort(messagePtr, fileNamePtr, line, column)`
 - `trace(messagePtr, valueCount, a0, a1, a2, a3, a4)`
+
+When compiled with coverage enabled, the guest also imports from module
+`__asCovers`:
+
+- `coverDeclare(filePtr, id, line, column, coverType)`
+- `cover(id)`
 
 ### Required Exports
 
@@ -115,6 +124,12 @@ These values are part of the wire contract today.
 
 - `1`: assertion-driven failure
 - `2`: trap or unreachable condition observed through the trampoline boundary
+
+### `CoverPointType`
+
+- `1`: function
+- `2`: block
+- `3`: expression
 
 ## Event Payload Layouts
 
@@ -228,6 +243,7 @@ A harness implementation is responsible for:
 - decoding events emitted through `write_event(...)`
 - staging `NodeIndex` values through `allocateNodeIndexBuffer(...)`
 - implementing trap observation around `invoke()`
+- decoding coverage declarations and hit events when the guest imports `__asCovers`
 - exposing a host API that matches the `Harness` interface
 - providing a `start()` orchestration path that discovers and executes branches
 
@@ -267,6 +283,8 @@ At a high level, a harness must expose:
 - `discover(nodeIndex)`
 - `run(nodeIndex)`
 - `start()`
+- `getCoverageSnapshot()`
+- `resetCoverage()`
 - `close()`
 
 ### Event Callbacks
@@ -310,6 +328,12 @@ It is useful for host-level probes such as trampoline status checks.
 - identify runnable tests
 - execute each branch
 - return a `HarnessStartResult`
+
+When coverage instrumentation is enabled, the returned `HarnessStartResult`
+also carries merged coverage data for the full run. When coverage is not
+enabled for a run, that field is `null`. When coverage is enabled but the
+current filters produce no instrumented points, hosts should still return an
+empty snapshot rather than collapsing back to `null`.
 
 The current CLI reporter model consumes the final `HarnessStartResult` tree
 rather than streaming output directly from callbacks. Hosts should therefore

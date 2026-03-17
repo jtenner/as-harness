@@ -26,6 +26,11 @@ import assemblyscriptRuntimeDeclarations from "../node_modules/assemblyscript/st
 	type: "text",
 };
 import BundledStrictEqualityTransform from "../transform/src/index.ts";
+import BundledCoverageTransform, {
+	resetCoverageTransformOptions,
+	setCoverageTransformOptions,
+	type CoverageTransformOptions,
+} from "../transform/src/covers.ts";
 
 export type Binding = "raw";
 
@@ -88,6 +93,10 @@ export type CompilerOptions = {
 	path?: string[];
 };
 
+type InternalCompilerOptions = CompilerOptions & {
+	coverageTransformOptions?: CoverageTransformOptions;
+};
+
 export type Artifact = {
 	path: string;
 	contents: Uint8Array;
@@ -104,6 +113,7 @@ const TEMP_LIBRARY_DIRECTORY_PREFIX = "as-harness-lib-";
 const TEMP_TRANSFORM_DIRECTORY_PREFIX = "as-harness-transform-";
 export const BUNDLED_LIBRARY_COMPONENTS_PATH = `${bundledVirtualRoot}/lib`;
 export const BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH = `${bundledTransformRoot}/index.js`;
+export const BUNDLED_COVERAGE_TRANSFORM_PATH = `${bundledTransformRoot}/covers.js`;
 export const BUNDLED_HARNESS_EXPORTS_ENTRY_PATH = `${bundledVirtualRoot}/exports.ts`;
 const BUNDLED_HARNESS_LIBRARY_ENTRY_POINTS = new Set([
 	"node:test",
@@ -286,6 +296,65 @@ export function withBundledStrictEqualityTransform(
 	};
 }
 
+function ensureBundledLibraryPath(
+	compilerOptions: CompilerOptions,
+): CompilerOptions {
+	const libraries = compilerOptions.lib;
+	if (Array.isArray(libraries)) {
+		if (libraries.some((library) => isBundledLibraryPath(library))) {
+			return compilerOptions;
+		}
+
+		return {
+			...compilerOptions,
+			lib: [...libraries, BUNDLED_LIBRARY_COMPONENTS_PATH],
+		};
+	}
+
+	return {
+		...compilerOptions,
+		lib: [BUNDLED_LIBRARY_COMPONENTS_PATH],
+	};
+}
+
+export function withBundledCoverageTransform(
+	compilerOptions: CompilerOptions,
+	enabled: boolean | CoverageTransformOptions,
+): CompilerOptions {
+	if (!enabled) {
+		return compilerOptions;
+	}
+
+	const internalCompilerOptions = compilerOptions as InternalCompilerOptions;
+	const coverageTransformOptions =
+		typeof enabled === "object"
+			? enabled
+			: internalCompilerOptions.coverageTransformOptions;
+	const compilerOptionsWithLibrary = ensureBundledLibraryPath(compilerOptions);
+	const existingTransformPaths = compilerOptionsWithLibrary.transform ?? [];
+	const hasBundledCoverageTransform = existingTransformPaths.some(
+		(path) =>
+			normalizeVirtualPath(path) ===
+			normalizeVirtualPath(BUNDLED_COVERAGE_TRANSFORM_PATH),
+	);
+	if (hasBundledCoverageTransform) {
+		return coverageTransformOptions === undefined
+			? compilerOptionsWithLibrary
+			: ({
+					...compilerOptionsWithLibrary,
+					coverageTransformOptions,
+				} as InternalCompilerOptions);
+	}
+
+	return {
+		...compilerOptionsWithLibrary,
+		...(coverageTransformOptions === undefined
+			? {}
+			: { coverageTransformOptions }),
+		transform: [...existingTransformPaths, BUNDLED_COVERAGE_TRANSFORM_PATH],
+	} as InternalCompilerOptions;
+}
+
 function resolveVirtualPath(path: string, baseDir: string): string | null {
 	const normalizedPath = normalizeVirtualPath(path);
 	const normalizedBaseDir = normalizeVirtualPath(baseDir);
@@ -391,6 +460,7 @@ async function materializeBundledLibraryDirectory(): Promise<string> {
 async function prepareCompilerOptions(
 	compilerOptions: CompilerOptions,
 ): Promise<PreparedCompilerOptions> {
+	const internalCompilerOptions = compilerOptions as InternalCompilerOptions;
 	const compilerOptionsWithBundledSupport = withBundledHarnessLibraryComponents(
 		withBundledStrictEqualityTransform(compilerOptions),
 	);
@@ -408,6 +478,20 @@ async function prepareCompilerOptions(
 				normalizeVirtualPath(BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH)
 			) {
 				transforms.push(BundledStrictEqualityTransform);
+				continue;
+			}
+
+			if (
+				normalizeVirtualPath(transformPath) ===
+				normalizeVirtualPath(BUNDLED_COVERAGE_TRANSFORM_PATH)
+			) {
+				setCoverageTransformOptions(
+					internalCompilerOptions.coverageTransformOptions,
+				);
+				cleanupTasks.push(async () => {
+					resetCoverageTransformOptions();
+				});
+				transforms.push(BundledCoverageTransform);
 				continue;
 			}
 

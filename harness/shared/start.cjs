@@ -3,6 +3,7 @@
 const os = require("node:os");
 const path = require("node:path");
 const { Worker } = require("node:worker_threads");
+const { mergeCoverageSnapshots } = require("./covers.cjs");
 
 const NODE_KIND_TEST = 1;
 const DECLARATION_MODE_NORMAL = 1;
@@ -220,9 +221,11 @@ async function runTasksInWorkerPool(
 async function startHarness(options) {
 	const discoveryHarness = options.createLocalHarness(options.bytes);
 	let topLevelDiscovery;
+	let initialCoverage = null;
 
 	try {
 		topLevelDiscovery = discoverImmediateChildren(discoveryHarness, []);
+		initialCoverage = discoveryHarness.getCoverageSnapshot();
 	} finally {
 		closeHarness(discoveryHarness);
 	}
@@ -277,12 +280,15 @@ async function startHarness(options) {
 		);
 
 		for (let index = 0; index < branches.length; index += 1) {
-			branches[index].executions = executionGroups[index] || [];
+			const executionGroup = executionGroups[index] || null;
+			branches[index].executions = executionGroup?.executions || [];
+			branches[index].coverage = executionGroup?.coverage ?? null;
 		}
 	}
 
 	let ok = discoveryOk;
 	let discoveredTestCount = 0;
+	const coverageSnapshots = initialCoverage ? [initialCoverage] : [];
 	for (const branch of branches) {
 		discoveredTestCount += branch.discovery.testCount;
 		branch.ok =
@@ -290,6 +296,10 @@ async function startHarness(options) {
 		if (!branch.ok) {
 			ok = false;
 		}
+		if (branch.coverage) {
+			coverageSnapshots.push(branch.coverage);
+		}
+		delete branch.coverage;
 	}
 
 	return {
@@ -299,6 +309,10 @@ async function startHarness(options) {
 		topLevelNodes,
 		workerCount,
 		branches,
+		coverage:
+			coverageSnapshots.length > 0
+				? mergeCoverageSnapshots(coverageSnapshots)
+				: null,
 	};
 }
 

@@ -11,9 +11,11 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, posix, resolve } from "node:path";
 import {
+	BUNDLED_COVERAGE_TRANSFORM_PATH,
 	BUNDLED_LIBRARY_COMPONENTS_PATH,
 	BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH,
 	withBundledHarnessLibraryComponents,
+	withBundledCoverageTransform,
 	withBundledStrictEqualityTransform,
 } from "./compile";
 import {
@@ -129,6 +131,99 @@ test("does not duplicate the bundled strict-equality transform when it is alread
 	const result = withBundledStrictEqualityTransform(compilerOptions);
 
 	expect(result).toEqual(compilerOptions);
+});
+
+test("does not add coverage wiring when coverage is disabled", () => {
+	const compilerOptions = {
+		lib: ["./custom-lib"],
+		transform: ["./existing-transform.js"],
+	};
+
+	const result = withBundledCoverageTransform(compilerOptions, false);
+
+	expect(result).toEqual(compilerOptions);
+});
+
+test("adds the bundled coverage transform and library root when coverage is enabled", () => {
+	const result = withBundledCoverageTransform({}, true);
+
+	expect(result.lib).toEqual([BUNDLED_LIBRARY_COMPONENTS_PATH]);
+	expect(result.transform).toEqual([BUNDLED_COVERAGE_TRANSFORM_PATH]);
+});
+
+test("stores coverage transform options when coverage is enabled with configuration", () => {
+	const result = withBundledCoverageTransform(
+		{},
+		{
+			baseDir: "/workspace",
+			include: ["src/**/*.ts"],
+			exclude: ["**/*.generated.ts"],
+			pointTypes: ["function", "block"],
+		},
+	);
+
+	expect(result.lib).toEqual([BUNDLED_LIBRARY_COMPONENTS_PATH]);
+	expect(result.transform).toEqual([BUNDLED_COVERAGE_TRANSFORM_PATH]);
+	expect(
+		(
+			result as {
+				coverageTransformOptions?: {
+					baseDir?: string;
+					include?: string[];
+					exclude?: string[];
+					pointTypes?: string[];
+				};
+			}
+		).coverageTransformOptions,
+	).toEqual({
+		baseDir: "/workspace",
+		include: ["src/**/*.ts"],
+		exclude: ["**/*.generated.ts"],
+		pointTypes: ["function", "block"],
+	});
+});
+
+test("preserves existing library and transform paths when coverage is enabled", () => {
+	const result = withBundledCoverageTransform(
+		{
+			lib: ["./custom-lib"],
+			transform: ["./existing-transform.js"],
+		},
+		true,
+	);
+
+	expect(result.lib).toEqual(["./custom-lib", BUNDLED_LIBRARY_COMPONENTS_PATH]);
+	expect(result.transform).toEqual([
+		"./existing-transform.js",
+		BUNDLED_COVERAGE_TRANSFORM_PATH,
+	]);
+});
+
+test("preserves configured coverage options when the bundled coverage transform is already present", () => {
+	const result = withBundledCoverageTransform(
+		{
+			transform: [BUNDLED_COVERAGE_TRANSFORM_PATH],
+		},
+		{
+			include: ["tests/**/*.ts"],
+			pointTypes: ["expression"],
+		},
+	);
+
+	expect(result.transform).toEqual([BUNDLED_COVERAGE_TRANSFORM_PATH]);
+	expect(
+		(
+			result as {
+				coverageTransformOptions?: {
+					include?: string[];
+					pointTypes?: string[];
+				};
+			}
+		).coverageTransformOptions,
+	).toEqual({
+		include: ["tests/**/*.ts"],
+		pointTypes: ["expression"],
+	});
 });
 
 test("bundles Windows-safe assembly paths alongside public node:* library aliases", () => {

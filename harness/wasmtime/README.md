@@ -47,6 +47,7 @@ Current status:
 - the shared smoke suite covers event decoding, `callI32`, `discover`, `run`,
   `start`, traps, and replay behavior
 - AssemblyScript `trace(...)` calls surface through the shared `log` event
+- the conditional `__asCovers` imports are implemented and the harness returns merged coverage snapshots
 - CLI source execution supports `--harness wasmtime`
 - the CI source-host matrix runs this package on the supported hosted runners
 - the shared source-host verification script emits per-target proof reports that include the `wasmtime` result

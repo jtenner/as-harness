@@ -40,7 +40,10 @@ function runBranch(branch) {
 			currentEvents = null;
 		}
 
-		return executions;
+		return {
+			executions,
+			coverage: harness.getCoverageSnapshot(),
+		};
 	} finally {
 		closeHarness(harness);
 	}

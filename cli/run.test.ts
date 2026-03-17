@@ -54,6 +54,15 @@ async function runCli(entryFile: string, cwd: string): Promise<CliRunResult> {
 	return runCliWithArguments(["run", entryFile], cwd);
 }
 
+function parseCoverageJSONFromStdout(stdout: string) {
+	const jsonStart = stdout.indexOf("{");
+	if (jsonStart === -1) {
+		throw new Error(`Coverage JSON payload not found in stdout: ${stdout}`);
+	}
+
+	return JSON.parse(stdout.slice(jsonStart)) as Record<string, unknown>;
+}
+
 test("resolveRunEntrypointBaseDirectory keeps Windows temp wrappers on the entry drive", () => {
 	expect(
 		resolveRunEntrypointBaseDirectory(
@@ -252,6 +261,144 @@ describe("jest adapter", (_context): void => {
 			expect(result.stdout).toContain(
 				"PASS 1 passed, 0 failed, 3 discovered with js.",
 			);
+		},
+	);
+});
+
+test("cli run emits coverage output through the js harness", async () => {
+	await withTempEntryFile(
+		`
+import { test, TestContext } from "node:test";
+
+function branch(value: i32): i32 {
+  if (value > 0) {
+    return value;
+  }
+
+  return -value;
+}
+
+test("coverage smoke", (context: TestContext): void => {
+  context.assert.strictEqual<i32>(branch(3), 3);
+});
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", "--coverage", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 1 passed, 0 failed, 1 discovered with js.",
+			);
+			expect(result.stdout).toContain("Coverage:");
+			expect(result.stdout).toContain("suite.test.ts");
+			expect(result.stdout).toContain("uncovered");
+		},
+	);
+});
+
+test("cli run applies coverage include, exclude, and point-type options", async () => {
+	await withTempEntryFile(
+		`
+import { test, TestContext } from "node:test";
+
+function branch(value: i32): i32 {
+  if (value > 0) {
+    return value + 1;
+  }
+
+  return -value;
+}
+
+test("coverage filtering smoke", (context: TestContext): void => {
+  context.assert.strictEqual<i32>(branch(3), 4);
+});
+`,
+		async (entryFile, cwd) => {
+			const includedResult = await runCliWithArguments(
+				[
+					"run",
+					"--harness",
+					"js",
+					"--coverage",
+					"--coverage-format",
+					"json",
+					"--coverage-include",
+					"suite.test.ts",
+					"--coverage-point-type",
+					"function",
+					entryFile,
+				],
+				cwd,
+			);
+
+			expect(includedResult.exitCode).toBe(0);
+			expect(includedResult.stderr).toBe("");
+			const includedReport = parseCoverageJSONFromStdout(includedResult.stdout);
+			expect(
+				Object.keys(includedReport).some((file) =>
+					file.endsWith("suite.test.ts"),
+				),
+			).toBe(true);
+			expect(includedResult.stdout).toContain('"coverType": 1');
+			expect(includedResult.stdout).not.toContain('"coverType": 2');
+			expect(includedResult.stdout).not.toContain('"coverType": 3');
+
+			const excludedResult = await runCliWithArguments(
+				[
+					"run",
+					"--harness",
+					"js",
+					"--coverage",
+					"--coverage-format",
+					"json",
+					"--coverage-exclude",
+					"suite.test.ts",
+					entryFile,
+				],
+				cwd,
+			);
+
+			expect(excludedResult.exitCode).toBe(0);
+			expect(excludedResult.stderr).toBe("");
+			expect(parseCoverageJSONFromStdout(excludedResult.stdout)).toEqual({});
+		},
+	);
+});
+
+test("cli run emits coverage output through the wasmtime harness", async () => {
+	await withTempEntryFile(
+		`
+import { test, TestContext } from "node:test";
+
+function branch(value: i32): i32 {
+  if (value > 0) {
+    return value;
+  }
+
+  return -value;
+}
+
+test("coverage smoke", (context: TestContext): void => {
+  context.assert.strictEqual<i32>(branch(3), 3);
+});
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "wasmtime", "--coverage", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 1 passed, 0 failed, 1 discovered with wasmtime.",
+			);
+			expect(result.stdout).toContain("Coverage:");
+			expect(result.stdout).toContain("suite.test.ts");
 		},
 	);
 });

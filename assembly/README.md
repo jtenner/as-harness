@@ -41,11 +41,13 @@ Implemented today:
 - a thin synchronous `jest` adapter for `test` / `it` / `describe`, core hooks, and a small `expect(...)` surface including containment, length/size, numeric checks, `NaN`, and `toThrow()`
 - `node:assert` and `node:assert/strict` bridge work
 - trampoline-backed callback trap observation
+- bundled guest-side coverage declarations used by the CLI `--coverage` flow
 
 Still open:
 
 - long-term host-runner contract cleanup and ABI-stability follow-through
 - the deferred scheduler-step entrypoint decision
+- `wasmtime` coverage parity
 - more framework adapters
 - richer reflected diagnostics and strict-equality follow-through
 

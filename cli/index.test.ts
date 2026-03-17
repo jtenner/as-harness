@@ -4,6 +4,15 @@ import { parseCommand } from "./index";
 test("parseCommand captures run harness selection and compiler options", () => {
 	const parsed = parseCommand([
 		"run",
+		"--coverage",
+		"--coverage-format",
+		"json",
+		"--coverage-include",
+		"src/**/*.ts",
+		"--coverage-exclude=**/*.generated.ts",
+		"--coverage-point-type",
+		"function",
+		"--coverage-point-type=block",
 		"--harness",
 		"wazero",
 		"--sourceMap",
@@ -20,6 +29,11 @@ test("parseCommand captures run harness selection and compiler options", () => {
 	]);
 
 	expect(parsed.command).toBe("run");
+	expect(parsed.coverage).toBe(true);
+	expect(parsed.coverageFormat).toBe("json");
+	expect(parsed.coverageInclude).toEqual(["src/**/*.ts"]);
+	expect(parsed.coverageExclude).toEqual(["**/*.generated.ts"]);
+	expect(parsed.coveragePointTypes).toEqual(["function", "block"]);
 	expect(parsed.harness).toBe("wazero");
 	expect(parsed.ordinals).toEqual(["tests/example.test.ts"]);
 	expect(parsed.compilerOptions.sourceMap).toBe(true);
@@ -28,6 +42,14 @@ test("parseCommand captures run harness selection and compiler options", () => {
 	expect(parsed.compilerOptions.disableWarning).toEqual([232]);
 	expect(parsed.compilerOptions.lib).toEqual(["custom-lib"]);
 	expect(parsed.compilerOptions.path).toEqual(["vendor"]);
+});
+
+test("parseCommand rejects unsupported coverage point types", () => {
+	expect(() =>
+		parseCommand(["run", "--coverage-point-type", "line", "suite.test.ts"]),
+	).toThrow(
+		"Invalid value for --coverage-point-type: line. Expected function, block, or expression.",
+	);
 });
 
 test("parseCommand keeps disableWarning without a code as a boolean", () => {

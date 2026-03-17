@@ -1,5 +1,25 @@
 /// <reference types="node" />
 
+import type {
+	HarnessCoverageFileOverview,
+	HarnessCoverageJSONFile,
+	HarnessCoverageJSONReport,
+	HarnessCoveragePoint,
+	HarnessCoveragePointEntry,
+	HarnessCoveragePointType,
+	HarnessCoverageSnapshot,
+} from "./covers-types";
+
+export type {
+	HarnessCoverageFileOverview,
+	HarnessCoverageJSONFile,
+	HarnessCoverageJSONReport,
+	HarnessCoveragePoint,
+	HarnessCoveragePointEntry,
+	HarnessCoveragePointType,
+	HarnessCoverageSnapshot,
+};
+
 export type HarnessBytes = Buffer | ArrayBufferView | ArrayBuffer;
 
 export interface HarnessNode {
@@ -96,6 +116,7 @@ export interface HarnessStartResult {
 	topLevelNodes: Array<HarnessNode>;
 	workerCount: number;
 	branches: Array<HarnessBranch>;
+	coverage: HarnessCoverageSnapshot | null;
 }
 
 export interface Harness {
@@ -113,5 +134,7 @@ export interface Harness {
 	discover(nodeIndex: Array<number>): boolean;
 	run(nodeIndex: Array<number>): boolean;
 	start(): Promise<HarnessStartResult>;
+	getCoverageSnapshot(): HarnessCoverageSnapshot | null;
+	resetCoverage(): void;
 	close(): void;
 }

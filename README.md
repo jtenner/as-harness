@@ -46,6 +46,8 @@ Explicit non-goals for `v0.1.0`:
 What works today:
 
 - the CLI discovers entry files, compiles them, and runs them
+- `--coverage` now emits merged reports in `text`, `json`, `yaml`, `csv`, `lcov`, or `cobertura` form when you run through `--harness js`, `--harness wazero`, or `--harness wasmtime`
+- coverage runs can be scoped with `--coverage-include`, `--coverage-exclude`, and repeated `--coverage-point-type` flags
 - `--harness js`, `--harness wazero`, and `--harness wasmtime` all work in source mode
 - a thin Jest-shaped adapter is available when the compile path includes `--lib jest`, including a small `expect(...)` surface for equality, containment, length/size checks, numeric checks, `NaN`, and `toThrow()`
 - packaged Bun executables can run the local smoke path for the supported `js`/`wazero` release matrix
@@ -83,6 +85,8 @@ Then run it with the CLI:
 
 ```bash
 bun run ./cli/index.ts run ./example.test.ts
+bun run ./cli/index.ts run --harness js --coverage ./example.test.ts
+bun run ./cli/index.ts run --harness js --coverage --coverage-format lcov --coverage-include "src/**/*.ts" --coverage-point-type function ./example.test.ts
 ```
 
 Switch hosts explicitly when needed:

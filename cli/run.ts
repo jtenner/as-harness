@@ -1,12 +1,15 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, win32 } from "node:path";
 import type { HarnessStartResult } from "../harness/shared/harness-types";
+import { stringifyCoverage } from "../harness/shared/covers.cjs";
 import { compileEntrypoints, type CompilerOptions } from "./as/compile";
+import type { CoverageTransformPointTypeName } from "./transform/src/covers";
 import {
 	createHarnessRunReport,
 	defaultRunReporter,
 	type RunReporter,
 } from "./reporter";
+import { withBundledCoverageTransform } from "./as/compile";
 import { jsRuntime } from "./runtime/js";
 import { assertSupportedRuntime, resolveRuntime } from "./runtime/resolve";
 import type { Runtime } from "./runtime/types";
@@ -26,6 +29,14 @@ export type RunLogger = {
 export type RunCommandResult = {
 	discoveredTestCount: number;
 	exitCode: RunExitCode;
+};
+
+export type CoverageOptions = {
+	enabled: boolean;
+	format?: string;
+	include?: string[];
+	exclude?: string[];
+	pointTypes?: CoverageTransformPointTypeName[];
 };
 
 const DEFAULT_RUN_LIBRARIES = [
@@ -149,6 +160,7 @@ export async function runEntryFiles(
 	runtimeSelection: Runtime | string | undefined = jsRuntime,
 	compilerOptions: CompilerOptions = {},
 	reporter: RunReporter = defaultRunReporter,
+	coverageOptions: CoverageOptions = { enabled: false },
 ): Promise<RunCommandResult> {
 	let wasmBytes: Uint8Array;
 	const temporaryEntrypoint = await createRunEntrypoint(entryFiles, cwd);
@@ -173,7 +185,17 @@ export async function runEntryFiles(
 	try {
 		const artifacts = await compileEntrypoints(
 			[temporaryEntrypoint.path],
-			mergeRunCompilerOptions(cwd, compilerOptions),
+			withBundledCoverageTransform(
+				mergeRunCompilerOptions(cwd, compilerOptions),
+				coverageOptions.enabled
+					? {
+							baseDir: compilerOptions.baseDir ?? cwd,
+							include: coverageOptions.include,
+							exclude: coverageOptions.exclude,
+							pointTypes: coverageOptions.pointTypes,
+						}
+					: false,
+			),
 			compileRuntime,
 		);
 		wasmBytes = getWasmArtifactBytes(artifacts);
@@ -232,6 +254,9 @@ export async function runEntryFiles(
 
 	if (report.failedTestCount > 0) {
 		reporter.accept(report, { harnessName: runtime.name, logger });
+		if (coverageOptions.enabled && result.coverage) {
+			logger.info(stringifyCoverage(result.coverage, coverageOptions.format));
+		}
 		return {
 			discoveredTestCount: report.discoveredTestCount,
 			exitCode: RunExitCode.TestFailure,
@@ -239,6 +264,9 @@ export async function runEntryFiles(
 	}
 
 	reporter.accept(report, { harnessName: runtime.name, logger });
+	if (coverageOptions.enabled && result.coverage) {
+		logger.info(stringifyCoverage(result.coverage, coverageOptions.format));
+	}
 	return {
 		discoveredTestCount: report.discoveredTestCount,
 		exitCode: RunExitCode.Success,

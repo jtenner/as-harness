@@ -23,6 +23,7 @@ This host:
 - intercepts AssemblyScript `trace(...)` calls and surfaces them as `log` events
 - implements `callI32`, `discover`, `run`, and `start`
 - keeps branch discovery and execution scheduling inside the native addon
+- implements the conditional `__asCovers` imports and returns merged coverage snapshots when the guest is instrumented
 - now requires explicit `close()` to release the native runtime promptly instead of waiting for GC finalization
 
 ## Build Requirements

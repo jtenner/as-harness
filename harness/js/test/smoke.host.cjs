@@ -53,3 +53,20 @@ test("start() runs per-branch discovery in worker threads like wazero", async ()
 
 	harness.close();
 });
+
+test("start() preserves empty coverage snapshots when coverage is enabled", async () => {
+	const harness = decorateHarness(createParallelStartHarness(), {
+		bytes: Buffer.alloc(0),
+		createLocalHarness: createParallelStartHarness,
+		workerModulePath: parallelStartHarnessModulePath,
+	});
+
+	const result = await harness.start();
+
+	assert.deepEqual(result.coverage, {
+		points: [],
+		coveredIds: [],
+	});
+
+	harness.close();
+});

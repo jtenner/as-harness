@@ -62,6 +62,15 @@ class FakeHarness {
 
 	close() {}
 
+	getCoverageSnapshot() {
+		return {
+			points: [],
+			coveredIds: [],
+		};
+	}
+
+	resetCoverage() {}
+
 	discover(nodeIndex) {
 		switch (Array.isArray(nodeIndex) ? nodeIndex.join(".") : "<invalid>") {
 			case "":

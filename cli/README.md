@@ -6,6 +6,8 @@
 
 - `list` discovers candidate test entry files
 - `run` compiles discovered entries and executes them
+- `run --coverage` emits merged coverage reports in `text`, `json`, `yaml`, `csv`, `lcov`, or `cobertura` form when used with the built-in harnesses
+- `run --coverage-include`, `--coverage-exclude`, and repeated `--coverage-point-type` flags narrow which files and point kinds get instrumented
 - `--harness js`, `--harness wazero`, and `--harness wasmtime` select the available harnesses
 - the compiler wrapper bundles guest support files into the CLI build
 - `build.ts` emits target-specific Bun executables
@@ -16,7 +18,6 @@
 
 ## What It Does Not Do Yet
 
-- user-facing coverage output
 - external harness plugin resolution
 - a stable public runtime-selection API beyond the current built-ins
 - fully proven release history across the entire hosted runner matrix
@@ -35,6 +36,13 @@ The default reporter currently:
 - prints passed / failed / discovered counts
 - prints failure messages for failing executions
 - prints `diagnostic` and `trace` logs only for failed executions
+- prints coverage after the test summary when `--coverage` is enabled
+
+Coverage control flags can be combined:
+
+- `--coverage-include <glob>` instruments only matching source paths
+- `--coverage-exclude <glob>` removes matching source paths from coverage
+- `--coverage-point-type function|block|expression` can be repeated to keep only selected point classes
 
 On the guest-library side, the CLI also bundles a thin Jest-shaped adapter
 behind `--lib jest`. That adapter currently covers test/suite declarations,
@@ -100,6 +108,9 @@ bun install
 bun run dev -- help
 bun run dev -- list
 bun run dev -- run ./example.test.ts
+bun run dev -- run --harness js --coverage ./example.test.ts
+bun run dev -- run --harness wasmtime --coverage --coverage-format lcov ./example.test.ts
+bun run dev -- run --harness js --coverage --coverage-include "src/**/*.ts" --coverage-exclude "**/*.generated.ts" --coverage-point-type function ./example.test.ts
 bun run build:list-targets
 bun run build:list-release-targets
 bun run build

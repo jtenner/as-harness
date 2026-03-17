@@ -61,3 +61,55 @@ test("cli run executes tests through the wasmtime harness", () => {
 		rmSync(tempDirectory, { force: true, recursive: true });
 	}
 });
+
+test("cli run emits coverage through the wasmtime harness", () => {
+	const tempDirectory = mkdtempSync(path.join(tmpdir(), "as-harness-wasmtime-cover-"));
+
+	try {
+		const entryFile = path.join(tempDirectory, "suite.test.ts");
+		writeFileSync(
+			entryFile,
+			[
+				'import { test, TestContext } from "node:test";',
+				"",
+				"function branch(value: i32): i32 {",
+				"\tif (value > 0) {",
+				"\t\treturn value;",
+				"\t}",
+				"",
+				"\treturn -value;",
+				"}",
+				"",
+				'test("coverage test", (context: TestContext): void => {',
+				"\tcontext.assert.strictEqual<i32>(branch(5), 5);",
+				"});",
+				"",
+			].join("\n"),
+			"utf8",
+		);
+
+		const result = spawnSync(
+			"bun",
+			[
+				"run",
+				cliEntrypointPath,
+				"run",
+				"--harness",
+				"wasmtime",
+				"--coverage",
+				entryFile,
+			],
+			{
+				cwd: tempDirectory,
+				encoding: "utf8",
+			},
+		);
+
+		assert.equal(result.status, 0);
+		assert.equal(result.stderr, "");
+		assert.match(result.stdout, /Coverage:/);
+		assert.match(result.stdout, /suite\.test\.ts/);
+	} finally {
+		rmSync(tempDirectory, { force: true, recursive: true });
+	}
+});

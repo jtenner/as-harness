@@ -29,6 +29,7 @@ This host:
 - observes traps through the trampoline boundary
 - provides `start()` scheduling through worker threads
 - intercepts AssemblyScript `trace(...)` calls and surfaces them as `log` events
+- implements the conditional `__asCovers` imports and returns merged coverage snapshots when the guest is instrumented
 - supports explicit `close()` calls for interface parity, though it does not hold native resources
 
 ## Testing

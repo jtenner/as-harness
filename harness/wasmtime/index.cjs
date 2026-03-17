@@ -2,6 +2,7 @@
 
 const native = require("./dist/wasmtime.node");
 const { decorateHarness } = require("../shared/start.cjs");
+const { cloneCoverageSnapshot } = require("../shared/covers.cjs");
 
 const UINT32_BYTE_LENGTH = 4;
 
@@ -365,6 +366,39 @@ class Harness {
 
 	close() {
 		this.#nativeHarness.close();
+	}
+
+	getCoverageSnapshot() {
+		const snapshot = this.#nativeHarness.getCoverageSnapshot();
+		if (snapshot === null || typeof snapshot !== "object") {
+			return null;
+		}
+
+		return cloneCoverageSnapshot({
+			points: Array.isArray(snapshot.points)
+				? snapshot.points.map((point) => ({
+						id: point.id >>> 0,
+						file: typeof point.file === "string" ? point.file : "",
+						line: typeof point.line === "number" ? point.line | 0 : 0,
+						column: typeof point.column === "number" ? point.column | 0 : 0,
+						coverType:
+							typeof point.cover_type === "number"
+								? point.cover_type >>> 0
+								: typeof point.coverType === "number"
+									? point.coverType >>> 0
+									: 0,
+					}))
+				: [],
+			coveredIds: Array.isArray(snapshot.covered_ids)
+				? snapshot.covered_ids.map((id) => id >>> 0)
+				: Array.isArray(snapshot.coveredIds)
+					? snapshot.coveredIds.map((id) => id >>> 0)
+					: [],
+		});
+	}
+
+	resetCoverage() {
+		this.#nativeHarness.resetCoverage();
 	}
 
 	#dispatchEvents(events) {

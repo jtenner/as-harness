@@ -2,8 +2,10 @@ use anyhow::{anyhow, Result as AnyResult};
 use napi::bindgen_prelude::Buffer;
 use napi::{Error, Result, Status};
 use napi_derive::napi;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
+use std::collections::{BTreeMap, BTreeSet};
 use std::mem::size_of;
+use std::rc::Rc;
 use wasmtime::{
     AsContextMut, Caller, Engine, Extern, Instance, Linker, Memory, Module, Store, TypedFunc,
 };
@@ -13,6 +15,7 @@ const DISCOVER_EXPORT: &str = "discover";
 const INVOKE_EXPORT: &str = "invoke";
 const RUN_EXPORT: &str = "run";
 const START_EXPORT: &str = "__start";
+const COVER_IMPORT_MODULE: &str = "__asCovers";
 const EVENT_KIND_LOG: u32 = 10;
 
 #[napi(object)]
@@ -27,10 +30,84 @@ pub struct RawInvocationResult {
     pub events: Vec<RawHarnessEvent>,
 }
 
+#[napi(object)]
+pub struct RawCoveragePoint {
+    pub id: u32,
+    pub file: String,
+    pub line: i32,
+    pub column: i32,
+    pub cover_type: u32,
+}
+
+#[napi(object)]
+pub struct RawCoverageSnapshot {
+    pub points: Vec<RawCoveragePoint>,
+    pub covered_ids: Vec<u32>,
+}
+
+#[derive(Clone)]
+struct CoveragePoint {
+    id: u32,
+    file: String,
+    line: i32,
+    column: i32,
+    cover_type: u32,
+}
+
+#[derive(Default)]
+struct CoverageCollector {
+    points: BTreeMap<u32, CoveragePoint>,
+    covered_ids: BTreeSet<u32>,
+}
+
+impl CoverageCollector {
+    fn declare(&mut self, point: CoveragePoint) {
+        match self.points.get(&point.id) {
+            Some(existing)
+                if existing.file == point.file
+                    && existing.line == point.line
+                    && existing.column == point.column
+                    && existing.cover_type == point.cover_type => {}
+            None => {
+                self.points.insert(point.id, point);
+            }
+            Some(_) => {}
+        }
+    }
+
+    fn hit(&mut self, id: u32) {
+        self.covered_ids.insert(id);
+    }
+
+    fn reset(&mut self) {
+        self.points.clear();
+        self.covered_ids.clear();
+    }
+
+    fn snapshot(&self) -> RawCoverageSnapshot {
+        RawCoverageSnapshot {
+            points: self
+                .points
+                .values()
+                .cloned()
+                .map(|point| RawCoveragePoint {
+                    id: point.id,
+                    file: point.file,
+                    line: point.line,
+                    column: point.column,
+                    cover_type: point.cover_type,
+                })
+                .collect(),
+            covered_ids: self.covered_ids.iter().copied().collect(),
+        }
+    }
+}
+
 #[derive(Default)]
 struct HostState {
     events: Vec<RawHarnessEvent>,
     invoke: Option<TypedFunc<(), ()>>,
+    coverage: Rc<RefCell<CoverageCollector>>,
 }
 
 #[napi]
@@ -38,6 +115,7 @@ pub struct NativeHarness {
     engine: Engine,
     module: Module,
     closed: Cell<bool>,
+    coverage: Rc<RefCell<CoverageCollector>>,
 }
 
 #[napi]
@@ -49,6 +127,7 @@ pub fn create_harness(bytes: Buffer) -> Result<NativeHarness> {
         engine,
         module,
         closed: Cell::new(false),
+        coverage: Rc::new(RefCell::new(CoverageCollector::default())),
     })
 }
 
@@ -82,6 +161,17 @@ impl NativeHarness {
     #[napi]
     pub fn close(&self) {
         self.closed.set(true);
+    }
+
+    #[napi(js_name = "getCoverageSnapshot")]
+    pub fn get_coverage_snapshot(&self) -> RawCoverageSnapshot {
+        self.prime_coverage_if_needed();
+        self.coverage.borrow().snapshot()
+    }
+
+    #[napi(js_name = "resetCoverage")]
+    pub fn reset_coverage(&self) {
+        self.coverage.borrow_mut().reset();
     }
 }
 
@@ -133,7 +223,14 @@ impl NativeHarness {
     }
 
     fn instantiate(&self) -> Result<(Store<HostState>, Instance)> {
-        let mut store = Store::new(&self.engine, HostState::default());
+        let mut store = Store::new(
+            &self.engine,
+            HostState {
+                events: Vec::new(),
+                invoke: None,
+                coverage: Rc::clone(&self.coverage),
+            },
+        );
         let mut linker = Linker::new(&self.engine);
 
         linker
@@ -227,6 +324,41 @@ impl NativeHarness {
             )
             .map_err(to_napi_error)?;
 
+        linker
+            .func_wrap(
+                COVER_IMPORT_MODULE,
+                "coverDeclare",
+                |mut caller: Caller<'_, HostState>,
+                 file_ptr: u32,
+                 id: u32,
+                 line: i32,
+                 column: i32,
+                 cover_type: u32|
+                 -> AnyResult<()> {
+                    let memory = get_memory_from_caller(&mut caller)?;
+                    let file = read_assembly_string(&memory, &caller, file_ptr)?;
+                    caller.data().coverage.borrow_mut().declare(CoveragePoint {
+                        id,
+                        file,
+                        line,
+                        column,
+                        cover_type,
+                    });
+                    Ok(())
+                },
+            )
+            .map_err(to_napi_error)?;
+
+        linker
+            .func_wrap(
+                COVER_IMPORT_MODULE,
+                "cover",
+                |caller: Caller<'_, HostState>, id: u32| {
+                    caller.data().coverage.borrow_mut().hit(id);
+                },
+            )
+            .map_err(to_napi_error)?;
+
         let instance = linker
             .instantiate(&mut store, &self.module)
             .map_err(to_napi_error)?;
@@ -243,6 +375,15 @@ impl NativeHarness {
         }
 
         Ok((store, instance))
+    }
+
+    fn prime_coverage_if_needed(&self) {
+        let should_prime = self.coverage.borrow().points.is_empty();
+        if !should_prime || self.closed.get() {
+            return;
+        }
+
+        let _ = self.instantiate();
     }
 }
 

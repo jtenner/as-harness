@@ -18,6 +18,7 @@ const CLI_VERSION = packageJson.version;
 const DEFAULT_ENTRY_GLOBS = ["**/*.{test,spec}.ts", "test/**/*.ts"] as const;
 
 type CommandName = "help" | "list" | "run" | "version";
+type CoveragePointTypeName = "function" | "block" | "expression";
 
 export type ParsedCommand = {
 	command: CommandName;
@@ -26,6 +27,9 @@ export type ParsedCommand = {
 	useGlobOrdinals: boolean;
 	coverage: boolean;
 	coverageFormat?: string;
+	coverageInclude: string[];
+	coverageExclude: string[];
+	coveragePointTypes: CoveragePointTypeName[];
 	harness?: string;
 	compilerOptions: CompilerOptions;
 	ignore: string[];
@@ -58,8 +62,11 @@ Options:
   -h, --help             Show this help text
   -v, --version          Show the CLI version
   -g, --glob             Interpret ordinal arguments as glob patterns
-  --coverage             Enable code coverage output (currently disabled)
-  --coverage-format fmt  Coverage format placeholder
+  --coverage             Enable code coverage output
+  --coverage-format fmt  Coverage format: text | json | yaml | csv | lcov | cobertura
+  --coverage-include g   Include coverage for files matching this glob
+  --coverage-exclude g   Exclude coverage for files matching this glob
+  --coverage-point-type  Coverage point type: function | block | expression
   --harness name         Select the execution harness (\`js\` by default)
   -i, --ignore glob      Glob matcher that excludes an entry point`);
 }
@@ -79,8 +86,11 @@ Entry Discovery:
 Run Options:
   -h, --help                 Show help for the run command
   -g, --glob                 Interpret ordinal arguments as glob patterns
-  --coverage                 Enable code coverage output (currently disabled)
-  --coverage-format fmt      Coverage format placeholder
+  --coverage                 Enable code coverage output
+  --coverage-format fmt      Coverage format: text | json | yaml | csv | lcov | cobertura
+  --coverage-include glob    Include coverage for files matching this glob
+  --coverage-exclude glob    Exclude coverage for files matching this glob
+  --coverage-point-type kind Select coverage points: function | block | expression
   --harness name             Select the execution harness (\`js\` | \`wazero\` | \`wasmtime\`)
   -i, --ignore glob          Glob matcher that excludes an entry point
 
@@ -282,6 +292,16 @@ function appendNumberOption(target: number[] | undefined, value: number) {
 	}
 
 	return [value];
+}
+
+function parseCoveragePointType(value: string): CoveragePointTypeName {
+	if (value === "function" || value === "block" || value === "expression") {
+		return value;
+	}
+
+	throw new Error(
+		`Invalid value for --coverage-point-type: ${value}. Expected function, block, or expression.`,
+	);
 }
 
 function parseDisableWarningOption(
@@ -581,6 +601,9 @@ export function parseCommand(args: string[]): ParsedCommand {
 			ordinals: [],
 			useGlobOrdinals: false,
 			coverage: false,
+			coverageInclude: [],
+			coverageExclude: [],
+			coveragePointTypes: [],
 			compilerOptions: {},
 			ignore: [],
 		};
@@ -593,6 +616,9 @@ export function parseCommand(args: string[]): ParsedCommand {
 			ordinals: [],
 			useGlobOrdinals: false,
 			coverage: false,
+			coverageInclude: [],
+			coverageExclude: [],
+			coveragePointTypes: [],
 			compilerOptions: {},
 			ignore: [],
 		};
@@ -605,6 +631,9 @@ export function parseCommand(args: string[]): ParsedCommand {
 			ordinals: [],
 			useGlobOrdinals: false,
 			coverage: false,
+			coverageInclude: [],
+			coverageExclude: [],
+			coveragePointTypes: [],
 			compilerOptions: {},
 			ignore: [],
 		};
@@ -620,6 +649,9 @@ export function parseCommand(args: string[]): ParsedCommand {
 		ordinals: [],
 		useGlobOrdinals: false,
 		coverage: false,
+		coverageInclude: [],
+		coverageExclude: [],
+		coveragePointTypes: [],
 		compilerOptions: {},
 		ignore: [],
 	};
@@ -650,6 +682,43 @@ export function parseCommand(args: string[]): ParsedCommand {
 
 		if (token === "--coverage") {
 			parsed.coverage = true;
+			continue;
+		}
+
+		if (token === "--coverage-include") {
+			parsed.coverageInclude.push(parseOptionValue(args, index, token));
+			index += 1;
+			continue;
+		}
+
+		if (token.startsWith("--coverage-include=")) {
+			parsed.coverageInclude.push(token.slice("--coverage-include=".length));
+			continue;
+		}
+
+		if (token === "--coverage-exclude") {
+			parsed.coverageExclude.push(parseOptionValue(args, index, token));
+			index += 1;
+			continue;
+		}
+
+		if (token.startsWith("--coverage-exclude=")) {
+			parsed.coverageExclude.push(token.slice("--coverage-exclude=".length));
+			continue;
+		}
+
+		if (token === "--coverage-point-type") {
+			parsed.coveragePointTypes.push(
+				parseCoveragePointType(parseOptionValue(args, index, token)),
+			);
+			index += 1;
+			continue;
+		}
+
+		if (token.startsWith("--coverage-point-type=")) {
+			parsed.coveragePointTypes.push(
+				parseCoveragePointType(token.slice("--coverage-point-type=".length)),
+			);
 			continue;
 		}
 
@@ -724,10 +793,6 @@ async function runRunCommand(command: ParsedCommand, cwd: string) {
 		return;
 	}
 
-	if (command.coverage) {
-		console.error("Coverage is not implemented yet.");
-	}
-
 	const result = await runEntryFiles(
 		entries,
 		cwd,
@@ -741,6 +806,14 @@ async function runRunCommand(command: ParsedCommand, cwd: string) {
 		},
 		command.harness,
 		command.compilerOptions,
+		undefined,
+		{
+			enabled: command.coverage,
+			format: command.coverageFormat,
+			include: command.coverageInclude,
+			exclude: command.coverageExclude,
+			pointTypes: command.coveragePointTypes,
+		},
 	);
 	process.exitCode = result.exitCode;
 }

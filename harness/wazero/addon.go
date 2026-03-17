@@ -55,6 +55,7 @@ import (
 	"encoding/binary"
 	"math"
 	goruntime "runtime"
+	"sort"
 	"sync"
 	"unicode/utf16"
 	"unsafe"
@@ -69,6 +70,7 @@ const discoverExport = "discover"
 const runExport = "run"
 const abortModuleName = "env"
 const writeEventModuleName = "as-harness"
+const coversModuleName = "__asCovers"
 const invokeExport = "invoke"
 const invokeStagedImport = "invoke_staged"
 const uint32ByteLength = 4
@@ -113,8 +115,9 @@ type writeEventSink interface {
 }
 
 type hostCallState struct {
-	harness *harnessState
-	sink    writeEventSink
+	harness  *harnessState
+	sink     writeEventSink
+	coverage *coverageCollector
 }
 
 type nodeSnapshot struct {
@@ -167,6 +170,26 @@ type startSnapshot struct {
 	TopLevelNodes       []nodeSnapshot
 	WorkerCount         uint32
 	Branches            []branchSnapshot
+	Coverage            *coverageSnapshot
+}
+
+type coveragePoint struct {
+	ID        uint32
+	File      string
+	Line      int32
+	Column    int32
+	CoverType uint32
+}
+
+type coverageSnapshot struct {
+	Points     []coveragePoint
+	CoveredIDs []uint32
+}
+
+type coverageCollector struct {
+	mu      sync.Mutex
+	points  map[uint32]coveragePoint
+	covered map[uint32]struct{}
 }
 
 type nodeCollector struct {
@@ -178,6 +201,83 @@ type eventCollector struct {
 }
 
 type hostCallStateContextKey struct{}
+
+func newCoverageCollector() *coverageCollector {
+	return &coverageCollector{
+		points:  map[uint32]coveragePoint{},
+		covered: map[uint32]struct{}{},
+	}
+}
+
+func (collector *coverageCollector) Declare(point coveragePoint) {
+	if collector == nil {
+		return
+	}
+
+	collector.mu.Lock()
+	defer collector.mu.Unlock()
+
+	if _, ok := collector.points[point.ID]; !ok {
+		collector.points[point.ID] = point
+	}
+}
+
+func (collector *coverageCollector) Hit(id uint32) {
+	if collector == nil {
+		return
+	}
+
+	collector.mu.Lock()
+	defer collector.mu.Unlock()
+
+	collector.covered[id] = struct{}{}
+}
+
+func (collector *coverageCollector) Snapshot() *coverageSnapshot {
+	if collector == nil {
+		return nil
+	}
+
+	collector.mu.Lock()
+	defer collector.mu.Unlock()
+
+	points := make([]coveragePoint, 0, len(collector.points))
+	for _, point := range collector.points {
+		points = append(points, point)
+	}
+	sort.Slice(points, func(left int, right int) bool {
+		if points[left].File != points[right].File {
+			return points[left].File < points[right].File
+		}
+		if points[left].Line != points[right].Line {
+			return points[left].Line < points[right].Line
+		}
+		if points[left].Column != points[right].Column {
+			return points[left].Column < points[right].Column
+		}
+		if points[left].CoverType != points[right].CoverType {
+			return points[left].CoverType < points[right].CoverType
+		}
+		return points[left].ID < points[right].ID
+	})
+
+	coveredIDs := make([]uint32, 0, len(collector.covered))
+	for id := range collector.covered {
+		coveredIDs = append(coveredIDs, id)
+	}
+	sort.Slice(coveredIDs, func(left int, right int) bool {
+		return coveredIDs[left] < coveredIDs[right]
+	})
+
+	if len(points) == 0 && len(coveredIDs) == 0 {
+		return nil
+	}
+
+	return &coverageSnapshot{
+		Points:     points,
+		CoveredIDs: coveredIDs,
+	}
+}
 
 var (
 	harnessMu     sync.Mutex
@@ -474,6 +574,19 @@ func contextWithWriteEventSink(ctx context.Context, state *harnessState, sink wr
 	return context.WithValue(ctx, hostCallStateContextKey{}, &hostCallState{harness: state, sink: sink})
 }
 
+func contextWithCoverageCollector(
+	ctx context.Context,
+	state *harnessState,
+	sink writeEventSink,
+	coverage *coverageCollector,
+) context.Context {
+	return context.WithValue(
+		ctx,
+		hostCallStateContextKey{},
+		&hostCallState{harness: state, sink: sink, coverage: coverage},
+	)
+}
+
 func harnessStateFromContext(ctx context.Context) *harnessState {
 	callState, _ := ctx.Value(hostCallStateContextKey{}).(*hostCallState)
 	if callState == nil {
@@ -490,6 +603,15 @@ func writeEventSinkFromContext(ctx context.Context) writeEventSink {
 	}
 
 	return callState.sink
+}
+
+func coverageCollectorFromContext(ctx context.Context) *coverageCollector {
+	callState, _ := ctx.Value(hostCallStateContextKey{}).(*hostCallState)
+	if callState == nil {
+		return nil
+	}
+
+	return callState.coverage
 }
 
 func cloneNodeIndex(nodeIndex []uint32) []uint32 {
@@ -1173,6 +1295,49 @@ func compileHarness(bytes []byte) (*harnessState, error) {
 		return nil, err
 	}
 
+	_, err = runtime.NewHostModuleBuilder(coversModuleName).
+		NewFunctionBuilder().
+		WithFunc(func(ctx context.Context, module api.Module, filePtr uint32, id uint32, line int32, column int32, coverType uint32) {
+			collector := coverageCollectorFromContext(ctx)
+			if collector == nil {
+				return
+			}
+
+			memory := module.Memory()
+			if memory == nil {
+				return
+			}
+
+			file, ok := readAssemblyString(memory, filePtr)
+			if !ok {
+				return
+			}
+
+			collector.Declare(coveragePoint{
+				ID:        id,
+				File:      file,
+				Line:      line,
+				Column:    column,
+				CoverType: coverType,
+			})
+		}).
+		Export("coverDeclare").
+		NewFunctionBuilder().
+		WithFunc(func(ctx context.Context, id uint32) {
+			collector := coverageCollectorFromContext(ctx)
+			if collector == nil {
+				return
+			}
+
+			collector.Hit(id)
+		}).
+		Export("cover").
+		Instantiate(ctx)
+	if err != nil {
+		_ = runtime.Close(ctx)
+		return nil, err
+	}
+
 	compiled, err := runtime.CompileModule(ctx, bytes)
 	if err != nil {
 		_ = runtime.Close(ctx)
@@ -1479,15 +1644,15 @@ func getWorkerCount(branchCount int) int {
 	return count
 }
 
-func discoverImmediateChildren(state *harnessState, nodeIndex []uint32) immediateDiscoverySnapshot {
+func discoverImmediateChildren(state *harnessState, nodeIndex []uint32, coverage *coverageCollector) immediateDiscoverySnapshot {
 	collector := &nodeCollector{}
 	return immediateDiscoverySnapshot{
-		OK:    discoverNodeIndexWithSink(context.Background(), state, nodeIndex, collector),
+		OK:    discoverNodeIndexWithSink(context.Background(), state, nodeIndex, collector, coverage),
 		Nodes: collector.nodes,
 	}
 }
 
-func discoverBranch(state *harnessState, rootNode nodeSnapshot) discoverySnapshot {
+func discoverBranch(state *harnessState, rootNode nodeSnapshot, coverage *coverageCollector) discoverySnapshot {
 	nodes := []nodeSnapshot{rootNode}
 	queue := []nodeSnapshot{rootNode}
 	ok := true
@@ -1496,7 +1661,7 @@ func discoverBranch(state *harnessState, rootNode nodeSnapshot) discoverySnapsho
 		parent := queue[0]
 		queue = queue[1:]
 
-		discovered := discoverImmediateChildren(state, parent.NodeIndex)
+		discovered := discoverImmediateChildren(state, parent.NodeIndex, coverage)
 		if !discovered.OK {
 			if parent.Kind == nodeKindTest {
 				continue
@@ -1519,11 +1684,11 @@ func discoverBranch(state *harnessState, rootNode nodeSnapshot) discoverySnapsho
 	}
 }
 
-func runBranchExecutions(state *harnessState, runTargets []nodeSnapshot) []executionSnapshot {
+func runBranchExecutions(state *harnessState, runTargets []nodeSnapshot, coverage *coverageCollector) []executionSnapshot {
 	executions := make([]executionSnapshot, 0, len(runTargets))
 	for _, node := range runTargets {
 		collector := &eventCollector{}
-		ok := runNodeIndexWithSink(context.Background(), state, node.NodeIndex, collector)
+		ok := runNodeIndexWithSink(context.Background(), state, node.NodeIndex, collector, coverage)
 		executions = append(executions, executionSnapshot{
 			Node:   node,
 			OK:     ok,
@@ -1535,7 +1700,8 @@ func runBranchExecutions(state *harnessState, runTargets []nodeSnapshot) []execu
 }
 
 func startHarness(state *harnessState) startSnapshot {
-	topLevelDiscovery := discoverImmediateChildren(state, []uint32{})
+	coverage := newCoverageCollector()
+	topLevelDiscovery := discoverImmediateChildren(state, []uint32{}, coverage)
 	topLevelNodes := topLevelDiscovery.Nodes
 	branches := make([]branchSnapshot, len(topLevelNodes))
 	for index, root := range topLevelNodes {
@@ -1556,7 +1722,7 @@ func startHarness(state *harnessState) startSnapshot {
 			go func(branchIndex int, branchRoot nodeSnapshot) {
 				defer waitGroup.Done()
 				semaphore <- struct{}{}
-				branches[branchIndex].Discovery = discoverBranch(state, branchRoot)
+				branches[branchIndex].Discovery = discoverBranch(state, branchRoot, coverage)
 				<-semaphore
 			}(index, root)
 		}
@@ -1583,7 +1749,7 @@ func startHarness(state *harnessState) startSnapshot {
 			go func(branchIndex int) {
 				defer waitGroup.Done()
 				semaphore <- struct{}{}
-				branches[branchIndex].Executions = runBranchExecutions(state, listRunnableTests(branches[branchIndex].Discovery.Nodes))
+				branches[branchIndex].Executions = runBranchExecutions(state, listRunnableTests(branches[branchIndex].Discovery.Nodes), coverage)
 				<-semaphore
 			}(index)
 		}
@@ -1597,6 +1763,7 @@ func startHarness(state *harnessState) startSnapshot {
 		TopLevelNodes:       topLevelNodes,
 		WorkerCount:         uint32(workerCount),
 		Branches:            branches,
+		Coverage:            coverage.Snapshot(),
 	}
 
 	for index := range result.Branches {
@@ -1913,16 +2080,79 @@ func createStartSnapshotValue(env C.napi_env, result startSnapshot) (C.napi_valu
 	if !setNamedProperty(env, value, "branches", branchesValue) {
 		return nil, false
 	}
+	if result.Coverage != nil {
+		coverageValue, ok := createCoverageSnapshotValue(env, *result.Coverage)
+		if !ok {
+			return nil, false
+		}
+		if !setNamedProperty(env, value, "coverage", coverageValue) {
+			return nil, false
+		}
+	}
+
+	return value, true
+}
+
+func createCoverageSnapshotValue(env C.napi_env, snapshot coverageSnapshot) (C.napi_value, bool) {
+	value := createObject(env, "failed to create coverage snapshot")
+	if value == nil {
+		return nil, false
+	}
+
+	pointsValue := createArrayWithLength(env, uint32(len(snapshot.Points)))
+	if pointsValue == nil {
+		return nil, false
+	}
+	for index, point := range snapshot.Points {
+		pointValue := createObject(env, "failed to create coverage point")
+		if pointValue == nil {
+			return nil, false
+		}
+		if !setNamedProperty(env, pointValue, "id", createUint32(env, point.ID)) {
+			return nil, false
+		}
+		if !setNamedProperty(env, pointValue, "file", createString(env, point.File)) {
+			return nil, false
+		}
+		if !setNamedProperty(env, pointValue, "line", createInt64(env, int64(point.Line))) {
+			return nil, false
+		}
+		if !setNamedProperty(env, pointValue, "column", createInt64(env, int64(point.Column))) {
+			return nil, false
+		}
+		if !setNamedProperty(env, pointValue, "coverType", createUint32(env, point.CoverType)) {
+			return nil, false
+		}
+		if !setElement(env, pointsValue, uint32(index), pointValue) {
+			return nil, false
+		}
+	}
+	if !setNamedProperty(env, value, "points", pointsValue) {
+		return nil, false
+	}
+
+	coveredValue := createArrayWithLength(env, uint32(len(snapshot.CoveredIDs)))
+	if coveredValue == nil {
+		return nil, false
+	}
+	for index, id := range snapshot.CoveredIDs {
+		if !setElement(env, coveredValue, uint32(index), createUint32(env, id)) {
+			return nil, false
+		}
+	}
+	if !setNamedProperty(env, value, "coveredIds", coveredValue) {
+		return nil, false
+	}
 
 	return value, true
 }
 
 func runNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) bool {
-	return runNodeIndexWithSink(ctx, state, nodeIndex, nil)
+	return runNodeIndexWithSink(ctx, state, nodeIndex, nil, nil)
 }
 
-func runNodeIndexWithSink(ctx context.Context, state *harnessState, nodeIndex []uint32, sink writeEventSink) bool {
-	ctx = contextWithWriteEventSink(ctx, state, sink)
+func runNodeIndexWithSink(ctx context.Context, state *harnessState, nodeIndex []uint32, sink writeEventSink, coverage *coverageCollector) bool {
+	ctx = contextWithCoverageCollector(ctx, state, sink, coverage)
 
 	module, err := state.runtime.InstantiateModule(
 		ctx,
@@ -1971,11 +2201,11 @@ func runNodeIndexWithSink(ctx context.Context, state *harnessState, nodeIndex []
 }
 
 func discoverNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) bool {
-	return discoverNodeIndexWithSink(ctx, state, nodeIndex, nil)
+	return discoverNodeIndexWithSink(ctx, state, nodeIndex, nil, nil)
 }
 
-func discoverNodeIndexWithSink(ctx context.Context, state *harnessState, nodeIndex []uint32, sink writeEventSink) bool {
-	ctx = contextWithWriteEventSink(ctx, state, sink)
+func discoverNodeIndexWithSink(ctx context.Context, state *harnessState, nodeIndex []uint32, sink writeEventSink, coverage *coverageCollector) bool {
+	ctx = contextWithCoverageCollector(ctx, state, sink, coverage)
 
 	module, err := state.runtime.InstantiateModule(
 		ctx,

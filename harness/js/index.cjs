@@ -1,10 +1,12 @@
 "use strict";
 
 const textDecoder = new TextDecoder();
+const { createCoverageCollector } = require("../shared/covers.cjs");
 const { decorateHarness } = require("../shared/start.cjs");
 
 const HARNESS_MODULE_NAME = "as-harness";
 const ABORT_MODULE_NAME = "env";
+const COVERS_MODULE_NAME = "__asCovers";
 const ALLOCATE_NODE_INDEX_BUFFER_EXPORT = "allocateNodeIndexBuffer";
 const DISCOVER_EXPORT = "discover";
 const RUN_EXPORT = "run";
@@ -329,6 +331,7 @@ function clampTraceValueCount(value) {
 
 class Harness {
 	#compiledModule;
+	#coverage;
 	#callbacks = {
 		nodeFound: null,
 		nodeStart: null,
@@ -344,6 +347,7 @@ class Harness {
 
 	constructor(compiledModule) {
 		this.#compiledModule = compiledModule;
+		this.#coverage = createCoverageCollector();
 	}
 
 	onNodeFound(callback) {
@@ -397,6 +401,14 @@ class Harness {
 	}
 
 	close() {}
+
+	getCoverageSnapshot() {
+		return this.#coverage.snapshot();
+	}
+
+	resetCoverage() {
+		this.#coverage.reset();
+	}
 
 	callI32(exportName) {
 		assertExportName(exportName);
@@ -526,6 +538,24 @@ class Harness {
 
 						return 0;
 					}
+				},
+			},
+			[COVERS_MODULE_NAME]: {
+				coverDeclare: (filePtr, id, line, column, coverType) => {
+					if (exports === null) {
+						throw new Error("Harness exports are not ready.");
+					}
+
+					this.#coverage.declare({
+						id: id >>> 0,
+						file: readAssemblyString(exports, filePtr >>> 0),
+						line: line | 0,
+						column: column | 0,
+						coverType: coverType >>> 0,
+					});
+				},
+				cover: (id) => {
+					this.#coverage.hit(id >>> 0);
 				},
 			},
 			[ABORT_MODULE_NAME]: {
