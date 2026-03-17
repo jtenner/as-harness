@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import type { Harness } from "../../harness/shared/harness-types";
 import { setCompilerOptionValue, type Runtime } from "./types";
 
@@ -8,8 +9,13 @@ type WazeroHarnessModule = {
 	createHarness(bytes: Uint8Array): Harness;
 };
 
+const sourceRequire = createRequire(import.meta.url);
+
 function loadSourceWazeroHarnessModule(): WazeroHarnessModule {
-	return require("../../harness/wazero/index.cjs") as WazeroHarnessModule;
+	const sourceSpecifier = ["..", "..", "harness", "wazero", "index.cjs"].join(
+		"/",
+	);
+	return sourceRequire(sourceSpecifier) as WazeroHarnessModule;
 }
 
 function loadBundledWazeroHarnessModule(): WazeroHarnessModule {
