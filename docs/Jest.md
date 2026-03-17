@@ -67,6 +67,23 @@ These exports are currently available from `"jest"`:
 - `fdescribe(name?: string, callback?: SuiteFn | null): void`
 - `xdescribe(name?: string, callback?: SuiteFn | null): void`
 
+### Alias Semantics
+
+The current alias mapping is explicit:
+
+- `xtest(...)` is `test.skip(...)`
+- `xit(...)` is `it.skip(...)`
+- `xdescribe(...)` is `describe.skip(...)`
+- `fit(...)` is `test.only(...)`
+- `fdescribe(...)` is `describe.only(...)`
+
+Skip aliases follow the same pruning semantics as the underlying `.skip`
+helpers:
+
+- skipped test nodes remain structurally discoverable
+- skipped test callbacks do not execute
+- a skipped suite does not discover or execute descendant tests
+
 ### Hooks
 
 - `beforeAll(callback?: HookFn | null): void`

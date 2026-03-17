@@ -92,8 +92,8 @@ shared-assertion-backed matcher set including equality, containment,
 length/size checks, numeric comparisons, `NaN`, and `toThrow()`. It does not
 try to provide broad matcher parity, mocks, spies, or async Jest helpers.
 
-The exact supported API and the current `toThrow()` callback contract are
-described in [docs/Jest.md](../docs/Jest.md).
+The exact supported API, alias mapping, skip-pruning behavior, and current
+`toThrow()` callback contract are described in [docs/Jest.md](../docs/Jest.md).
 
 The current source-host validation matrix exercises the same guest runtime
 through JavaScript, Go/wazero, and Rust/Wasmtime hosts.

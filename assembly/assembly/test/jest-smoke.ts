@@ -23,6 +23,10 @@ function throwsUnreachable(): void {
   unreachable();
 }
 
+function shouldNeverExecuteSkipAlias(): void {
+  unreachable();
+}
+
 const strictArrayNeedle = [2, 3];
 const strictSetNeedle = [5, 6];
 const strictMapKey = [7, 8];
@@ -54,12 +58,18 @@ afterEach((_context: TestContext): void => {
 
 describe("jest adapter", (_context): void => {
   xdescribe("xdescribe branch", (_nestedContext): void => {
-    test("skipped by xdescribe", (_testContext: TestContext): void => {});
+    shouldNeverExecuteSkipAlias();
   });
 
-  xtest("xtest leaf", (_context: TestContext): void => {});
-  xit("xit leaf", (_context: TestContext): void => {});
-  test.todo("todo leaf", (_context: TestContext): void => {});
+  xtest("xtest leaf", (_context: TestContext): void => {
+    shouldNeverExecuteSkipAlias();
+  });
+  xit("xit leaf", (_context: TestContext): void => {
+    shouldNeverExecuteSkipAlias();
+  });
+  test.todo("todo leaf", (_context: TestContext): void => {
+    shouldNeverExecuteSkipAlias();
+  });
   fit("only alias leaf", (_context: TestContext): void => {});
   fdescribe("only alias suite", (_context): void => {
     test("nested only alias child", (_context: TestContext): void => {});

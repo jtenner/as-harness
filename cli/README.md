@@ -42,7 +42,8 @@ core hooks, and a small `expect(...)` surface backed by the shared assertion
 machinery, including containment, length/size checks, numeric checks, `NaN`,
 and `toThrow()`.
 
-For the exact guest-facing Jest surface, see [docs/Jest.md](../docs/Jest.md).
+For the exact guest-facing Jest surface, including alias mapping and skip
+semantics, see [docs/Jest.md](../docs/Jest.md).
 
 ## Built-In Harnesses
 

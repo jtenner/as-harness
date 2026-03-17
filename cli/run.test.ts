@@ -156,11 +156,24 @@ test("passing test", (_context: TestContext): void => {});
 test("cli run executes a thin jest adapter entry when --lib jest is provided", async () => {
 	await withTempEntryFile(
 		`
-import { beforeEach, describe, expect, test, TestContext } from "jest";
+import {
+  beforeEach,
+  describe,
+  expect,
+  test,
+  TestContext,
+  xdescribe,
+  xit,
+  xtest,
+} from "jest";
 
 let beforeEachCount = 0;
 
 function throwsUnreachable(): void {
+  unreachable();
+}
+
+function shouldNeverExecuteSkipAlias(): void {
   unreachable();
 }
 
@@ -186,6 +199,18 @@ beforeEach((_context: TestContext): void => {
 });
 
 describe("jest adapter", (_context): void => {
+  xdescribe("xdescribe branch", (_nestedContext): void => {
+    shouldNeverExecuteSkipAlias();
+  });
+
+  xtest("xtest leaf", (_context: TestContext): void => {
+    shouldNeverExecuteSkipAlias();
+  });
+
+  xit("xit leaf", (_context: TestContext): void => {
+    shouldNeverExecuteSkipAlias();
+  });
+
   test("passes through jest adapter", (context: TestContext): void => {
     expect<i32>(beforeEachCount).toBe(1);
     expect<i32>(beforeEachCount).not.toBe(2);
@@ -225,7 +250,7 @@ describe("jest adapter", (_context): void => {
 			expect(result.exitCode).toBe(0);
 			expect(result.stderr).toBe("");
 			expect(result.stdout).toContain(
-				"PASS 1 passed, 0 failed, 1 discovered with js.",
+				"PASS 1 passed, 0 failed, 3 discovered with js.",
 			);
 		},
 	);
