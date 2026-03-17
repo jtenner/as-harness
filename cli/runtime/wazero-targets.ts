@@ -20,7 +20,7 @@ const COMPILE_TARGET_TO_WAZERO_ADDON_TARGET: Record<
 	"bun-darwin-x64": "darwin-x64",
 	"bun-darwin-x64-baseline": "darwin-x64",
 	"bun-darwin-x64-modern": "darwin-x64",
-	"bun-linux-arm64": "linux-arm64-gnu",
+	"bun-linux-arm64": WAZERO_UNAVAILABLE_TARGET,
 	"bun-linux-arm64-musl": WAZERO_UNAVAILABLE_TARGET,
 	"bun-linux-x64": "linux-x64-gnu",
 	"bun-linux-x64-baseline": "linux-x64-gnu",

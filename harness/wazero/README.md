@@ -57,9 +57,13 @@ For packaged CLI builds:
 Current packaged-platform note:
 
 - source-based Windows addon builds are supported
+- source-based Linux arm64 addon builds are supported
 - packaged Windows CLI artifacts currently fall back to `js` instead of bundling
   `wazero`, because Bun's standalone Windows executable is still crashing while
   loading the native `.node` addon
+- packaged Linux arm64 CLI artifacts currently fall back to `js` because the
+  hosted packaged `wazero` smoke is still timing out on Bun's standalone
+  executable path
 
 The hosted release matrix now builds and verifies the packaged targets in CI. The remaining release proof is clean-environment download-and-run validation for end users on each shipped platform.
 

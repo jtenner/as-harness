@@ -23,7 +23,8 @@ The packaged targets currently intended for release are:
 Packaged harness support is:
 
 - macOS: `js`, `wazero`
-- Linux: `js`, `wazero`
+- Linux x64: `js`, `wazero`
+- Linux arm64: `js` only
 - Windows: `js` only
 
 ## Local Preflight

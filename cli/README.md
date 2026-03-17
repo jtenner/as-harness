@@ -36,6 +36,13 @@ The host runtime contract used by the CLI is the `Runtime` interface in [types.t
 
 The default is `js`.
 
+Packaged availability is target-specific. At the moment:
+
+- macOS packaged builds support `js` and `wazero`
+- Linux x64 packaged builds support `js` and `wazero`
+- Linux arm64 packaged builds support `js` only
+- Windows packaged builds support `js` only
+
 ## Compilation Flow
 
 The CLI creates a temporary wrapper entrypoint that:

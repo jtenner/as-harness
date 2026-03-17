@@ -48,7 +48,7 @@ export const RELEASE_BUILD_TARGETS: ReleaseBuildTarget[] = [
 	{
 		artifactName: "as-harness-bun-linux-arm64",
 		compileTarget: "bun-linux-arm64",
-		packagedHarnesses: ["js", "wazero"],
+		packagedHarnesses: ["js"],
 		runner: "ubuntu-24.04-arm",
 	},
 	{
