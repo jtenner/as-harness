@@ -28,6 +28,32 @@ const LOCAL_WAZERO_ADDON_PATH = join(
 	"wazero.node",
 );
 
+function resolveNodeExecutable() {
+	const environmentCandidates = [
+		process.env.AS_HARNESS_NODE_BINARY,
+		process.env.npm_node_execpath,
+		process.env.NODE,
+	].filter((candidate): candidate is string => Boolean(candidate));
+
+	for (const candidate of environmentCandidates) {
+		if (existsSync(candidate)) {
+			return candidate;
+		}
+	}
+
+	const nodeFromPath = Bun.which("node");
+	if (nodeFromPath) {
+		return nodeFromPath;
+	}
+
+	throw new Error(
+		[
+			"Unable to find a Node executable for the wazero addon build.",
+			"Set AS_HARNESS_NODE_BINARY or ensure 'node' is on PATH.",
+		].join(" "),
+	);
+}
+
 function printTargets(targets: readonly string[]) {
 	for (const target of targets) {
 		console.log(target);
@@ -126,12 +152,15 @@ async function ensureLocalWazeroAddonBuilt() {
 
 	console.log("building local wazero addon for CLI packaging");
 
-	const processHandle = Bun.spawn([process.execPath, "./scripts/build.mjs"], {
-		cwd: join(REPO_DIR, "harness", "wazero"),
-		stderr: "inherit",
-		stdin: "inherit",
-		stdout: "inherit",
-	});
+	const processHandle = Bun.spawn(
+		[resolveNodeExecutable(), "./scripts/build.mjs"],
+		{
+			cwd: join(REPO_DIR, "harness", "wazero"),
+			stderr: "inherit",
+			stdin: "inherit",
+			stdout: "inherit",
+		},
+	);
 
 	const exitCode = await processHandle.exited;
 	if (exitCode !== 0) {
