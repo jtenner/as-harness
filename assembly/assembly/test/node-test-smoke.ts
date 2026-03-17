@@ -47,3 +47,17 @@ test.skip("skipped parent", (context: TestContext): void => {
 test.todo("todo parent", (context: TestContext): void => {
   context.test("todo nested child", (_nestedContext: TestContext): void => {});
 });
+
+test("hook failure parent", (context: TestContext): void => {
+  context.beforeEach((hookContext: TestContext): void => {
+    hookContext.assert.strictEqual<i32>(31, 32, "hook beforeEach mismatch");
+  });
+
+  context.test("hook failure child", (_nestedContext: TestContext): void => {});
+});
+
+test("trap parent", (context: TestContext): void => {
+  context.test("trapping child", (_nestedContext: TestContext): void => {
+    unreachable();
+  });
+});

@@ -178,7 +178,7 @@ host-runner work.
 - [ ] Write a module-by-module contract for `api`, `registry`, `traversal`, `executor`, `hooks`, `assert_bridge`, `events`, `abi`, and `state`.
 - [ ] For each module, define inputs, outputs, owned state, and forbidden decisions.
 - [ ] Add fixtures that cover deterministic rediscovery for nested `describe` and `test` trees.
-- [ ] Add fixtures that prove `skip` prevents subtree traversal.
+- [x] Add fixtures that prove `skip` prevents subtree traversal.
 - [ ] Add fixtures that prove `todo` preserves descendant traversal while suppressing self-outcome significance.
-- [ ] Add fixtures for lifecycle ordering and lifecycle failure propagation.
+- [x] Add fixtures for lifecycle ordering and lifecycle failure propagation.
 - [ ] Add fixtures for unreachable branch pruning and clean replay after failure.

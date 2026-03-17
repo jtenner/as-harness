@@ -46,6 +46,24 @@ const PLANNED_MISMATCH_EVENTS = [
 	],
 ];
 
+const HOOK_FAILURE_EVENTS = [
+	["nodeStart", { nodeIndex: [7, 0] }],
+	["callbackStart", { hook: 1, nodeIndex: [] }],
+	["callbackPass", { hook: 1, nodeIndex: [] }],
+	["callbackStart", { hook: 2, nodeIndex: [] }],
+	["callbackPass", { hook: 2, nodeIndex: [] }],
+	["callbackStart", { hook: 2, nodeIndex: [7] }],
+	["failMessage", { message: "hook beforeEach mismatch" }],
+];
+
+const TRAP_EVENTS = [
+	["nodeStart", { nodeIndex: [8, 0] }],
+	["callbackStart", { hook: 1, nodeIndex: [] }],
+	["callbackPass", { hook: 1, nodeIndex: [] }],
+	["callbackStart", { hook: 2, nodeIndex: [] }],
+	["callbackPass", { hook: 2, nodeIndex: [] }],
+];
+
 const DISCOVERED_NODES = [
 	{
 		nodeIndex: [0],
@@ -90,6 +108,18 @@ const DISCOVERED_NODES = [
 		name: "todo parent",
 	},
 	{
+		nodeIndex: [7],
+		kind: 1,
+		declarationMode: 1,
+		name: "hook failure parent",
+	},
+	{
+		nodeIndex: [8],
+		kind: 1,
+		declarationMode: 1,
+		name: "trap parent",
+	},
+	{
 		nodeIndex: [3, 0],
 		kind: 1,
 		declarationMode: 1,
@@ -106,6 +136,18 @@ const DISCOVERED_NODES = [
 		kind: 1,
 		declarationMode: 1,
 		name: "todo nested child",
+	},
+	{
+		nodeIndex: [7, 0],
+		kind: 1,
+		declarationMode: 1,
+		name: "hook failure child",
+	},
+	{
+		nodeIndex: [8, 0],
+		kind: 1,
+		declarationMode: 1,
+		name: "trapping child",
 	},
 ];
 
@@ -232,7 +274,9 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.run([6]), true);
 		assert.equal(harness.run([4, 0]), true);
 		assert.equal(harness.run([4, 1]), false);
-		assert.equal(harness.run([7]), false);
+		assert.equal(harness.run([7, 0]), false);
+		assert.equal(harness.run([8, 0]), false);
+		assert.equal(harness.run([9]), false);
 	});
 
 	test("run(nodeIndex) emits decoded node and lifecycle events for a passing test", () => {
@@ -318,9 +362,69 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.discover([]), true);
 		assert.equal(harness.discover([3]), true);
 		assert.equal(harness.discover([4]), true);
+		assert.equal(harness.discover([5]), true);
 		assert.equal(harness.discover([6]), true);
+		assert.equal(harness.discover([7]), true);
+		assert.equal(harness.discover([8]), true);
 		assert.equal(harness.discover([1]), false);
 		assert.deepEqual(found, DISCOVERED_NODES);
+	});
+
+	test("run(nodeIndex) emits hook failure events when a lifecycle callback fails", () => {
+		const harness = addon.createHarness(compiledNodeTestWasm);
+		const events = [];
+
+		harness.onNodeStart((event) => {
+			events.push(["nodeStart", event]);
+		});
+		harness.onNodePass((event) => {
+			events.push(["nodePass", event]);
+		});
+		harness.onCallbackStart((event) => {
+			events.push(["callbackStart", event]);
+		});
+		harness.onCallbackPass((event) => {
+			events.push(["callbackPass", event]);
+		});
+		harness.onFailMessage((event) => {
+			events.push(["failMessage", event]);
+		});
+
+		assert.equal(harness.run([7, 0]), false);
+		assert.deepEqual(events, HOOK_FAILURE_EVENTS);
+	});
+
+	test("run(nodeIndex) recovers cleanly after a trapped execution attempt", () => {
+		const harness = addon.createHarness(compiledNodeTestWasm);
+		const trappedEvents = [];
+		const recoveryEvents = [];
+		let trapPhase = true;
+
+		harness.onNodeStart((event) => {
+			(trapPhase ? trappedEvents : recoveryEvents).push(["nodeStart", event]);
+		});
+		harness.onNodePass((event) => {
+			(trapPhase ? trappedEvents : recoveryEvents).push(["nodePass", event]);
+		});
+		harness.onCallbackStart((event) => {
+			(trapPhase ? trappedEvents : recoveryEvents).push(["callbackStart", event]);
+		});
+		harness.onCallbackPass((event) => {
+			(trapPhase ? trappedEvents : recoveryEvents).push(["callbackPass", event]);
+		});
+		harness.onDiagnostic((event) => {
+			(trapPhase ? trappedEvents : recoveryEvents).push(["diagnostic", event]);
+		});
+		harness.onFailMessage((event) => {
+			(trapPhase ? trappedEvents : recoveryEvents).push(["failMessage", event]);
+		});
+
+		assert.equal(harness.run([8, 0]), false);
+		trapPhase = false;
+		assert.equal(harness.run([0]), true);
+
+		assert.deepEqual(trappedEvents, TRAP_EVENTS);
+		assert.deepEqual(recoveryEvents, PASSING_TEST_EVENTS);
 	});
 
 	test("start() returns raw branch discovery and execution data", async () => {
@@ -336,8 +440,8 @@ function registerHarnessSmokeSuite(options) {
 
 		assert.equal(result.discoveryOk, true);
 		assert.equal(result.ok, false);
-		assert.equal(result.discoveredTestCount, 10);
-		assert.equal(result.topLevelNodes.length, 7);
+		assert.equal(result.discoveredTestCount, 14);
+		assert.equal(result.topLevelNodes.length, 9);
 		assert.ok(result.workerCount >= 1);
 		assert.ok(result.workerCount <= result.branches.length);
 		assert.deepEqual(
@@ -355,6 +459,24 @@ function registerHarnessSmokeSuite(options) {
 				.get("todo parent")
 				.executions.map((execution) => execution.node.nodeIndex),
 			[[6, 0]],
+		);
+		assert.deepEqual(
+			branchesByName
+				.get("hook failure parent")
+				.executions.map((execution) => [execution.node.nodeIndex, execution.ok]),
+			[
+				[[7], true],
+				[[7, 0], false],
+			],
+		);
+		assert.deepEqual(
+			branchesByName
+				.get("trap parent")
+				.executions.map((execution) => [execution.node.nodeIndex, execution.ok]),
+			[
+				[[8], true],
+				[[8, 0], false],
+			],
 		);
 		assert.deepEqual(branchesByName.get("skipped parent").executions, []);
 		assert.equal(branchesByName.get("failing test").executions[0].ok, false);
