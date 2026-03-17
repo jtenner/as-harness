@@ -41,6 +41,7 @@ Location:
 
 - `harness/js`
 - `harness/wazero`
+- `harness/wasmtime`
 - future third-party hosts that implement the same ABI
 
 Responsibilities:

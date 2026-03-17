@@ -6,7 +6,7 @@
 
 - `list` discovers candidate test entry files
 - `run` compiles discovered entries and executes them
-- `--harness js` and `--harness wazero` select the shipped harnesses
+- `--harness js`, `--harness wazero`, and `--harness wasmtime` select the available harnesses
 - the compiler wrapper bundles guest support files into the CLI build
 - `build.ts` emits target-specific Bun executables
 - the release workflows use the same build metadata and packaged smoke scripts as local development
@@ -33,6 +33,8 @@ The host runtime contract used by the CLI is the `Runtime` interface in [types.t
   Portable baseline host built on standard JavaScript WebAssembly APIs.
 - `wazero`
   Native-addon host built on Go and `Node-API`.
+- `wasmtime`
+  Native-addon host built on Rust, `wasmtime`, and `Node-API`. This path is available for source execution and CI smoke coverage, but is not bundled into the packaged release artifacts.
 
 The default is `js`.
 

@@ -10,7 +10,7 @@ the decision is deferred.
 ## Publish Blockers
 
 Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
-`harness/wazero`, and the top-level docs/release workflow.
+`harness/wazero`, `harness/wasmtime`, and the top-level docs/release workflow.
 
 ### Product Definition
 
@@ -55,6 +55,7 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 - [x] Do not support Linux `musl` in `v0.1.0`.
 - [ ] Prove `harness/js` works on the supported Node versions for the release.
 - [ ] Prove `harness/wazero` builds and runs on the supported OS / architecture matrix.
+- [x] Add a source-based `wasmtime` host path that satisfies the shared Node harness contract and runs in CI.
 - [x] Package or document the wazero native-addon build/install story so users can actually run it.
 - [x] Decide how the CLI bundles, locates, or installs shipped host runtimes.
 - [x] Add end-to-end CLI coverage for both the `js` and `wazero` execution paths.

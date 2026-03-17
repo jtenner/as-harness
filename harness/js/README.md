@@ -8,7 +8,7 @@
 - no per-platform build artifact
 - easiest host to understand when implementing the ABI in another language
 
-If you want to understand the contract before reading the Go addon, start here and pair it with [docs/harness-abi.md](../../docs/harness-abi.md).
+If you want to understand the contract before reading the native addons, start here and pair it with [docs/harness-abi.md](../../docs/harness-abi.md).
 
 ## Surface
 
@@ -32,7 +32,7 @@ This host:
 
 ## Testing
 
-The package now shares the main host-behavior smoke suite with `harness/wazero`, which means parity regressions show up in both hosts at once.
+The package now shares the main host-behavior smoke suite with `harness/wazero` and `harness/wasmtime`, which means parity regressions show up in all shipped hosts at once.
 
 Package-local extra coverage still exists for:
 

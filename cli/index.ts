@@ -81,7 +81,7 @@ Run Options:
   -g, --glob                 Interpret ordinal arguments as glob patterns
   --coverage                 Enable code coverage output (currently disabled)
   --coverage-format fmt      Coverage format placeholder
-  --harness name             Select the execution harness (\`js\` | \`wazero\`)
+  --harness name             Select the execution harness (\`js\` | \`wazero\` | \`wasmtime\`)
   -i, --ignore glob          Glob matcher that excludes an entry point
 
 Compiler Options:

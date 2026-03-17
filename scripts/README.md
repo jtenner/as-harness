@@ -44,6 +44,9 @@ Those are still release-proof tasks above the local helper layer.
 ```bash
 bun validate
 bun test
+cd harness/js && npm test
+cd harness/wazero && npm test
+cd harness/wasmtime && npm test
 bun run release:matrix
 bun run release:manifest -- --tag v0.1.0 --asset-dir ./dist/release-assets --notes-file ./dist/release-notes.md
 bun run verify:packaged-cli --target bun-linux-x64

@@ -1,6 +1,6 @@
 # Harness ABI
 
-This document describes the contract a host harness must satisfy to run AssemblyScript modules produced by this repo. It is written for implementers who want to provide their own harness instead of reusing `harness/js` or `harness/wazero`.
+This document describes the contract a host harness must satisfy to run AssemblyScript modules produced by this repo. It is written for implementers who want to provide their own harness instead of reusing `harness/js`, `harness/wazero`, or `harness/wasmtime`.
 
 There are two layers:
 
@@ -321,7 +321,7 @@ For a new harness, the minimum useful implementation order is:
 Before treating a new harness as compatible, verify:
 
 - decoded event payloads match the shared host parity expectations
-- `callI32`, `discover`, and `run` match the current `js` and `wazero` semantics
+- `callI32`, `discover`, and `run` match the current `js`, `wazero`, and `wasmtime` semantics
 - trampoline trap observation matches the shipped hosts
 - the harness can drive a CLI-style wrapper entrypoint that re-exports `allocateNodeIndexBuffer`, `discover`, `invoke`, and `run`
 
@@ -329,6 +329,7 @@ The current reference implementations are:
 
 - [harness/js/index.cjs](../harness/js/index.cjs)
 - [harness/wazero/index.cjs](../harness/wazero/index.cjs)
+- [harness/wasmtime/index.cjs](../harness/wasmtime/index.cjs)
 - [smoke-suite.cjs](../harness/shared/smoke-suite.cjs)
 
 ## Non-Goals

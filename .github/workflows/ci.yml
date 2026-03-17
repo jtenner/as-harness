@@ -31,6 +31,9 @@ jobs:
         with:
           go-version: "1.24.1"
 
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Install CLI dependencies
         working-directory: ./cli
         run: bun install --frozen-lockfile
@@ -51,6 +54,10 @@ jobs:
 
       - name: Run wazero harness smoke tests
         working-directory: ./harness/wazero
+        run: npm test
+
+      - name: Run wasmtime harness smoke tests
+        working-directory: ./harness/wasmtime
         run: npm test
 
   release-matrix:
@@ -96,6 +103,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.24.1"
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Install CLI dependencies
         working-directory: ./cli

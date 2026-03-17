@@ -4,7 +4,7 @@
 
 - guest-side runtime code in `assembly/`
 - a Bun CLI in `cli/`
-- two working host implementations in `harness/js` and `harness/wazero`
+- three host implementations in `harness/js`, `harness/wazero`, and `harness/wasmtime`
 - packaging and release workflows for target-specific Bun executables
 
 The project goal is to make AssemblyScript tests compile into Wasm and run through a stable host contract that other harness implementations can also adopt.
@@ -46,9 +46,10 @@ Explicit non-goals for `v0.1.0`:
 What works today:
 
 - the CLI discovers entry files, compiles them, and runs them
-- `--harness js` and `--harness wazero` both work
-- packaged Bun executables can run the local smoke path for both hosts
-- the host parity smoke suite now covers event decoding, `callI32`, `discover`, `run`, `start`, and trampoline behavior across `js` and `wazero`
+- `--harness js`, `--harness wazero`, and `--harness wasmtime` all work in source mode
+- packaged Bun executables can run the local smoke path for the supported `js`/`wazero` release matrix
+- `wasmtime` currently stays source-only and is not bundled into the packaged Bun release artifacts
+- the host parity smoke suite now covers event decoding, `callI32`, `discover`, `run`, `start`, and trampoline behavior across `js`, `wazero`, and `wasmtime`
 - the release workflows can build and smoke-test the packaged CLI across the intended release targets
 - the release workflow now publishes `release-manifest.json`, `SHA256SUMS.txt`, and generated release notes alongside the packaged executables
 - the release workflow now stages third-party licensing files alongside the packaged executables
@@ -84,6 +85,7 @@ Switch hosts explicitly when needed:
 ```bash
 bun run ./cli/index.ts run --harness js ./example.test.ts
 bun run ./cli/index.ts run --harness wazero ./example.test.ts
+bun run ./cli/index.ts run --harness wasmtime ./example.test.ts
 ```
 
 ## Release Targets
@@ -136,6 +138,8 @@ The CLI currently resolves built-in harnesses, but the ABI guide is written so e
   Pure JavaScript host implementation.
 - `harness/wazero/`
   Go `Node-API` host implementation.
+- `harness/wasmtime/`
+  Rust `Node-API` host implementation built on `wasmtime`.
 - `docs/`
   ABI, architecture, and planning documents.
 - `scripts/`
@@ -152,6 +156,7 @@ bun validate
 bun test
 cd harness/js && npm test
 cd harness/wazero && npm test
+cd harness/wasmtime && npm test
 cd cli && bun run build:list-release-targets
 cd cli && bun run build:release
 bun run verify:packaged-cli --target bun-linux-x64
@@ -163,6 +168,7 @@ Common failure classes:
 
 - compile failures: check `--lib` usage, entry discovery, and AssemblyScript diagnostics from the CLI
 - host failures: verify the selected harness exists and that `wazero` has a matching native addon
+- wasmtime host failures: verify that Rust is installed and `harness/wasmtime/dist/wasmtime.node` has been built
 - trap-related failures: inspect `FailMessage`, callback, and node event ordering first
 - packaged CLI failures: verify the build target matches the staged addon target for `wazero`
 
@@ -170,6 +176,7 @@ Detailed host-specific notes live in:
 
 - [harness/js/README.md](./harness/js/README.md)
 - [harness/wazero/README.md](./harness/wazero/README.md)
+- [harness/wasmtime/README.md](./harness/wasmtime/README.md)
 - [cli/n-api/README.md](./cli/n-api/README.md)
 
 ## License

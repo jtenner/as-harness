@@ -135,7 +135,7 @@ test("passing test", (_context: TestContext): void => {});
 			expect(result.exitCode).toBe(3);
 			expect(result.stdout).toBe("");
 			expect(result.stderr).toContain(
-				"Harness resolution failed: Unsupported harness: nope. Supported harnesses: js, wazero.",
+				"Harness resolution failed: Unsupported harness: nope. Supported harnesses: js, wazero, wasmtime.",
 			);
 		},
 	);

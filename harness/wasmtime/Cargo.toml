@@ -1,0 +1,15 @@
+[package]
+name = "as-harness-wasmtime"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow = "1.0.100"
+napi = { version = "2.16.17", default-features = false, features = ["napi8"] }
+napi-derive = "2.16.13"
+wasmtime = "34.0.2"

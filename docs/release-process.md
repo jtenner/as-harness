@@ -27,6 +27,9 @@ Packaged harness support is:
 - Linux arm64: `js` only
 - Windows: `js` only
 
+Source-only harness support also includes `wasmtime`, but it is not yet part of
+the packaged release artifact matrix.
+
 ## Local Preflight
 
 Run the release baseline from the repo root:
@@ -36,6 +39,7 @@ bun validate
 bun test
 cd harness/js && npm test
 cd harness/wazero && npm test
+cd harness/wasmtime && npm test
 cd /path/to/as-harness
 bun run release:matrix
 bun run verify:packaged-cli --target bun-linux-x64
@@ -56,6 +60,7 @@ The main workflow should be green before tagging:
 - root Bun tests
 - `harness/js` smoke
 - `harness/wazero` smoke
+- `harness/wasmtime` smoke
 - packaged CLI verification on the release matrix
 
 The packaged verification path is owned by [verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts).

@@ -4,7 +4,7 @@
 
 ## Why It Exists
 
-This host proves that the harness ABI is not tied to one implementation language. The guest protocol is the same as `harness/js`; only the runtime strategy differs.
+This host proves that the harness ABI is not tied to one implementation language. The guest protocol is the same as `harness/js` and `harness/wasmtime`; only the runtime strategy differs.
 
 ## Artifact
 
@@ -69,7 +69,7 @@ The hosted release matrix now builds and verifies the packaged targets in CI. Th
 
 ## Testing
 
-This package shares the main host-parity smoke suite with `harness/js`.
+This package shares the main host-parity smoke suite with `harness/js` and `harness/wasmtime`.
 
 Package-local extra coverage still exists for:
 

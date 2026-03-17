@@ -2,12 +2,17 @@ import { jsRuntime } from "./js";
 import type { Runtime } from "./types";
 
 export function assertSupportedRuntime(host: string | undefined) {
-	if (host === undefined || host === "js" || host === "wazero") {
+	if (
+		host === undefined ||
+		host === "js" ||
+		host === "wazero" ||
+		host === "wasmtime"
+	) {
 		return;
 	}
 
 	throw new Error(
-		`Unsupported harness: ${host}. Supported harnesses: js, wazero.`,
+		`Unsupported harness: ${host}. Supported harnesses: js, wazero, wasmtime.`,
 	);
 }
 
@@ -27,6 +32,16 @@ export async function resolveRuntime(
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			throw new Error(`Harness 'wazero' is not available: ${message}`);
+		}
+	}
+
+	if (host === "wasmtime") {
+		try {
+			const { wasmtimeRuntime } = await import("./wasmtime");
+			return wasmtimeRuntime;
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			throw new Error(`Harness 'wasmtime' is not available: ${message}`);
 		}
 	}
 }
