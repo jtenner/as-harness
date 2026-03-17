@@ -93,6 +93,9 @@ bun run ./cli/index.ts run --harness wazero ./example.test.ts
 bun run ./cli/index.ts run --harness wasmtime ./example.test.ts
 ```
 
+For the current Jest-shaped guest API, including the exact `expect(...)`
+matcher set and `toThrow()` callback rules, see [docs/Jest.md](./docs/Jest.md).
+
 ## Release Targets
 
 The current release-target matrix is:

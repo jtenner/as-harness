@@ -41,6 +41,8 @@ behind `--lib jest`. That adapter currently covers test/suite declarations,
 core hooks, and a small `expect(...)` surface backed by the shared assertion
 machinery, including `toThrow()`.
 
+For the exact guest-facing Jest surface, see [docs/Jest.md](../docs/Jest.md).
+
 ## Built-In Harnesses
 
 - `js`

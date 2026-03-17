@@ -21,6 +21,7 @@ The current source-host set exercising that boundary is `harness/js`,
   The current test-declaration adapter.
 - `assembly/assembly/jest/`
   A thin Jest-shaped declaration adapter built on the same runtime primitives.
+  See [docs/Jest.md](../docs/Jest.md) for the current guest-facing surface.
 - `assembly/assembly/node_assert/`
   The current assertion adapters.
 - `assembly/assembly/test/`
@@ -90,6 +91,9 @@ That adapter currently covers the declaration shape, core hooks, and a small
 shared-assertion-backed matcher set including `toBe(...)`, `toEqual(...)`,
 nullish/truthy helpers, and `toThrow()`. It does not try to provide broad
 matcher parity, mocks, spies, or async Jest helpers.
+
+The exact supported API and the current `toThrow()` callback contract are
+described in [docs/Jest.md](../docs/Jest.md).
 
 The current source-host validation matrix exercises the same guest runtime
 through JavaScript, Go/wazero, and Rust/Wasmtime hosts.

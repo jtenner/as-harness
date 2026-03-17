@@ -34,7 +34,8 @@ Tracked adapters:
 - `qunit`
 
 The active adapter work today is the shipped Node-shaped surface plus a thin
-Jest declaration adapter.
+Jest declaration adapter. The current supported Jest-shaped guest API is
+described in [docs/Jest.md](../docs/Jest.md).
 
 ## How To Read The Adapter TODO Pages
 
