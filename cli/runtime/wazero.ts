@@ -8,9 +8,13 @@ type WazeroHarnessModule = {
 	createHarness(bytes: Uint8Array): Harness;
 };
 
-function loadBundledWazeroHarnessModule(): WazeroHarnessModule | null {
+function loadSourceWazeroHarnessModule(): WazeroHarnessModule {
+	return require("../../harness/wazero/index.cjs") as WazeroHarnessModule;
+}
+
+function loadBundledWazeroHarnessModule(): WazeroHarnessModule {
 	if (typeof WAZERO_TARGET === "undefined") {
-		return null;
+		return loadSourceWazeroHarnessModule();
 	}
 
 	if (WAZERO_TARGET === "unavailable" || WAZERO_NODE_PATH == null) {
@@ -24,9 +28,7 @@ function loadBundledWazeroHarnessModule(): WazeroHarnessModule | null {
 	return require(WAZERO_NODE_PATH) as WazeroHarnessModule;
 }
 
-const { createHarness } =
-	loadBundledWazeroHarnessModule() ??
-	(require("../../harness/wazero/index.cjs") as WazeroHarnessModule);
+const { createHarness } = loadBundledWazeroHarnessModule();
 
 export const wazeroRuntime: Runtime = {
 	name: "wazero",
