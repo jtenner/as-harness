@@ -1,47 +1,41 @@
 # `cli/transform`
 
-This folder scaffolds the future AssemblyScript AST transform used to inject the
-strict-equality and reflected-diagnostics hooks required by `node:assert`
-support.
+`cli/transform` contains the AssemblyScript AST transform support used by the CLI compiler wrapper.
 
-The transform is expected to:
+## Current Purpose
 
-- traverse parsed AssemblyScript sources after parse
-- recurse into namespaces
-- find class declarations
-- inject generated instance methods for structural comparison
-- inject generated instance methods for reflected key/value extraction
+Today this folder exists to support:
 
-Implementation planning lives in
-[strict-equality-machinery.md](/home/jtenner/Projects/as-harness/docs/strict-equality-machinery.md).
+- strict structural comparison hooks
+- reflected-diagnostics hooks
 
-The current implementation now performs the first transform pass:
+That work is primarily consumed by the `node:assert` and `node:assert/strict` guest libraries.
 
-- it walks non-library parser sources after parse
-- it recurses through nested namespaces
-- it injects instance methods named
-  `__asHarnessStrictEquals` and `__asHarnessAddReflectedValueKeyValuePairs`
-- it selects participating instance members from class fields and getters while
-  excluding static members, setters, constructors, and regular methods
-- it preserves class generic context while adding those hooks
-- it emits same-instance and runtime-type guards before generated comparison
-  work begins
-- it emits inheritance-aware bodies that delegate into `super` when a class
-  extends a base class
-- it emits per-member helper calls so selected fields and getters flow into the
-  shared strict-equality and reflected-value runtimes
+## What The Transform Does
 
-Those generated methods are still scaffold-level at the runtime boundary. The
-shared AssemblyScript helpers now perform primitive, string, nullable,
-runtime-type, `ArrayBuffer`, typed-array / `ArrayBufferView`, ordered array /
-arraylike, direct `Set` / `Map`, function-reference identity, and managed-class
-recursive checks. The reflected-value side now also has a live collector plus
-primitive, string, `ArrayBuffer`, ordered array / `StaticArray`, and
-typed-array / `ArrayBufferView`, `Set`, and `Map` construction helpers behind
-`__asHarnessAddReflectedValueKeyValuePair(...)`. Recursive class reflected
-diagnostics now flow through the shared hook contract. The project also treats
-generic unmanaged deep comparison as out of scope by default: unmanaged values
-should use safe shared paths such as identity or existing arraylike handling,
-and any richer unmanaged equality or reflected diagnostics should be opt-in by
-defining the shared hook names manually. The transform only auto-generates
-those hooks for managed classes.
+The current transform pass:
+
+- walks non-library parser sources after parse
+- recurses into namespaces
+- finds eligible managed classes
+- injects generated instance methods for strict equality and reflected diagnostics
+- preserves generic context and inheritance behavior
+- delegates actual comparison and reflected-value logic back into the shared guest runtime
+
+## Boundaries
+
+The transform owns compile-time class-shape knowledge.
+
+The guest runtime owns:
+
+- recursive comparison semantics
+- collection semantics
+- cycle handling
+- reflected-value construction
+
+That split is documented in [docs/strict-equality-machinery.md](/home/jtenner/Projects/as-harness/docs/strict-equality-machinery.md).
+
+## Related Docs
+
+- Strict equality design: [docs/strict-equality-machinery.md](/home/jtenner/Projects/as-harness/docs/strict-equality-machinery.md)
+- CLI overview: [cli/README.md](/home/jtenner/Projects/as-harness/cli/README.md)

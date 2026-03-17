@@ -1,106 +1,88 @@
 # `@as-harness/cli`
 
-`cli/` is the Bun-based CLI package and intended distribution surface for the project. Today it provides the executable entrypoint, entry discovery, a real default-`js` compile-and-run path, the AssemblyScript compiler wrapper, bundled support-file handling, and multi-target Bun compilation. The broader shipped runner surface is still in progress.
+`cli/` is the Bun-based command-line surface for the project. It discovers AssemblyScript test entry files, compiles them into Wasm, selects a harness, and runs the resulting module.
 
-## Current Status
+## What It Does Today
 
-Implemented today:
+- `list` discovers candidate test entry files
+- `run` compiles discovered entries and executes them
+- `--harness js` and `--harness wazero` select the shipped harnesses
+- the compiler wrapper bundles guest support files into the CLI build
+- `build.ts` emits target-specific Bun executables
+- the release workflows use the same build metadata and packaged smoke scripts as local development
 
-- A Bun CLI entrypoint at `index.ts`
-- `help`, `list`, and a real `run` command for the default `js` host
-- Entry discovery with default globs, explicit file paths, glob mode, and ignore filters
-- A programmatic AssemblyScript compiler wrapper in `as/compile.ts`
-- Bundled virtual AssemblyScript support files generated from `../assembly/assembly/**/*.ts`
-- A first end-to-end `run` flow that compiles discovered entries, instantiates them through `harness/js`, and prints basic pass/fail summaries
-- A first explicit harness selector for `run` through `--harness js|wazero`
-- Parsing and forwarding for the documented `run` compiler flags into the AssemblyScript wrapper
-- A multi-target Bun build script that emits one `single-file Bun executable` per Bun target
+## What It Does Not Do Yet
 
-Planned or incomplete:
+- user-facing coverage output
+- external harness plugin resolution
+- a stable public runtime-selection API beyond the current built-ins
+- fully proven release history across the entire hosted runner matrix
 
-- Coverage flags are placeholders
-- The runtime abstraction now supports the default `js` host flow, but runtime selection is not yet a stable user-facing feature
-- The runtime selector currently only covers `--harness js|wazero`; unsupported harness names fail fast and the remaining packaging work is now cross-target validation plus native-addon release proof
-- `cli/n-api/` is now the generated staging area for target-specific `wazero` addons during CLI builds
+## Runtime Model
 
-## What The CLI Currently Does
+The CLI works in two layers:
 
-- Lists candidate AssemblyScript test entry files.
-- Compiles discovered AssemblyScript test entries together with the bundled harness exports.
-- Executes compiled test modules through the default `js` host.
-- Supports explicit `--harness js` and `--harness wazero` selection, with a clear failure for unsupported harness names.
-- Forwards the documented compile-time `run` flags into the AssemblyScript compiler wrapper.
-- Prints basic pass/fail summaries and failing test messages.
-- Wraps `assemblyscript/asc` programmatically instead of shelling out.
-- Captures compiler outputs in memory.
-- Builds target-specific Bun executables under `dist/<target>/`.
+1. compile guest code into Wasm with the bundled guest support files
+2. hand the Wasm bytes to a selected host runtime
 
-The CLI now proves the first compile-and-run flow through the default `js` host and exposes an explicit `--harness` override, but it does not yet provide the final dual-host packaging story.
+The host runtime contract used by the CLI is the `Runtime` interface in [types.ts](/home/jtenner/Projects/as-harness/cli/runtime/types.ts). The lower-level host ABI itself is documented in [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md).
 
-## Bundled Support Files
+## Built-In Harnesses
 
-The CLI already bundles guest-side support code used during AssemblyScript compilation.
+- `js`
+  Portable baseline host built on standard JavaScript WebAssembly APIs.
+- `wazero`
+  Native-addon host built on Go and `Node-API`.
 
-- `as/generate-virtual-files.ts` scans `../assembly/assembly/**/*.ts` and emits `as/virtual-files.generated.ts`.
-- `as/compile.ts` exposes those files through a virtual `~/.as-harness` tree when AssemblyScript asks for library files.
-- Bundled transform assets are written to a temporary directory when AssemblyScript needs a real JS transform path on disk.
-- When `node:assert` or `node:assert/strict` is requested through `--lib`, the compiler wrapper also enables the bundled strict-equality transform.
+The default is `js`.
 
-This matters for packaging because a compiled Bun executable cannot rely on the source repo layout being present at runtime.
+## Compilation Flow
 
-## Runtime Selection
+The CLI creates a temporary wrapper entrypoint that:
 
-There is an internal runtime abstraction in `runtime/` with `js`, `wazero`, and `wasmtime` entries. The default `js` path now drives the real `run` command, and the standalone compiled CLI can execute through both `js` and `wazero` when a matching addon is staged for the build target. Broader runtime-selection behavior still needs product-level hardening, and cross-target packaged `wazero` proof is still outstanding.
+- re-exports `allocateNodeIndexBuffer`, `discover`, `invoke`, and `run`
+- imports the discovered user test files for side effects
 
-## Packaging Notes
+That wrapper is then compiled through the AssemblyScript wrapper in [compile.ts](/home/jtenner/Projects/as-harness/cli/as/compile.ts).
 
-- Bun can compile this CLI into a target-specific `single-file Bun executable`.
-- `build.ts` regenerates bundled AssemblyScript support files before each executable build.
-- The current build matrix includes macOS, Linux, Linux `musl`, and Windows Bun targets, but the `wazero` addon selection marks `musl` targets unavailable for `v0.1.0`.
-- The intended MVP is to support both runtime paths from the CLI:
-  - the `JS host` as the portable baseline
-  - the `wazero host` as the native companion path where a matching addon exists
-- The current build path uses build-time-defined `WAZERO_TARGET` and `WAZERO_NODE_PATH` constants so Bun can fold the loader down to one target-matched `.node` asset per compiled executable.
-- The repo now includes GitHub Actions workflows that build and smoke-test the packaged CLI across the current release-target runner matrix.
-- If the CLI later loads a `.node` `Node-API addon`, that addon becomes a `target-specific native artifact` and must match the executable target platform and architecture.
-- For Linux native addons, libc variants may matter too.
+## Packaging
 
-The `JS host` path is still the lower-risk packaging baseline because it avoids native addon distribution entirely, and it remains the default runtime. The next packaging blockers are release-matrix proof and native-addon distribution coverage, not the standalone compiler startup path.
+The packaged executable flow is:
 
-## Key Files
+1. generate bundled guest support files
+2. stage a matching wazero addon when the target supports it
+3. compile a target-specific Bun executable
+4. smoke-test the packaged executable through `js`
+5. smoke-test it through `wazero` when the target supports the addon
 
-- `index.ts`
-  CLI entrypoint and command parsing.
-- `build.ts`
-  Bun executable build matrix.
-- `as/compile.ts`
-  Programmatic AssemblyScript compiler wrapper.
-- `as/generate-virtual-files.ts`
-  Bundled support-file generator.
-- `transform/`
-  Bundled transform support for the current strict-equality work.
-- `runtime/`
-  Runtime-selection scaffolding.
-- `n-api/`
-  Placeholder area for future CLI-side native packaging work.
+Shared release-target metadata lives in [build-targets.ts](/home/jtenner/Projects/as-harness/cli/build-targets.ts).
 
 ## Commands
 
 ```bash
+cd cli
 bun install
-bun run dev
-bun run clean
-bun run build:list-release-targets
-bun run build:release
-bun run build:list-targets
-bun run build
-```
-
-Examples:
-
-```bash
+bun run dev -- help
 bun run dev -- list
-bun run dev -- list test/example.spec.ts
-bun run dev -- list --glob "test/**/*.ts" --ignore "fixtures/**"
-bun run dev -- run --help
+bun run dev -- run ./example.test.ts
+bun run build:list-targets
+bun run build:list-release-targets
+bun run build
+bun run build:release
 ```
+
+## Troubleshooting
+
+Common CLI failure classes:
+
+- entry discovery failures: check glob usage and ignored paths
+- compile failures: inspect AssemblyScript diagnostics and custom `--lib` or `--transform` options
+- harness resolution failures: verify the `--harness` value and packaged runtime availability
+- packaged `wazero` failures: verify the staged addon target matches the Bun executable target
+
+## Related Docs
+
+- Repo overview: [README.md](/home/jtenner/Projects/as-harness/README.md)
+- Harness ABI: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
+- Native addon staging: [cli/n-api/README.md](/home/jtenner/Projects/as-harness/cli/n-api/README.md)
+- Strict-equality transform: [cli/transform/README.md](/home/jtenner/Projects/as-harness/cli/transform/README.md)

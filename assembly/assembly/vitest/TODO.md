@@ -1,16 +1,17 @@
 # `vitest` Adapter TODO
 
-Current limitation:
+Status:
 
-- function mocks, spies, and call-tracking matchers such as `toBeCalled(...)`,
-  `toHaveBeenCalled(...)`, and `toHaveBeenCalledTimes(...)` are unsupported
-  until AssemblyScript has closure support that can model those APIs
-  coherently
-- Promise-based matchers and helpers such as `.resolves`, `.rejects`, or async
-  test completion via returned Promises are unsupported until AssemblyScript
-  has Promise support that can model those APIs coherently
+- planned
+- not in `v0.1.0`
 
-- [ ] Define the `vitest` declaration surface to expose from this `--lib` entry point.
-- [ ] Map `test`, `describe`, `skip`, `todo`, and lifecycle APIs onto the shared internal declarations.
-- [ ] Keep adapter-specific overloads and naming inside this folder.
-- [ ] Add initial source files and a minimal traversal fixture.
+First implementation slice:
+
+- map `test`, `describe`, `skip`, `todo`, and core lifecycle hooks
+- keep Vitest-specific naming in this folder
+- add one minimal traversal fixture
+
+Current non-goals:
+
+- mocks, spies, and call-tracking matchers
+- Promise-based matchers such as `.resolves` and `.rejects`

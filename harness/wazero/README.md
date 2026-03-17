@@ -1,57 +1,70 @@
 # `harness/wazero`
 
-`harness/wazero` is the `wazero host`: a Go-based host runtime exposed to JavaScript as a `Node-API addon`. This is a native addon path, not a pure `JS host` path.
+`harness/wazero` is the Go-based native host implementation. It exposes the shared harness contract through a `Node-API` addon.
 
-## Current Status
+## Why It Exists
 
-Implemented today:
+This host proves that the harness ABI is not tied to one implementation language. The guest protocol is the same as `harness/js`; only the runtime strategy differs.
 
-- A Go addon that exports `createHarness(bytes)` to JavaScript
-- Wasm compilation through wazero
-- Guest `discover()` and `run()` integration
-- Event decoding and callback delivery back to JavaScript
-- `start()` scheduling inside the native addon
-- A build script that emits `dist/wazero.node`
-- Smoke tests that build and load the addon
+## Artifact
 
-Still planned:
-
-- Cross-platform release automation for every shipping target
-- Hardening beyond the current early host/runtime surface
-
-## Artifact Shape
-
-The output of this package is a real `.node` binary:
+The package builds:
 
 - `dist/wazero.node`
 
-That file is a `Node-API addon`, so it is a `target-specific native artifact`.
+That file is a target-specific `Node-API` addon.
 
-## Packaging Implications
+## Responsibilities
 
-- The `wazero host` must be built per platform and architecture.
-- Linux libc variants may matter, so `glibc` and `musl` can require separate artifacts.
-- The intended MVP includes this path, so any target that ships the `wazero host` must package or extract the matching `.node` addon alongside the `single-file Bun executable`.
-- The current repo proves local addon builds and smoke tests and now includes GitHub workflow definitions for packaged CLI release targets, but it does not yet have a proven cross-target release history.
+This host:
 
-## Node-API In This Repo
+- validates and compiles Wasm through wazero
+- decodes the same event protocol as `harness/js`
+- implements `callI32`, `discover`, `run`, and `start`
+- keeps branch discovery and execution scheduling inside the native addon
 
-`Node-API` is the stable C ABI used for native addons in Node-compatible runtimes. In this repo, it is the layer that lets Go code compile into a `.node` addon that JavaScript can load from Node or Bun. The ABI is stable, but the resulting addon binary is still platform-specific.
+## Build Requirements
 
-## Why Use The wazero Host
+- Go toolchain
+- Node headers
+- on Windows, a usable `node.lib` import library
 
-This path is more complex than the `JS host`, but it is still part of the intended MVP because wazero-specific execution semantics are a product goal. The tradeoff is packaging and CI complexity: every shipping target needs a matching native build.
+The build script supports:
 
-## Build Notes
+- `NODE_API_INCLUDE_DIR`
+- `NODE_API_LIB_FILE`
+- `npm_config_nodedir`
 
-- `scripts/build.mjs` locates Node headers and runs `go build -buildmode=c-shared`.
-- On Windows, the build can reuse a local `node.lib` or download the matching import library into `.cache/`.
-- `NODE_API_INCLUDE_DIR`, `NODE_API_LIB_FILE`, and `npm_config_nodedir` can be used to point the build at a specific Node installation.
+On Windows, the build script can also download a matching `node.lib` into `.cache/` when one is not already available.
 
-## Commands
+## Install And Packaging Story
+
+For local development:
 
 ```bash
 cd harness/wazero
 npm run build
 npm test
 ```
+
+For packaged CLI builds:
+
+- the addon must be built once per supported target
+- the packaged Bun executable must stage the matching `.node` file
+- Linux `glibc` is in scope for `v0.1.0`; `musl` is not
+
+The repo now has workflow definitions for this path, but the full cross-target release story still needs repeated green runs and end-user validation.
+
+## Testing
+
+This package shares the main host-parity smoke suite with `harness/js`.
+
+Package-local extra coverage still exists for:
+
+- running the CLI through `--harness wazero`
+
+## Related Docs
+
+- Repo overview: [README.md](/home/jtenner/Projects/as-harness/README.md)
+- Harness ABI: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
+- CLI native addon staging: [cli/n-api/README.md](/home/jtenner/Projects/as-harness/cli/n-api/README.md)

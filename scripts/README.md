@@ -1,54 +1,47 @@
 # Scripts
 
-`scripts/` contains the root validation and test entrypoints used from the repository root.
+`scripts/` contains the root helper scripts used for validation, smoke coverage, and release-matrix support.
 
-## What Exists Today
+## Main Scripts
 
 - `validate.ts`
   Runs Biome format and lint checks for `cli/`.
 - `test.ts`
-  Runs the root AssemblyScript-focused test flow:
-  - compiles `assembly/assembly/test/index.ts`
-  - runs the generated bootstrap module
-  - compiles `node:assert` smoke fixtures
-  - runs shared assertion smoke checks
+  Runs the repo-level AssemblyScript-focused test flow and assertion bridge smoke coverage.
 - `test-bootstrap.ts`
-  Loads the generated AssemblyScript test module under Bun and provides a minimal stub package for the guest-side `write_event` import.
+  Loads the compiled AssemblyScript bootstrap fixture under Bun.
 - `assert-bridge-smoke.ts`
-  Instantiates the compiled assertion smoke fixtures and verifies host-observed failure/trampoline behavior using the JavaScript WebAssembly runtime.
+  Verifies host-observed assertion behavior against compiled smoke fixtures.
 - `release-matrix.ts`
-  Emits the supported GitHub-hosted release-target matrix used by the CI and release workflows.
+  Emits the release-target matrix consumed by GitHub Actions.
 - `verify-packaged-cli.ts`
-  Builds one compiled CLI target, smoke-tests it through the packaged `js` path, smoke-tests the packaged `wazero` path when that target supports it, and can copy the resulting executable into a release-asset directory.
+  Builds one packaged CLI target, runs its local smoke path, and optionally copies the built asset into a release directory.
 
-Package-local smoke suites also matter:
+## What These Scripts Prove
 
-- `harness/js`: `npm test`
-- `harness/wazero`: `npm test`
+- the CLI formatting and lint baseline
+- the guest runtime still compiles
+- the assertion bridge still works
+- the packaged CLI path still works locally for a selected release target
 
-## What These Scripts Verify
+## What They Do Not Prove
 
-- The CLI package stays formatted and lint-clean.
-- The guest-side AssemblyScript runtime still compiles.
-- Current `node:assert` bridge behavior still works.
-- The package-local `JS host` and `wazero host` surfaces still pass their smoke tests when run directly.
+- that every hosted runner in GitHub Actions is green
+- that every target-specific wazero build works in the wild
+- that end-user install and troubleshooting flows are polished
 
-## Packaging Confidence
+Those are still release-proof tasks above the local helper layer.
 
-These scripts now provide the local mirror of the packaged-CLI workflow, but the full release matrix still depends on GitHub-hosted runner execution.
+## Useful Commands
 
-What they cover now:
+```bash
+bun validate
+bun test
+bun run release:matrix
+bun run verify:packaged-cli --target bun-linux-x64
+```
 
-- source-level correctness
-- local AssemblyScript compilation
-- local host smoke coverage
-- local `wazero host` addon builds on the current machine
-- local packaged `single-file Bun executable` smoke tests for the selected release target
+## Related Docs
 
-What they do not yet cover:
-
-- historical proof that the GitHub Actions release matrix is green across every supported runner
-- automated build/test coverage for every non-release Bun compile target
-- explicit Linux `glibc` versus `musl` release validation
-
-Multi-platform packaging now has workflow definitions in `.github/workflows/`, but it still needs sustained green runs to count as proven release infrastructure.
+- Repo overview: [README.md](/home/jtenner/Projects/as-harness/README.md)
+- CLI docs: [cli/README.md](/home/jtenner/Projects/as-harness/cli/README.md)

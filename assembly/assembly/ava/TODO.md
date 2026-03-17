@@ -1,6 +1,17 @@
 # `ava` Adapter TODO
 
-- [ ] Define the `ava` declaration surface to expose from this `--lib` entry point.
-- [ ] Map supported test declarations and assertion entry points onto the shared internal runtime.
-- [ ] Keep adapter-specific overloads and naming inside this folder.
-- [ ] Add initial source files and a minimal traversal fixture.
+Status:
+
+- planned
+- not in `v0.1.0`
+
+First implementation slice:
+
+- define the smallest declaration surface worth supporting
+- map that surface onto the shared guest runtime
+- add one minimal traversal fixture
+
+Constraints:
+
+- must lower into the same guest runtime and host ABI as the shipped adapters
+- async-heavy AVA behavior is deferred until AssemblyScript has stronger Promise support

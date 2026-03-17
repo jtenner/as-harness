@@ -55,25 +55,25 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 - [x] Do not support Linux `musl` in `v0.1.0`.
 - [ ] Prove `harness/js` works on the supported Node versions for the release.
 - [ ] Prove `harness/wazero` builds and runs on the supported OS / architecture matrix.
-- [ ] Package or document the wazero native-addon build/install story so users can actually run it.
+- [x] Package or document the wazero native-addon build/install story so users can actually run it.
 - [x] Decide how the CLI bundles, locates, or installs shipped host runtimes.
 - [x] Add end-to-end CLI coverage for both the `js` and `wazero` execution paths.
 
 ### Wasm Runtime / ABI
 
 - [ ] Finish the host-runner contract items that are still open below and are required for shipping.
-- [ ] Write protocol notes for host implementers that do not rely on reading AssemblyScript internals.
+- [x] Write protocol notes for host implementers that do not rely on reading AssemblyScript internals.
 - [ ] Keep the ABI flat, language-agnostic, and stable enough to support both shipped hosts.
 - [ ] Decide whether scheduler-step entrypoints are required for the shipped runner or explicitly deferred. This decision is deferred for now.
 - [ ] Add fixtures that cover replay invalidation, branch pruning, lifecycle callback failure propagation, and clean recovery after traps.
 
 ### Reporting, UX, and Docs
 
-- [ ] Document the user-facing workflow for writing and running AssemblyScript tests with the shipped runner.
-- [ ] Document the supported feature matrix and explicit non-goals for the first release.
+- [x] Document the user-facing workflow for writing and running AssemblyScript tests with the shipped runner.
+- [x] Document the supported feature matrix and explicit non-goals for the first release.
 - [x] Document `js` vs `wazero` host tradeoffs, requirements, and platform caveats.
-- [ ] Add troubleshooting guidance for compile failures, traps, assertion failures, and wazero addon build issues.
-- [ ] Ensure the README set and CLI help text describe the same shipped behavior.
+- [x] Add troubleshooting guidance for compile failures, traps, assertion failures, and wazero addon build issues.
+- [x] Ensure the README set and CLI help text describe the same shipped behavior.
 
 ### Release Engineering
 
@@ -156,7 +156,7 @@ host-runner work.
 
 ## Events and Encoding
 
-- [ ] Write protocol notes that the host can implement without AssemblyScript-specific knowledge.
+- [x] Write protocol notes that the host can implement without AssemblyScript-specific knowledge.
 
 ## ABI Boundary
 

@@ -1,104 +1,158 @@
 # as-harness
 
-`as-harness` is an AssemblyScript harness project with a Bun-based CLI and multiple host/runtime strategies. The repo currently contains guest-side AssemblyScript runtime code, a pure JavaScript host, an early wazero host exposed through a Node-API addon, and a Bun CLI package that can already compile target-specific executables while the end-to-end test-running product surface is still being finalized.
+`as-harness` is an AssemblyScript test-harness project. It contains:
 
-## What This Repo Is
+- guest-side runtime code in `assembly/`
+- a Bun CLI in `cli/`
+- two working host implementations in `harness/js` and `harness/wazero`
+- packaging and release workflows for target-specific Bun executables
 
-- An AssemblyScript harness project.
-- A Bun-based CLI intended to become the main distribution surface.
-- Multiple host/runtime strategies for running the compiled Wasm:
-  - a `JS host`
-  - a `wazero host`
-  - a scaffolded `wasmtime` path
+The project goal is to make AssemblyScript tests compile into Wasm and run through a stable host contract that other harness implementations can also adopt.
+
+## Start Here
+
+- Project overview: [assembly/README.md](/home/jtenner/Projects/as-harness/assembly/README.md)
+- CLI usage and packaging: [cli/README.md](/home/jtenner/Projects/as-harness/cli/README.md)
+- Harness ABI for third-party host authors: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
+- Current runtime and product backlog: [agent-todo.md](/home/jtenner/Projects/as-harness/agent-todo.md)
+- Guest runtime architecture: [docs/primary-buildout.md](/home/jtenner/Projects/as-harness/docs/primary-buildout.md)
+- Strict equality and reflected diagnostics: [docs/strict-equality-machinery.md](/home/jtenner/Projects/as-harness/docs/strict-equality-machinery.md)
+
+## v0.1.0 Scope
+
+Planned first release scope:
+
+- `node:test`
+- `node:assert`
+- `node:assert/strict`
+- `js` host
+- `wazero` host
+- basic pass/fail reporting with failure messages
+- GitHub build/tag/release distribution
+
+Explicit non-goals for `v0.1.0`:
+
+- async or Promise-based test APIs
+- snapshots
+- worker-oriented user controls
+- additional framework adapters beyond `node:test`
+- Linux `musl`
+- npm publication as the primary release channel
+
+## Feature Matrix
+
+What works today:
+
+- the CLI discovers entry files, compiles them, and runs them
+- `--harness js` and `--harness wazero` both work
+- packaged Bun executables can run the local smoke path for both hosts
+- the host parity smoke suite now covers event decoding, `callI32`, `discover`, `run`, `start`, and trampoline behavior across `js` and `wazero`
+- the release workflows can build and smoke-test the packaged CLI across the intended release targets
+
+What is still open:
+
+- proving the GitHub Actions matrix on all hosted runners
+- documenting and hardening the wazero addon install story for end users
+- more complete host-facing protocol notes for independent harness authors
+- deferred framework adapters and fuller `node:test` runner semantics
+
+## Quick Start
+
+Write a test like:
+
+```ts
+import { test } from "node:test";
+
+test("adds numbers", (t) => {
+	t.assert.strictEqual<i32>(1 + 1, 2);
+});
+```
+
+Then run it with the CLI:
+
+```bash
+bun run ./cli/index.ts run ./example.test.ts
+```
+
+Switch hosts explicitly when needed:
+
+```bash
+bun run ./cli/index.ts run --harness js ./example.test.ts
+bun run ./cli/index.ts run --harness wazero ./example.test.ts
+```
+
+## Release Targets
+
+The current release-target matrix is:
+
+- `bun-darwin-arm64`
+- `bun-darwin-x64`
+- `bun-linux-arm64`
+- `bun-linux-x64`
+- `bun-windows-x64`
+
+For `wazero`, every supported release target needs a matching `.node` addon build. The `js` host remains the portable baseline.
+
+## Custom Harnesses
+
+The repo is no longer documenting the host boundary only through implementation details. If you want to provide your own harness:
+
+1. read [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
+2. implement the Wasm import/export boundary described there
+3. implement the public host surface from [harness-types.d.ts](/home/jtenner/Projects/as-harness/harness/shared/harness-types.d.ts)
+4. smoke-test your harness against the same guest exports and event semantics
+
+The CLI currently resolves built-in harnesses, but the ABI guide is written so external harness implementations can target the same contract.
 
 ## Repo Map
 
-- `cli/`
-  Bun CLI package, AssemblyScript compiler wrapper, bundled support-file generation, and Bun executable build script.
 - `assembly/`
-  Guest-side AssemblyScript runtime code, framework adapters, and AssemblyScript tests.
+  Guest-side AssemblyScript runtime, adapters, and fixtures.
+- `cli/`
+  Bun CLI, compiler wrapper, bundled support-file generation, and release-target build tooling.
 - `harness/js/`
-  `JS host` package built on the standard JavaScript WebAssembly APIs.
+  Pure JavaScript host implementation.
 - `harness/wazero/`
-  `wazero host` package built as a Go `Node-API addon`.
+  Go `Node-API` host implementation.
+- `docs/`
+  ABI, architecture, and planning documents.
 - `scripts/`
-  Root validation and test orchestration scripts.
-
-## Current Status
-
-Implemented today:
-
-- The AssemblyScript package has real guest-side runtime code, internal event serialization, `node:assert` support, and an early `node:test` implementation.
-- The `JS host` exists as a working package with smoke tests.
-- The `wazero host` exists as a working Go `Node-API addon` package that builds a real `.node` binary and has smoke tests.
-- The CLI can discover entry files, list them, compile discovered test entries into Wasm, execute them through the default `JS host`, print basic pass/fail summaries, compile Bun targets with `bun --compile`, and bundle AssemblyScript support files into the executable build.
-- The CLI now also accepts an explicit `--harness` override for `js` or `wazero`, and the compiled CLI can now run both harnesses when a matching `wazero` addon is staged for the build target.
-
-Still scaffolded or planned:
-
-- CLI-level runtime selection is only partially wired today; `--harness` exists for `js` and `wazero`, but the broader shipped runtime-selection story is not finished.
-- `cli/n-api/` is now the staging area for target-specific `wazero` addons during CLI builds.
-- `harness/wasmtime/` is still scaffolded.
-- The final packaged single-file distribution story is still an active roadmap item because cross-target release validation and native-addon distribution proof are still incomplete.
-
-## Packaging Strategy
-
-Goal:
-
-- Use a GitHub `build/tag/release` workflow as the `v0.1.0` release channel.
-- Ship a simple `single-file Bun executable` per platform as the main distribution artifact.
-- Make both the `JS host` and the `wazero host` part of the MVP product story.
-
-Planned MVP shape:
-
-- The `JS host` is the portable baseline and should work without any `target-specific native artifact`.
-- The same MVP should also support the `wazero host` where a matching `.node` `Node-API addon` is built and packaged for that target.
-- In practice, that means the Bun executable packaging step and the native addon build step must agree on the exact target platform and architecture for the `wazero host` path. The current build direction is one compiled executable per target with build-time-defined addon target and addon path constants so Bun can fold the runtime loader down to the matching `.node` asset.
-
-The repo now proves the local packaged path for both `js` and `wazero`, but it does not yet prove the full packaged MVP across all targets.
-
-For `v0.1.0`, `npm` publication is out of scope. The first release should ship through GitHub release artifacts.
-
-## Do I Need To Compile wazero For Every Target?
-
-Yes, if you ship the `wazero host` path:
-
-- The `.node` `Node-API addon` is a `target-specific native artifact`.
-- You need one build per target platform and architecture.
-- For `v0.1.0`, Linux support should target `glibc`; `musl` is intentionally out of scope for the first release.
-
-No, if you ship only the pure `JS host` path:
-
-- The host stays in JavaScript plus WebAssembly.
-- There is no native addon to rebuild per target.
-
-## What Is Node-API / N-API?
-
-`Node-API` is the stable native addon ABI used by Node-compatible runtimes. It lets a compiled `.node` addon be loaded by Node and Bun through a consistent C ABI. The ABI is stable across Node versions, but the compiled addon is still a platform-specific native binary, so it must be built for each target it will ship on.
-
-## Recommended Near-Term Roadmap
-
-1. Make the product boundary explicit: define the MVP as shipping both the `JS host` and the `wazero host`.
-2. Wire the CLI packaging story so the `JS host` is the portable baseline and the `wazero host` is the target-specific native companion path.
-3. Run and stabilize the GitHub Actions matrix that now builds and smoke-tests the packaged CLI on the supported `macOS`, `Windows`, and `Linux` release targets, including the current `arm64` targets.
-4. Harden how the `Node-API addon` is bundled, embedded, or extracted for the `wazero host` path.
+  Root validation, smoke, and release-matrix helpers.
 
 ## Development Commands
 
 ```bash
 bun validate
 bun test
-cd cli && bun run build:list-release-targets
-cd cli && bun run build:release
-cd cli && bun run build:list-targets
-cd cli && bun run build
-bun run verify:packaged-cli --target bun-linux-x64
 cd harness/js && npm test
 cd harness/wazero && npm test
+cd cli && bun run build:list-release-targets
+cd cli && bun run build:release
+bun run verify:packaged-cli --target bun-linux-x64
 ```
 
-`harness/wazero` also needs a local Go toolchain and Node headers for addon builds.
+## Troubleshooting
 
-## Scope Note
+Common failure classes:
 
-These docs describe the current repository state plus the immediate packaging roadmap. They intentionally do not describe speculative future architecture as if it already exists.
+- compile failures: check `--lib` usage, entry discovery, and AssemblyScript diagnostics from the CLI
+- host failures: verify the selected harness exists and that `wazero` has a matching native addon
+- trap-related failures: inspect `FailMessage`, callback, and node event ordering first
+- packaged CLI failures: verify the build target matches the staged addon target for `wazero`
+
+Detailed host-specific notes live in:
+
+- [harness/js/README.md](/home/jtenner/Projects/as-harness/harness/js/README.md)
+- [harness/wazero/README.md](/home/jtenner/Projects/as-harness/harness/wazero/README.md)
+- [cli/n-api/README.md](/home/jtenner/Projects/as-harness/cli/n-api/README.md)
+
+## Release Flow
+
+The intended release path is:
+
+1. run local validation and host smoke tests
+2. push to GitHub and let the CI matrix run
+3. tag `v*`
+4. let the release workflow build, verify, upload, and publish the packaged executables
+
+That workflow exists today, but it still needs repeated green runs across the full hosted matrix before it should be treated as proven release infrastructure.

@@ -1,532 +1,83 @@
 # Strict Equality Machinery
 
-This document records the implementation plan for structural equality and
-reflected diagnostics support needed by `node:assert` APIs such as
-`deepEqual(...)`.
+This document describes the current design for structural equality and reflected diagnostics in the guest runtime.
 
-The immediate goal is not to implement a full assertion surface. The goal is to
-build the machinery that makes it possible to compare AssemblyScript values,
-including managed classes, without relying on unsupported runtime reflection.
+## Goal
 
-## Problem
+Support `node:assert` and `node:assert/strict` features that need:
 
-AssemblyScript does not provide an easy runtime mechanism to inspect arbitrary
-class shape and compare fields generically.
-
-That means a Node-like deep-equality API cannot be implemented as a single
-"accept any value and walk it dynamically" function for managed classes.
-
-For strict or deep structural comparison of classes, the runtime needs
-class-specific knowledge of:
-
-- which instance fields participate
-- which getters participate
-- how inheritance affects the member list
-- how recursive comparison is delegated back into shared machinery
-
-The clean way to supply that information is a compiler-side transform that
-injects generated methods into class declarations after parse.
-
-## Architectural Split
-
-The design is split into two cooperating layers.
-
-### 1. CLI Transform Layer
-
-Location: `cli/transform/`
-
-Responsibilities:
-
-- walk parsed AssemblyScript sources
-- recurse through namespaces
-- find class declarations
-- inject generated instance methods for:
 - structural comparison
-- reflected key/value extraction
-- preserve generic context
-- preserve inheritance semantics
+- reflected value extraction
+- guest-owned failure context
 
-This layer should know the class AST shape, but it should not own recursive
-comparison policy for arrays, maps, sets, or cycles.
+without depending on unsupported runtime reflection in AssemblyScript.
 
-### 2. Assembly Runtime Layer
+## Split
 
-Location: `assembly/assembly/internal/`
+There are two cooperating layers.
+
+### CLI Transform Layer
+
+Location:
+
+- `cli/transform/`
 
 Responsibilities:
 
-- implement the shared structural equality engine
-- implement cycle detection / defer semantics
-- implement specialized branches for:
-- primitives
-- strings
-- `ArrayBuffer`
-- arrays / arraylikes
-- typed arrays
-- `Set`
-- `Map`
-- function references
-- call into transform-generated class comparison hooks
-- implement reflected-value construction for diagnostics
-- call into transform-generated class reflection hooks
+- inspect class declarations
+- generate strict-equality hooks
+- generate reflected-diagnostics hooks
+- preserve generic context and inheritance shape
 
-This layer owns runtime comparison semantics. It should not need to inspect
-class AST directly.
+### Guest Runtime Layer
 
-## Why Both Pieces Are Needed
+Location:
 
-The transform solves the class-shape problem.
+- `assembly/assembly/internal/`
 
-The runtime solves the recursive-graph and collection problem.
+Responsibilities:
 
-Without the transform:
-
-- classes cannot be compared structurally in a general way
-- class diagnostics cannot enumerate members reliably
-
-Without the runtime:
-
-- generated class hooks would still need ad hoc code for arrays, maps, sets,
-  cycles, and nested values
-- each class would need to duplicate comparison policy instead of delegating to
-  one shared engine
-
-## Core Moving Parts
-
-### Structural Equality Entry Point
-
-The AssemblyScript runtime needs a single shared comparison entry point.
-
-That entry point should:
-
-- fast-path equal values
-- handle nullable references
-- handle special primitive rules such as `NaN`
-- dispatch to reference-aware comparison for non-function reference types
-- return enough state to distinguish:
-- successful match
-- failed match
-- deferred match for currently resolving recursive pairs
-
-### Pair Cache and Active Stack
-
-Recursive data structures require two tracking collections:
-
-- a cache of pairs already proven equal
-- a stack of pairs currently being resolved
-
-The cache prevents recomputing known equal subgraphs.
-
-The active stack prevents recursive structures from blowing the stack or
-incorrectly failing when a pair is revisited while still being resolved.
-
-### Collection-Specific Comparison
-
-The shared runtime should own specialized comparison branches for:
-
-- `ArrayBuffer`
-- arrays / `StaticArray` / arraylikes
-- typed arrays / `ArrayBufferView`
-- `Set`
-- `Map`
-- function references
-
-These categories should not be expanded inline by the class transform.
-
-### Generated Class Comparison Hook
-
-Each instrumented class should receive a generated instance method that:
-
-- verifies the compared reference is an instance of the same class
-- casts it to the proper type
-- compares each participating field/getter by delegating to the shared runtime
-- delegates into `super` when appropriate
-- avoids duplicate comparison of overridden/inherited members
-
-This hook is the bridge between compile-time class shape and runtime recursive
-comparison.
-
-### Generated Class Reflection Hook
-
-Diagnostics need a second generated method that:
-
-- pushes reflected keys for participating fields/getters
-- pushes reflected values by delegating back into shared reflected-value
-  construction
-- delegates into `super`
-- avoids duplicate reporting of overridden members
-
-This reflection hook is separate from equality. It exists for failure messages,
-logs, and future structured diagnostics.
-
-## Proposed Folder Scaffold
-
-The transform scaffold should live under:
-
-```text
-cli/transform/
-  README.md
-  src/
-    index.ts
-    createStrictEqualsMember.ts
-    createAddReflectedValueKeyValuePairsMember.ts
-    hash.ts
-    emptyTransformer.ts
-```
-
-This mirrors the minimum shape of the transform responsibilities without
-committing to full implementation details yet.
-
-## Proposed Implementation Sequence
-
-### Phase 1. Contracts and Scaffolding
-
-- scaffold `cli/transform/`
-- define the runtime/transform split
-- define the comparison-result model
-- define the v1 supported value categories
-
-### Phase 2. Transform-Generated Class Equality
-
-- implement parser traversal
-- inject generated class comparison methods
-- support fields, getters, generics, and inheritance
-- add transform fixtures that inspect generated output
-
-### Phase 3. Shared Runtime Equality
-
-- implement the recursive structural comparison engine
-- add pair-cache and active-stack handling
-- add collection-specialized branches
-- delegate generic classes into generated hooks
-
-### Phase 4. Reflected Diagnostics
-
-- implement reflected-value construction primitives
-- inject generated class reflection methods
-- ensure reflected output and comparison walk the same member set
-
-### Phase 5. Assertion Integration
-
-- wire `node:assert.deepEqual(...)` or the chosen first API into the equality
-  runtime
-- normalize failure into `FailMessage` and trap
-- decide where default error text is generated
-
-### Phase 6. Compiler Integration
-
-- register the transform through the CLI compiler wrapper
-- ensure harness-aware compilation paths activate it consistently
-- add inspection/debug workflow for generated methods
-
-## Phase 1 Contract Decisions
-
-### First Assertion Consumer
-
-The machinery will be built as one shared strict structural comparison core with
-assertion-level wrappers above it.
-
-The first assertion API wired into that core should be
-`node:assert.deepStrictEqual(...)`.
-
-`node:assert.deepEqual(...)` is intentionally not part of the first assertion
-integration wave. The adapter must not silently alias `deepEqual(...)` to strict
-behavior until legacy loose-comparison semantics have been designed on purpose.
-
-### Comparison Result Model
-
-The runtime should use a tri-state result model:
-
-- `Match`
-- `Fail`
-- `Defer`
-
-`Defer` exists only for recursive reference graphs. It is returned when a
-comparison revisits a pair that is already on the active-resolution stack.
-
-Operationally:
-
-- `Match` means the compared subgraph is proven equal
-- `Fail` means the compared subgraph is proven unequal
-- `Defer` means the compared subgraph is provisionally equal pending resolution
-  of the outer pair currently being evaluated
-
-When an enclosing comparison later resolves to `Match`, deferred pairs reached
-through that frame are promoted into the proven-equal pair cache. If the
-enclosing comparison resolves to `Fail`, the entire deferred chain fails with
-it.
-
-### V1 Supported Value Categories
-
-The first shared equality core should support:
-
-- primitives
-- nullable references
-- strings
-- `ArrayBuffer`
-- arrays, `StaticArray`, and other ordered arraylikes
-- typed arrays and other `ArrayBufferView` implementations
-- `Set`
-- `Map`
-- managed classes instrumented by the transform
-- function references by identity only
-
-Out of scope for v1:
-
-- legacy loose `deepEqual(...)` coercion rules
-- runtime-reflection fallback for arbitrary non-instrumented classes
-- generic deep comparison for arbitrary unmanaged non-arraylike classes
-- static members, instance methods, constructors, and computed members in
-  generated class hooks
-
-`NaN` should compare equal to `NaN` inside the strict structural core so the
-runtime matches deep-structural assertion expectations instead of raw `==`
-behavior.
-
-### Unmanaged References and User Overrides
-
-The runtime should default to safe unmanaged-reference behavior only.
-
-Safe v1 comparisons for unmanaged references are:
-
-- nullability checks
-- pointer identity checks
-- ordered arraylike comparison when the type already satisfies the shared
-  arraylike contract
-
-The runtime must not promise generic structural equality for arbitrary
-unmanaged class layouts. There is no safe runtime fallback for discovering an
-unmanaged shape, member list, or compatible recursive policy after compile
-time.
-
-For unmanaged non-arraylike classes, consumers should be encouraged to provide
-their own strict-equality semantics instead of relying on a generic fallback.
-That override contract now exists through the same
-`__asHarnessStrictEquals(other: usize): bool` hook name used by
-transform-instrumented managed classes. The difference is policy:
-
-- managed classes may receive the hook from the transform automatically
-- unmanaged classes must opt in explicitly by defining the hook themselves
-
-### Class Member Selection and Inheritance
-
-Generated class hooks should compare and reflect only participating instance
-fields and instance getters.
-
-Selection rules for v1:
-
-- include instance fields declared on the class
-- include instance getters declared on the class
-- exclude static members
-- exclude instance methods
-- exclude constructors
-- exclude computed members
-
-Inheritance rules for v1:
-
-- subclass hooks delegate into `super`
-- subclasses compare or reflect only members declared on the subclass itself
-- subclass-declared members suppress the same member identity from base-class
-  reporting so overridden getters and shadowed fields are not duplicated
-- any ignore-list or hash representation needed to implement that suppression is
-  generated by the transform, not discovered by the runtime
-
-The current transform-side member identity representation is a stable string
-hash:
-
-- `field:<name>` for instance fields
-- `getter:<name>` for instance getters
-
-### Runtime and Transform Boundary
-
-The transform owns compile-time class-shape knowledge. The runtime owns
-comparison policy.
-
-The transform injects two instance hooks per instrumented class:
-
-- `__asHarnessStrictEquals`
-- `__asHarnessAddReflectedValueKeyValuePairs`
-
-Current placeholder signatures used to establish the instrumentation path:
-
-- `__asHarnessStrictEquals(other: usize): bool`
-- `__asHarnessAddReflectedValueKeyValuePairs(): void`
-
-These method signatures are intentionally scaffold-level. The strict-equality
-hook will gain a richer runtime-context parameter contract when recursive
-comparison lands, but field/getter delegation is now part of the generated body
-shape.
-
-The transform-side responsibilities are:
-
-- same-class guard and cast
-- participating-member enumeration
-- `super` delegation
-- per-member delegation back into shared runtime helpers
-
-The transform should not imply that every class can be compared generically.
-Managed classes are the primary generated-hook target. Unmanaged classes are
-only supported through safe existing comparison paths, such as ordered
-arraylikes, unless a consumer explicitly defines the strict-equality hook.
-
-The current generated-body scaffold already performs inheritance delegation:
-
-- generated `__asHarnessStrictEquals(...)` methods return `true` immediately
-  when `other` is the same runtime reference as `this`
-- generated `__asHarnessStrictEquals(...)` methods return `false` when `other`
-  does not match the current class runtime type id
-- derived `__asHarnessStrictEquals(...)` methods short-circuit to `false` when
-  the generated `super` hook returns `false`
-- derived `__asHarnessAddReflectedValueKeyValuePairs(...)` methods call the
-  generated `super` hook before subclass-local work
-- participating subclass members emit
-  `__asHarnessStrictEqualsMember(...)` helper calls for primitive, string,
-  nullable-reference-identity, and collection-placeholder members
-- participating managed-class subclass members emit
-  `__asHarnessStrictEqualsManagedClassMember("<member-hash>", this.<member>, changetype<Class>(other).<member>)`
-  helper calls
-- participating subclass members emit
-  `__asHarnessAddReflectedValueKeyValuePair("<member-hash>", this.<member>)`
-  helper calls
-
-The AssemblyScript runtime now provides concrete entry points for the first part
-of that contract:
-
-- runtime-type-id extraction for guarded class casts
-- primitive and string value comparison
-- nullable-reference identity comparison
-- `ArrayBuffer` bytewise comparison
-- ordered comparison for `Array<T>` and `StaticArray<T>`
-- bytewise typed-array / `ArrayBufferView` / `DataView` comparison
-- direct `Set` and `Map` comparison helpers
-- function-reference identity comparison
-- managed-class recursion through transform-generated hooks
-
-The member-helper path now covers `ArrayBuffer` plus typed arrays /
-`ArrayBufferView` / `DataView`, `Set`, and `Map`. Ordered arrays / arraylikes
-and recursive managed-class comparison are also routed through shared runtime
-helpers in Phase 3.
-
-The runtime-side responsibilities are:
-
-- primitive and nullable handling
-- `NaN` normalization
-- pair-cache and active-stack tracking
-- generic nested `Set` / `Map` dispatch
+- recursive comparison
+- cycle tracking
+- collection-aware comparison
 - reflected-value construction
-- failure/result propagation
+- delegation into generated class hooks
 
-For unmanaged references specifically, the runtime policy is intentionally
-conservative:
+## Why The Split Exists
 
-- use only safe shared comparison paths by default
-- do not add generic layout-walking for arbitrary unmanaged classes
-- leave domain-specific unmanaged equality to explicit consumer-defined hooks
-  in a later wave
+The transform knows class shape.
 
-The current runtime implementation now includes the first shared helpers for:
+The guest runtime knows comparison policy.
 
-- primitive equality fast paths
-- string equality handling
-- nullable-reference identity comparison
-- `NaN` normalization for float primitive comparisons
-- runtime-type-id checks used by generated class hooks
-- pair-cache tracking for already-proven reference pairs
-- active-stack tracking for in-flight reference pairs
-- deferred-match handling for recursive reference cycles
-- `ArrayBuffer` bytewise comparison
-- ordered comparison for `Array<T>` and `StaticArray<T>`
-- generic nested `Set<T>` and `Map<K, V>` dispatch through
-  `compareStrictEqualityValue(...)`
-- managed-class recursion delegated back into transform-generated hooks
-- explicit hook-based recursion for unmanaged or domain-specific classes that
-  opt in by defining `__asHarnessStrictEquals(...)`
-- a reflected-value model plus primitive, string, and `ArrayBuffer`
-  construction helpers
-- reflected values for ordered arrays / `StaticArray` / arraylikes
-- reflected values for typed arrays / `ArrayBufferView` / `DataView`
-- reflected values for `Set`
-- reflected values for `Map`
-- reflected values for class types that expose
-  `__asHarnessAddReflectedValueKeyValuePairs(...)`
-- a live reflected key/value collector behind
-  `__asHarnessAddReflectedValueKeyValuePair(...)`
+Without the transform, class fields and getters cannot be enumerated reliably.
 
-Recursive class reflected-value construction now works through the shared
-`__asHarnessAddReflectedValueKeyValuePairs()` hook contract. As with strict
-equality, managed classes may receive that hook from the transform
-automatically, while unmanaged or other domain-specific types must opt in by
-defining it explicitly.
+Without the runtime, every class would need to duplicate collection and recursion policy.
 
-### Transform Activation Policy
+## Current State
 
-The CLI compiler wrapper should auto-enable the bundled strict-equality
-transform for harness-aware builds that request `node:assert` or
-`node:assert/strict` through `--lib`.
+Implemented today:
 
-That activation should be wrapper-managed instead of requiring callers to pass
-`--transform` manually. Builds that do not include assertion-oriented library
-entry points should leave the transform disabled.
+- a first transform pass for managed classes
+- generated strict-equality and reflected-diagnostics methods
+- inheritance-aware generated bodies
+- guest runtime helpers for primitives, strings, buffers, arrays, typed arrays, `Set`, `Map`, and managed-class recursion
+- guest-owned stack-trace direction for reflected diagnostics
 
-### Reflected Diagnostics Ordering
+Still open:
 
-Reflected diagnostics remain part of the first machinery deliverable, but they
-follow immediately after the equality core. They should not block the first
-round of transform-generated class equality hooks, runtime recursion support, or
-the initial `deepStrictEqual(...)` bridge.
+- fuller fixture coverage across value categories
+- more protocol notes for how stack traces and reflected values move across the host boundary
+- deeper assertion-level integration beyond the current first scope
 
-### Stack Trace Ownership
+## Current Policy Decisions
 
-Guest code should own stack-trace construction for reflected diagnostics and
-strict-equality failures.
+- the first shared structural-comparison core targets strict semantics
+- test authors own deep-equality failure message text
+- default reporting stays minimal and reports shape mismatch rather than synthesizing richer host text
+- guest code owns stack-trace construction; hosts should not infer guest frame structure
 
-The host must not try to infer a guest stack from Wasm execution state alone.
-It only knows that guest code ran, not which source-level or function-level
-frames the compiled AssemblyScript intended to expose.
+## Related Docs
 
-The guest/runtime contract should therefore grow a narrow ABI that lets the
-host request the current guest stack trace as a string and lift that string
-without interpreting its structure.
-
-Acceptable guest-side implementations include:
-
-- building the string from guest-maintained stack state
-- transform-driven instrumentation that pushes or pops function labels
-- runtime facilities such as `Error` construction where the target environment
-  makes that practical
-
-Reflected values and strict-equality diagnostics may attach that guest-produced
-stack string when it is available, but the string remains guest-authored data.
-
-### Failure Message Policy
-
-Deep-equality adapters should not try to generate rich default prose in either
-the guest or the host for `v0.1.0`.
-
-Policy for the first release:
-
-- test authors own assertion failure message text
-- the harness may report the compared reflected shapes do not match
-- richer synthesized explanations remain out of scope until a later release
-
-## Remaining Decisions
-
-The machinery plan is now constrained enough to start implementation, but two
-diagnostics details are still intentionally deferred:
-
-- whether reflected extraction needs custom display overrides in `v1`
-- how much source-context payload beyond the guest-owned stack string belongs in
-  reflected diagnostics
-
-## Deliverable Boundaries
-
-The first deliverable should be the machinery, not a fully complete
-`node:assert` surface.
-
-That means success for this workstream is:
-
-- the transform can inject class comparison/reflection hooks
-- the AssemblyScript runtime can recursively compare supported values
-- the compiler wrapper can activate the transform
-- `node:assert` can start consuming the resulting primitives one function at a
-  time
+- Transform overview: [cli/transform/README.md](/home/jtenner/Projects/as-harness/cli/transform/README.md)
+- Guest architecture: [docs/primary-buildout.md](/home/jtenner/Projects/as-harness/docs/primary-buildout.md)
+- Host ABI: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)

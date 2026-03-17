@@ -1,48 +1,41 @@
 # `harness/js`
 
-`harness/js` is the pure `JS host` package. It runs the harness on top of the standard JavaScript WebAssembly APIs with no native addon layer.
+`harness/js` is the pure JavaScript host implementation. It is the portable baseline harness for the repo.
 
-## Current Status
+## Why It Exists
 
-Implemented today:
+- no native addon
+- no per-platform build artifact
+- easiest host to understand when implementing the ABI in another language
 
-- `createHarness(bytes)` validates and compiles Wasm in-process
-- `discover(nodeIndex)` and `run(nodeIndex)` call the guest exports directly
-- `start()` performs discovery and execution scheduling using worker threads
-- Host callbacks receive decoded events emitted through the guest `write_event` ABI
-- The package has smoke tests against compiled AssemblyScript fixtures
+If you want to understand the contract before reading the Go addon, start here and pair it with [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md).
 
-This is a real host package, but it is still an early host/runtime surface rather than the finished end-user product.
+## Surface
 
-## Why This Is The Pure JS Path
+The package exports:
 
-- There is no `Node-API addon`.
-- There is no `.node` file to ship.
-- There is no per-platform native build step inside this package.
+- `createHarness(bytes)`
 
-That makes it the simplest and most portable host strategy in the repo today.
+The returned harness implements the shared host API from [harness-types.d.ts](/home/jtenner/Projects/as-harness/harness/shared/harness-types.d.ts).
 
-## Why This Path Matters
+## Responsibilities
 
-For release strategy, the `JS host` is one half of the intended MVP:
+This host:
 
-- It avoids `target-specific native artifact` management.
-- It keeps packaging aligned with Bun's own executable targets.
-- It provides the portable baseline even when the `wazero host` addon is not available for a given target.
+- validates Wasm bytes
+- compiles and instantiates the guest module
+- decodes event payloads emitted through `write_event(...)`
+- stages `NodeIndex` values for `discover()` and `run()`
+- observes traps through the trampoline boundary
+- provides `start()` scheduling through worker threads
 
-The repo does not yet prove the full packaged Bun flow, but this remains the lowest-risk baseline inside a dual-path MVP that also includes the `wazero host`.
+## Testing
 
-## Current Limits
+The package now shares the main host-behavior smoke suite with `harness/wazero`, which means parity regressions show up in both hosts at once.
 
-- This package is tested as a standalone host package, not yet as the finished compiled CLI runtime.
-- It follows the same early harness contract as the `wazero host`, so host policy and reporting are still evolving.
-- It does not provide wazero-specific behavior; it is the JavaScript-hosted execution path.
+Package-local extra coverage still exists for:
 
-## Files
-
-- `index.cjs`: `JS host` implementation
-- `index.d.ts`: host API types
-- `test/smoke.host.cjs`: host smoke tests
+- JS-specific worker-thread `start()` behavior
 
 ## Commands
 
@@ -50,3 +43,9 @@ The repo does not yet prove the full packaged Bun flow, but this remains the low
 cd harness/js
 npm test
 ```
+
+## Related Docs
+
+- Repo overview: [README.md](/home/jtenner/Projects/as-harness/README.md)
+- Harness ABI: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
+- Shared smoke parity suite: [smoke-suite.cjs](/home/jtenner/Projects/as-harness/harness/shared/smoke-suite.cjs)

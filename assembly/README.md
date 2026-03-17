@@ -1,79 +1,91 @@
 # Assembly Package
 
-`assembly/` contains the guest-side AssemblyScript code for the harness. This code compiles into Wasm and runs inside a host runtime. It is intentionally separate from the host packages: guest code declares tests, manages guest-side runtime state, and emits normalized events, while host code owns instantiation, scheduling, decoding, and reporting.
+`assembly/` is the guest side of the project. It contains the AssemblyScript code that compiles into Wasm and runs inside a host harness.
 
-## Scope
+The most important rule is:
 
-This package contains:
+- guest code declares, traverses, and emits facts
+- host code instantiates, schedules, decodes, and reports
 
-- guest-side runtime internals under `assembly/assembly/internal/`
-- guest-visible entry points such as `assembly/assembly/exports.ts`
-- package-style AssemblyScript `--lib` adapters such as `node:assert`, `node:assert/strict`, and the current `node:test` work
-- internal AssemblyScript tests and smoke fixtures under `assembly/assembly/test/`
+The guest/host boundary used by the shipped hosts is documented in [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md).
 
-This package does not contain the `JS host` or `wazero host`. Those live under `harness/`.
+## What Lives Here
 
-## Current Status
+- `assembly/assembly/internal/`
+  Guest runtime internals such as traversal, execution, events, hooks, and trampoline behavior.
+- `assembly/assembly/exports.ts`
+  The exported Wasm surface expected by hosts.
+- `assembly/assembly/node:test/`
+  The current test-declaration adapter.
+- `assembly/assembly/node:assert/`
+  The current assertion adapters.
+- `assembly/assembly/test/`
+  Guest-side fixtures and AssemblyScript smoke coverage.
+- `roadmap.md`
+  Adapter-level roadmap and deferred surface notes.
+
+## Current Scope
 
 Implemented today:
 
-- Shared guest-to-host ABI imports such as `write_event` and `invoke_staged()`
-- Guest-side event serialization, node metadata, traversal helpers, and trampoline support
-- Working `node:assert` and `node:assert/strict` guest adapters
-- An early but real `node:test` guest implementation with declaration, discovery, and targeted execution support
-- Guest exports used by host runtimes, including `allocateNodeIndexBuffer`, `discover()`, `run()`, and `invoke()`
-- AssemblyScript-side tests and smoke fixtures used by the root and host-package test flows
+- guest-side event serialization and flat imported ABI calls
+- node registration and `NodeIndex`-based discovery
+- targeted `run()` by staged `NodeIndex`
+- top-level and immediate-child `discover()` flows
+- a synchronous `node:test` declaration and execution core
+- `node:assert` and `node:assert/strict` bridge work
+- trampoline-backed callback trap observation
 
-Still planned:
+Still open:
 
-- Most non-Node framework adapters
-- More host-facing replay validation and richer reporting behavior
-- Async- or Promise-dependent assertion features that AssemblyScript cannot yet support well
-- The remaining deeper `node:test` runner surface
+- fuller replay and traversal semantics
+- more complete lifecycle and failure propagation modeling
+- more framework adapters
+- richer reflected diagnostics and strict-equality follow-through
 
-## How It Relates To The CLI And Hosts
+## How Hosts Use It
 
-- The CLI consumes this package during compilation.
-- `cli/as/generate-virtual-files.ts` snapshots `assembly/assembly/**/*.ts` so the CLI can bundle guest-side support files into a Bun executable.
-- The `JS host` and `wazero host` instantiate Wasm modules produced from this package and listen for the serialized events it emits.
+Hosts compile or receive Wasm built from this package and then:
 
-In short:
+1. instantiate it with the required imports
+2. call `__start` when present
+3. stage `NodeIndex` values through `allocateNodeIndexBuffer(...)`
+4. call `discover()` and `run()`
+5. decode events emitted through `write_event(...)`
 
-- `assembly/` defines the guest-side contract.
-- `cli/` packages and compiles against that contract.
-- `harness/js/` and `harness/wazero/` execute that contract.
+If you are implementing a harness, start with [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md) before reading the guest internals.
 
-## Guest-Side Support Code
+## Writing Tests
 
-Important directories:
+The current supported authoring path is Node-shaped synchronous AssemblyScript:
 
-- `assembly/assembly/internal/`
-  Guest-side runtime internals such as event encoding, node metadata, traversal, execution helpers, hooks, reflected values, and the staged-callback trampoline.
-- `assembly/assembly/node:assert/` and `assembly/assembly/node:test/`
-  Guest-visible library entry points shaped like familiar Node APIs.
-- `assembly/assembly/exports.ts`
-  Explicit Wasm exports used by host runtimes.
-- `assembly/assembly/test/`
-  AssemblyScript-side tests and smoke fixtures.
+```ts
+import { test } from "node:test";
 
-## How It Is Consumed Today
+test("works", (t) => {
+	t.assert.strictEqual<i32>(1, 1);
+});
+```
 
-During compilation:
-
-- The CLI compiler wrapper can expose this package through bundled virtual files under `~/.as-harness`.
-- Root and package-local test flows compile specific AssemblyScript fixtures with `asc`.
-
-During testing:
-
-- `bun test` at the repo root compiles and runs the AssemblyScript test entrypoint plus assertion smoke fixtures.
-- `harness/js` and `harness/wazero` compile and load AssemblyScript smoke fixtures to verify host behavior.
+That source is compiled into Wasm by the CLI, then executed by a harness.
 
 ## Commands
 
 ```bash
 cd assembly
-npm run asbuild
+npm ci
 npm test
 ```
 
-For the broader repo test flow, run `bun test` from the repository root.
+For the broader repo flow:
+
+```bash
+bun test
+```
+
+## Related Docs
+
+- Repo overview: [README.md](/home/jtenner/Projects/as-harness/README.md)
+- Harness ABI: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
+- Guest runtime architecture: [docs/primary-buildout.md](/home/jtenner/Projects/as-harness/docs/primary-buildout.md)
+- Guest roadmap: [assembly/roadmap.md](/home/jtenner/Projects/as-harness/assembly/roadmap.md)

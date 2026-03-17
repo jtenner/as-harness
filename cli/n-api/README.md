@@ -1,29 +1,26 @@
 # CLI Native Addons
 
-`cli/n-api/` is the CLI-side staging area for target-specific native packaging work. Because the intended MVP includes the `wazero host`, this directory is the integration point for any `.node` `Node-API addon` packaging that the compiled CLI needs.
+`cli/n-api/` is the staging area for native addons that the packaged CLI needs at runtime.
 
-## Current Status
+## Why This Exists
 
-- `build.ts` can now stage a target-matched local `wazero` addon here before compiling a Bun executable.
-- Generated `.node` artifacts remain ignored and are not checked in.
-- The standalone compiled CLI can now run through `wazero` when the matching addon is staged for the build target, but cross-target release proof is still incomplete.
+The `wazero` host is not just JavaScript. It requires a target-specific `.node` file, which means the packaged CLI needs a predictable place to stage and resolve that artifact during builds.
 
-## Why This Directory Exists
+## Current Behavior
 
-The `wazero host` path cannot be treated like normal bundled JavaScript:
+- `cli/build.ts` stages a target-matched local wazero addon here when the current machine can build it
+- packaged release-target executables resolve the staged addon through build-time-defined constants
+- generated `.node` files are ignored and not checked into git
 
-- it produces a `.node` `Node-API addon`
-- that addon is target-specific
-- a compiled `single-file Bun executable` would need a strategy for carrying, locating, or extracting the matching native binary
+## Current Limits
 
-This directory now gives the packaging logic a stable home while keeping generated native artifacts out of git.
+- only the current machine’s matching addon can be built locally by default
+- the full release story still depends on the GitHub-hosted matrix producing the other supported target artifacts
+- Linux `musl` is intentionally excluded from the first release scope
 
-## Expected Artifact Shape
+## Related Docs
 
-When this area becomes active, expect target-specific content such as:
-
-- a `.node` addon for a specific platform and architecture
-- metadata or loader code that chooses the correct addon for the current target
-- any extraction or staging helpers needed by the compiled CLI
-
-That work is now active for the local packaged path, but it is not yet a finished cross-target release integration.
+- Repo overview: [README.md](/home/jtenner/Projects/as-harness/README.md)
+- CLI packaging docs: [cli/README.md](/home/jtenner/Projects/as-harness/cli/README.md)
+- Harness ABI: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
+- wazero host package: [harness/wazero/README.md](/home/jtenner/Projects/as-harness/harness/wazero/README.md)
