@@ -15,7 +15,7 @@
 - `release-matrix.ts`
   Emits the release-target matrix consumed by GitHub Actions.
 - `release-manifest.ts`
-  Emits `release-manifest.json` plus release-notes text from the shared release-target metadata.
+  Emits `release-manifest.json`, `SHA256SUMS.txt`, and release-notes text from the shared release-target metadata.
 - `verify-packaged-cli.ts`
   Builds one packaged CLI target, runs its local smoke path, and optionally copies the built asset into a release directory.
 
@@ -26,6 +26,7 @@
 - the assertion bridge still works
 - the packaged CLI path still works locally for a selected release target
 - the release workflow can publish explicit artifact metadata instead of relying on inferred platform behavior
+- the published release assets have checksums and tag/version consistency checks
 
 ## What They Do Not Prove
 
@@ -49,3 +50,4 @@ bun run verify:packaged-cli --target bun-linux-x64
 
 - Repo overview: [README.md](/home/jtenner/Projects/as-harness/README.md)
 - CLI docs: [cli/README.md](/home/jtenner/Projects/as-harness/cli/README.md)
+- Release process: [docs/release-process.md](/home/jtenner/Projects/as-harness/docs/release-process.md)

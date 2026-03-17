@@ -1,0 +1,115 @@
+# Release Process
+
+This document is the operational guide for shipping `as-harness` `v0.1.x` releases through the current GitHub workflow.
+
+## Release Contract
+
+The current release channel is:
+
+1. validate locally
+2. push to GitHub
+3. let CI finish on the intended matrix
+4. tag `vX.Y.Z`
+5. let the release workflow build, verify, and publish the packaged executables
+
+The packaged targets currently intended for release are:
+
+- `bun-darwin-arm64`
+- `bun-darwin-x64`
+- `bun-linux-arm64`
+- `bun-linux-x64`
+- `bun-windows-x64`
+
+Packaged harness support is:
+
+- macOS: `js`, `wazero`
+- Linux: `js`, `wazero`
+- Windows: `js` only
+
+## Local Preflight
+
+Run the release baseline from the repo root:
+
+```bash
+bun validate
+bun test
+cd harness/js && npm test
+cd harness/wazero && npm test
+cd /home/jtenner/Projects/as-harness
+bun run release:matrix
+bun run verify:packaged-cli --target bun-linux-x64
+```
+
+If you want to inspect the exact packaged release target list locally:
+
+```bash
+cd cli
+bun run build:list-release-targets
+```
+
+## CI Expectations
+
+The main workflow should be green before tagging:
+
+- repo validation
+- root Bun tests
+- `harness/js` smoke
+- `harness/wazero` smoke
+- packaged CLI verification on the release matrix
+
+The packaged verification path is owned by [verify-packaged-cli.ts](/home/jtenner/Projects/as-harness/scripts/verify-packaged-cli.ts).
+
+## Tagging
+
+The release workflow triggers on tags matching `v*`.
+
+The tag must match the CLI package version in [package.json](/home/jtenner/Projects/as-harness/cli/package.json). For example:
+
+- CLI version `0.1.0`
+- release tag `v0.1.0`
+
+The release-manifest generator will fail if those drift.
+
+## Published Assets
+
+The release workflow publishes:
+
+- one packaged executable per release target
+- `release-manifest.json`
+- `SHA256SUMS.txt`
+
+`release-manifest.json` records:
+
+- release tag
+- CLI version
+- target metadata
+- packaged harness support
+- runner provenance
+- SHA-256 checksum per packaged executable
+
+`SHA256SUMS.txt` contains the binary checksums in a standard two-column format.
+
+## Clean-Environment Smoke Expectation
+
+For each supported platform, the clean-environment expectation is:
+
+1. download the packaged executable for that platform
+2. run a minimal `node:test` smoke file through the default `js` harness
+3. run the same smoke file through `--harness wazero` when that packaged target declares `wazero`
+4. confirm the reported harness matches the target contract
+
+Windows packaged artifacts are expected to stop at step 2 because they are intentionally `js`-only right now.
+
+## If A Release Fails
+
+- packaged build failure: inspect the target-specific packaged smoke step first
+- `wazero` build failure: inspect the Node headers, Go toolchain, or addon staging path on that runner
+- tag/version mismatch: update [package.json](/home/jtenner/Projects/as-harness/cli/package.json) or retag to match
+- manifest/checksum failure: confirm the release asset directory contains the expected packaged executables before publish
+
+## Related Files
+
+- Workflow: [.github/workflows/release.yml](/home/jtenner/Projects/as-harness/.github/workflows/release.yml)
+- Release metadata: [scripts/release-manifest.ts](/home/jtenner/Projects/as-harness/scripts/release-manifest.ts)
+- Packaged smoke verification: [scripts/verify-packaged-cli.ts](/home/jtenner/Projects/as-harness/scripts/verify-packaged-cli.ts)
+- Release target map: [cli/build-targets.ts](/home/jtenner/Projects/as-harness/cli/build-targets.ts)

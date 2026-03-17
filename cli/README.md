@@ -59,6 +59,8 @@ Shared release-target metadata lives in [build-targets.ts](/home/jtenner/Project
 
 That metadata now also declares which packaged harnesses each release artifact is expected to support, and the release workflow uses the same source of truth to generate `release-manifest.json` plus release notes.
 
+The release metadata path now also emits `SHA256SUMS.txt` and validates that the Git tag matches the CLI package version before publish.
+
 ## Commands
 
 ```bash
@@ -81,10 +83,12 @@ Common CLI failure classes:
 - compile failures: inspect AssemblyScript diagnostics and custom `--lib` or `--transform` options
 - harness resolution failures: verify the `--harness` value and packaged runtime availability
 - packaged `wazero` failures: verify the staged addon target matches the Bun executable target
+- release publish failures: verify the release tag matches [package.json](/home/jtenner/Projects/as-harness/cli/package.json) and that the asset directory contains every expected packaged executable
 
 ## Related Docs
 
 - Repo overview: [README.md](/home/jtenner/Projects/as-harness/README.md)
 - Harness ABI: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
+- Release process: [docs/release-process.md](/home/jtenner/Projects/as-harness/docs/release-process.md)
 - Native addon staging: [cli/n-api/README.md](/home/jtenner/Projects/as-harness/cli/n-api/README.md)
 - Strict-equality transform: [cli/transform/README.md](/home/jtenner/Projects/as-harness/cli/transform/README.md)

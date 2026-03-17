@@ -33,7 +33,7 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 - [x] Implement `as-harness run` as a real execution path instead of a scaffold.
 - [x] Resolve entry files, compile them, and execute them through a selected host.
 - [x] Forward the documented `run` compiler/runtime flags into the actual CLI implementation.
-- [ ] Decide and implement host selection policy for shipped builds:
+- [x] Decide and implement host selection policy for shipped builds:
 - [x] default host: `js`
 - [x] explicit host override
 - [x] unsupported-host failure behavior

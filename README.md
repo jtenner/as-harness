@@ -14,6 +14,7 @@ The project goal is to make AssemblyScript tests compile into Wasm and run throu
 - Project overview: [assembly/README.md](/home/jtenner/Projects/as-harness/assembly/README.md)
 - CLI usage and packaging: [cli/README.md](/home/jtenner/Projects/as-harness/cli/README.md)
 - Harness ABI for third-party host authors: [docs/harness-abi.md](/home/jtenner/Projects/as-harness/docs/harness-abi.md)
+- Release operations and artifact expectations: [docs/release-process.md](/home/jtenner/Projects/as-harness/docs/release-process.md)
 - Current runtime and product backlog: [agent-todo.md](/home/jtenner/Projects/as-harness/agent-todo.md)
 - Guest runtime architecture: [docs/primary-buildout.md](/home/jtenner/Projects/as-harness/docs/primary-buildout.md)
 - Strict equality and reflected diagnostics: [docs/strict-equality-machinery.md](/home/jtenner/Projects/as-harness/docs/strict-equality-machinery.md)
@@ -159,6 +160,6 @@ The intended release path is:
 2. push to GitHub and let the CI matrix run
 3. tag `v*`
 4. let the release workflow build, verify, upload, and publish the packaged executables
-5. let the publish job generate `release-manifest.json` plus release notes from the shared target metadata before creating or updating the GitHub release
+5. let the publish job generate `release-manifest.json`, `SHA256SUMS.txt`, and release notes from the shared target metadata before creating or updating the GitHub release
 
-That workflow exists today, but it still needs repeated green runs across the full hosted matrix before it should be treated as proven release infrastructure.
+The full operator guide for that path now lives in [docs/release-process.md](/home/jtenner/Projects/as-harness/docs/release-process.md).
