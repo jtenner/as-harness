@@ -1,0 +1,395 @@
+"use strict";
+
+const { execFileSync } = require("node:child_process");
+const { mkdirSync, readFileSync } = require("node:fs");
+const path = require("node:path");
+
+const PASSING_TEST_EVENTS = [
+	["nodeStart", { nodeIndex: [0] }],
+	["callbackStart", { hook: 1, nodeIndex: [] }],
+	["callbackPass", { hook: 1, nodeIndex: [] }],
+	["callbackStart", { hook: 2, nodeIndex: [] }],
+	["callbackPass", { hook: 2, nodeIndex: [] }],
+	["diagnostic", { nodeIndex: [0], message: "passing test diagnostic" }],
+	["callbackStart", { hook: 3, nodeIndex: [] }],
+	["callbackPass", { hook: 3, nodeIndex: [] }],
+	["callbackStart", { hook: 4, nodeIndex: [] }],
+	["callbackPass", { hook: 4, nodeIndex: [] }],
+	["nodePass", { nodeIndex: [0] }],
+];
+
+const FAILING_TEST_EVENTS = [
+	["nodeStart", { nodeIndex: [1] }],
+	["callbackStart", { hook: 1, nodeIndex: [] }],
+	["callbackPass", { hook: 1, nodeIndex: [] }],
+	["callbackStart", { hook: 2, nodeIndex: [] }],
+	["callbackPass", { hook: 2, nodeIndex: [] }],
+	["failMessage", { message: "node:test smoke mismatch" }],
+];
+
+const PLANNED_MISMATCH_EVENTS = [
+	["nodeStart", { nodeIndex: [2] }],
+	["callbackStart", { hook: 1, nodeIndex: [] }],
+	["callbackPass", { hook: 1, nodeIndex: [] }],
+	["callbackStart", { hook: 2, nodeIndex: [] }],
+	["callbackPass", { hook: 2, nodeIndex: [] }],
+	["callbackStart", { hook: 3, nodeIndex: [] }],
+	["callbackPass", { hook: 3, nodeIndex: [] }],
+	["callbackStart", { hook: 4, nodeIndex: [] }],
+	["callbackPass", { hook: 4, nodeIndex: [] }],
+	[
+		"failMessage",
+		{
+			message:
+				'node:test plan mismatch in "planned mismatch test": expected 2 assertion(s), saw 1',
+		},
+	],
+];
+
+const DISCOVERED_NODES = [
+	{
+		nodeIndex: [0],
+		kind: 1,
+		declarationMode: 1,
+		name: "passing test",
+	},
+	{
+		nodeIndex: [1],
+		kind: 1,
+		declarationMode: 1,
+		name: "failing test",
+	},
+	{
+		nodeIndex: [2],
+		kind: 1,
+		declarationMode: 1,
+		name: "planned mismatch test",
+	},
+	{
+		nodeIndex: [3],
+		kind: 1,
+		declarationMode: 1,
+		name: "parent test",
+	},
+	{
+		nodeIndex: [4],
+		kind: 1,
+		declarationMode: 1,
+		name: "run-only parent",
+	},
+	{
+		nodeIndex: [5],
+		kind: 1,
+		declarationMode: 2,
+		name: "skipped parent",
+	},
+	{
+		nodeIndex: [6],
+		kind: 1,
+		declarationMode: 3,
+		name: "todo parent",
+	},
+	{
+		nodeIndex: [3, 0],
+		kind: 1,
+		declarationMode: 1,
+		name: "nested child",
+	},
+	{
+		nodeIndex: [4, 0],
+		kind: 1,
+		declarationMode: 1,
+		name: "run-only nested child",
+	},
+	{
+		nodeIndex: [6, 0],
+		kind: 1,
+		declarationMode: 1,
+		name: "todo nested child",
+	},
+];
+
+const PASSING_BRANCH_EVENTS = [
+	{ type: "nodeStart", data: { nodeIndex: [0] } },
+	{ type: "callbackStart", data: { hook: 1, nodeIndex: [] } },
+	{ type: "callbackPass", data: { hook: 1, nodeIndex: [] } },
+	{ type: "callbackStart", data: { hook: 2, nodeIndex: [] } },
+	{ type: "callbackPass", data: { hook: 2, nodeIndex: [] } },
+	{
+		type: "diagnostic",
+		data: { nodeIndex: [0], message: "passing test diagnostic" },
+	},
+	{ type: "callbackStart", data: { hook: 3, nodeIndex: [] } },
+	{ type: "callbackPass", data: { hook: 3, nodeIndex: [] } },
+	{ type: "callbackStart", data: { hook: 4, nodeIndex: [] } },
+	{ type: "callbackPass", data: { hook: 4, nodeIndex: [] } },
+	{ type: "nodePass", data: { nodeIndex: [0] } },
+];
+
+function compileFixture(assemblyDir, entryFile, outputPath) {
+	mkdirSync(path.dirname(outputPath), { recursive: true });
+	execFileSync(
+		"npx",
+		[
+			"asc",
+			entryFile,
+			"--debug",
+			"--exportStart",
+			"__start",
+			"--outFile",
+			outputPath,
+		],
+		{
+			cwd: assemblyDir,
+			stdio: "inherit",
+		},
+	);
+
+	return readFileSync(outputPath);
+}
+
+function compileSmokeFixtures(options) {
+	const assemblyDir = path.join(options.repoDir, "assembly");
+	return {
+		compiledExportsWasm: compileFixture(
+			assemblyDir,
+			"assembly/exports.ts",
+			path.join(options.cacheDir, "exports-smoke.wasm"),
+		),
+		compiledNodeTestWasm: compileFixture(
+			assemblyDir,
+			"assembly/test/node-test-smoke.ts",
+			path.join(options.cacheDir, "node-test-smoke.wasm"),
+		),
+		compiledTrampolineWasm: compileFixture(
+			assemblyDir,
+			"assembly/test/trampoline-smoke.ts",
+			path.join(options.cacheDir, "trampoline-smoke.wasm"),
+		),
+	};
+}
+
+function registerHarnessSmokeSuite(options) {
+	const {
+		addon,
+		assert,
+		compiledExportsWasm,
+		compiledNodeTestWasm,
+		compiledTrampolineWasm,
+		test,
+	} = options;
+
+	test("creates a harness with per-event registration methods", () => {
+		const harness = addon.createHarness(compiledExportsWasm);
+
+		assert.equal(typeof addon.createHarness, "function");
+		assert.equal(typeof harness.onNodeFound, "function");
+		assert.equal(typeof harness.onNodeStart, "function");
+		assert.equal(typeof harness.onNodePass, "function");
+		assert.equal(typeof harness.onFailMessage, "function");
+		assert.equal(typeof harness.onCallbackStart, "function");
+		assert.equal(typeof harness.onCallbackPass, "function");
+		assert.equal(typeof harness.onDiagnostic, "function");
+		assert.equal(typeof harness.callI32, "function");
+		assert.equal(typeof harness.discover, "function");
+		assert.equal(typeof harness.run, "function");
+		assert.equal(typeof harness.start, "function");
+
+		harness.onNodeFound(() => {});
+		harness.onNodeStart(() => {});
+		harness.onNodePass(() => {});
+		harness.onFailMessage(() => {});
+		harness.onCallbackStart(() => {});
+		harness.onCallbackPass(() => {});
+		harness.onDiagnostic(() => {});
+		assert.equal(harness.discover("bad"), false);
+		assert.equal(harness.run([]), true);
+		assert.equal(harness.run("bad"), false);
+	});
+
+	test("callI32 validates export names and reports missing exports", () => {
+		const harness = addon.createHarness(compiledTrampolineWasm);
+
+		assert.throws(() => harness.callI32(123), {
+			name: "TypeError",
+			message: "expected an export name",
+		});
+		assert.throws(() => harness.callI32("missing"), {
+			name: "Error",
+			message: "failed to call zero-argument i32 export",
+		});
+	});
+
+	test("run(nodeIndex) executes the targeted node:test path", () => {
+		const harness = addon.createHarness(compiledNodeTestWasm);
+
+		assert.equal(harness.run([0]), true);
+		assert.equal(harness.run([1]), false);
+		assert.equal(harness.run([2]), false);
+		assert.equal(harness.run([3]), true);
+		assert.equal(harness.run([4]), true);
+		assert.equal(harness.run([5]), true);
+		assert.equal(harness.run([6]), true);
+		assert.equal(harness.run([4, 0]), true);
+		assert.equal(harness.run([4, 1]), false);
+		assert.equal(harness.run([7]), false);
+	});
+
+	test("run(nodeIndex) emits decoded node and lifecycle events for a passing test", () => {
+		const harness = addon.createHarness(compiledNodeTestWasm);
+		const events = [];
+
+		harness.onNodeStart((event) => {
+			events.push(["nodeStart", event]);
+		});
+		harness.onNodePass((event) => {
+			events.push(["nodePass", event]);
+		});
+		harness.onCallbackStart((event) => {
+			events.push(["callbackStart", event]);
+		});
+		harness.onCallbackPass((event) => {
+			events.push(["callbackPass", event]);
+		});
+		harness.onDiagnostic((event) => {
+			events.push(["diagnostic", event]);
+		});
+
+		assert.equal(harness.run([0]), true);
+		assert.deepEqual(events, PASSING_TEST_EVENTS);
+	});
+
+	test("run(nodeIndex) emits FailMessage and stops pass events on a failing test", () => {
+		const harness = addon.createHarness(compiledNodeTestWasm);
+		const events = [];
+
+		harness.onNodeStart((event) => {
+			events.push(["nodeStart", event]);
+		});
+		harness.onNodePass((event) => {
+			events.push(["nodePass", event]);
+		});
+		harness.onCallbackStart((event) => {
+			events.push(["callbackStart", event]);
+		});
+		harness.onCallbackPass((event) => {
+			events.push(["callbackPass", event]);
+		});
+		harness.onFailMessage((event) => {
+			events.push(["failMessage", event]);
+		});
+
+		assert.equal(harness.run([1]), false);
+		assert.deepEqual(events, FAILING_TEST_EVENTS);
+	});
+
+	test("run(nodeIndex) emits FailMessage for planned assertion mismatches after cleanup hooks", () => {
+		const harness = addon.createHarness(compiledNodeTestWasm);
+		const events = [];
+
+		harness.onNodeStart((event) => {
+			events.push(["nodeStart", event]);
+		});
+		harness.onNodePass((event) => {
+			events.push(["nodePass", event]);
+		});
+		harness.onCallbackStart((event) => {
+			events.push(["callbackStart", event]);
+		});
+		harness.onCallbackPass((event) => {
+			events.push(["callbackPass", event]);
+		});
+		harness.onFailMessage((event) => {
+			events.push(["failMessage", event]);
+		});
+
+		assert.equal(harness.run([2]), false);
+		assert.deepEqual(events, PLANNED_MISMATCH_EVENTS);
+	});
+
+	test("discover(nodeIndex) emits NodeFound events for top-level and nested node:test declarations", () => {
+		const harness = addon.createHarness(compiledNodeTestWasm);
+		const found = [];
+
+		harness.onNodeFound((event) => {
+			found.push(event);
+		});
+
+		assert.equal(harness.discover([]), true);
+		assert.equal(harness.discover([3]), true);
+		assert.equal(harness.discover([4]), true);
+		assert.equal(harness.discover([6]), true);
+		assert.equal(harness.discover([1]), false);
+		assert.deepEqual(found, DISCOVERED_NODES);
+	});
+
+	test("start() returns raw branch discovery and execution data", async () => {
+		const harness = addon.createHarness(compiledNodeTestWasm);
+		const pending = harness.start();
+
+		assert.equal(typeof pending?.then, "function");
+
+		const result = await pending;
+		const branchesByName = new Map(
+			result.branches.map((branch) => [branch.root.name, branch]),
+		);
+
+		assert.equal(result.discoveryOk, true);
+		assert.equal(result.ok, false);
+		assert.equal(result.discoveredTestCount, 10);
+		assert.equal(result.topLevelNodes.length, 7);
+		assert.ok(result.workerCount >= 1);
+		assert.ok(result.workerCount <= result.branches.length);
+		assert.deepEqual(
+			branchesByName
+				.get("parent test")
+				.executions.map((execution) => execution.node.nodeIndex),
+			[[3], [3, 0]],
+		);
+		assert.deepEqual(
+			branchesByName.get("run-only parent").discovery.nodes.map((node) => node.name),
+			["run-only parent", "run-only nested child"],
+		);
+		assert.deepEqual(
+			branchesByName
+				.get("todo parent")
+				.executions.map((execution) => execution.node.nodeIndex),
+			[[6, 0]],
+		);
+		assert.deepEqual(branchesByName.get("skipped parent").executions, []);
+		assert.equal(branchesByName.get("failing test").executions[0].ok, false);
+		assert.deepEqual(
+			branchesByName.get("passing test").executions[0].events,
+			PASSING_BRANCH_EVENTS,
+		);
+	});
+
+	test("observes trap status through the host-managed trampoline", () => {
+		const harness = addon.createHarness(compiledTrampolineWasm);
+
+		assert.equal(harness.callI32("didTrapWhenCallbackReturns"), 0);
+		assert.equal(harness.callI32("didTrapWhenCallbackTraps"), 1);
+	});
+
+	test("rejects non-byte input", () => {
+		assert.throws(() => addon.createHarness("not bytes"), {
+			name: "TypeError",
+			message: "createHarness expects a Buffer, Uint8Array, or ArrayBuffer",
+		});
+	});
+
+	test("rejects invalid wasm bytes", () => {
+		assert.throws(
+			() => addon.createHarness(Buffer.from([0x00, 0x61, 0x73, 0x6d])),
+			(error) =>
+				error instanceof Error &&
+				typeof error.message === "string" &&
+				error.message.length > 0,
+		);
+	});
+}
+
+module.exports = {
+	compileSmokeFixtures,
+	registerHarnessSmokeSuite,
+};

@@ -43,12 +43,12 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 
 ### Host Runtime Shipping
 
-- [ ] Keep the shipped `js` and `wazero` host surfaces behaviorally aligned for:
-- [ ] event decoding
-- [ ] `callI32(exportName)`
-- [ ] `discover(nodeIndex)`
-- [ ] `run(nodeIndex)`
-- [ ] trampoline-backed trap observation
+- [x] Keep the shipped `js` and `wazero` host surfaces behaviorally aligned for:
+- [x] event decoding
+- [x] `callI32(exportName)`
+- [x] `discover(nodeIndex)`
+- [x] `run(nodeIndex)`
+- [x] trampoline-backed trap observation
 - [x] Decide the supported host/platform matrix for the first release.
 - [x] Release targets: macOS, Windows, and Linux.
 - [x] Support `arm64` where practical once proven by host-specific validation.
