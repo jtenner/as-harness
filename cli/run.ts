@@ -46,6 +46,18 @@ function createRunCompilerOptions(cwd: string): CompilerOptions {
 	};
 }
 
+function mergeRunCompilerOptions(
+	cwd: string,
+	overrides: CompilerOptions,
+): CompilerOptions {
+	return {
+		...createRunCompilerOptions(cwd),
+		...overrides,
+		baseDir: overrides.baseDir ?? cwd,
+		lib: [...DEFAULT_RUN_LIBRARIES, ...(overrides.lib ?? [])],
+	};
+}
+
 function toPosixPath(path: string) {
 	return path.replaceAll("\\", "/");
 }
@@ -182,6 +194,7 @@ export async function runEntryFiles(
 	cwd: string,
 	logger: RunLogger,
 	runtime: Runtime = jsRuntime,
+	compilerOptions: CompilerOptions = {},
 ): Promise<RunCommandResult> {
 	let wasmBytes: Uint8Array;
 	const temporaryEntrypoint = await createRunEntrypoint(entryFiles, cwd);
@@ -189,7 +202,7 @@ export async function runEntryFiles(
 	try {
 		const artifacts = await compileEntrypoints(
 			[temporaryEntrypoint.path],
-			createRunCompilerOptions(cwd),
+			mergeRunCompilerOptions(cwd, compilerOptions),
 			runtime,
 		);
 		wasmBytes = getWasmArtifactBytes(artifacts);

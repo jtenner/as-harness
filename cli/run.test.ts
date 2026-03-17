@@ -26,15 +26,15 @@ async function withTempEntryFile(
 	}
 }
 
-async function runCli(entryFile: string, cwd: string): Promise<CliRunResult> {
-	const processHandle = Bun.spawn(
-		["bun", "run", cliEntrypointPath, "run", entryFile],
-		{
-			cwd,
-			stderr: "pipe",
-			stdout: "pipe",
-		},
-	);
+async function runCliWithArguments(
+	args: readonly string[],
+	cwd: string,
+): Promise<CliRunResult> {
+	const processHandle = Bun.spawn(["bun", "run", cliEntrypointPath, ...args], {
+		cwd,
+		stderr: "pipe",
+		stdout: "pipe",
+	});
 
 	const [stdout, stderr, exitCode] = await Promise.all([
 		new Response(processHandle.stdout).text(),
@@ -49,6 +49,10 @@ async function runCli(entryFile: string, cwd: string): Promise<CliRunResult> {
 	};
 }
 
+async function runCli(entryFile: string, cwd: string): Promise<CliRunResult> {
+	return runCliWithArguments(["run", entryFile], cwd);
+}
+
 test("cli run executes passing and failing node:test entry files through the js host", async () => {
 	await withTempEntryFile(
 		`
@@ -57,7 +61,10 @@ import { test, TestContext } from "node:test";
 test("passing test", (_context: TestContext): void => {});
 `,
 		async (entryFile, cwd) => {
-			const result = await runCli(entryFile, cwd);
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", entryFile],
+				cwd,
+			);
 
 			expect(result.exitCode).toBe(0);
 			expect(result.stderr).toBe("");
@@ -84,6 +91,26 @@ test("failing test", (context: TestContext): void => {
 				"FAIL 1 test(s) failed out of 1 discovered with js.",
 			);
 			expect(result.stderr).toContain("- failing test: shape mismatch");
+		},
+	);
+
+	await withTempEntryFile(
+		`
+import { test, TestContext } from "node:test";
+
+test("passing test", (_context: TestContext): void => {});
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "nope", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(1);
+			expect(result.stdout).toBe("");
+			expect(result.stderr).toContain(
+				"Unsupported host: nope. Supported hosts: js, wazero.",
+			);
 		},
 	);
 });

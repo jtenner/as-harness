@@ -12,13 +12,15 @@ Implemented today:
 - A programmatic AssemblyScript compiler wrapper in `as/compile.ts`
 - Bundled virtual AssemblyScript support files generated from `../assembly/assembly/**/*.ts`
 - A first end-to-end `run` flow that compiles discovered entries, instantiates them through `harness/js`, and prints basic pass/fail summaries
+- A first explicit harness selector for `run` through `--harness js|wazero`
+- Parsing and forwarding for the documented `run` compiler flags into the AssemblyScript wrapper
 - A multi-target Bun build script that emits one `single-file Bun executable` per Bun target
 
 Planned or incomplete:
 
 - Coverage flags are placeholders
 - The runtime abstraction now supports the default `js` host flow, but runtime selection is not yet a stable user-facing feature
-- The documented `run` compiler/runtime flags are not fully wired through the command parser yet
+- The runtime selector currently only covers `--harness js|wazero`; unsupported harness names fail fast and the packaged `wazero` path is still incomplete
 - `cli/n-api/` is still packaging scaffolding rather than a finished embedded native path
 
 ## What The CLI Currently Does
@@ -26,12 +28,14 @@ Planned or incomplete:
 - Lists candidate AssemblyScript test entry files.
 - Compiles discovered AssemblyScript test entries together with the bundled harness exports.
 - Executes compiled test modules through the default `js` host.
+- Supports explicit `--harness js` and `--harness wazero` selection, with a clear failure for unsupported harness names.
+- Forwards the documented compile-time `run` flags into the AssemblyScript compiler wrapper.
 - Prints basic pass/fail summaries and failing test messages.
 - Wraps `assemblyscript/asc` programmatically instead of shelling out.
 - Captures compiler outputs in memory.
 - Builds target-specific Bun executables under `dist/<target>/`.
 
-The CLI now proves the first compile-and-run flow through the default `js` host, but it does not yet offer stable runtime selection or the final dual-host packaging story.
+The CLI now proves the first compile-and-run flow through the default `js` host and exposes an explicit `--harness` override, but it does not yet provide the final dual-host packaging story.
 
 ## Bundled Support Files
 

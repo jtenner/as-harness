@@ -32,10 +32,11 @@ Implemented today:
 - The `JS host` exists as a working package with smoke tests.
 - The `wazero host` exists as a working Go `Node-API addon` package that builds a real `.node` binary and has smoke tests.
 - The CLI can discover entry files, list them, compile discovered test entries into Wasm, execute them through the default `JS host`, print basic pass/fail summaries, compile Bun targets with `bun --compile`, and bundle AssemblyScript support files into the executable build.
+- The CLI now also accepts an explicit `--harness` override for `js` or `wazero`, though the packaged `wazero` path still needs more release work.
 
 Still scaffolded or planned:
 
-- CLI-level runtime selection is not yet a stable user-facing feature beyond the default `JS host` path.
+- CLI-level runtime selection is only partially wired today; `--harness` exists for `js` and `wazero`, but the broader shipped runtime-selection story is not finished.
 - `cli/n-api/` is packaging scaffolding; the CLI does not yet prove an embedded `wazero host` path.
 - `harness/wasmtime/` is still scaffolded.
 - The final packaged single-file distribution story is still an active roadmap item.

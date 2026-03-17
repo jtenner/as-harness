@@ -2,6 +2,7 @@
 
 ## 2026-03-17
 
+- **cli: wire run flag parsing and harness selection** Extend the CLI parser so `as-harness run` accepts the documented AssemblyScript compile flags, forwards them into the compile wrapper, adds parser coverage for representative run options, renames the execution selector to `--harness`, and adds explicit failure behavior for unsupported harness names. GitHub: *@jtenner*
 - **cli: add a first js-backed run path** Turn `as-harness run` into a real default-`js` execution flow by compiling discovered entry files through the bundled harness compiler wrapper, generating a temporary wrapper entrypoint that re-exports the guest harness exports and imports the discovered tests, instantiating the compiled module through `harness/js`, emitting stable process exit codes for success/test-failure/compile-failure/host-failure cases, adding basic pass/fail summary output, and covering the CLI path with a subprocess run smoke test. GitHub: *@jtenner*
 - **docs: record v0.1.0 scope and diagnostics decisions** Update `agent-todo.md` with the accepted `v0.1.0` product scope, release-channel, host-selection, support-matrix, stack-trace, and deep-equality policy decisions; extend `docs/strict-equality-machinery.md` with guest-owned stack-trace ABI and minimal shape-mismatch reporting notes; and align the root `README.md` with the GitHub-release and non-`musl` first-release direction. GitHub: *@jtenner*
 
