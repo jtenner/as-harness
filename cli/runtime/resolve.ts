@@ -1,9 +1,21 @@
 import { jsRuntime } from "./js";
 import type { Runtime } from "./types";
 
+export function assertSupportedRuntime(host: string | undefined) {
+	if (host === undefined || host === "js" || host === "wazero") {
+		return;
+	}
+
+	throw new Error(
+		`Unsupported harness: ${host}. Supported harnesses: js, wazero.`,
+	);
+}
+
 export async function resolveRuntime(
 	host: string | undefined,
 ): Promise<Runtime> {
+	assertSupportedRuntime(host);
+
 	if (host === undefined || host === "js") {
 		return jsRuntime;
 	}
@@ -14,9 +26,7 @@ export async function resolveRuntime(
 			return wazeroRuntime;
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			throw new Error(`Host 'wazero' is not available: ${message}`);
+			throw new Error(`Harness 'wazero' is not available: ${message}`);
 		}
 	}
-
-	throw new Error(`Unsupported host: ${host}. Supported hosts: js, wazero.`);
 }

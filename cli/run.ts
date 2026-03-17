@@ -7,6 +7,7 @@ import type {
 } from "../harness/shared/harness-types";
 import { compileEntrypoints, type CompilerOptions } from "./as/compile";
 import { jsRuntime } from "./runtime/js";
+import { assertSupportedRuntime, resolveRuntime } from "./runtime/resolve";
 import type { Runtime } from "./runtime/types";
 
 export enum RunExitCode {
@@ -193,17 +194,34 @@ export async function runEntryFiles(
 	entryFiles: readonly string[],
 	cwd: string,
 	logger: RunLogger,
-	runtime: Runtime = jsRuntime,
+	runtimeSelection: Runtime | string | undefined = jsRuntime,
 	compilerOptions: CompilerOptions = {},
 ): Promise<RunCommandResult> {
 	let wasmBytes: Uint8Array;
 	const temporaryEntrypoint = await createRunEntrypoint(entryFiles, cwd);
+	let compileRuntime = jsRuntime;
+
+	if (typeof runtimeSelection !== "string") {
+		compileRuntime = runtimeSelection;
+	} else {
+		try {
+			assertSupportedRuntime(runtimeSelection);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			logger.error(`Harness resolution failed: ${message}`);
+			await temporaryEntrypoint.cleanup();
+			return {
+				discoveredTestCount: 0,
+				exitCode: RunExitCode.HostFailure,
+			};
+		}
+	}
 
 	try {
 		const artifacts = await compileEntrypoints(
 			[temporaryEntrypoint.path],
 			mergeRunCompilerOptions(cwd, compilerOptions),
-			runtime,
+			compileRuntime,
 		);
 		wasmBytes = getWasmArtifactBytes(artifacts);
 	} catch (error) {
@@ -215,6 +233,22 @@ export async function runEntryFiles(
 		};
 	} finally {
 		await temporaryEntrypoint.cleanup();
+	}
+
+	let runtime: Runtime;
+
+	try {
+		runtime =
+			typeof runtimeSelection === "string"
+				? await resolveRuntime(runtimeSelection)
+				: runtimeSelection;
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		logger.error(`Harness resolution failed: ${message}`);
+		return {
+			discoveredTestCount: 0,
+			exitCode: RunExitCode.HostFailure,
+		};
 	}
 
 	let result: HarnessStartResult;

@@ -106,10 +106,10 @@ test("passing test", (_context: TestContext): void => {});
 				cwd,
 			);
 
-			expect(result.exitCode).toBe(1);
+			expect(result.exitCode).toBe(3);
 			expect(result.stdout).toBe("");
 			expect(result.stderr).toContain(
-				"Unsupported host: nope. Supported hosts: js, wazero.",
+				"Harness resolution failed: Unsupported harness: nope. Supported harnesses: js, wazero.",
 			);
 		},
 	);

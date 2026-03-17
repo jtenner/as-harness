@@ -728,8 +728,6 @@ async function runRunCommand(command: ParsedCommand, cwd: string) {
 		console.error("Coverage is not implemented yet.");
 	}
 
-	const { resolveRuntime } = await import("./runtime/resolve");
-	const runtime = await resolveRuntime(command.harness);
 	const result = await runEntryFiles(
 		entries,
 		cwd,
@@ -741,7 +739,7 @@ async function runRunCommand(command: ParsedCommand, cwd: string) {
 				console.log(message);
 			},
 		},
-		runtime,
+		command.harness,
 		command.compilerOptions,
 	);
 	process.exitCode = result.exitCode;

@@ -1,6 +1,13 @@
 const assert = require("node:assert/strict");
-const { execFileSync } = require("node:child_process");
-const { mkdirSync, readFileSync } = require("node:fs");
+const { execFileSync, spawnSync } = require("node:child_process");
+const {
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} = require("node:fs");
+const { tmpdir } = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
 
@@ -8,6 +15,7 @@ const addon = require("..");
 
 const repoDir = path.resolve(__dirname, "..", "..", "..");
 const assemblyDir = path.join(repoDir, "assembly");
+const cliEntrypointPath = path.join(repoDir, "cli", "index.ts");
 const compiledFixturePath = path.join(repoDir, "harness", "wazero", ".cache", "exports-smoke.wasm");
 const compiledNodeTestPath = path.join(repoDir, "harness", "wazero", ".cache", "node-test-smoke.wasm");
 const compiledTrampolinePath = path.join(repoDir, "harness", "wazero", ".cache", "trampoline-smoke.wasm");
@@ -349,6 +357,42 @@ test("start() returns raw branch discovery and execution data", async () => {
 			{ type: "nodePass", data: { nodeIndex: [0] } },
 		],
 	);
+});
+
+test("cli run executes tests through the wazero harness", () => {
+	const tempDirectory = mkdtempSync(path.join(tmpdir(), "as-harness-wazero-cli-"));
+
+	try {
+		const entryFile = path.join(tempDirectory, "suite.test.ts");
+		writeFileSync(
+			entryFile,
+			[
+				'import { test, TestContext } from "node:test";',
+				"",
+				'test("passing test", (_context: TestContext): void => {});',
+				"",
+			].join("\n"),
+			"utf8",
+		);
+
+		const result = spawnSync(
+			"bun",
+			["run", cliEntrypointPath, "run", "--harness", "wazero", entryFile],
+			{
+				cwd: tempDirectory,
+				encoding: "utf8",
+			},
+		);
+
+		assert.equal(result.status, 0);
+		assert.equal(result.stderr, "");
+		assert.match(
+			result.stdout,
+			/PASS 1 test\(s\) across 1 top-level node\(s\) with wazero\./,
+		);
+	} finally {
+		rmSync(tempDirectory, { force: true, recursive: true });
+	}
 });
 
 test("observes trap status through the host-managed trampoline", () => {
