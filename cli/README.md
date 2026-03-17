@@ -20,7 +20,7 @@ Planned or incomplete:
 
 - Coverage flags are placeholders
 - The runtime abstraction now supports the default `js` host flow, but runtime selection is not yet a stable user-facing feature
-- The runtime selector currently only covers `--harness js|wazero`; unsupported harness names fail fast and the packaged `wazero` path is still incomplete because the compiled CLI still has a separate AssemblyScript compiler-wrapper startup failure
+- The runtime selector currently only covers `--harness js|wazero`; unsupported harness names fail fast and the remaining packaging work is now cross-target validation plus native-addon release proof
 - `cli/n-api/` is now the generated staging area for target-specific `wazero` addons during CLI builds
 
 ## What The CLI Currently Does
@@ -50,7 +50,7 @@ This matters for packaging because a compiled Bun executable cannot rely on the 
 
 ## Runtime Selection
 
-There is an internal runtime abstraction in `runtime/` with `js`, `wazero`, and `wasmtime` entries. The default `js` path now drives the real `run` command, while `wazero` and broader runtime-selection behavior still need CLI wiring and packaging work. The intended MVP is still to ship both the `JS host` and the `wazero host`, but the CLI does not yet offer a stable runtime selector, and it does not yet prove the packaged `wazero host` `Node-API addon` path.
+There is an internal runtime abstraction in `runtime/` with `js`, `wazero`, and `wasmtime` entries. The default `js` path now drives the real `run` command, and the standalone compiled CLI can execute through both `js` and `wazero` when a matching addon is staged for the build target. Broader runtime-selection behavior still needs product-level hardening, and cross-target packaged `wazero` proof is still outstanding.
 
 ## Packaging Notes
 
@@ -60,11 +60,11 @@ There is an internal runtime abstraction in `runtime/` with `js`, `wazero`, and 
 - The intended MVP is to support both runtime paths from the CLI:
   - the `JS host` as the portable baseline
   - the `wazero host` as the native companion path where a matching addon exists
-- The current build path uses a build-time `WAZERO_TARGET` constant plus static `require("./*.node")` branches so Bun can dead-code-eliminate unused native targets from each compiled executable.
+- The current build path uses build-time-defined `WAZERO_TARGET` and `WAZERO_NODE_PATH` constants so Bun can fold the loader down to one target-matched `.node` asset per compiled executable.
 - If the CLI later loads a `.node` `Node-API addon`, that addon becomes a `target-specific native artifact` and must match the executable target platform and architecture.
 - For Linux native addons, libc variants may matter too.
 
-The `JS host` path is still the lower-risk packaging baseline because it avoids native addon distribution entirely, and it remains the default runtime. The main blocker on the standalone executable path is now the compiled CLI's `asc` startup failure rather than addon target selection.
+The `JS host` path is still the lower-risk packaging baseline because it avoids native addon distribution entirely, and it remains the default runtime. The next packaging blockers are release-matrix proof and native-addon distribution coverage, not the standalone compiler startup path.
 
 ## Key Files
 

@@ -56,7 +56,7 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 - [ ] Prove `harness/js` works on the supported Node versions for the release.
 - [ ] Prove `harness/wazero` builds and runs on the supported OS / architecture matrix.
 - [ ] Package or document the wazero native-addon build/install story so users can actually run it.
-- [ ] Decide how the CLI bundles, locates, or installs shipped host runtimes.
+- [x] Decide how the CLI bundles, locates, or installs shipped host runtimes.
 - [x] Add end-to-end CLI coverage for both the `js` and `wazero` execution paths.
 
 ### Wasm Runtime / ABI

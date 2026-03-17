@@ -93,6 +93,7 @@ function outputPathForTarget(target: Bun.Build.CompileTarget) {
 async function buildTarget(
 	target: Bun.Build.CompileTarget,
 	wazeroTarget: string,
+	wazeroNodePath: string | null,
 	index: number,
 	total: number,
 ) {
@@ -109,6 +110,7 @@ async function buildTarget(
 			`--target=${target}`,
 			`--outfile=${outfile}`,
 			`--define=WAZERO_TARGET="${wazeroTarget}"`,
+			`--define=WAZERO_NODE_PATH=${JSON.stringify(wazeroNodePath)}`,
 			ENTRYPOINT,
 		],
 		{
@@ -146,25 +148,31 @@ async function ensureLocalWazeroAddonBuilt() {
 async function prepareWazeroAddonForTarget(target: Bun.Build.CompileTarget) {
 	const wazeroTarget = resolveWazeroAddonTargetForCompileTarget(target);
 	if (!isAvailableWazeroAddonTarget(wazeroTarget)) {
-		return wazeroTarget;
+		return { wazeroNodePath: null, wazeroTarget };
 	}
 
 	const outputPath = wazeroAddonPathFromCliDir(CLI_DIR, wazeroTarget);
 	if (existsSync(outputPath)) {
-		return wazeroTarget;
+		return {
+			wazeroNodePath: `../n-api/${wazeroTarget}.node`,
+			wazeroTarget,
+		};
 	}
 
 	if (resolveCurrentWazeroAddonTarget() !== wazeroTarget) {
 		console.warn(
 			`wazero addon for ${target} is not staged at ${outputPath}; building this CLI target without bundled wazero support.`,
 		);
-		return "unavailable";
+		return { wazeroNodePath: null, wazeroTarget: "unavailable" };
 	}
 
 	await ensureLocalWazeroAddonBuilt();
 	await mkdir(dirname(outputPath), { recursive: true });
 	await copyFile(LOCAL_WAZERO_ADDON_PATH, outputPath);
-	return wazeroTarget;
+	return {
+		wazeroNodePath: `../n-api/${wazeroTarget}.node`,
+		wazeroTarget,
+	};
 }
 
 async function main() {
@@ -181,10 +189,12 @@ async function main() {
 	await generateBundledVirtualFiles();
 
 	for (const [index, target] of targets.entries()) {
-		const wazeroTarget = await prepareWazeroAddonForTarget(target);
+		const { wazeroNodePath, wazeroTarget } =
+			await prepareWazeroAddonForTarget(target);
 		const result = await buildTarget(
 			target,
 			wazeroTarget,
+			wazeroNodePath,
 			index + 1,
 			targets.length,
 		);

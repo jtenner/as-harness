@@ -123,6 +123,93 @@ test("does not duplicate the bundled strict-equality transform when it is alread
 	expect(result).toEqual(compilerOptions);
 });
 
+test("compileEntrypoints works inside a compiled Bun executable with bundled strict-equality support", async () => {
+	const tempDirectory = await mkdtemp(
+		join(tmpdir(), "as-harness-compiled-asc-"),
+	);
+	const entryFile = join(tempDirectory, "entry.ts");
+	const probeFile = join(tempDirectory, "probe.ts");
+	const suiteFile = join(tempDirectory, "suite.test.ts");
+	const executableFile = join(tempDirectory, "probe");
+	const compileModulePath = JSON.stringify(join(import.meta.dir, "compile.ts"));
+
+	try {
+		await writeFile(
+			suiteFile,
+			[
+				'import { test, TestContext } from "node:test";',
+				"",
+				'test("passes", (context: TestContext): void => {',
+				'\tcontext.assert.strictEqual<i32>(1, 1, "same shape");',
+				"});",
+				"",
+			].join("\n"),
+			"utf8",
+		);
+
+		await writeFile(
+			entryFile,
+			[
+				'export { allocateNodeIndexBuffer, discover, invoke, run } from "~/.as-harness/exports";',
+				'import "./suite.test";',
+				"",
+			].join("\n"),
+			"utf8",
+		);
+
+		await writeFile(
+			probeFile,
+			[
+				`import { compileEntrypoints } from ${compileModulePath};`,
+				'const artifacts = await compileEntrypoints(["entry.ts"], {',
+				`\tbaseDir: ${JSON.stringify(tempDirectory)},`,
+				'\tlib: ["node:test", "node:assert", "node:assert/strict"],',
+				"});",
+				'console.log(artifacts.map((artifact) => artifact.path).join(","));',
+				"",
+			].join("\n"),
+			"utf8",
+		);
+
+		const buildProcess = Bun.spawn(
+			["bun", "build", "--compile", `--outfile=${executableFile}`, probeFile],
+			{
+				cwd: tempDirectory,
+				stderr: "pipe",
+				stdout: "pipe",
+			},
+		);
+
+		const [buildExitCode, buildStdout, buildStderr] = await Promise.all([
+			buildProcess.exited,
+			new Response(buildProcess.stdout).text(),
+			new Response(buildProcess.stderr).text(),
+		]);
+
+		expect(buildExitCode).toBe(0);
+		expect(buildStdout).toContain("compile");
+		expect(buildStderr).toBe("");
+
+		const runProcess = Bun.spawn([executableFile], {
+			cwd: tempDirectory,
+			stderr: "pipe",
+			stdout: "pipe",
+		});
+
+		const [runExitCode, runStdout, runStderr] = await Promise.all([
+			runProcess.exited,
+			new Response(runProcess.stdout).text(),
+			new Response(runProcess.stderr).text(),
+		]);
+
+		expect(runExitCode).toBe(0);
+		expect(runStderr).toBe("");
+		expect(runStdout.trim().split(",")).toContain("output.wasm");
+	} finally {
+		await rm(tempDirectory, { force: true, recursive: true });
+	}
+});
+
 test("resolves node:assert through the bundled harness library root", async () => {
 	const tempLibDir = await mkdtemp(join(tmpdir(), "as-harness-lib-test-"));
 	const tempEntryFile = join(tmpdir(), `as-harness-lib-test-${Date.now()}.ts`);

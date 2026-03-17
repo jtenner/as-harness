@@ -25,6 +25,7 @@ import {
 import assemblyscriptRuntimeDeclarations from "../node_modules/assemblyscript/std/assembly/rt/index.d.ts" with {
 	type: "text",
 };
+import BundledStrictEqualityTransform from "../transform/src/index.ts";
 
 export type Binding = "raw";
 
@@ -346,6 +347,7 @@ function createVirtualFileSystem(
 type PreparedCompilerOptions = {
 	cleanup(): Promise<void>;
 	compilerOptions: CompilerOptions;
+	transforms: unknown[];
 };
 
 async function materializeBundledTransformDirectory(): Promise<string> {
@@ -394,6 +396,26 @@ async function prepareCompilerOptions(
 	const cleanupTasks: Array<() => Promise<void>> = [];
 	let rewrittenTransformPaths = compilerOptionsWithBundledSupport.transform;
 	let rewrittenLibraryPaths = compilerOptionsWithBundledSupport.lib;
+	const transforms: unknown[] = [];
+
+	if (Array.isArray(rewrittenTransformPaths)) {
+		const remainingTransformPaths: string[] = [];
+
+		for (const transformPath of rewrittenTransformPaths) {
+			if (
+				normalizeVirtualPath(transformPath) ===
+				normalizeVirtualPath(BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH)
+			) {
+				transforms.push(BundledStrictEqualityTransform);
+				continue;
+			}
+
+			remainingTransformPaths.push(transformPath);
+		}
+
+		rewrittenTransformPaths =
+			remainingTransformPaths.length > 0 ? remainingTransformPaths : undefined;
+	}
 
 	if (rewrittenTransformPaths?.some((path) => isBundledTransformPath(path))) {
 		const materializedDirectory = await materializeBundledTransformDirectory();
@@ -442,6 +464,7 @@ async function prepareCompilerOptions(
 			transform: rewrittenTransformPaths,
 			lib: rewrittenLibraryPaths,
 		},
+		transforms,
 	};
 }
 
@@ -756,6 +779,7 @@ async function compileWithArguments(
 			{
 				stdout,
 				stderr,
+				transforms: preparedCompilerOptions.transforms,
 				readFile(filename, baseDir) {
 					return readCompilerFile(filename, baseDir);
 				},

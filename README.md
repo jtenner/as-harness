@@ -32,14 +32,14 @@ Implemented today:
 - The `JS host` exists as a working package with smoke tests.
 - The `wazero host` exists as a working Go `Node-API addon` package that builds a real `.node` binary and has smoke tests.
 - The CLI can discover entry files, list them, compile discovered test entries into Wasm, execute them through the default `JS host`, print basic pass/fail summaries, compile Bun targets with `bun --compile`, and bundle AssemblyScript support files into the executable build.
-- The CLI now also accepts an explicit `--harness` override for `js` or `wazero`, and the build path can now define one target-matched `wazero` addon branch per compiled executable.
+- The CLI now also accepts an explicit `--harness` override for `js` or `wazero`, and the compiled CLI can now run both harnesses when a matching `wazero` addon is staged for the build target.
 
 Still scaffolded or planned:
 
 - CLI-level runtime selection is only partially wired today; `--harness` exists for `js` and `wazero`, but the broader shipped runtime-selection story is not finished.
 - `cli/n-api/` is now the staging area for target-specific `wazero` addons during CLI builds.
 - `harness/wasmtime/` is still scaffolded.
-- The final packaged single-file distribution story is still an active roadmap item because the compiled CLI still has a separate AssemblyScript compiler-wrapper startup failure to resolve.
+- The final packaged single-file distribution story is still an active roadmap item because cross-target release validation and native-addon distribution proof are still incomplete.
 
 ## Packaging Strategy
 
@@ -53,9 +53,9 @@ Planned MVP shape:
 
 - The `JS host` is the portable baseline and should work without any `target-specific native artifact`.
 - The same MVP should also support the `wazero host` where a matching `.node` `Node-API addon` is built and packaged for that target.
-- In practice, that means the Bun executable packaging step and the native addon build step must agree on the exact target platform and architecture for the `wazero host` path. The current build direction is one compiled executable per target with a build-time-defined addon key so dead code elimination can strip unused native branches.
+- In practice, that means the Bun executable packaging step and the native addon build step must agree on the exact target platform and architecture for the `wazero host` path. The current build direction is one compiled executable per target with build-time-defined addon target and addon path constants so Bun can fold the runtime loader down to the matching `.node` asset.
 
-The repo already proves pieces of this strategy, but it does not yet prove the full packaged MVP across all targets.
+The repo now proves the local packaged path for both `js` and `wazero`, but it does not yet prove the full packaged MVP across all targets.
 
 For `v0.1.0`, `npm` publication is out of scope. The first release should ship through GitHub release artifacts.
 

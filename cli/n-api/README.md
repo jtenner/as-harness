@@ -6,7 +6,7 @@
 
 - `build.ts` can now stage a target-matched local `wazero` addon here before compiling a Bun executable.
 - Generated `.node` artifacts remain ignored and are not checked in.
-- The standalone compiled CLI still has a separate AssemblyScript compiler-wrapper startup failure, so this directory is active but the full executable story is not proven yet.
+- The standalone compiled CLI can now run through `wazero` when the matching addon is staged for the build target, but cross-target release proof is still incomplete.
 
 ## Why This Directory Exists
 
@@ -26,4 +26,4 @@ When this area becomes active, expect target-specific content such as:
 - metadata or loader code that chooses the correct addon for the current target
 - any extraction or staging helpers needed by the compiled CLI
 
-That work is now partially active, but it is not yet a finished integration.
+That work is now active for the local packaged path, but it is not yet a finished cross-target release integration.
