@@ -435,7 +435,10 @@ async function prepareCompilerOptions(
 		});
 	}
 
-	if (rewrittenLibraryPaths?.some((path) => isBundledLibraryPath(path))) {
+	if (
+		process.platform !== "win32" &&
+		rewrittenLibraryPaths?.some((path) => isBundledLibraryPath(path))
+	) {
 		const materializedDirectory = await materializeBundledLibraryDirectory();
 		cleanupTasks.push(() =>
 			rm(materializedDirectory, { force: true, recursive: true }),
