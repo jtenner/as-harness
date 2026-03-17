@@ -5,6 +5,11 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { generateBundledVirtualFiles } from "./as/generate-virtual-files";
 import {
+	COMPILE_TARGETS,
+	executableFilenameForTarget,
+	RELEASE_COMPILE_TARGETS,
+} from "./build-targets";
+import {
 	isAvailableWazeroAddonTarget,
 	resolveCurrentWazeroAddonTarget,
 	resolveWazeroAddonTargetForCompileTarget,
@@ -13,7 +18,6 @@ import {
 
 const CLI_DIR = import.meta.dir;
 const REPO_DIR = join(CLI_DIR, "..");
-const EXECUTABLE_NAME = "as-harness";
 const ENTRYPOINT = join(CLI_DIR, "index.ts");
 const DIST_DIR = join(CLI_DIR, "dist");
 const LOCAL_WAZERO_ADDON_PATH = join(
@@ -24,29 +28,8 @@ const LOCAL_WAZERO_ADDON_PATH = join(
 	"wazero.node",
 );
 
-// Bun's compile-target grammar accepts more strings than the executable docs
-// currently list. This matrix sticks to the documented supported targets and
-// the explicit x64 SIMD variants Bun accepts for those targets.
-const COMPILE_TARGETS: Bun.Build.CompileTarget[] = [
-	"bun-darwin-x64",
-	"bun-darwin-x64-baseline",
-	"bun-darwin-x64-modern",
-	"bun-darwin-arm64",
-	"bun-linux-x64",
-	"bun-linux-x64-baseline",
-	"bun-linux-x64-modern",
-	"bun-linux-arm64",
-	"bun-linux-x64-musl",
-	"bun-linux-x64-baseline-musl",
-	"bun-linux-x64-modern-musl",
-	"bun-linux-arm64-musl",
-	"bun-windows-x64",
-	"bun-windows-x64-baseline",
-	"bun-windows-x64-modern",
-];
-
-function printTargets() {
-	for (const target of COMPILE_TARGETS) {
+function printTargets(targets: readonly string[]) {
+	for (const target of targets) {
 		console.log(target);
 	}
 }
@@ -57,12 +40,24 @@ async function cleanDist() {
 
 function resolveTargets(args: string[]) {
 	if (args.includes("--list-targets")) {
-		printTargets();
+		printTargets(COMPILE_TARGETS);
+		process.exit(0);
+	}
+
+	if (args.includes("--list-release-targets")) {
+		printTargets(RELEASE_COMPILE_TARGETS);
 		process.exit(0);
 	}
 
 	if (args.includes("--clean")) {
 		return { cleanOnly: true, targets: [] as Bun.Build.CompileTarget[] };
+	}
+
+	if (args.includes("--release-targets")) {
+		return {
+			cleanOnly: false,
+			targets: [...RELEASE_COMPILE_TARGETS],
+		};
 	}
 
 	if (args.length === 0) {
@@ -86,8 +81,7 @@ function resolveTargets(args: string[]) {
 }
 
 function outputPathForTarget(target: Bun.Build.CompileTarget) {
-	const extension = target.startsWith("bun-windows-") ? ".exe" : "";
-	return join(DIST_DIR, target, `${EXECUTABLE_NAME}${extension}`);
+	return join(DIST_DIR, target, executableFilenameForTarget(target));
 }
 
 async function buildTarget(

@@ -16,6 +16,10 @@
   Loads the generated AssemblyScript test module under Bun and provides a minimal stub package for the guest-side `write_event` import.
 - `assert-bridge-smoke.ts`
   Instantiates the compiled assertion smoke fixtures and verifies host-observed failure/trampoline behavior using the JavaScript WebAssembly runtime.
+- `release-matrix.ts`
+  Emits the supported GitHub-hosted release-target matrix used by the CI and release workflows.
+- `verify-packaged-cli.ts`
+  Builds one compiled CLI target, smoke-tests it through the packaged `js` path, smoke-tests the packaged `wazero` path when that target supports it, and can copy the resulting executable into a release-asset directory.
 
 Package-local smoke suites also matter:
 
@@ -31,7 +35,7 @@ Package-local smoke suites also matter:
 
 ## Packaging Confidence
 
-These scripts provide useful local confidence, but they are not yet release-grade packaging validation.
+These scripts now provide the local mirror of the packaged-CLI workflow, but the full release matrix still depends on GitHub-hosted runner execution.
 
 What they cover now:
 
@@ -39,12 +43,12 @@ What they cover now:
 - local AssemblyScript compilation
 - local host smoke coverage
 - local `wazero host` addon builds on the current machine
+- local packaged `single-file Bun executable` smoke tests for the selected release target
 
 What they do not yet cover:
 
-- a CI matrix across all Bun executable targets
-- packaged `single-file Bun executable` smoke tests for the `JS host` and `wazero host` MVP paths
-- automated build/test coverage for every `target-specific native artifact`
+- historical proof that the GitHub Actions release matrix is green across every supported runner
+- automated build/test coverage for every non-release Bun compile target
 - explicit Linux `glibc` versus `musl` release validation
 
-Multi-platform packaging will require CI expansion beyond the current root scripts.
+Multi-platform packaging now has workflow definitions in `.github/workflows/`, but it still needs sustained green runs to count as proven release infrastructure.

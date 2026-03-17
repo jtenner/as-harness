@@ -11,7 +11,9 @@
 		"dev": "bun run ./index.ts",
 		"clean": "bun run ./build.ts --clean",
 		"build": "bun run ./build.ts",
-		"build:list-targets": "bun run ./build.ts --list-targets"
+		"build:list-targets": "bun run ./build.ts --list-targets",
+		"build:release": "bun run ./build.ts --release-targets",
+		"build:list-release-targets": "bun run ./build.ts --list-release-targets"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.6",

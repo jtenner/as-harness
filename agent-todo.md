@@ -80,7 +80,7 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 - [x] Decide the first distribution channel.
 - [x] Use a GitHub build/tag/release flow for `v0.1.0`.
 - [ ] Revisit standalone Bun-compiled CLI binaries vs `npm` packaging after the first release workflow is proven.
-- [ ] Add CI coverage for validation, root tests, host package smoke tests, and release-artifact verification.
+- [x] Add CI coverage for validation, root tests, host package smoke tests, and release-artifact verification.
 - [ ] Define release/versioning steps for the CLI package and shipped host runtimes.
 - [ ] Verify install and smoke-run flows from a clean environment on each supported platform.
 

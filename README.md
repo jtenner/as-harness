@@ -80,7 +80,7 @@ No, if you ship only the pure `JS host` path:
 
 1. Make the product boundary explicit: define the MVP as shipping both the `JS host` and the `wazero host`.
 2. Wire the CLI packaging story so the `JS host` is the portable baseline and the `wazero host` is the target-specific native companion path.
-3. Add a CI matrix that validates Bun executable builds plus host-package smoke tests for the supported `macOS`, `Windows`, and `Linux` targets, with `arm64` added where host validation proves it.
+3. Run and stabilize the GitHub Actions matrix that now builds and smoke-tests the packaged CLI on the supported `macOS`, `Windows`, and `Linux` release targets, including the current `arm64` targets.
 4. Harden how the `Node-API addon` is bundled, embedded, or extracted for the `wazero host` path.
 
 ## Development Commands
@@ -88,8 +88,11 @@ No, if you ship only the pure `JS host` path:
 ```bash
 bun validate
 bun test
+cd cli && bun run build:list-release-targets
+cd cli && bun run build:release
 cd cli && bun run build:list-targets
 cd cli && bun run build
+bun run verify:packaged-cli --target bun-linux-x64
 cd harness/js && npm test
 cd harness/wazero && npm test
 ```

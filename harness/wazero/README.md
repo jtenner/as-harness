@@ -16,7 +16,6 @@ Implemented today:
 
 Still planned:
 
-- CLI-side embedding or packaging of this addon
 - Cross-platform release automation for every shipping target
 - Hardening beyond the current early host/runtime surface
 
@@ -33,7 +32,7 @@ That file is a `Node-API addon`, so it is a `target-specific native artifact`.
 - The `wazero host` must be built per platform and architecture.
 - Linux libc variants may matter, so `glibc` and `musl` can require separate artifacts.
 - The intended MVP includes this path, so any target that ships the `wazero host` must package or extract the matching `.node` addon alongside the `single-file Bun executable`.
-- The current repo proves local addon builds and smoke tests, not the full packaged Bun distribution story.
+- The current repo proves local addon builds and smoke tests and now includes GitHub workflow definitions for packaged CLI release targets, but it does not yet have a proven cross-target release history.
 
 ## Node-API In This Repo
 

@@ -61,6 +61,7 @@ There is an internal runtime abstraction in `runtime/` with `js`, `wazero`, and 
   - the `JS host` as the portable baseline
   - the `wazero host` as the native companion path where a matching addon exists
 - The current build path uses build-time-defined `WAZERO_TARGET` and `WAZERO_NODE_PATH` constants so Bun can fold the loader down to one target-matched `.node` asset per compiled executable.
+- The repo now includes GitHub Actions workflows that build and smoke-test the packaged CLI across the current release-target runner matrix.
 - If the CLI later loads a `.node` `Node-API addon`, that addon becomes a `target-specific native artifact` and must match the executable target platform and architecture.
 - For Linux native addons, libc variants may matter too.
 
@@ -89,6 +90,8 @@ The `JS host` path is still the lower-risk packaging baseline because it avoids 
 bun install
 bun run dev
 bun run clean
+bun run build:list-release-targets
+bun run build:release
 bun run build:list-targets
 bun run build
 ```

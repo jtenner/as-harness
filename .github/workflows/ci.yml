@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.1"
+
+      - name: Install CLI dependencies
+        working-directory: ./cli
+        run: bun install --frozen-lockfile
+
+      - name: Install assembly dependencies
+        working-directory: ./assembly
+        run: npm ci
+
+      - name: Run validation
+        run: bun validate
+
+      - name: Run root tests
+        run: bun test
+
+      - name: Run JS harness smoke tests
+        working-directory: ./harness/js
+        run: npm test
+
+      - name: Run wazero harness smoke tests
+        working-directory: ./harness/wazero
+        run: npm test
+
+  release-matrix:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.release-matrix.outputs.matrix }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Emit release matrix
+        id: release-matrix
+        run: printf 'matrix=%s\n' "$(bun run ./scripts/release-matrix.ts)" >> "$GITHUB_OUTPUT"
+
+  packaged-cli:
+    name: Packaged CLI (${{ matrix.compileTarget }})
+    needs:
+      - release-matrix
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.release-matrix.outputs.matrix) }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.1"
+
+      - name: Install CLI dependencies
+        working-directory: ./cli
+        run: bun install --frozen-lockfile
+
+      - name: Verify packaged CLI
+        run: bun run ./scripts/verify-packaged-cli.ts --target "${{ matrix.compileTarget }}" --asset-dir ./dist/release-assets
+
+      - name: Upload packaged CLI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: ${{ matrix.artifactName }}
+          path: ./dist/release-assets/*

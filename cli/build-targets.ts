@@ -1,0 +1,72 @@
+const EXECUTABLE_NAME = "as-harness";
+
+// Bun's compile-target grammar accepts more strings than the executable docs
+// currently list. This matrix sticks to the documented supported targets and
+// the explicit x64 SIMD variants Bun accepts for those targets.
+export const COMPILE_TARGETS: Bun.Build.CompileTarget[] = [
+	"bun-darwin-x64",
+	"bun-darwin-x64-baseline",
+	"bun-darwin-x64-modern",
+	"bun-darwin-arm64",
+	"bun-linux-x64",
+	"bun-linux-x64-baseline",
+	"bun-linux-x64-modern",
+	"bun-linux-arm64",
+	"bun-linux-x64-musl",
+	"bun-linux-x64-baseline-musl",
+	"bun-linux-x64-modern-musl",
+	"bun-linux-arm64-musl",
+	"bun-windows-x64",
+	"bun-windows-x64-baseline",
+	"bun-windows-x64-modern",
+];
+
+export type ReleaseBuildTarget = {
+	artifactName: string;
+	compileTarget: Bun.Build.CompileTarget;
+	runner: string;
+};
+
+// These are the first release artifacts we actually intend to ship and smoke on
+// matching GitHub-hosted runners.
+export const RELEASE_BUILD_TARGETS: ReleaseBuildTarget[] = [
+	{
+		artifactName: "as-harness-bun-darwin-arm64",
+		compileTarget: "bun-darwin-arm64",
+		runner: "macos-15",
+	},
+	{
+		artifactName: "as-harness-bun-darwin-x64",
+		compileTarget: "bun-darwin-x64",
+		runner: "macos-15-intel",
+	},
+	{
+		artifactName: "as-harness-bun-linux-arm64",
+		compileTarget: "bun-linux-arm64",
+		runner: "ubuntu-24.04-arm",
+	},
+	{
+		artifactName: "as-harness-bun-linux-x64",
+		compileTarget: "bun-linux-x64",
+		runner: "ubuntu-24.04",
+	},
+	{
+		artifactName: "as-harness-bun-windows-x64",
+		compileTarget: "bun-windows-x64",
+		runner: "windows-2025",
+	},
+];
+
+export const RELEASE_COMPILE_TARGETS = RELEASE_BUILD_TARGETS.map(
+	({ compileTarget }) => compileTarget,
+);
+
+export function executableFilenameForTarget(target: string) {
+	const extension = target.startsWith("bun-windows-") ? ".exe" : "";
+	return `${EXECUTABLE_NAME}${extension}`;
+}
+
+export function releaseAssetFilenameForTarget(target: string) {
+	const extension = target.startsWith("bun-windows-") ? ".exe" : "";
+	return `${EXECUTABLE_NAME}-${target}${extension}`;
+}
