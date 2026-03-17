@@ -1,4 +1,4 @@
-export { default } from "~/.as-harness/node:assert/shared";
+export { default } from "~/.as-harness/node_assert/shared";
 export {
   deepStrictEqual,
   doesNotThrow,
@@ -9,4 +9,4 @@ export {
   ok,
   strictEqual,
   throws,
-} from "~/.as-harness/node:assert/shared";
+} from "~/.as-harness/node_assert/shared";

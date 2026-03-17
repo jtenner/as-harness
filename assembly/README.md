@@ -15,9 +15,9 @@ The guest/host boundary used by the shipped hosts is documented in [docs/harness
   Guest runtime internals such as traversal, execution, events, hooks, and trampoline behavior.
 - `assembly/assembly/exports.ts`
   The exported Wasm surface expected by hosts.
-- `assembly/assembly/node:test/`
+- `assembly/assembly/node_test/`
   The current test-declaration adapter.
-- `assembly/assembly/node:assert/`
+- `assembly/assembly/node_assert/`
   The current assertion adapters.
 - `assembly/assembly/test/`
   Guest-side fixtures and AssemblyScript smoke coverage.

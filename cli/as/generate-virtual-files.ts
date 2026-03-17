@@ -65,10 +65,32 @@ function renderImports(sourceFiles: readonly string[], offset = 0): string[] {
 	});
 }
 
+function assemblyVirtualPathsFor(relativePath: string): string[] {
+	const defaultVirtualPath = `${VIRTUAL_ROOT}/${relativePath}`;
+
+	switch (relativePath) {
+		case "lib/node_assert.ts":
+			return [defaultVirtualPath, `${VIRTUAL_ROOT}/lib/node:assert.ts`];
+		case "lib/node_assert/legacy.ts":
+			return [defaultVirtualPath, `${VIRTUAL_ROOT}/lib/node:assert/legacy.ts`];
+		case "lib/node_assert/shared.ts":
+			return [defaultVirtualPath, `${VIRTUAL_ROOT}/lib/node:assert/shared.ts`];
+		case "lib/node_assert/strict.ts":
+			return [defaultVirtualPath, `${VIRTUAL_ROOT}/lib/node:assert/strict.ts`];
+		case "lib/node_test_lib.ts":
+			return [defaultVirtualPath, `${VIRTUAL_ROOT}/lib/node:test.ts`];
+		default:
+			return [defaultVirtualPath];
+	}
+}
+
 function renderAssemblyMapEntries(sourceFiles: readonly string[]): string[] {
-	return sourceFiles.map((sourceFile, index) => {
+	return sourceFiles.flatMap((sourceFile, index) => {
 		const relativePath = toPosixPath(relative(ASSEMBLY_SOURCE_DIR, sourceFile));
-		return `\t[\`${VIRTUAL_ROOT}/${relativePath}\`, ${variableNameForIndex(index)}],`;
+		return assemblyVirtualPathsFor(relativePath).map(
+			(virtualPath) =>
+				`\t[\`${virtualPath}\`, ${variableNameForIndex(index)}],`,
+		);
 	});
 }
 

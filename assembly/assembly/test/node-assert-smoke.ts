@@ -1,4 +1,4 @@
-import assert from "../node:assert";
+import assert from "../node_assert";
 import {
   deepStrictEqual,
   doesNotThrow,
@@ -11,8 +11,8 @@ import {
   ok,
   strictEqual,
   throws,
-} from "../node:assert";
-import { strict } from "../node:assert";
+} from "../node_assert";
+import { strict } from "../node_assert";
 export { invoke } from "../internal/trampoline";
 
 export function runDeepStrictEqualPass(): void {

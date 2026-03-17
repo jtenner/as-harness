@@ -123,6 +123,21 @@ test("does not duplicate the bundled strict-equality transform when it is alread
 	expect(result).toEqual(compilerOptions);
 });
 
+test("bundles Windows-safe assembly paths alongside public node:* library aliases", () => {
+	expect(
+		bundledVirtualFiles.get(`${bundledVirtualRoot}/lib/node_assert.ts`),
+	).toBe(bundledVirtualFiles.get(`${bundledVirtualRoot}/lib/node:assert.ts`));
+	expect(
+		bundledVirtualFiles.get(`${bundledVirtualRoot}/lib/node_test_lib.ts`),
+	).toBe(bundledVirtualFiles.get(`${bundledVirtualRoot}/lib/node:test.ts`));
+	expect(
+		bundledVirtualFiles.has(`${bundledVirtualRoot}/node_assert/index.ts`),
+	).toBe(true);
+	expect(
+		bundledVirtualFiles.has(`${bundledVirtualRoot}/node_test/index.ts`),
+	).toBe(true);
+});
+
 test("compileEntrypoints works inside a compiled Bun executable with bundled strict-equality support", async () => {
 	const tempDirectory = await mkdtemp(
 		join(tmpdir(), "as-harness-compiled-asc-"),

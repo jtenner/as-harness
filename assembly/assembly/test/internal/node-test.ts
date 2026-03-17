@@ -15,7 +15,7 @@ import {
   todo,
   SuiteContext,
   TestContext,
-} from "../../node:test";
+} from "../../node_test";
 
 function noopSuite(_context: SuiteContext): void {}
 

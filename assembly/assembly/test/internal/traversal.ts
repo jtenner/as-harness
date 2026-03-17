@@ -1,4 +1,4 @@
-import { SuiteContext, TestContext } from "../../node:test";
+import { SuiteContext, TestContext } from "../../node_test";
 import { DeclarationMode, NodeKind } from "../../internal/imports";
 import { currentNode, Node, NodeExecutionOptions } from "../../internal/node";
 import {

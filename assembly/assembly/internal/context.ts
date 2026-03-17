@@ -30,7 +30,7 @@ import {
   strictEqual,
   throws,
   deepStrictEqual,
-} from "../node:assert/shared";
+} from "../node_assert/shared";
 
 export class AssertionFacade {
   ok<T>(value: T, message: string | null = null): void {

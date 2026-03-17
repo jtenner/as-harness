@@ -5,7 +5,7 @@ import {
   beforeEach,
   test,
   TestContext,
-} from "../node:test";
+} from "../node_test";
 
 export { allocateNodeIndexBuffer, discover, invoke, run } from "../exports";
 
