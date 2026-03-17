@@ -23,7 +23,7 @@
 - `stage-release-legal.ts`
   Copies `THIRD_PARTY_NOTICES.md` and the tracked third-party license texts into a release asset directory.
 - `verify-packaged-cli.ts`
-  Builds one packaged CLI target, runs its local smoke path with a bounded subprocess timeout, and optionally copies the built asset into a release directory.
+  Builds one packaged CLI target, stages the release-named executable into a temporary install directory, runs its smoke path from a separate temporary project directory with a bounded subprocess timeout, optionally copies the verified asset into a release directory, and can emit JSON/Markdown proof reports.
 
 ## What These Scripts Prove
 
@@ -33,6 +33,7 @@
 - the source-host matrix is explicit rather than hard-coded into one CI job
 - source-host proof now produces persisted per-target reports instead of relying only on CI step names
 - the packaged CLI path still works locally for a selected release target
+- the packaged CLI path works from a clean staged install-like directory instead of only beside the repo checkout
 - the release workflow can publish explicit artifact metadata instead of relying on inferred platform behavior
 - the published release assets have checksums and tag/version consistency checks
 - the published release assets now include the tracked third-party legal bundle
@@ -56,8 +57,8 @@ cd harness/js && npm test
 cd harness/wazero && npm test
 cd harness/wasmtime && npm test
 bun run release:matrix
+bun run verify:packaged-cli -- --target bun-linux-x64 --report-dir ./dist/packaged-cli-reports
 bun run release:manifest -- --tag v0.1.0 --asset-dir ./dist/release-assets --notes-file ./dist/release-notes.md
-bun run verify:packaged-cli --target bun-linux-x64
 ```
 
 ## Related Docs

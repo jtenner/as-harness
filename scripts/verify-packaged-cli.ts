@@ -1,10 +1,18 @@
 #!/usr/bin/env bun
 
-import { copyFile, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import {
+	appendFile,
+	copyFile,
+	mkdtemp,
+	mkdir,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
 	executableFilenameForTarget,
+	releaseBuildTargetForCompileTarget,
 	packagedHarnessesForCompileTarget,
 	releaseAssetFilenameForTarget,
 } from "../cli/build-targets";
@@ -13,11 +21,25 @@ const REPO_DIR = join(import.meta.dir, "..");
 
 type ParsedArguments = {
 	assetDir?: string;
+	reportDir?: string;
 	target: string;
 };
 
 type CommandResult = {
+	command: string[];
+	cwd: string;
 	exitCode: number;
+	stderr: string;
+	stdout: string;
+	timedOut: boolean;
+};
+
+type HarnessRunReport = {
+	command: string[];
+	cwd: string;
+	durationMs: number;
+	exitCode: number;
+	harness: string;
 	stderr: string;
 	stdout: string;
 	timedOut: boolean;
@@ -27,6 +49,7 @@ const COMMAND_TIMEOUT_MS = 60_000;
 
 function parseArguments(argv: string[]): ParsedArguments {
 	let assetDir: string | undefined;
+	let reportDir: string | undefined;
 	let target: string | undefined;
 
 	for (let index = 0; index < argv.length; index += 1) {
@@ -44,6 +67,12 @@ function parseArguments(argv: string[]): ParsedArguments {
 			continue;
 		}
 
+		if (argument === "--report-dir") {
+			reportDir = argv[index + 1];
+			index += 1;
+			continue;
+		}
+
 		throw new Error(`Unknown argument: ${argument}`);
 	}
 
@@ -51,7 +80,7 @@ function parseArguments(argv: string[]): ParsedArguments {
 		throw new Error("Missing required --target <compile-target> argument.");
 	}
 
-	return { assetDir, target };
+	return { assetDir, reportDir, target };
 }
 
 async function runCommand(
@@ -76,7 +105,7 @@ async function runCommand(
 			processHandle.exited,
 		]);
 
-		return { exitCode, stderr, stdout, timedOut };
+		return { command, cwd, exitCode, stderr, stdout, timedOut };
 	} finally {
 		clearTimeout(timeoutHandle);
 	}
@@ -90,9 +119,50 @@ function assertContains(text: string, expected: string, context: string) {
 	}
 }
 
+function assertSmokePass(
+	result: CommandResult,
+	target: string,
+	harness: string,
+) {
+	const output = [result.stdout, result.stderr].filter(Boolean).join("\n");
+	assertContains(
+		output,
+		`PASS 1 passed, 0 failed, 1 discovered with ${harness}.`,
+		`Packaged ${harness} smoke for ${target}`,
+	);
+}
+
+function renderMarkdownSummary(
+	target: string,
+	packagedHarnesses: readonly string[],
+	reports: HarnessRunReport[],
+) {
+	const lines = [
+		`# Packaged CLI Verification: ${target}`,
+		"",
+		`- Packaged harnesses: ${packagedHarnesses.map((harness) => `\`${harness}\``).join(", ")}`,
+		`- Verification mode: clean-environment staged executable`,
+		"",
+		"## Results",
+		"",
+		...reports.map(
+			(report) =>
+				`- \`${report.harness}\`: ${report.exitCode === 0 ? "pass" : "fail"} in ${report.durationMs}ms`,
+		),
+		"",
+	];
+
+	return `${lines.join("\n")}\n`;
+}
+
 async function main() {
-	const { assetDir, target } = parseArguments(process.argv.slice(2));
-	const executablePath = join(
+	const { assetDir, reportDir, target } = parseArguments(process.argv.slice(2));
+	const targetMetadata = releaseBuildTargetForCompileTarget(target);
+	if (targetMetadata === null) {
+		throw new Error(`Unknown packaged release target: ${target}`);
+	}
+
+	const builtExecutablePath = join(
 		REPO_DIR,
 		"cli",
 		"dist",
@@ -100,6 +170,7 @@ async function main() {
 		executableFilenameForTarget(target),
 	);
 	const packagedHarnesses = packagedHarnessesForCompileTarget(target);
+	const releaseAssetFilename = releaseAssetFilenameForTarget(target);
 
 	console.log(`Building packaged CLI target ${target}...`);
 
@@ -122,7 +193,15 @@ async function main() {
 	const tempDirectory = await mkdtemp(join(tmpdir(), "as-harness-packaged-cli-"));
 
 	try {
-		const entryFile = join(tempDirectory, "suite.test.ts");
+		const installDirectory = join(tempDirectory, "install");
+		const projectDirectory = join(tempDirectory, "project");
+		await mkdir(installDirectory, { recursive: true });
+		await mkdir(projectDirectory, { recursive: true });
+
+		const stagedExecutablePath = join(installDirectory, releaseAssetFilename);
+		await copyFile(builtExecutablePath, stagedExecutablePath);
+
+		const entryFile = join(projectDirectory, "suite.test.ts");
 		await writeFile(
 			entryFile,
 			[
@@ -136,65 +215,80 @@ async function main() {
 			"utf8",
 		);
 
-		console.log(`Running packaged ${target} smoke test through js...`);
+		const reports: HarnessRunReport[] = [];
 
-		const jsRunResult = await runCommand(
-			[executablePath, "run", entryFile],
-			REPO_DIR,
-		);
-
-		if (jsRunResult.exitCode !== 0) {
-			throw new Error(
-				[
-					`Packaged js smoke failed for ${target}.`,
-					jsRunResult.timedOut
-						? `Timed out after ${COMMAND_TIMEOUT_MS}ms.`
-						: "",
-					jsRunResult.stdout,
-					jsRunResult.stderr,
-				].join("\n"),
-			);
-		}
-
-		assertContains(
-			jsRunResult.stdout,
-			"PASS 1 test(s) across 1 top-level node(s) with js.",
-			`Packaged js smoke for ${target}`,
-		);
-
-		if (packagedHarnesses.includes("wazero")) {
-			console.log(`Running packaged ${target} smoke test through wazero...`);
-
-			const wazeroRunResult = await runCommand(
-				[executablePath, "run", "--harness", "wazero", entryFile],
-				REPO_DIR,
+		for (const harness of packagedHarnesses) {
+			console.log(
+				`Running packaged ${target} clean-environment smoke test through ${harness}...`,
 			);
 
-			if (wazeroRunResult.exitCode !== 0) {
+			const command =
+				harness === "js"
+					? [stagedExecutablePath, "run", entryFile]
+					: [stagedExecutablePath, "run", "--harness", harness, entryFile];
+			const startedAt = performance.now();
+			const runResult = await runCommand(command, projectDirectory);
+			const durationMs = Math.round(performance.now() - startedAt);
+			reports.push({
+				command: runResult.command,
+				cwd: runResult.cwd,
+				durationMs,
+				exitCode: runResult.exitCode,
+				harness,
+				stderr: runResult.stderr,
+				stdout: runResult.stdout,
+				timedOut: runResult.timedOut,
+			});
+
+			if (runResult.exitCode !== 0) {
 				throw new Error(
 					[
-						`Packaged wazero smoke failed for ${target}.`,
-						wazeroRunResult.timedOut
+						`Packaged ${harness} smoke failed for ${target}.`,
+						runResult.timedOut
 							? `Timed out after ${COMMAND_TIMEOUT_MS}ms.`
 							: "",
-						wazeroRunResult.stdout,
-						wazeroRunResult.stderr,
+						runResult.stdout,
+						runResult.stderr,
 					].join("\n"),
 				);
 			}
 
-			assertContains(
-				wazeroRunResult.stdout,
-				"PASS 1 test(s) across 1 top-level node(s) with wazero.",
-				`Packaged wazero smoke for ${target}`,
-			);
+			assertSmokePass(runResult, target, harness);
 		}
 
 		if (assetDir) {
 			await mkdir(assetDir, { recursive: true });
-			const assetPath = join(assetDir, releaseAssetFilenameForTarget(target));
-			await copyFile(executablePath, assetPath);
+			const assetPath = join(assetDir, releaseAssetFilename);
+			await copyFile(stagedExecutablePath, assetPath);
 			console.log(`Copied release asset to ${assetPath}`);
+		}
+
+		if (reportDir) {
+			const report = {
+				generatedAt: new Date().toISOString(),
+				packagedHarnesses,
+				releaseAssetFilename,
+				runner: targetMetadata.runner,
+				stagedExecutablePath,
+				target,
+				reports,
+			};
+			const markdownSummary = renderMarkdownSummary(
+				target,
+				packagedHarnesses,
+				reports,
+			);
+			await mkdir(reportDir, { recursive: true });
+			const jsonPath = join(reportDir, `packaged-cli-${target}.json`);
+			const markdownPath = join(reportDir, `packaged-cli-${target}.md`);
+			await writeFile(jsonPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+			await writeFile(markdownPath, markdownSummary, "utf8");
+			if (process.env.GITHUB_STEP_SUMMARY) {
+				await appendFile(process.env.GITHUB_STEP_SUMMARY, markdownSummary, "utf8");
+			}
+			console.log(markdownSummary);
+			console.log(`Wrote ${jsonPath}`);
+			console.log(`Wrote ${markdownPath}`);
 		}
 	} finally {
 		await rm(tempDirectory, { force: true, recursive: true });

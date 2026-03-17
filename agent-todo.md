@@ -66,7 +66,7 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 ### Release Engineering
 
 - [ ] Revisit standalone Bun-compiled CLI binaries vs `npm` packaging after the first release workflow is proven.
-- [ ] Verify install and smoke-run flows from a clean environment on each supported platform.
+- [x] Verify install and smoke-run flows from a clean environment on each supported platform.
 
 ### Strict Equality Machinery
 

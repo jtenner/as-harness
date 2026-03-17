@@ -46,7 +46,7 @@ cd harness/wazero && npm test
 cd harness/wasmtime && npm test
 cd /path/to/as-harness
 bun run release:matrix
-bun run verify:packaged-cli --target bun-linux-x64
+bun run verify:packaged-cli -- --target bun-linux-x64 --report-dir ./dist/packaged-cli-reports
 ```
 
 If you want to inspect the exact packaged release target list locally:
@@ -81,6 +81,7 @@ The main workflow should be green before tagging:
 The packaged verification path is owned by [verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts).
 The source-host matrix is emitted by [host-validation-matrix.ts](../scripts/host-validation-matrix.ts).
 The per-target source-host verification reports are emitted by [verify-source-hosts.ts](../scripts/verify-source-hosts.ts).
+The per-target packaged clean-environment reports are emitted by [verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts).
 
 ## Tagging
 
@@ -127,6 +128,14 @@ For each supported platform, the clean-environment expectation is:
 4. confirm the reported harness matches the target contract
 
 Windows packaged artifacts are expected to stop at step 2 because they are intentionally `js`-only right now.
+
+The current packaged verification helper models this by:
+
+1. building the selected packaged target
+2. copying the release-named executable into a temporary install directory
+3. creating a separate temporary project directory with a minimal smoke file
+4. running the staged executable from that separate project directory
+5. optionally writing JSON and Markdown proof reports for the target
 
 ## If A Release Fails
 

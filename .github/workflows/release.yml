@@ -61,7 +61,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build and verify packaged release artifact
-        run: bun run ./scripts/verify-packaged-cli.ts --target "${{ matrix.compileTarget }}" --asset-dir ./dist/release-assets
+        run: bun run ./scripts/verify-packaged-cli.ts --target "${{ matrix.compileTarget }}" --asset-dir ./dist/release-assets --report-dir ./dist/packaged-cli-reports
 
       - name: Upload release asset
         uses: actions/upload-artifact@v4
@@ -69,6 +69,14 @@ jobs:
           if-no-files-found: error
           name: ${{ matrix.artifactName }}
           path: ./dist/release-assets/*
+
+      - name: Upload packaged CLI verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: packaged-cli-report-${{ matrix.compileTarget }}
+          path: ./dist/packaged-cli-reports/*
 
   publish-release:
     name: Publish GitHub release

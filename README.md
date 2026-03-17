@@ -63,7 +63,6 @@ What works today:
 
 What is still open:
 
-- clean-environment install and smoke verification for each shipped release artifact
 - final end-user release proof beyond CI, especially download-and-run verification on each supported platform
 - the remaining host-runner contract and ABI-stability cleanup listed in [agent-todo.md](./agent-todo.md)
 - deferred framework adapters and fuller `node:test` runner semantics
