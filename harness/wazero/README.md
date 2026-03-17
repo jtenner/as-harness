@@ -53,6 +53,13 @@ For packaged CLI builds:
 - the packaged Bun executable must stage the matching `.node` file
 - Linux `glibc` is in scope for `v0.1.0`; `musl` is not
 
+Current packaged-platform note:
+
+- source-based Windows addon builds are supported
+- packaged Windows CLI artifacts currently fall back to `js` instead of bundling
+  `wazero`, because Bun's standalone Windows executable is still crashing while
+  loading the native `.node` addon
+
 The repo now has workflow definitions for this path, but the full cross-target release story still needs repeated green runs and end-user validation.
 
 ## Testing

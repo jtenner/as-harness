@@ -91,6 +91,11 @@ The current release-target matrix is:
 - `bun-linux-x64`
 - `bun-windows-x64`
 
+Packaged `wazero` support currently ships on macOS and Linux. Packaged Windows
+artifacts run through the default `js` harness for now because Bun's standalone
+Windows executable path is still crashing when it loads the native `.node`
+addon. Source-based Windows `wazero` development remains supported.
+
 For `wazero`, every supported release target needs a matching `.node` addon build. The `js` host remains the portable baseline.
 
 ## Custom Harnesses

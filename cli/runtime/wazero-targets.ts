@@ -28,9 +28,9 @@ const COMPILE_TARGET_TO_WAZERO_ADDON_TARGET: Record<
 	"bun-linux-x64-modern": "linux-x64-gnu",
 	"bun-linux-x64-modern-musl": WAZERO_UNAVAILABLE_TARGET,
 	"bun-linux-x64-musl": WAZERO_UNAVAILABLE_TARGET,
-	"bun-windows-x64": "windows-x64",
-	"bun-windows-x64-baseline": "windows-x64",
-	"bun-windows-x64-modern": "windows-x64",
+	"bun-windows-x64": WAZERO_UNAVAILABLE_TARGET,
+	"bun-windows-x64-baseline": WAZERO_UNAVAILABLE_TARGET,
+	"bun-windows-x64-modern": WAZERO_UNAVAILABLE_TARGET,
 };
 
 export function resolveWazeroAddonTargetForCompileTarget(target: string) {

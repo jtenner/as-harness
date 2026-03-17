@@ -19,13 +19,13 @@ test("resolveWazeroAddonTargetForCompileTarget maps supported build targets", ()
 	expect(resolveWazeroAddonTargetForCompileTarget("bun-linux-arm64")).toBe(
 		"linux-arm64-gnu",
 	);
-	expect(resolveWazeroAddonTargetForCompileTarget("bun-windows-x64")).toBe(
-		"windows-x64",
-	);
 });
 
 test("resolveWazeroAddonTargetForCompileTarget marks unsupported or musl targets unavailable", () => {
 	expect(resolveWazeroAddonTargetForCompileTarget("bun-linux-x64-musl")).toBe(
+		WAZERO_UNAVAILABLE_TARGET,
+	);
+	expect(resolveWazeroAddonTargetForCompileTarget("bun-windows-x64")).toBe(
 		WAZERO_UNAVAILABLE_TARGET,
 	);
 	expect(resolveWazeroAddonTargetForCompileTarget("unknown-target")).toBe(
