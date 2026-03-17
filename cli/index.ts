@@ -123,7 +123,7 @@ Forced Compiler Defaults:
   --target debug
   --outFile output.wasm
   --debug
-  --exportStart ""
+  --exportStart __start
   --noColors`);
 }
 
