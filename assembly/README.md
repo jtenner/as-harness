@@ -38,8 +38,8 @@ Implemented today:
 
 Still open:
 
-- fuller replay and traversal semantics
-- more complete lifecycle and failure propagation modeling
+- long-term host-runner contract cleanup and ABI-stability follow-through
+- the deferred scheduler-step entrypoint decision
 - more framework adapters
 - richer reflected diagnostics and strict-equality follow-through
 

@@ -61,7 +61,7 @@ Current packaged-platform note:
   `wazero`, because Bun's standalone Windows executable is still crashing while
   loading the native `.node` addon
 
-The repo now has workflow definitions for this path, but the full cross-target release story still needs repeated green runs and end-user validation.
+The hosted release matrix now builds and verifies the packaged targets in CI. The remaining release proof is clean-environment download-and-run validation for end users on each shipped platform.
 
 ## Testing
 

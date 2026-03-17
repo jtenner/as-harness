@@ -15,8 +15,10 @@ The `wazero` host is not just JavaScript. It requires a target-specific `.node` 
 ## Current Limits
 
 - only the current machine’s matching addon can be built locally by default
-- the full release story still depends on the GitHub-hosted matrix producing the other supported target artifacts
+- cross-target packaged addons still depend on the GitHub-hosted release matrix producing the non-local target artifacts
 - Linux `musl` is intentionally excluded from the first release scope
+
+The hosted matrix is now the canonical way the release gathers the packaged target set into one GitHub release.
 
 ## Related Docs
 

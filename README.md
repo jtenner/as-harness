@@ -49,12 +49,14 @@ What works today:
 - packaged Bun executables can run the local smoke path for both hosts
 - the host parity smoke suite now covers event decoding, `callI32`, `discover`, `run`, `start`, and trampoline behavior across `js` and `wazero`
 - the release workflows can build and smoke-test the packaged CLI across the intended release targets
+- the release workflow now publishes `release-manifest.json`, `SHA256SUMS.txt`, and generated release notes alongside the packaged executables
+- the packaged release path now enforces Git tag to CLI version alignment for `v0.1.0`
 
 What is still open:
 
-- proving the GitHub Actions matrix on all hosted runners
-- documenting and hardening the wazero addon install story for end users
-- more complete host-facing protocol notes for independent harness authors
+- clean-environment install and smoke verification for each shipped release artifact
+- final end-user release proof beyond CI, especially download-and-run verification on each supported platform
+- the remaining host-runner contract and ABI-stability cleanup listed in [agent-todo.md](/home/jtenner/Projects/as-harness/agent-todo.md)
 - deferred framework adapters and fuller `node:test` runner semantics
 
 ## Quick Start
@@ -92,7 +94,7 @@ The current release-target matrix is:
 - `bun-linux-x64`
 - `bun-windows-x64`
 
-Packaged `wazero` support currently ships on macOS and Linux. Packaged Windows
+Packaged `wazero` support ships on macOS and Linux. Packaged Windows
 artifacts run through the default `js` harness for now because Bun's standalone
 Windows executable path is still crashing when it loads the native `.node`
 addon. Source-based Windows `wazero` development remains supported.
