@@ -475,13 +475,48 @@ follow immediately after the equality core. They should not block the first
 round of transform-generated class equality hooks, runtime recursion support, or
 the initial `deepStrictEqual(...)` bridge.
 
+### Stack Trace Ownership
+
+Guest code should own stack-trace construction for reflected diagnostics and
+strict-equality failures.
+
+The host must not try to infer a guest stack from Wasm execution state alone.
+It only knows that guest code ran, not which source-level or function-level
+frames the compiled AssemblyScript intended to expose.
+
+The guest/runtime contract should therefore grow a narrow ABI that lets the
+host request the current guest stack trace as a string and lift that string
+without interpreting its structure.
+
+Acceptable guest-side implementations include:
+
+- building the string from guest-maintained stack state
+- transform-driven instrumentation that pushes or pops function labels
+- runtime facilities such as `Error` construction where the target environment
+  makes that practical
+
+Reflected values and strict-equality diagnostics may attach that guest-produced
+stack string when it is available, but the string remains guest-authored data.
+
+### Failure Message Policy
+
+Deep-equality adapters should not try to generate rich default prose in either
+the guest or the host for `v0.1.0`.
+
+Policy for the first release:
+
+- test authors own assertion failure message text
+- the harness may report the compared reflected shapes do not match
+- richer synthesized explanations remain out of scope until a later release
+
 ## Remaining Decisions
 
-The machinery plan is now constrained enough to start implementation, but one
-important assertion-layer detail still needs to harden before the adapter work
-finishes:
+The machinery plan is now constrained enough to start implementation, but two
+diagnostics details are still intentionally deferred:
 
-- how default deep-equality failure messages should be produced in v1
+- whether reflected extraction needs custom display overrides in `v1`
+- how much source-context payload beyond the guest-owned stack string belongs in
+  reflected diagnostics
 
 ## Deliverable Boundaries
 

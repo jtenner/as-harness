@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-03-17
+
+- **docs: record v0.1.0 scope and diagnostics decisions** Update `agent-todo.md` with the accepted `v0.1.0` product scope, release-channel, host-selection, support-matrix, stack-trace, and deep-equality policy decisions; extend `docs/strict-equality-machinery.md` with guest-owned stack-trace ABI and minimal shape-mismatch reporting notes; and align the root `README.md` with the GitHub-release and non-`musl` first-release direction. GitHub: *@jtenner*
+
 ## 2026-03-15
 
 - **docs: rewrite the README set around the dual-host MVP** Replace the missing root README and refresh the package READMEs for `cli/`, `assembly/`, `harness/js`, `harness/wazero`, `cli/n-api`, and `scripts/` so they describe the current architecture, clearly separate implemented behavior from roadmap work, and document the intended MVP as shipping both the portable JS host path and the target-specific wazero Node-API addon path without overstating current CLI/runtime integration. GitHub: *@jtenner*

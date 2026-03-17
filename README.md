@@ -45,6 +45,7 @@ Still scaffolded or planned:
 
 Goal:
 
+- Use a GitHub `build/tag/release` workflow as the `v0.1.0` release channel.
 - Ship a simple `single-file Bun executable` per platform as the main distribution artifact.
 - Make both the `JS host` and the `wazero host` part of the MVP product story.
 
@@ -56,13 +57,15 @@ Planned MVP shape:
 
 The repo already proves pieces of this strategy, but it does not yet prove the full packaged MVP across all targets.
 
+For `v0.1.0`, `npm` publication is out of scope. The first release should ship through GitHub release artifacts.
+
 ## Do I Need To Compile wazero For Every Target?
 
 Yes, if you ship the `wazero host` path:
 
 - The `.node` `Node-API addon` is a `target-specific native artifact`.
 - You need one build per target platform and architecture.
-- On Linux, libc variants can matter too, so `glibc` and `musl` may need separate release artifacts.
+- For `v0.1.0`, Linux support should target `glibc`; `musl` is intentionally out of scope for the first release.
 
 No, if you ship only the pure `JS host` path:
 
@@ -77,7 +80,7 @@ No, if you ship only the pure `JS host` path:
 
 1. Make the product boundary explicit: define the MVP as shipping both the `JS host` and the `wazero host`.
 2. Wire the CLI packaging story so the `JS host` is the portable baseline and the `wazero host` is the target-specific native companion path.
-3. Add a CI matrix that validates Bun executable builds plus host-package smoke tests per target.
+3. Add a CI matrix that validates Bun executable builds plus host-package smoke tests for the supported `macOS`, `Windows`, and `Linux` targets, with `arm64` added where host validation proves it.
 4. Harden how the `Node-API addon` is bundled, embedded, or extracted for the `wazero host` path.
 
 ## Development Commands

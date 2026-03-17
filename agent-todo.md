@@ -4,6 +4,9 @@ Primary scope: `assembly/`. This checklist covers the remaining Wasm-side
 runtime work defined in `docs/primary-buildout.md` plus the release-gating host
 and CLI work needed to ship the runner.
 
+Decision notes in this file reflect accepted `v0.1.0` scope unless a line says
+the decision is deferred.
+
 ## Publish Blockers
 
 Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
@@ -11,18 +14,19 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 
 ### Product Definition
 
-- [ ] Freeze the first shippable product scope for an AssemblyScript test runner.
-- [ ] Decide which surfaces are explicitly in scope for v1:
-- [ ] synchronous `node:test`
-- [ ] `node:assert`
-- [ ] `node:assert/strict`
-- [ ] `js` host
-- [ ] `wazero` host
-- [ ] Decide which currently deferred features stay out of scope for v1:
-- [ ] async / Promise-based test APIs
-- [ ] snapshots
-- [ ] worker-oriented execution controls
-- [ ] additional framework adapters beyond `node:test`
+- [x] Freeze the first shippable product scope for an AssemblyScript test runner as `v0.1.0`.
+- [x] Decide which surfaces are explicitly in scope for `v0.1.0`:
+- [x] synchronous `node:test`
+- [x] `node:assert`
+- [x] `node:assert/strict`
+- [x] `js` host
+- [x] `wazero` host
+- [x] basic reporting for failed tests and failure messages
+- [x] Decide which currently deferred features stay out of scope for `v0.1.0`:
+- [x] async / Promise-based test APIs
+- [x] snapshots
+- [x] worker-oriented execution controls
+- [x] additional framework adapters beyond `node:test`
 
 ### CLI Runner
 
@@ -30,12 +34,12 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 - [ ] Resolve entry files, compile them, and execute them through a selected host.
 - [ ] Forward the documented `run` compiler/runtime flags into the actual CLI implementation.
 - [ ] Decide and implement host selection policy for shipped builds:
-- [ ] default host
+- [x] default host: `js`
 - [ ] explicit host override
 - [ ] unsupported-host failure behavior
 - [ ] Emit stable process exit codes for pass, test failure, compile failure, and host/runtime failure.
 - [ ] Add human-readable run summaries and failure output suitable for normal CLI use.
-- [ ] Decide whether coverage is deferred or included in the first shipped release.
+- [x] Decide whether coverage is deferred or included in the first shipped release. Coverage is deferred for `v0.1.0`.
 
 ### Host Runtime Shipping
 
@@ -45,7 +49,10 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 - [ ] `discover(nodeIndex)`
 - [ ] `run(nodeIndex)`
 - [ ] trampoline-backed trap observation
-- [ ] Decide the supported host/platform matrix for the first release.
+- [x] Decide the supported host/platform matrix for the first release.
+- [x] Release targets: macOS, Windows, and Linux.
+- [x] Support `arm64` where practical once proven by host-specific validation.
+- [x] Do not support Linux `musl` in `v0.1.0`.
 - [ ] Prove `harness/js` works on the supported Node versions for the release.
 - [ ] Prove `harness/wazero` builds and runs on the supported OS / architecture matrix.
 - [ ] Package or document the wazero native-addon build/install story so users can actually run it.
@@ -57,7 +64,7 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 - [ ] Finish the host-runner contract items that are still open below and are required for shipping.
 - [ ] Write protocol notes for host implementers that do not rely on reading AssemblyScript internals.
 - [ ] Keep the ABI flat, language-agnostic, and stable enough to support both shipped hosts.
-- [ ] Decide whether scheduler-step entrypoints are required for the shipped runner or explicitly deferred.
+- [ ] Decide whether scheduler-step entrypoints are required for the shipped runner or explicitly deferred. This decision is deferred for now.
 - [ ] Add fixtures that cover replay invalidation, branch pruning, lifecycle callback failure propagation, and clean recovery after traps.
 
 ### Reporting, UX, and Docs
@@ -70,10 +77,9 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 
 ### Release Engineering
 
-- [ ] Decide the first distribution channel:
-- [ ] standalone Bun-compiled CLI binaries
-- [ ] npm package
-- [ ] both
+- [x] Decide the first distribution channel.
+- [x] Use a GitHub build/tag/release flow for `v0.1.0`.
+- [ ] Revisit standalone Bun-compiled CLI binaries vs `npm` packaging after the first release workflow is proven.
 - [ ] Add CI coverage for validation, root tests, host package smoke tests, and release-artifact verification.
 - [ ] Define release/versioning steps for the CLI package and shipped host runtimes.
 - [ ] Verify install and smoke-run flows from a clean environment on each supported platform.
@@ -85,15 +91,19 @@ Cross-package scope: `cli/transform`, `assembly/`, and
 
 ### Reflected Diagnostics Instrumentation
 
-- [ ] Decide whether reflected extraction must support custom display overrides in v1 or later.
+- [ ] Decide whether reflected extraction must support custom display overrides in v1 or later. This decision is deferred for now.
 
 ### Assembly Runtime Reflected Value Core
 
-- [ ] Define whether stack traces or source context attach to reflected values in v1 or later.
+- [x] Define whether stack traces or source context attach to reflected values in v1 or later.
+- [x] Guest code owns stack-trace construction; the host should not infer guest execution frames.
+- [x] Add a host/guest ABI so the host can request the current guest stack trace and lift it as a string.
+- [x] Allow reflected values and diagnostics to attach that guest-produced stack string when available.
 
 ### Assertion Bridge Integration
 
-- [ ] Decide whether default deep-equality failure messages are generated in the guest, in the host, or deferred.
+- [x] Decide whether default deep-equality failure messages are generated in the guest, in the host, or deferred.
+- [x] Test authors own failure message text; default reporting stays minimal and only reports that compared shapes do not match.
 
 ### Compiler Wrapper Integration
 
@@ -109,7 +119,7 @@ Cross-package scope: `cli/transform`, `assembly/`, and
 
 ## Framework Library Entry Points and Declaration Adapters
 
-- [ ] Define the exported declarations each framework entry point must provide to match that framework's test-definition surface.
+- [ ] Define the exported declarations each framework entry point must provide to match that framework's test-definition surface. Do this incrementally as adapter capabilities land through `v1.0`.
 - [ ] Map each framework's declaration surface onto shared internal representations for `test`, `describe`, `skip`, `todo`, hooks, and assertion integration.
 - [ ] Route the shared internal declaration representations through WebAssembly imports as required by the current design.
 - [ ] Standardize the metadata captured by every adapter at declaration time: node kind, name, declaration mode, callback reference, and parent scope context.
@@ -121,7 +131,8 @@ Note: after the current `node:test` closeout, the remaining unchecked items in
 this section are deferred unless the project explicitly resumes fuller
 host-runner work.
 
-- [ ] Define the targeted traversal input contract for replaying toward a requested node path.
+- [ ] Investigate AST traversal / transform-generated test-shape extraction as an alternative to replay-driven runtime visitation.
+- [ ] Define the targeted traversal input contract for replaying toward a requested node path. This decision is deferred for now.
 - [ ] Emit `NodeFound` during discovery for every structurally visible node.
 - [ ] Enforce declaration-mode traversal semantics:
 - [ ] `skip`: emit discovery metadata, stop traversal at that node, and do not traverse children.
@@ -151,6 +162,7 @@ host-runner work.
 
 - [ ] Decide whether scheduler-step entrypoints are required now or deferred.
 - [ ] Keep the ABI simple, flat, and language-agnostic.
+- [x] Add an ABI path for the host to request the current guest stack trace as a string without inferring stack structure itself.
 
 ## Ephemeral Runtime State
 
