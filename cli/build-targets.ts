@@ -1,5 +1,7 @@
 const EXECUTABLE_NAME = "as-harness";
 
+export type PackagedHarness = "js" | "wazero";
+
 // Bun's compile-target grammar accepts more strings than the executable docs
 // currently list. This matrix sticks to the documented supported targets and
 // the explicit x64 SIMD variants Bun accepts for those targets.
@@ -24,6 +26,7 @@ export const COMPILE_TARGETS: Bun.Build.CompileTarget[] = [
 export type ReleaseBuildTarget = {
 	artifactName: string;
 	compileTarget: Bun.Build.CompileTarget;
+	packagedHarnesses: PackagedHarness[];
 	runner: string;
 };
 
@@ -33,26 +36,31 @@ export const RELEASE_BUILD_TARGETS: ReleaseBuildTarget[] = [
 	{
 		artifactName: "as-harness-bun-darwin-arm64",
 		compileTarget: "bun-darwin-arm64",
+		packagedHarnesses: ["js", "wazero"],
 		runner: "macos-15",
 	},
 	{
 		artifactName: "as-harness-bun-darwin-x64",
 		compileTarget: "bun-darwin-x64",
+		packagedHarnesses: ["js", "wazero"],
 		runner: "macos-15-intel",
 	},
 	{
 		artifactName: "as-harness-bun-linux-arm64",
 		compileTarget: "bun-linux-arm64",
+		packagedHarnesses: ["js", "wazero"],
 		runner: "ubuntu-24.04-arm",
 	},
 	{
 		artifactName: "as-harness-bun-linux-x64",
 		compileTarget: "bun-linux-x64",
+		packagedHarnesses: ["js", "wazero"],
 		runner: "ubuntu-24.04",
 	},
 	{
 		artifactName: "as-harness-bun-windows-x64",
 		compileTarget: "bun-windows-x64",
+		packagedHarnesses: ["js"],
 		runner: "windows-2025",
 	},
 ];
@@ -60,6 +68,22 @@ export const RELEASE_BUILD_TARGETS: ReleaseBuildTarget[] = [
 export const RELEASE_COMPILE_TARGETS = RELEASE_BUILD_TARGETS.map(
 	({ compileTarget }) => compileTarget,
 );
+
+export function releaseBuildTargetForCompileTarget(target: string) {
+	return (
+		RELEASE_BUILD_TARGETS.find(
+			({ compileTarget }) => compileTarget === target,
+		) ?? null
+	);
+}
+
+export function packagedHarnessesForCompileTarget(
+	target: string,
+): PackagedHarness[] {
+	return (
+		releaseBuildTargetForCompileTarget(target)?.packagedHarnesses ?? ["js"]
+	);
+}
 
 export function executableFilenameForTarget(target: string) {
 	const extension = target.startsWith("bun-windows-") ? ".exe" : "";

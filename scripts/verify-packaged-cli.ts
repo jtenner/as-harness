@@ -5,12 +5,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
 	executableFilenameForTarget,
+	packagedHarnessesForCompileTarget,
 	releaseAssetFilenameForTarget,
 } from "../cli/build-targets";
-import {
-	isAvailableWazeroAddonTarget,
-	resolveWazeroAddonTargetForCompileTarget,
-} from "../cli/runtime/wazero-targets";
 
 const REPO_DIR = join(import.meta.dir, "..");
 
@@ -90,6 +87,7 @@ async function main() {
 		target,
 		executableFilenameForTarget(target),
 	);
+	const packagedHarnesses = packagedHarnessesForCompileTarget(target);
 
 	console.log(`Building packaged CLI target ${target}...`);
 
@@ -148,8 +146,7 @@ async function main() {
 			`Packaged js smoke for ${target}`,
 		);
 
-		const wazeroTarget = resolveWazeroAddonTargetForCompileTarget(target);
-		if (isAvailableWazeroAddonTarget(wazeroTarget)) {
+		if (packagedHarnesses.includes("wazero")) {
 			console.log(`Running packaged ${target} smoke test through wazero...`);
 
 			const wazeroRunResult = await runCommand(

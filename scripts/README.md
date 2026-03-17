@@ -14,6 +14,8 @@
   Verifies host-observed assertion behavior against compiled smoke fixtures.
 - `release-matrix.ts`
   Emits the release-target matrix consumed by GitHub Actions.
+- `release-manifest.ts`
+  Emits `release-manifest.json` plus release-notes text from the shared release-target metadata.
 - `verify-packaged-cli.ts`
   Builds one packaged CLI target, runs its local smoke path, and optionally copies the built asset into a release directory.
 
@@ -23,6 +25,7 @@
 - the guest runtime still compiles
 - the assertion bridge still works
 - the packaged CLI path still works locally for a selected release target
+- the release workflow can publish explicit artifact metadata instead of relying on inferred platform behavior
 
 ## What They Do Not Prove
 
@@ -38,6 +41,7 @@ Those are still release-proof tasks above the local helper layer.
 bun validate
 bun test
 bun run release:matrix
+bun run release:manifest -- --tag v0.1.0 --asset-dir ./dist/release-assets --notes-file ./dist/release-notes.md
 bun run verify:packaged-cli --target bun-linux-x64
 ```
 

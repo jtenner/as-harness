@@ -73,11 +73,22 @@ jobs:
       - build-release-assets
     runs-on: ubuntu-24.04
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
       - name: Download built release assets
         uses: actions/download-artifact@v4
         with:
           merge-multiple: true
           path: ./dist/release-assets
+
+      - name: Generate release manifest and notes
+        run: bun run ./scripts/release-manifest.ts --tag "$GITHUB_REF_NAME" --asset-dir ./dist/release-assets --notes-file ./dist/release-notes.md
 
       - name: Publish release assets
         env:
@@ -85,7 +96,8 @@ jobs:
         run: |
           tag="${GITHUB_REF_NAME}"
           if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --title "$tag" --notes-file ./dist/release-notes.md
             gh release upload "$tag" ./dist/release-assets/* --clobber
           else
-            gh release create "$tag" ./dist/release-assets/* --generate-notes --title "$tag"
+            gh release create "$tag" ./dist/release-assets/* --notes-file ./dist/release-notes.md --title "$tag"
           fi

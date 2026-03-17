@@ -57,6 +57,8 @@ The packaged executable flow is:
 
 Shared release-target metadata lives in [build-targets.ts](/home/jtenner/Projects/as-harness/cli/build-targets.ts).
 
+That metadata now also declares which packaged harnesses each release artifact is expected to support, and the release workflow uses the same source of truth to generate `release-manifest.json` plus release notes.
+
 ## Commands
 
 ```bash

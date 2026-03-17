@@ -159,5 +159,6 @@ The intended release path is:
 2. push to GitHub and let the CI matrix run
 3. tag `v*`
 4. let the release workflow build, verify, upload, and publish the packaged executables
+5. let the publish job generate `release-manifest.json` plus release notes from the shared target metadata before creating or updating the GitHub release
 
 That workflow exists today, but it still needs repeated green runs across the full hosted matrix before it should be treated as proven release infrastructure.
