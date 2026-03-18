@@ -853,4 +853,5 @@ async function main(args: string[]) {
 
 if (import.meta.main) {
 	await main(process.argv.slice(2));
+	process.exit(process.exitCode ?? 0);
 }

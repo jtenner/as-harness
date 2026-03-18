@@ -1386,10 +1386,14 @@ func deleteHarness(id int64, env C.node_api_basic_env) {
 		state.callbacks[index] = nil
 	}
 
+	if state.compiled != nil {
+		_ = state.compiled.Close(context.Background())
+		state.compiled = nil
+	}
+
 	if state.runtime != nil {
 		_ = state.runtime.Close(context.Background())
 		state.runtime = nil
-		state.compiled = nil
 	}
 }
 
@@ -1713,20 +1717,8 @@ func startHarness(state *harnessState) startSnapshot {
 		}
 	}
 
-	discoveryWorkers := getWorkerCount(len(topLevelNodes))
-	if discoveryWorkers > 0 {
-		semaphore := make(chan struct{}, discoveryWorkers)
-		var waitGroup sync.WaitGroup
-		for index, root := range topLevelNodes {
-			waitGroup.Add(1)
-			go func(branchIndex int, branchRoot nodeSnapshot) {
-				defer waitGroup.Done()
-				semaphore <- struct{}{}
-				branches[branchIndex].Discovery = discoverBranch(state, branchRoot, coverage)
-				<-semaphore
-			}(index, root)
-		}
-		waitGroup.Wait()
+	for index, root := range topLevelNodes {
+		branches[index].Discovery = discoverBranch(state, root, coverage)
 	}
 
 	discoveryOK := topLevelDiscovery.OK
@@ -1738,22 +1730,11 @@ func startHarness(state *harnessState) startSnapshot {
 
 	workerCount := 0
 	if discoveryOK {
-		workerCount = getWorkerCount(len(branches))
+		workerCount = min(1, len(branches))
 	}
 
-	if workerCount > 0 {
-		semaphore := make(chan struct{}, workerCount)
-		var waitGroup sync.WaitGroup
-		for index := range branches {
-			waitGroup.Add(1)
-			go func(branchIndex int) {
-				defer waitGroup.Done()
-				semaphore <- struct{}{}
-				branches[branchIndex].Executions = runBranchExecutions(state, listRunnableTests(branches[branchIndex].Discovery.Nodes), coverage)
-				<-semaphore
-			}(index)
-		}
-		waitGroup.Wait()
+	for index := range branches {
+		branches[index].Executions = runBranchExecutions(state, listRunnableTests(branches[index].Discovery.Nodes), coverage)
 	}
 
 	result := startSnapshot{
