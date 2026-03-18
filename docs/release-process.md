@@ -1,6 +1,7 @@
 # Release Process
 
-This document is the operational guide for shipping `as-harness` `v0.1.x` releases through the current GitHub workflow.
+This document is the operational guide for shipping current `as-harness`
+releases through the GitHub workflow.
 
 ## Release Contract
 
@@ -97,6 +98,9 @@ The current source-host proof contract is:
 - `linux-x64`, `linux-arm64`, `macos-arm64`, `macos-x64`, and `windows-x64`
 - Node.js 22
 
+The shipped JavaScript-facing host-runner contract exercised by that matrix is
+documented in [host-runner-contract.md](./host-runner-contract.md).
+
 The packaged verification path is owned by [verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts).
 The source-host matrix is emitted by [host-validation-matrix.ts](../scripts/host-validation-matrix.ts).
 The per-target source-host verification reports are emitted by [verify-source-hosts.ts](../scripts/verify-source-hosts.ts).
@@ -111,8 +115,8 @@ The release workflow triggers on tags matching `v*`.
 
 The tag must match the CLI package version in [package.json](../cli/package.json). For example:
 
-- CLI version `0.1.0`
-- release tag `v0.1.0`
+- CLI version `0.2.0`
+- release tag `v0.2.0`
 
 The release-manifest generator will fail if those drift.
 
@@ -179,3 +183,4 @@ The current packaged verification helper models this by:
 - Legal staging: [scripts/stage-release-legal.ts](../scripts/stage-release-legal.ts)
 - Packaged smoke verification: [scripts/verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts)
 - Release target map: [cli/build-targets.ts](../cli/build-targets.ts)
+- Host runner contract: [docs/host-runner-contract.md](./host-runner-contract.md)

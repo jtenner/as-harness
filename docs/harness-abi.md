@@ -2,10 +2,16 @@
 
 This document describes the contract a host harness must satisfy to run AssemblyScript modules produced by this repo. It is written for implementers who want to provide their own harness instead of reusing `harness/js`, `harness/wazero`, or `harness/wasmtime`.
 
+Use this with [host-runner-contract.md](./host-runner-contract.md).
+
 There are two layers:
 
 - the guest Wasm ABI between the compiled AssemblyScript module and the host runtime
 - the host-facing harness API exposed to JavaScript and consumed by the CLI
+
+This document focuses on the Wasm wire contract. The JavaScript-facing runner
+surface and `start()` orchestration contract are defined in
+[host-runner-contract.md](./host-runner-contract.md).
 
 ## Audience
 

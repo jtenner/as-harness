@@ -1,0 +1,160 @@
+# Host Runner Contract
+
+This document defines the shipped JavaScript-facing host-runner contract used by
+the CLI and proved across `harness/js`, `harness/wazero`, and
+`harness/wasmtime`.
+
+Use it with [harness-abi.md](./harness-abi.md):
+
+- [harness-abi.md](./harness-abi.md) defines the guest Wasm import/export and
+  event-payload wire contract
+- this document defines the host object shape, method semantics, and
+  orchestration contract above that wire layer
+
+The canonical TypeScript surface is
+[harness/shared/harness-types.d.ts](../harness/shared/harness-types.d.ts).
+
+## `createHarness(bytes)`
+
+`createHarness(bytes)` must accept:
+
+- `Buffer`
+- `Uint8Array` or another `ArrayBufferView`
+- `ArrayBuffer`
+
+Any other input must throw `TypeError`.
+
+The returned object must satisfy the `Harness` interface from
+[harness/shared/harness-types.d.ts](../harness/shared/harness-types.d.ts).
+
+## Event Registration
+
+Each `on*` method registers exactly one active callback slot for its event kind:
+
+- `onNodeFound(...)`
+- `onNodeStart(...)`
+- `onNodePass(...)`
+- `onNodeFail(...)`
+- `onFailMessage(...)`
+- `onCallbackStart(...)`
+- `onCallbackPass(...)`
+- `onCallbackFail(...)`
+- `onDiagnostic(...)`
+- `onLog(...)`
+
+Registration contract:
+
+- the argument must be a function or the host must throw `TypeError`
+- registering a new callback for the same event kind replaces the previous
+  callback for that slot
+- the host does not fan a single event kind out to multiple listeners
+- event objects must be decoded into plain JavaScript data matching
+  [harness/shared/harness-types.d.ts](../harness/shared/harness-types.d.ts)
+
+## Direct Calls
+
+`callI32(exportName)`:
+
+- `exportName` must be a string or the host must throw `TypeError`
+- the host instantiates the guest, calls the named zero-argument export, and
+  returns its `u32` value as a JavaScript number
+- missing exports, traps, and invalid results must surface as an `Error`
+
+`discover(nodeIndex)`:
+
+- `nodeIndex` must be an array of unsigned 32-bit ordinals or the host returns
+  `false`
+- the host stages that `NodeIndex`, calls guest `discover()`, decodes emitted
+  `nodeFound` events, and returns `true` on non-negative guest success
+- `discover([])` stages an empty `NodeIndex`, so it targets the root node
+
+`run(nodeIndex)`:
+
+- `nodeIndex` must be an array of unsigned 32-bit ordinals or the host returns
+  `false`
+- the host stages that `NodeIndex`, calls guest `run()`, decodes emitted
+  events, and returns `true` only when the guest returns `1`
+- `run([])` stages an empty `NodeIndex`, so it targets the root node
+
+The exact traversal and event rules behind those methods are defined in
+[harness-abi.md](./harness-abi.md).
+
+## `start()`
+
+`start()` must return `Promise<HarnessStartResult>`.
+
+The current shipped orchestration contract is:
+
+1. discover the root node's immediate children
+2. treat those nodes as top-level branches
+3. rediscover each branch to collect its structurally visible nodes
+4. run each runnable normal test node in that branch
+5. aggregate the raw branch data into `HarnessStartResult`
+
+Field-level contract:
+
+- `discoveryOk` is `true` only when top-level discovery and each required branch
+  discovery succeeded
+- `topLevelNodes` is the ordered root discovery result
+- `discoveredTestCount` is the total count of discovered test nodes across all
+  branches
+- `branches[*].discovery.nodes` contains the branch root plus every
+  structurally visible node discovered under it
+- `branches[*].executions` contains one entry per runnable normal test node in
+  discovery order
+- `coverage` is either the merged snapshot for the run or `null` when coverage
+  was not requested
+
+Targeted discovery detail:
+
+- successful non-root guest `discover(nodeIndex)` now emits the resolved target
+  node before any immediate children under it
+- `start()` branch rediscovery must ignore that replayed self-node when it is
+  collecting only the branch root's immediate children
+- after that filtering step, the branch root still appears exactly once in the
+  final discovery snapshot as `branches[*].root` and
+  `branches[*].discovery.nodes[0]`
+
+Failure handling:
+
+- a discovery failure below a test node prunes that sub-branch without making
+  the whole branch discovery fail
+- a discovery failure at a non-test branch node makes that branch discovery
+  fail
+- any failed execution makes that branch `ok: false`
+- any failed branch makes the top-level result `ok: false`
+
+## Coverage
+
+Coverage methods are part of the same host-runner contract:
+
+- `getCoverageSnapshot()` returns the current snapshot or `null`
+- `resetCoverage()` clears host-held coverage state
+- `start()` returns merged coverage on `HarnessStartResult.coverage`
+
+The point and report shape is defined in
+[harness/shared/covers-types.d.ts](../harness/shared/covers-types.d.ts) and the
+coverage ABI notes in [harness-abi.md](./harness-abi.md).
+
+## Lifetime
+
+`close()` releases any host-owned resources for that harness instance.
+
+Current shipped expectations:
+
+- callers may invoke `close()` when finished with a harness
+- hosts may also release resources through normal garbage collection or
+  finalization paths
+- after close or final release, further method calls are not part of the
+  shipped contract
+
+## Proof
+
+The current parity proof for this contract is:
+
+- shared smoke coverage in
+  [harness/shared/smoke-suite.cjs](../harness/shared/smoke-suite.cjs)
+- package-local host tests in `harness/js`, `harness/wazero`, and
+  `harness/wasmtime`
+- the CI source-host matrix and packaged verification flow described in
+  [release-process.md](./release-process.md)

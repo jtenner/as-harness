@@ -14,6 +14,7 @@ The project goal is to make AssemblyScript tests compile into Wasm and run throu
 - Project overview: [assembly/README.md](./assembly/README.md)
 - CLI usage and packaging: [cli/README.md](./cli/README.md)
 - Harness ABI for third-party host authors: [docs/harness-abi.md](./docs/harness-abi.md)
+- Host-runner API and `start()` contract: [docs/host-runner-contract.md](./docs/host-runner-contract.md)
 - Guest runtime module contracts: [docs/guest-runtime-contracts.md](./docs/guest-runtime-contracts.md)
 - Release operations and artifact expectations: [docs/release-process.md](./docs/release-process.md)
 - Project license: [LICENSE](./LICENSE)
@@ -21,9 +22,9 @@ The project goal is to make AssemblyScript tests compile into Wasm and run throu
 - Guest runtime architecture: [docs/primary-buildout.md](./docs/primary-buildout.md)
 - Strict equality and reflected diagnostics: [docs/strict-equality-machinery.md](./docs/strict-equality-machinery.md)
 
-## v0.1.0 Scope
+## v0.2.0 Scope
 
-Planned first release scope:
+Current release scope:
 
 - `node:test`
 - `node:assert`
@@ -33,7 +34,7 @@ Planned first release scope:
 - deterministic result-tree reporting with pass/fail counts, failure messages, and failed-test logs
 - GitHub build/tag/release distribution
 
-Explicit non-goals for `v0.1.0`:
+Explicit non-goals for `v0.2.0`:
 
 - async or Promise-based test APIs
 - snapshots
@@ -71,11 +72,10 @@ What works today:
 - the release workflows can build and smoke-test the packaged CLI across the intended release targets
 - the release workflow now publishes `release-manifest.json`, `SHA256SUMS.txt`, and generated release notes alongside the packaged executables
 - the release workflow now stages third-party licensing files alongside the packaged executables
-- the packaged release path now enforces Git tag to CLI version alignment for `v0.1.0`
+- the packaged release path now enforces Git tag to CLI version alignment for the current release
 
 What is still open:
 
-- the remaining host-runner contract and ABI-stability cleanup listed in [agent-todo.md](./agent-todo.md)
 - deferred framework adapters and fuller `node:test` runner semantics
 - any scheduler-step entrypoint work beyond the current flat ABI, which is explicitly deferred today
 - fuller Jest compatibility beyond thin declarations, core hooks, and the small shared-assertion-backed `expect(...)` surface for equality, containment, length/size checks, numeric checks, `NaN`, and `toThrow()`
@@ -146,9 +146,10 @@ For `wazero`, every supported release target needs a matching `.node` addon buil
 The repo is no longer documenting the host boundary only through implementation details. If you want to provide your own harness:
 
 1. read [docs/harness-abi.md](./docs/harness-abi.md)
-2. implement the Wasm import/export boundary described there
-3. implement the public host surface from [harness-types.d.ts](./harness/shared/harness-types.d.ts)
-4. smoke-test your harness against the same guest exports and event semantics
+2. read [docs/host-runner-contract.md](./docs/host-runner-contract.md)
+3. implement the Wasm import/export boundary described in the ABI guide
+4. implement the public host surface from [harness-types.d.ts](./harness/shared/harness-types.d.ts)
+5. smoke-test your harness against the same guest exports and event semantics
 
 The CLI currently resolves built-in harnesses, but the ABI guide is written so external harness implementations can target the same contract.
 

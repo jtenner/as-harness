@@ -6,7 +6,7 @@ This roadmap tracks adapter-level intent for the guest package.
 
 - keep the synchronous `node:test` core stable
 - keep `node:assert` and `node:assert/strict` aligned with the current release scope
-- finish the remaining Wasm-runtime and host-boundary notes needed for shipping
+- keep the shipped host-runner contract explicit as host behavior changes
 - document the ABI clearly enough that additional host implementations can target it beyond the current `js`, `wazero`, and `wasmtime` source hosts
 
 ## Current Scope Limits

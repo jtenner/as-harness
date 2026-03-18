@@ -7,9 +7,12 @@ The most important rule is:
 - guest code declares, traverses, and emits facts
 - host code instantiates, schedules, decodes, and reports
 
-The guest/host boundary used by the shipped hosts is documented in [docs/harness-abi.md](../docs/harness-abi.md).
-The current source-host set exercising that boundary is `harness/js`,
-`harness/wazero`, and `harness/wasmtime`.
+The guest/host boundary used by the shipped hosts is documented in
+[docs/harness-abi.md](../docs/harness-abi.md), and the JavaScript-facing
+runner surface above that boundary is documented in
+[docs/host-runner-contract.md](../docs/host-runner-contract.md). The current
+source-host set exercising that contract is `harness/js`, `harness/wazero`,
+and `harness/wasmtime`.
 
 ## What Lives Here
 
@@ -45,7 +48,6 @@ Implemented today:
 
 Still open:
 
-- long-term host-runner contract cleanup and ABI-stability follow-through
 - more framework adapters
 - richer reflected diagnostics and strict-equality follow-through
 
@@ -120,6 +122,7 @@ bun test
 
 - Repo overview: [README.md](../README.md)
 - Harness ABI: [docs/harness-abi.md](../docs/harness-abi.md)
+- Host runner contract: [docs/host-runner-contract.md](../docs/host-runner-contract.md)
 - Guest runtime contracts: [docs/guest-runtime-contracts.md](../docs/guest-runtime-contracts.md)
 - Guest runtime architecture: [docs/primary-buildout.md](../docs/primary-buildout.md)
 - Guest roadmap: [assembly/roadmap.md](./roadmap.md)

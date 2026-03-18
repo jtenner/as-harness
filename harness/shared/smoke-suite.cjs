@@ -434,6 +434,35 @@ function registerHarnessSmokeSuite(options) {
 		closeHarness(harness);
 	});
 
+	test("event registration replaces the active callback for each event slot", () => {
+		const harness = createHarness(compiledNodeTestWasm);
+		const staleFound = [];
+		const activeFound = [];
+		const staleStarts = [];
+		const activeStarts = [];
+
+		harness.onNodeFound((event) => {
+			staleFound.push(event);
+		});
+		harness.onNodeFound((event) => {
+			activeFound.push(event);
+		});
+		harness.onNodeStart((event) => {
+			staleStarts.push(event);
+		});
+		harness.onNodeStart((event) => {
+			activeStarts.push(event);
+		});
+
+		assert.equal(harness.discover([]), true);
+		assert.equal(harness.run([0]), true);
+		assert.deepEqual(staleFound, []);
+		assert.deepEqual(activeFound, DISCOVERED_NODES.slice(0, 11));
+		assert.deepEqual(staleStarts, []);
+		assert.deepEqual(activeStarts, [{ nodeIndex: [0] }]);
+		closeHarness(harness);
+	});
+
 	test("callI32 validates export names and reports missing exports", () => {
 		const harness = createHarness(compiledTrampolineWasm);
 

@@ -66,8 +66,7 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 
 ### Wasm Runtime / ABI
 
-- [ ] Finish the remaining host-runner contract items required for shipping.
-- [ ] Keep the ABI flat, language-agnostic, and stable enough to support multiple shipped or source hosts.
+- [x] Finish the remaining host-runner contract items required for shipping.
 - [x] Decide whether scheduler-step entrypoints are required for the shipped runner or explicitly deferred.
 
 ### Release Engineering
@@ -122,11 +121,6 @@ host-runner work.
 - [x] Emit `NodeFound` during discovery for every structurally visible node.
 - [x] Enforce declaration-mode traversal semantics for `skip`: emit discovery metadata, stop traversal at that node, and do not traverse children.
 - [x] Enforce declaration-mode traversal semantics for `todo`: emit discovery metadata, continue descendant traversal, and suppress the node's own outcome significance.
-
-### ABI Boundary
-
-- [x] Decide whether scheduler-step entrypoints are required now or deferred.
-- [ ] Keep the ABI simple, flat, and language-agnostic.
 
 ### Ephemeral Runtime State
 
