@@ -12,7 +12,7 @@ Shipped `v0.1.0` baseline:
 - `node:assert`
 - `node:assert/strict`
 - shipped hosts: `js`, `wazero`
-- source-only host under active validation: `wasmtime`
+- source-only host under the supported source-host proof matrix: `wasmtime`
 - deterministic result-tree reporting with pass/fail counts, failure messages, and failed-test logs
 - GitHub build/tag/release distribution
 
@@ -52,10 +52,10 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 
 ### Host Runtime Shipping
 
-- [ ] Prove `harness/js` works on the supported Node versions for the release.
-- [ ] Prove `harness/wazero` builds and runs on the supported OS / architecture matrix.
-- [ ] Prove `harness/wasmtime` builds and runs across the intended source-host validation matrix.
-- [ ] Decide whether the source-host matrix should expand beyond Node.js `22` or whether that is the explicit first supported Node baseline.
+- [x] Prove `harness/js` works on the supported Node versions for the release.
+- [x] Prove `harness/wazero` builds and runs on the supported OS / architecture matrix.
+- [x] Prove `harness/wasmtime` builds and runs across the intended source-host validation matrix.
+- [x] Keep Node.js `22` as the explicit first supported source-host baseline.
 
 ### Wasm Runtime / ABI
 

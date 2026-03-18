@@ -54,7 +54,7 @@ jobs:
         run: printf 'matrix=%s\n' "$(bun run ./scripts/host-validation-matrix.ts)" >> "$GITHUB_OUTPUT"
 
   source-hosts:
-    name: Source Hosts (${{ matrix.label }})
+    name: Source Hosts (${{ matrix.label }}, Node ${{ matrix.nodeVersion }})
     needs:
       - host-validation-matrix
       - validate-and-test
@@ -100,7 +100,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: source-host-${{ matrix.label }}
+          name: source-host-${{ matrix.label }}-node${{ matrix.nodeVersion }}
           path: ./dist/source-host-reports/*
 
   release-matrix:

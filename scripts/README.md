@@ -17,7 +17,7 @@
 - `host-validation-matrix.ts`
   Emits the source-host validation matrix consumed by GitHub Actions.
 - `verify-source-hosts.ts`
-  Runs the expected source-host package checks for one matrix target and writes JSON/Markdown proof reports.
+  Runs the expected source-host package checks for one matrix target, verifies that the active `node` on `PATH` matches the target's declared baseline, and writes JSON/Markdown proof reports.
 - `release-manifest.ts`
   Emits `release-manifest.json`, `SHA256SUMS.txt`, and release-notes text from the shared release-target metadata.
 - `stage-release-legal.ts`
@@ -31,6 +31,7 @@
 - the guest runtime still compiles
 - the assertion bridge still works
 - the source-host matrix is explicit rather than hard-coded into one CI job
+- the explicit first supported source-host Node baseline is Node.js 22
 - source-host proof now produces persisted per-target reports instead of relying only on CI step names
 - the packaged CLI path still works locally for a selected release target
 - the packaged CLI path works from a clean staged install-like directory instead of only beside the repo checkout

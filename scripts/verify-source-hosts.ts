@@ -96,6 +96,31 @@ async function runCommand(command: string[], cwd: string): Promise<CommandResult
 	return { exitCode, stderr, stdout };
 }
 
+async function assertActiveNodeVersion(expectedMajorVersion: string) {
+	const versionCheck = await runCommand(["node", "-v"], REPO_DIR);
+	if (versionCheck.exitCode !== 0) {
+		throw new Error(
+			[
+				"Failed to resolve the active Node.js version for source-host verification.",
+				versionCheck.stdout,
+				versionCheck.stderr,
+			].join("\n"),
+		);
+	}
+
+	const activeVersion = versionCheck.stdout.trim().replace(/^v/, "");
+	const activeMajorVersion = activeVersion.split(".")[0] ?? activeVersion;
+	if (activeMajorVersion !== expectedMajorVersion) {
+		throw new Error(
+			[
+				`Source-host verification target expects Node.js ${expectedMajorVersion}.`,
+				`Active node on PATH is ${versionCheck.stdout.trim()}.`,
+				"Switch Node.js versions before running this proof target.",
+			].join(" "),
+		);
+	}
+}
+
 function renderMarkdownSummary(
 	target: NonNullable<ReturnType<typeof hostValidationTargetForLabel>>,
 	reports: HarnessReport[],
@@ -126,6 +151,8 @@ async function main() {
 	if (target === null) {
 		throw new Error(`Unknown source-host validation target: ${targetLabel}`);
 	}
+
+	await assertActiveNodeVersion(target.nodeVersion);
 
 	const reports: HarnessReport[] = [];
 	let hasFailure = false;

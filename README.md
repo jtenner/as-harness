@@ -54,8 +54,9 @@ What works today:
 - `wasmtime` currently stays source-only and is not bundled into the packaged Bun release artifacts
 - the host parity smoke suite now covers event decoding, `callI32`, `discover`, `run`, `start`, and trampoline behavior across `js`, `wazero`, and `wasmtime`
 - AssemblyScript `trace(...)` calls now surface through first-class host `log` events
-- CI now runs a source-host smoke matrix across the supported GitHub-hosted runners while keeping the packaged release matrix limited to the proven `js`/`wazero` artifact set
-- each source-host CI job now emits a per-target verification report so host proof is tied to an explicit matrix label instead of only raw job logs
+- CI now runs a source-host smoke matrix across the supported GitHub-hosted runners on the explicit Node.js 22 baseline while keeping the packaged release matrix limited to the proven `js`/`wazero` artifact set
+- the current host proof contract is `js`, `wazero`, and `wasmtime` across `linux-x64`, `linux-arm64`, `macos-arm64`, `macos-x64`, and `windows-x64` on Node.js 22
+- each source-host CI job now emits a per-target verification report so host proof is tied to an explicit matrix label and Node baseline instead of only raw job logs
 - the release workflows can build and smoke-test the packaged CLI across the intended release targets
 - the release workflow now publishes `release-manifest.json`, `SHA256SUMS.txt`, and generated release notes alongside the packaged executables
 - the release workflow now stages third-party licensing files alongside the packaged executables

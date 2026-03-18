@@ -39,6 +39,12 @@ export type HostValidationTarget = {
 	sourceHarnesses: SourceHarness[];
 };
 
+// Node 22 is the explicit first supported source-host baseline. If the project
+// later broadens Node support, expand this constant and the host-validation
+// matrix together instead of implicitly relying on whichever Node version the
+// CI runners happen to install.
+export const SOURCE_HOST_NODE_BASELINE = "22";
+
 // These are the first release artifacts we actually intend to ship and smoke on
 // matching GitHub-hosted runners.
 export const RELEASE_BUILD_TARGETS: ReleaseBuildTarget[] = [
@@ -86,35 +92,35 @@ export const HOST_VALIDATION_TARGETS: HostValidationTarget[] = [
 	{
 		architecture: "x64",
 		label: "linux-x64",
-		nodeVersion: "22",
+		nodeVersion: SOURCE_HOST_NODE_BASELINE,
 		runner: "ubuntu-24.04",
 		sourceHarnesses: ["js", "wazero", "wasmtime"],
 	},
 	{
 		architecture: "arm64",
 		label: "linux-arm64",
-		nodeVersion: "22",
+		nodeVersion: SOURCE_HOST_NODE_BASELINE,
 		runner: "ubuntu-24.04-arm",
 		sourceHarnesses: ["js", "wazero", "wasmtime"],
 	},
 	{
 		architecture: "arm64",
 		label: "macos-arm64",
-		nodeVersion: "22",
+		nodeVersion: SOURCE_HOST_NODE_BASELINE,
 		runner: "macos-15",
 		sourceHarnesses: ["js", "wazero", "wasmtime"],
 	},
 	{
 		architecture: "x64",
 		label: "macos-x64",
-		nodeVersion: "22",
+		nodeVersion: SOURCE_HOST_NODE_BASELINE,
 		runner: "macos-15-intel",
 		sourceHarnesses: ["js", "wazero", "wasmtime"],
 	},
 	{
 		architecture: "x64",
 		label: "windows-x64",
-		nodeVersion: "22",
+		nodeVersion: SOURCE_HOST_NODE_BASELINE,
 		runner: "windows-2025",
 		sourceHarnesses: ["js", "wazero", "wasmtime"],
 	},

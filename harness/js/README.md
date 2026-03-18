@@ -2,6 +2,9 @@
 
 `harness/js` is the pure JavaScript host implementation. It is the portable baseline harness for the repo.
 
+The current source-host proof contract validates this package on the explicit
+Node.js 22 baseline across the supported hosted runner matrix.
+
 ## Why It Exists
 
 - no native addon

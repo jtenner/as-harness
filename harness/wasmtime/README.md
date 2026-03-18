@@ -49,7 +49,7 @@ Current status:
 - AssemblyScript `trace(...)` calls surface through the shared `log` event
 - the conditional `__asCovers` imports are implemented and the harness returns merged coverage snapshots
 - CLI source execution supports `--harness wasmtime`
-- the CI source-host matrix runs this package on the supported hosted runners
+- the CI source-host matrix runs this package on the supported hosted runners on the explicit Node.js 22 baseline
 - the shared source-host verification script emits per-target proof reports that include the `wasmtime` result
 
 Not in scope yet:

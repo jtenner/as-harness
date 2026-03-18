@@ -16,6 +16,8 @@ This is separate from the source-host validation matrix in normal CI. Packaged
 release verification and source-host verification are intentionally not the same
 matrix.
 
+The explicit first supported source-host Node baseline is Node.js 22.
+
 The packaged targets currently intended for release are:
 
 - `bun-darwin-arm64`
@@ -69,6 +71,9 @@ report shape CI uploads:
 bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-host-reports
 ```
 
+That helper now fails fast if the active `node` on `PATH` does not match the
+target's declared Node baseline.
+
 ## CI Expectations
 
 The main workflow should be green before tagging:
@@ -77,6 +82,12 @@ The main workflow should be green before tagging:
 - root Bun tests
 - source-host smoke coverage across the explicit CI matrix runners
 - packaged CLI verification on the release matrix
+
+The current source-host proof contract is:
+
+- `js`, `wazero`, and `wasmtime`
+- `linux-x64`, `linux-arm64`, `macos-arm64`, `macos-x64`, and `windows-x64`
+- Node.js 22
 
 The packaged verification path is owned by [verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts).
 The source-host matrix is emitted by [host-validation-matrix.ts](../scripts/host-validation-matrix.ts).

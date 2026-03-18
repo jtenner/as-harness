@@ -2,6 +2,9 @@
 
 `harness/wazero` is the Go-based native host implementation. It exposes the shared harness contract through a `Node-API` addon.
 
+The current source-host proof contract validates this package on the explicit
+Node.js 22 baseline across the supported hosted runner matrix.
+
 ## Why It Exists
 
 This host proves that the harness ABI is not tied to one implementation language. The guest protocol is the same as `harness/js` and `harness/wasmtime`; only the runtime strategy differs.
