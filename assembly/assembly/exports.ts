@@ -34,8 +34,10 @@ export function run(): i32 {
 }
 
 /**
- * Emits `NodeFound` events for the currently registered top-level nodes and
- * returns the number of root children that were discovered.
+ * Emits `NodeFound` events for the currently registered top-level nodes when
+ * no `NodeIndex` is staged, or for the resolved non-root target plus any
+ * structurally visible immediate children under it when a `NodeIndex` is
+ * staged. The return value remains the discovered immediate-child count.
  */
 export function discover(): i32 {
   if (nodeIndexScratch === null) {

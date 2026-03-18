@@ -45,6 +45,20 @@ function cloneNode(node) {
 	};
 }
 
+function nodeIndexesEqual(left, right) {
+	if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
+		return false;
+	}
+
+	for (let index = 0; index < left.length; index += 1) {
+		if ((left[index] >>> 0) !== (right[index] >>> 0)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 function countTestNodes(nodes) {
 	let count = 0;
 	for (const node of nodes) {
@@ -66,7 +80,12 @@ function listRunnableTests(nodes) {
 function discoverImmediateChildren(harness, nodeIndex) {
 	const found = [];
 	harness.onNodeFound((event) => {
-		found.push(cloneNode(event));
+		const node = cloneNode(event);
+		if (nodeIndexesEqual(node.nodeIndex, nodeIndex)) {
+			return;
+		}
+
+		found.push(node);
 	});
 
 	return {

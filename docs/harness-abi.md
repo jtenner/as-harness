@@ -67,7 +67,9 @@ The host must expect these guest exports:
 `discover()`:
 
 - with no staged `NodeIndex`, emits top-level `NodeFound` events and returns the count of discovered root children
-- with a staged `NodeIndex`, discovers immediate children under that node
+- with a staged `NodeIndex`, emits the resolved non-root target node plus any
+  structurally visible immediate children under it, while still returning the
+  immediate-child count
 - returns a negative value on discovery failure
 
 `run()`:
@@ -336,7 +338,8 @@ It is useful for host-level probes such as trampoline status checks.
 - input: `Array<number>`
 - returns `true` on successful discovery
 - returns `false` on invalid input, missing node, or discovery failure
-- should emit `nodeFound` callbacks for discovered children
+- should emit `nodeFound` callbacks for structurally visible nodes reached by
+  that discovery call
 - `discover([])` targets the root node and is the host-API form of root
   discovery
 

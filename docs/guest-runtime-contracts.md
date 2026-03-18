@@ -109,7 +109,8 @@ Outputs:
 
 - resolved `Node | null`
 - immediate-child discovery counts
-- `nodeFound(...)` emissions for visible children
+- `nodeFound(...)` emissions for structurally visible nodes reached by the
+  current discovery call
 - delegated run requests into the executor
 
 Owned state:
@@ -128,6 +129,9 @@ Current contract details:
 - `NodeIndex` is resolved relative to the supplied parent, not as a global
   opaque id
 - an empty `NodeIndex` resolves to the supplied parent itself
+- successful targeted discovery for a non-root node emits that resolved target
+  node before returning, in addition to any structurally visible immediate
+  children reached under it
 - child ordinals are interpreted after local `only` filtering
 - skipped nodes stay structurally visible, but their descendants are pruned
 - todo nodes stay structurally visible, their descendants stay addressable, and

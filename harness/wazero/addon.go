@@ -1650,9 +1650,17 @@ func getWorkerCount(branchCount int) int {
 
 func discoverImmediateChildren(state *harnessState, nodeIndex []uint32, coverage *coverageCollector) immediateDiscoverySnapshot {
 	collector := &nodeCollector{}
+	ok := discoverNodeIndexWithSink(context.Background(), state, nodeIndex, collector, coverage)
+	nodes := collector.nodes[:0]
+	for _, node := range collector.nodes {
+		if equalNodeIndex(node.NodeIndex, nodeIndex) {
+			continue
+		}
+		nodes = append(nodes, node)
+	}
 	return immediateDiscoverySnapshot{
-		OK:    discoverNodeIndexWithSink(context.Background(), state, nodeIndex, collector, coverage),
-		Nodes: collector.nodes,
+		OK:    ok,
+		Nodes: nodes,
 	}
 }
 
@@ -1763,6 +1771,20 @@ func startHarness(state *harnessState) startSnapshot {
 	}
 
 	return result
+}
+
+func equalNodeIndex(left []uint32, right []uint32) bool {
+	if len(left) != len(right) {
+		return false
+	}
+
+	for index := range left {
+		if left[index] != right[index] {
+			return false
+		}
+	}
+
+	return true
 }
 
 func createNodeSnapshotValue(env C.napi_env, node nodeSnapshot) (C.napi_value, bool) {

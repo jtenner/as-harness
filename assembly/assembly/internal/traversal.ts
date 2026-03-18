@@ -111,9 +111,10 @@ export function findNodeByIndex(nodeIndex: StaticArray<u32>): Node | null {
   return findNodeByIndexFrom(rootNode, nodeIndex);
 }
 
-function discoverImmediateChildrenOfWithReplay(
+function collectImmediateVisibleChildrenOfWithReplay(
   parent: Node,
   replayedNodes: Array<Node>,
+  discoveredNodes: Array<Node>,
 ): i32 {
   if (shouldPruneChildren(parent)) {
     return 0;
@@ -133,16 +134,20 @@ function discoverImmediateChildrenOfWithReplay(
       continue;
     }
 
-    nodeFound(
-      child.getNodeIndex(),
-      child.kind,
-      child.declarationMode,
-      child.name,
-    );
+    discoveredNodes.push(child);
     visibleCount++;
   }
 
   return visibleCount;
+}
+
+function emitDiscoveredNode(node: Node): void {
+  nodeFound(
+    node.getNodeIndex(),
+    node.kind,
+    node.declarationMode,
+    node.name,
+  );
 }
 
 export function runNodeByIndexFrom(
@@ -170,7 +175,17 @@ export function runNodeByIndex(nodeIndex: StaticArray<u32>): bool {
 
 export function discoverImmediateChildrenOf(parent: Node): i32 {
   const replayedNodes = new Array<Node>();
-  const count = discoverImmediateChildrenOfWithReplay(parent, replayedNodes);
+  const discoveredNodes = new Array<Node>();
+  const count = collectImmediateVisibleChildrenOfWithReplay(
+    parent,
+    replayedNodes,
+    discoveredNodes,
+  );
+  if (count >= 0) {
+    for (let index = 0, length = discoveredNodes.length; index < length; index++) {
+      emitDiscoveredNode(unchecked(discoveredNodes[index]));
+    }
+  }
   clearTraversalReplayNodes(replayedNodes);
   return count;
 }
@@ -195,7 +210,20 @@ export function discoverChildrenByIndexFrom(
     return -1;
   }
 
-  const count = discoverImmediateChildrenOfWithReplay(node, replayedNodes);
+  const discoveredNodes = new Array<Node>();
+  const count = collectImmediateVisibleChildrenOfWithReplay(
+    node,
+    replayedNodes,
+    discoveredNodes,
+  );
+  if (count >= 0 && node.parent !== null) {
+    emitDiscoveredNode(node);
+  }
+  if (count >= 0) {
+    for (let index = 0, length = discoveredNodes.length; index < length; index++) {
+      emitDiscoveredNode(unchecked(discoveredNodes[index]));
+    }
+  }
   clearTraversalReplayNodes(replayedNodes);
   clearActiveTraversalTarget();
   return count;

@@ -204,6 +204,99 @@ const DISCOVERED_NODES = [
 	},
 ];
 
+const TARGETED_PARENT_DISCOVERY = [
+	{
+		nodeIndex: [3],
+		kind: 1,
+		declarationMode: 1,
+		name: "parent test",
+	},
+	{
+		nodeIndex: [3, 0],
+		kind: 1,
+		declarationMode: 1,
+		name: "nested child",
+	},
+];
+
+const TARGETED_ONLY_DISCOVERY = [
+	{
+		nodeIndex: [4],
+		kind: 1,
+		declarationMode: 1,
+		name: "run-only parent",
+	},
+	{
+		nodeIndex: [4, 0],
+		kind: 1,
+		declarationMode: 1,
+		name: "run-only nested child",
+	},
+];
+
+const TARGETED_SKIP_DISCOVERY = [
+	{
+		nodeIndex: [5],
+		kind: 1,
+		declarationMode: 2,
+		name: "skipped parent",
+	},
+];
+
+const TARGETED_TODO_DISCOVERY = [
+	{
+		nodeIndex: [6],
+		kind: 1,
+		declarationMode: 3,
+		name: "todo parent",
+	},
+	{
+		nodeIndex: [6, 0],
+		kind: 1,
+		declarationMode: 1,
+		name: "todo nested child",
+	},
+];
+
+const TARGETED_TODO_LEAF_DISCOVERY = [
+	{
+		nodeIndex: [7],
+		kind: 1,
+		declarationMode: 3,
+		name: "top-level todo leaf",
+	},
+];
+
+const TARGETED_HOOK_FAILURE_DISCOVERY = [
+	{
+		nodeIndex: [8],
+		kind: 1,
+		declarationMode: 1,
+		name: "hook failure parent",
+	},
+	{
+		nodeIndex: [8, 0],
+		kind: 1,
+		declarationMode: 1,
+		name: "hook failure child",
+	},
+];
+
+const TARGETED_TRAP_DISCOVERY = [
+	{
+		nodeIndex: [9],
+		kind: 1,
+		declarationMode: 1,
+		name: "trap parent",
+	},
+	{
+		nodeIndex: [9, 0],
+		kind: 1,
+		declarationMode: 1,
+		name: "trapping child",
+	},
+];
+
 const PASSING_BRANCH_EVENTS = [
 	{ type: "nodeStart", data: { nodeIndex: [0] } },
 	{ type: "callbackStart", data: { hook: 1, nodeIndex: [] } },
@@ -501,16 +594,43 @@ function registerHarnessSmokeSuite(options) {
 		});
 
 		assert.equal(harness.discover([]), true);
+		assert.deepEqual(found, DISCOVERED_NODES.slice(0, 11));
+
+		found.length = 0;
 		assert.equal(harness.discover([3]), true);
+		assert.deepEqual(found, TARGETED_PARENT_DISCOVERY);
+
+		found.length = 0;
 		assert.equal(harness.discover([4]), true);
+		assert.deepEqual(found, TARGETED_ONLY_DISCOVERY);
+
+		found.length = 0;
 		assert.equal(harness.discover([5]), true);
+		assert.deepEqual(found, TARGETED_SKIP_DISCOVERY);
+
+		found.length = 0;
 		assert.equal(harness.discover([6]), true);
+		assert.deepEqual(found, TARGETED_TODO_DISCOVERY);
+
+		found.length = 0;
 		assert.equal(harness.discover([7]), true);
+		assert.deepEqual(found, TARGETED_TODO_LEAF_DISCOVERY);
+
+		found.length = 0;
 		assert.equal(harness.discover([8]), true);
+		assert.deepEqual(found, TARGETED_HOOK_FAILURE_DISCOVERY);
+
+		found.length = 0;
 		assert.equal(harness.discover([9]), true);
+		assert.deepEqual(found, TARGETED_TRAP_DISCOVERY);
+
+		found.length = 0;
 		assert.equal(harness.discover([10]), false);
+		assert.deepEqual(found, []);
+
+		found.length = 0;
 		assert.equal(harness.discover([1]), false);
-		assert.deepEqual(found, DISCOVERED_NODES);
+		assert.deepEqual(found, []);
 		closeHarness(harness);
 	});
 
@@ -523,18 +643,11 @@ function registerHarnessSmokeSuite(options) {
 		});
 
 		assert.equal(harness.discover([5]), true);
-		assert.deepEqual(found, []);
+		assert.deepEqual(found, TARGETED_SKIP_DISCOVERY);
 
 		found.length = 0;
 		assert.equal(harness.discover([6]), true);
-		assert.deepEqual(found, [
-			{
-				nodeIndex: [6, 0],
-				kind: 1,
-				declarationMode: 1,
-				name: "todo nested child",
-			},
-		]);
+		assert.deepEqual(found, TARGETED_TODO_DISCOVERY);
 		closeHarness(harness);
 	});
 
@@ -593,14 +706,7 @@ function registerHarnessSmokeSuite(options) {
 
 		found.length = 0;
 		assert.equal(harness.discover([3]), true);
-		assert.deepEqual(found, [
-			{
-				nodeIndex: [3, 0],
-				kind: 1,
-				declarationMode: 1,
-				name: "nested child",
-			},
-		]);
+		assert.deepEqual(found, TARGETED_PARENT_DISCOVERY);
 		closeHarness(harness);
 	});
 
