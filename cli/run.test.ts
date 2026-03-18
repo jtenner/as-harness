@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -5,6 +6,14 @@ import { expect, test } from "bun:test";
 import { resolveRunEntrypointBaseDirectory } from "./run";
 
 const cliEntrypointPath = join(import.meta.dir, "index.ts");
+const wasmtimeAddonPath = join(
+	import.meta.dir,
+	"..",
+	"harness",
+	"wasmtime",
+	"dist",
+	"wasmtime.node",
+);
 
 type CliRunResult = {
 	exitCode: number;
@@ -370,6 +379,10 @@ test("coverage filtering smoke", (context: TestContext): void => {
 });
 
 test("cli run emits coverage output through the wasmtime harness", async () => {
+	if (!existsSync(wasmtimeAddonPath)) {
+		return;
+	}
+
 	await withTempEntryFile(
 		`
 import { test, TestContext } from "node:test";
