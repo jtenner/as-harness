@@ -82,6 +82,14 @@ That wrapper is then compiled through the AssemblyScript wrapper in [compile.ts]
 
 ## Packaging
 
+Current packaging policy:
+
+- packaged Bun executables are the official way to ship the CLI
+- `npm` publication is not a current release goal
+- packaged artifacts include `js` and `wazero` only
+- `wasmtime` remains source-only
+- the current release workflows and clean-environment packaged verification are the release-proof baseline
+
 The packaged executable flow is:
 
 1. generate bundled guest support files

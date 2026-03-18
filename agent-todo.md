@@ -36,6 +36,13 @@ Explicitly deferred for now:
 - scheduler-step entrypoint decision
 - reflected custom display-override decision
 
+Explicit release-policy decisions:
+
+- downloadable Bun-compiled executables are the official release channel
+- `npm` publication is not a current release goal
+- packaged releases include `js` and `wazero` only; `wasmtime` remains source-only
+- the current CI source-host proof plus packaged clean-environment verification are the release-proof baseline
+
 ## v0.2.0 Blocker Slices
 
 ### Coverage Shipping
@@ -65,7 +72,7 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 
 ### Release Engineering
 
-- [ ] Revisit standalone Bun-compiled CLI binaries vs `npm` packaging after the first release workflow is proven.
+- [x] Keep standalone Bun-compiled executables as the official release channel and defer `npm` publication.
 - [x] Verify install and smoke-run flows from a clean environment on each supported platform.
 
 ### Strict Equality Machinery

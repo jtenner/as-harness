@@ -41,6 +41,16 @@ Explicit non-goals for `v0.1.0`:
 - Linux `musl`
 - npm publication as the primary release channel
 
+## Release Policy
+
+The current project release policy is:
+
+- downloadable Bun-compiled executables are the official release channel
+- `npm` publication is not a current release goal
+- packaged releases include `js` and `wazero` only
+- `wasmtime` remains source-only
+- the current CI source-host matrix plus packaged clean-environment verification are the release-proof baseline
+
 ## Feature Matrix
 
 What works today:
@@ -64,7 +74,6 @@ What works today:
 
 What is still open:
 
-- final end-user release proof beyond CI, especially download-and-run verification on each supported platform
 - the remaining host-runner contract and ABI-stability cleanup listed in [agent-todo.md](./agent-todo.md)
 - deferred framework adapters and fuller `node:test` runner semantics
 - fuller Jest compatibility beyond thin declarations, core hooks, and the small shared-assertion-backed `expect(...)` surface for equality, containment, length/size checks, numeric checks, `NaN`, and `toThrow()`

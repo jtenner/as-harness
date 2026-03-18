@@ -16,6 +16,14 @@ This is separate from the source-host validation matrix in normal CI. Packaged
 release verification and source-host verification are intentionally not the same
 matrix.
 
+The current release policy is:
+
+- downloadable Bun-compiled executables are the official release channel
+- `npm` publication is not a current release goal
+- packaged releases include `js` and `wazero` only
+- `wasmtime` remains source-only
+- the current CI source-host matrix plus packaged clean-environment verification are treated as sufficient release proof
+
 The explicit first supported source-host Node baseline is Node.js 22.
 
 The packaged targets currently intended for release are:
@@ -33,8 +41,8 @@ Packaged harness support is:
 - Linux arm64: `js` only
 - Windows: `js` only
 
-Source-only harness support also includes `wasmtime`, but it is not yet part of
-the packaged release artifact matrix.
+Source-only harness support also includes `wasmtime`, but it is intentionally
+not part of the packaged release artifact matrix.
 
 ## Local Preflight
 
@@ -93,6 +101,9 @@ The packaged verification path is owned by [verify-packaged-cli.ts](../scripts/v
 The source-host matrix is emitted by [host-validation-matrix.ts](../scripts/host-validation-matrix.ts).
 The per-target source-host verification reports are emitted by [verify-source-hosts.ts](../scripts/verify-source-hosts.ts).
 The per-target packaged clean-environment reports are emitted by [verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts).
+
+No extra manual `npm`-distribution proof is required because `npm` publication
+is not part of the current release policy.
 
 ## Tagging
 
@@ -154,6 +165,12 @@ The current packaged verification helper models this by:
 - `wazero` build failure: inspect the Node headers, Go toolchain, or addon staging path on that runner
 - tag/version mismatch: update [package.json](../cli/package.json) or retag to match
 - manifest/checksum failure: confirm the release asset directory contains the expected packaged executables before publish
+
+## Explicit Non-Goals
+
+- `npm` publication
+- packaged `wasmtime` artifacts
+- extending the release contract beyond the current packaged target matrix and Node 22 source-host baseline without updating the shared target metadata first
 
 ## Related Files
 
