@@ -46,10 +46,12 @@ Implemented today:
 Still open:
 
 - long-term host-runner contract cleanup and ABI-stability follow-through
-- the deferred scheduler-step entrypoint decision
-- `wasmtime` coverage parity
 - more framework adapters
 - richer reflected diagnostics and strict-equality follow-through
+
+Explicitly deferred:
+
+- scheduler-step entrypoints beyond the current flat ABI
 
 ## How Hosts Use It
 
@@ -118,5 +120,6 @@ bun test
 
 - Repo overview: [README.md](../README.md)
 - Harness ABI: [docs/harness-abi.md](../docs/harness-abi.md)
+- Guest runtime contracts: [docs/guest-runtime-contracts.md](../docs/guest-runtime-contracts.md)
 - Guest runtime architecture: [docs/primary-buildout.md](../docs/primary-buildout.md)
 - Guest roadmap: [assembly/roadmap.md](./roadmap.md)

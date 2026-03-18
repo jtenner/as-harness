@@ -14,6 +14,7 @@ The project goal is to make AssemblyScript tests compile into Wasm and run throu
 - Project overview: [assembly/README.md](./assembly/README.md)
 - CLI usage and packaging: [cli/README.md](./cli/README.md)
 - Harness ABI for third-party host authors: [docs/harness-abi.md](./docs/harness-abi.md)
+- Guest runtime module contracts: [docs/guest-runtime-contracts.md](./docs/guest-runtime-contracts.md)
 - Release operations and artifact expectations: [docs/release-process.md](./docs/release-process.md)
 - Project license: [LICENSE](./LICENSE)
 - Current runtime and product backlog: [agent-todo.md](./agent-todo.md)
@@ -76,6 +77,7 @@ What is still open:
 
 - the remaining host-runner contract and ABI-stability cleanup listed in [agent-todo.md](./agent-todo.md)
 - deferred framework adapters and fuller `node:test` runner semantics
+- any scheduler-step entrypoint work beyond the current flat ABI, which is explicitly deferred today
 - fuller Jest compatibility beyond thin declarations, core hooks, and the small shared-assertion-backed `expect(...)` surface for equality, containment, length/size checks, numeric checks, `NaN`, and `toThrow()`
 
 ## Quick Start

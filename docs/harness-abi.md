@@ -19,6 +19,9 @@ Use this document if you are:
 
 The project intends this ABI to stay flat and language-agnostic. It is still early and not yet versioned independently, so treat it as the current contract for `v0.2.0` work rather than a permanent frozen standard.
 
+The current shipped contract does not include scheduler-step entrypoints.
+Those are explicitly deferred beyond `v0.2.0`.
+
 For coverage-enabled runs, the current CLI-level report contract is `text`,
 `json`, `yaml`, `csv`, `lcov`, and `cobertura`.
 
@@ -386,6 +389,7 @@ This ABI document does not define:
 - user-facing reporting text
 - framework adapter semantics beyond the current guest exports and events
 - a plugin registry for third-party harnesses
+- scheduler-step entrypoints
 - long-term version negotiation
 
 Those are product-layer concerns above the transport described here.

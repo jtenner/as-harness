@@ -33,7 +33,7 @@ Explicitly deferred for now:
 - additional framework adapters beyond `node:test`
 - Linux `musl`
 - packaged `wasmtime`
-- scheduler-step entrypoint decision
+- scheduler-step entrypoints
 - reflected custom display-override decision
 
 Explicit release-policy decisions:
@@ -68,7 +68,7 @@ Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
 
 - [ ] Finish the remaining host-runner contract items required for shipping.
 - [ ] Keep the ABI flat, language-agnostic, and stable enough to support multiple shipped or source hosts.
-- [ ] Decide whether scheduler-step entrypoints are required for the shipped runner or explicitly deferred.
+- [x] Decide whether scheduler-step entrypoints are required for the shipped runner or explicitly deferred.
 
 ### Release Engineering
 
@@ -125,7 +125,7 @@ host-runner work.
 
 ### ABI Boundary
 
-- [ ] Decide whether scheduler-step entrypoints are required now or deferred.
+- [x] Decide whether scheduler-step entrypoints are required now or deferred.
 - [ ] Keep the ABI simple, flat, and language-agnostic.
 
 ### Ephemeral Runtime State
@@ -139,5 +139,5 @@ host-runner work.
 
 ### Contracts, Fixtures, and Verification
 
-- [ ] Write a module-by-module contract for `api`, `registry`, `traversal`, `executor`, `hooks`, `assert_bridge`, `events`, `abi`, and `state`.
-- [ ] For each module, define inputs, outputs, owned state, and forbidden decisions.
+- [x] Write a module-by-module contract for `api`, `registry`, `traversal`, `executor`, `hooks`, `assert_bridge`, `events`, `abi`, and `state`.
+- [x] For each module, define inputs, outputs, owned state, and forbidden decisions.
