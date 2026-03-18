@@ -27,6 +27,14 @@ function closeHarness(harness) {
 	}
 }
 
+function readCoverageSnapshot(harness) {
+	if (!harness || typeof harness.getCoverageSnapshot !== "function") {
+		return null;
+	}
+
+	return harness.getCoverageSnapshot();
+}
+
 function cloneEvent(event) {
 	const copy = {};
 	for (const [key, value] of Object.entries(event)) {
@@ -244,7 +252,7 @@ async function startHarness(options) {
 
 	try {
 		topLevelDiscovery = discoverImmediateChildren(discoveryHarness, []);
-		initialCoverage = discoveryHarness.getCoverageSnapshot();
+		initialCoverage = readCoverageSnapshot(discoveryHarness);
 	} finally {
 		closeHarness(discoveryHarness);
 	}
@@ -353,4 +361,5 @@ module.exports = {
 	discoverBranch,
 	decorateHarness,
 	EVENT_TYPES,
+	readCoverageSnapshot,
 };

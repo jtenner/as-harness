@@ -175,14 +175,14 @@ async function prepareWazeroAddonForTarget(target: Bun.Build.CompileTarget) {
 	}
 
 	const outputPath = wazeroAddonPathFromCliDir(CLI_DIR, wazeroTarget);
-	if (existsSync(outputPath)) {
-		return {
-			wazeroNodePath: `../n-api/${wazeroTarget}.node`,
-			wazeroTarget,
-		};
-	}
-
 	if (resolveCurrentWazeroAddonTarget() !== wazeroTarget) {
+		if (existsSync(outputPath)) {
+			return {
+				wazeroNodePath: `../n-api/${wazeroTarget}.node`,
+				wazeroTarget,
+			};
+		}
+
 		console.warn(
 			`wazero addon for ${target} is not staged at ${outputPath}; building this CLI target without bundled wazero support.`,
 		);

@@ -1,7 +1,13 @@
 "use strict";
 
 const { parentPort, workerData } = require("node:worker_threads");
-const { cloneEvent, closeHarness, discoverBranch, EVENT_TYPES } = require("./start.cjs");
+const {
+	cloneEvent,
+	closeHarness,
+	discoverBranch,
+	EVENT_TYPES,
+	readCoverageSnapshot,
+} = require("./start.cjs");
 
 if (parentPort === null) {
 	throw new Error("start worker requires a parent port");
@@ -42,7 +48,7 @@ function runBranch(branch) {
 
 		return {
 			executions,
-			coverage: harness.getCoverageSnapshot(),
+			coverage: readCoverageSnapshot(harness),
 		};
 	} finally {
 		closeHarness(harness);

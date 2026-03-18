@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { spawn } from "node:child_process";
 import {
 	appendFile,
 	copyFile,
@@ -18,6 +19,29 @@ import {
 } from "../cli/build-targets";
 
 const REPO_DIR = join(import.meta.dir, "..");
+const NODE_RUNNER_SOURCE = String.raw`
+const { spawnSync } = require("node:child_process");
+
+const cwd = process.argv[1];
+const command = process.argv.slice(2);
+const timeoutMs = Number(process.env.AS_HARNESS_TIMEOUT_MS || "60000");
+const result = spawnSync(command[0], command.slice(1), {
+	cwd,
+	encoding: "utf8",
+	timeout: timeoutMs,
+});
+const timedOut = result.error?.code === "ETIMEDOUT";
+const payload = {
+	exitCode: result.status ?? (timedOut ? 124 : 1),
+	stdout: result.stdout ?? "",
+	stderr: result.stderr ?? "",
+	timedOut,
+	errorMessage:
+		result.error && !timedOut ? String(result.error.message || result.error) : "",
+};
+process.stdout.write(JSON.stringify(payload));
+process.exit(result.error && !timedOut ? 1 : 0);
+`;
 
 type ParsedArguments = {
 	assetDir?: string;
@@ -83,32 +107,84 @@ function parseArguments(argv: string[]): ParsedArguments {
 	return { assetDir, reportDir, target };
 }
 
+function resolveNodeExecutable() {
+	const environmentCandidates = [
+		process.env.AS_HARNESS_NODE_BINARY,
+		process.env.npm_node_execpath,
+		process.env.NODE,
+	].filter((candidate): candidate is string => Boolean(candidate));
+
+	for (const candidate of environmentCandidates) {
+		return candidate;
+	}
+
+	const nodeFromPath = Bun.which("node");
+	if (nodeFromPath) {
+		return nodeFromPath;
+	}
+
+	throw new Error(
+		[
+			"Unable to find a Node executable for packaged CLI verification.",
+			"Set AS_HARNESS_NODE_BINARY or ensure 'node' is on PATH.",
+		].join(" "),
+	);
+}
+
 async function runCommand(
 	command: string[],
 	cwd: string,
 ): Promise<CommandResult> {
-	const processHandle = Bun.spawn(command, {
-		cwd,
-		stderr: "pipe",
-		stdout: "pipe",
+	return await new Promise((resolve, reject) => {
+		let stdout = "";
+		let stderr = "";
+		const child = spawn(resolveNodeExecutable(), ["-e", NODE_RUNNER_SOURCE, cwd, ...command], {
+			cwd,
+			env: {
+				...process.env,
+				AS_HARNESS_TIMEOUT_MS: String(COMMAND_TIMEOUT_MS),
+			},
+			stdio: ["ignore", "pipe", "pipe"],
+		});
+
+		child.stdout.on("data", (chunk: Buffer | string) => {
+			stdout += chunk.toString();
+		});
+		child.stderr.on("data", (chunk: Buffer | string) => {
+			stderr += chunk.toString();
+		});
+
+		child.on("error", (error) => {
+			reject(error);
+		});
+		child.on("close", (exitCode) => {
+			try {
+				if (exitCode !== 0) {
+					throw new Error(
+						stderr || `Node runner exited with code ${exitCode ?? 1}.`,
+					);
+				}
+
+				const result = JSON.parse(stdout) as Omit<CommandResult, "command" | "cwd"> & {
+					errorMessage?: string;
+				};
+				if (result.errorMessage) {
+					throw new Error(result.errorMessage);
+				}
+
+				resolve({
+					command,
+					cwd,
+					exitCode: result.exitCode,
+					stderr: result.stderr,
+					stdout: result.stdout,
+					timedOut: result.timedOut,
+				});
+			} catch (error) {
+				reject(error);
+			}
+		});
 	});
-	let timedOut = false;
-	const timeoutHandle = setTimeout(() => {
-		timedOut = true;
-		processHandle.kill();
-	}, COMMAND_TIMEOUT_MS);
-
-	try {
-		const [stdout, stderr, exitCode] = await Promise.all([
-			new Response(processHandle.stdout).text(),
-			new Response(processHandle.stderr).text(),
-			processHandle.exited,
-		]);
-
-		return { command, cwd, exitCode, stderr, stdout, timedOut };
-	} finally {
-		clearTimeout(timeoutHandle);
-	}
 }
 
 function assertContains(text: string, expected: string, context: string) {
