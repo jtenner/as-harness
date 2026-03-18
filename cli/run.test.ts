@@ -162,7 +162,7 @@ test("passing test", (_context: TestContext): void => {});
 	);
 });
 
-test("cli run executes a thin jest adapter entry when --lib jest is provided", async () => {
+test('cli run executes a thin jest adapter entry from the bundled "jest" guest library', async () => {
 	await withTempEntryFile(
 		`
 import {
@@ -252,7 +252,7 @@ describe("jest adapter", (_context): void => {
 `,
 		async (entryFile, cwd) => {
 			const result = await runCliWithArguments(
-				["run", "--harness", "js", "--lib", "jest", entryFile],
+				["run", "--harness", "js", entryFile],
 				cwd,
 			);
 

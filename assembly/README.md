@@ -81,7 +81,8 @@ test("works", (t) => {
 
 That source is compiled into Wasm by the CLI, then executed by a harness.
 
-A thin Jest-shaped declaration path also exists when you opt into `--lib jest`:
+A thin Jest-shaped declaration path also exists through the bundled `"jest"`
+guest library:
 
 ```ts
 import { describe, expect, test } from "jest";

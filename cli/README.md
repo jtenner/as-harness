@@ -44,11 +44,11 @@ Coverage control flags can be combined:
 - `--coverage-exclude <glob>` removes matching source paths from coverage
 - `--coverage-point-type function|block|expression` can be repeated to keep only selected point classes
 
-On the guest-library side, the CLI also bundles a thin Jest-shaped adapter
-behind `--lib jest`. That adapter currently covers test/suite declarations,
-core hooks, and a small `expect(...)` surface backed by the shared assertion
-machinery, including containment, length/size checks, numeric checks, `NaN`,
-and `toThrow()`.
+On the guest-library side, the CLI also bundles a thin Jest-shaped adapter.
+Importing from `"jest"` works without adding `--lib jest` manually. That
+adapter currently covers test/suite declarations, core hooks, and a small
+`expect(...)` surface backed by the shared assertion machinery, including
+containment, length/size checks, numeric checks, `NaN`, and `toThrow()`.
 
 For the exact guest-facing Jest surface, including alias mapping and skip
 semantics, see [docs/Jest.md](../docs/Jest.md).

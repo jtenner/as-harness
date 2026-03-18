@@ -7,16 +7,17 @@ It is a thin, synchronous Jest-shaped adapter built on the same Wasm runtime
 used by `node:test` and `node:assert`. It is intentionally not full Jest
 compatibility.
 
-## Enable It
+## Use It
 
 Compile and run test files with:
 
 ```bash
-bun run ./cli/index.ts run --lib jest ./suite.test.ts
+bun run ./cli/index.ts run ./suite.test.ts
 ```
 
-The `jest` module path is provided by the CLI's bundled guest libraries. It is
-not meant to be installed from npm inside the guest test source.
+The `jest` module path is provided by the CLI's bundled guest libraries, so
+`import { ... } from "jest"` works without adding `--lib jest`. It is not
+meant to be installed from npm inside the guest test source.
 
 ## Current Scope
 
