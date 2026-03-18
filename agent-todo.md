@@ -118,10 +118,10 @@ this section stay deferred unless the project explicitly resumes fuller
 host-runner work.
 
 - [ ] Investigate AST traversal / transform-generated test-shape extraction as an alternative to replay-driven runtime visitation.
-- [ ] Define the targeted traversal input contract for replaying toward a requested node path.
+- [x] Define the targeted traversal input contract for replaying toward a requested node path.
 - [ ] Emit `NodeFound` during discovery for every structurally visible node.
-- [ ] Enforce declaration-mode traversal semantics for `skip`: emit discovery metadata, stop traversal at that node, and do not traverse children.
-- [ ] Enforce declaration-mode traversal semantics for `todo`: emit discovery metadata, continue descendant traversal, and suppress the node's own outcome significance.
+- [x] Enforce declaration-mode traversal semantics for `skip`: emit discovery metadata, stop traversal at that node, and do not traverse children.
+- [x] Enforce declaration-mode traversal semantics for `todo`: emit discovery metadata, continue descendant traversal, and suppress the node's own outcome significance.
 
 ### ABI Boundary
 

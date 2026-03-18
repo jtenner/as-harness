@@ -19,6 +19,19 @@ const PASSING_TEST_EVENTS = [
 	["nodePass", { nodeIndex: [0] }],
 ];
 
+const ROOT_TARGET_EVENTS = [
+	["nodeStart", { nodeIndex: [] }],
+	["callbackStart", { hook: 1, nodeIndex: [] }],
+	["callbackPass", { hook: 1, nodeIndex: [] }],
+	["callbackStart", { hook: 2, nodeIndex: [] }],
+	["callbackPass", { hook: 2, nodeIndex: [] }],
+	["callbackStart", { hook: 3, nodeIndex: [] }],
+	["callbackPass", { hook: 3, nodeIndex: [] }],
+	["callbackStart", { hook: 4, nodeIndex: [] }],
+	["callbackPass", { hook: 4, nodeIndex: [] }],
+	["nodePass", { nodeIndex: [] }],
+];
+
 const FAILING_TEST_EVENTS = [
 	["nodeStart", { nodeIndex: [1] }],
 	["callbackStart", { hook: 1, nodeIndex: [] }],
@@ -68,6 +81,19 @@ const TRAP_EVENTS = [
 	["callbackStart", { hook: 2, nodeIndex: [] }],
 	["callbackPass", { hook: 2, nodeIndex: [] }],
 	["nodeFail", { nodeIndex: [9, 0], failureKind: 2 }],
+];
+
+const TODO_NESTED_CHILD_EVENTS = [
+	["nodeStart", { nodeIndex: [6, 0] }],
+	["callbackStart", { hook: 1, nodeIndex: [] }],
+	["callbackPass", { hook: 1, nodeIndex: [] }],
+	["callbackStart", { hook: 2, nodeIndex: [] }],
+	["callbackPass", { hook: 2, nodeIndex: [] }],
+	["callbackStart", { hook: 3, nodeIndex: [] }],
+	["callbackPass", { hook: 3, nodeIndex: [] }],
+	["callbackStart", { hook: 4, nodeIndex: [] }],
+	["callbackPass", { hook: 4, nodeIndex: [] }],
+	["nodePass", { nodeIndex: [6, 0] }],
 ];
 
 const DISCOVERY_TRAP_ROOT_EVENTS = [
@@ -332,6 +358,7 @@ function registerHarnessSmokeSuite(options) {
 	test("run(nodeIndex) executes the targeted node:test path", () => {
 		const harness = createHarness(compiledNodeTestWasm);
 
+		assert.equal(harness.run([]), true);
 		assert.equal(harness.run([0]), true);
 		assert.equal(harness.run([1]), false);
 		assert.equal(harness.run([2]), false);
@@ -339,6 +366,7 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.run([4]), true);
 		assert.equal(harness.run([5]), true);
 		assert.equal(harness.run([6]), true);
+		assert.equal(harness.run([6, 0]), true);
 		assert.equal(harness.run([7]), true);
 		assert.equal(harness.run([4, 0]), true);
 		assert.equal(harness.run([4, 1]), false);
@@ -374,6 +402,28 @@ function registerHarnessSmokeSuite(options) {
 
 		assert.equal(harness.run([0]), true);
 		assert.deepEqual(events, PASSING_TEST_EVENTS);
+		closeHarness(harness);
+	});
+
+	test("run(nodeIndex) treats [] as the root target and replays root hooks", () => {
+		const harness = createHarness(compiledNodeTestWasm);
+		const events = [];
+
+		harness.onNodeStart((event) => {
+			events.push(["nodeStart", event]);
+		});
+		harness.onNodePass((event) => {
+			events.push(["nodePass", event]);
+		});
+		harness.onCallbackStart((event) => {
+			events.push(["callbackStart", event]);
+		});
+		harness.onCallbackPass((event) => {
+			events.push(["callbackPass", event]);
+		});
+
+		assert.equal(harness.run([]), true);
+		assert.deepEqual(events, ROOT_TARGET_EVENTS);
 		closeHarness(harness);
 	});
 
@@ -464,6 +514,30 @@ function registerHarnessSmokeSuite(options) {
 		closeHarness(harness);
 	});
 
+	test("discover(nodeIndex) keeps skipped parents discoverable and todo descendants addressable", () => {
+		const harness = createHarness(compiledNodeTestWasm);
+		const found = [];
+
+		harness.onNodeFound((event) => {
+			found.push(event);
+		});
+
+		assert.equal(harness.discover([5]), true);
+		assert.deepEqual(found, []);
+
+		found.length = 0;
+		assert.equal(harness.discover([6]), true);
+		assert.deepEqual(found, [
+			{
+				nodeIndex: [6, 0],
+				kind: 1,
+				declarationMode: 1,
+				name: "todo nested child",
+			},
+		]);
+		closeHarness(harness);
+	});
+
 	test("run(nodeIndex) suppresses self-outcome significance for todo nodes", () => {
 		const harness = createHarness(compiledNodeTestWasm);
 		const events = [];
@@ -481,6 +555,28 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.run([6]), true);
 		assert.equal(harness.run([7]), true);
 		assert.deepEqual(events, []);
+		closeHarness(harness);
+	});
+
+	test("run(nodeIndex) still executes descendants under todo parents normally", () => {
+		const harness = createHarness(compiledNodeTestWasm);
+		const events = [];
+
+		harness.onNodeStart((event) => {
+			events.push(["nodeStart", event]);
+		});
+		harness.onNodePass((event) => {
+			events.push(["nodePass", event]);
+		});
+		harness.onCallbackStart((event) => {
+			events.push(["callbackStart", event]);
+		});
+		harness.onCallbackPass((event) => {
+			events.push(["callbackPass", event]);
+		});
+
+		assert.equal(harness.run([6, 0]), true);
+		assert.deepEqual(events, TODO_NESTED_CHILD_EVENTS);
 		closeHarness(harness);
 	});
 

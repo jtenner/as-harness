@@ -123,6 +123,19 @@ Forbidden decisions:
 - no report-tree aggregation
 - no host-facing byte decoding
 
+Current contract details:
+
+- `NodeIndex` is resolved relative to the supplied parent, not as a global
+  opaque id
+- an empty `NodeIndex` resolves to the supplied parent itself
+- child ordinals are interpreted after local `only` filtering
+- skipped nodes stay structurally visible, but their descendants are pruned
+- todo nodes stay structurally visible, their descendants stay addressable, and
+  only the todo node's own self-outcome significance is suppressed by direct
+  execution
+- repeated lookup and discovery calls may replay ancestor callbacks in order to
+  rebuild child state deterministically
+
 ## `executor`
 
 Purpose:

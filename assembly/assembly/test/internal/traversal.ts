@@ -98,6 +98,14 @@ function testFindNodeByIndexFromRejectsMissingOrdinals(): void {
   assert(found === null);
 }
 
+function testFindNodeByIndexFromEmptyIndexReturnsParent(): void {
+  const localRoot = new Node(NodeKind.Root, "local root");
+  localRoot.createChild(NodeKind.Test, "plain");
+
+  const found = findNodeByIndexFrom(localRoot, [] as StaticArray<u32>);
+  assert(found === localRoot);
+}
+
 function testRunNodeByIndexFromExecutesResolvedNode(): void {
   resetExecutionTrace();
 
@@ -110,12 +118,33 @@ function testRunNodeByIndexFromExecutesResolvedNode(): void {
   assert(executionTrace[0] == "plain test");
 }
 
+function testRunNodeByIndexFromEmptyIndexExecutesParent(): void {
+  resetExecutionTrace();
+
+  const localRoot = new Node(NodeKind.Root, "local root", DeclarationMode.Normal, (): void => {
+    pushTrace("root callback");
+  });
+  localRoot.createChild(NodeKind.Test, "plain");
+
+  assert(runNodeByIndexFrom(localRoot, [] as StaticArray<u32>));
+  assert(executionTrace.length == 1);
+  assert(executionTrace[0] == "root callback");
+}
+
 function testDiscoverImmediateChildrenOfCountsTopLevelNodes(): void {
   const localRoot = new Node(NodeKind.Root, "local root");
   localRoot.createChild(NodeKind.Test, "plain");
   localRoot.createChild(NodeKind.Describe, "suite");
 
   assert(discoverImmediateChildrenOf(localRoot) == 2);
+}
+
+function testDiscoverChildrenByIndexFromEmptyIndexTargetsParent(): void {
+  const localRoot = new Node(NodeKind.Root, "local root");
+  localRoot.createChild(NodeKind.Test, "plain");
+  localRoot.createChild(NodeKind.Describe, "suite");
+
+  assert(discoverChildrenByIndexFrom(localRoot, [] as StaticArray<u32>) == 2);
 }
 
 function testDiscoverChildrenByIndexFromCountsNestedChildren(): void {
@@ -168,6 +197,22 @@ function testDiscoverChildrenByIndexFromAllowsTodoBranches(): void {
   todoParent.setSuiteCallback(declareNestedSuite);
 
   assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
+}
+
+function testRunNodeByIndexFromExecutesTodoDescendantsNormally(): void {
+  resetExecutionTrace();
+
+  const localRoot = new Node(NodeKind.Root, "local root");
+  const todoParent = localRoot.createChild(
+    NodeKind.Describe,
+    "todo parent",
+    DeclarationMode.Todo,
+  );
+  todoParent.setSuiteCallback(declareNestedSuite);
+
+  assert(runNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>));
+  assert(executionTrace.length == 1);
+  assert(executionTrace[0] == "nested test");
 }
 
 function testFindNodeByIndexFromRediscoversAncestorsOnEveryAttempt(): void {
@@ -267,13 +312,17 @@ function testReplayDeterministicallyRediscoversNestedDescribeAndTestTrees(): voi
 
 testFindNodeByIndexFromDiscoversNestedChildren();
 testFindNodeByIndexFromRejectsMissingOrdinals();
+testFindNodeByIndexFromEmptyIndexReturnsParent();
 testRunNodeByIndexFromExecutesResolvedNode();
+testRunNodeByIndexFromEmptyIndexExecutesParent();
 testDiscoverImmediateChildrenOfCountsTopLevelNodes();
+testDiscoverChildrenByIndexFromEmptyIndexTargetsParent();
 testDiscoverChildrenByIndexFromCountsNestedChildren();
 testDiscoverChildrenByIndexFromRejectsMissingNodes();
 testDiscoverImmediateChildrenOfSkipsSkippedParents();
 testFindNodeByIndexFromPrunesSkippedBranches();
 testDiscoverChildrenByIndexFromAllowsTodoBranches();
+testRunNodeByIndexFromExecutesTodoDescendantsNormally();
 testFindNodeByIndexFromRediscoversAncestorsOnEveryAttempt();
 testDiscoverImmediateChildrenOfFiltersOnlyChildren();
 testRunNodeByIndexFromRejectsNonOnlyTargets();

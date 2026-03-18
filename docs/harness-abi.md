@@ -77,6 +77,33 @@ The host must expect these guest exports:
 - returns `0` when the target does not exist, no `NodeIndex` was staged, or execution failed
 - for `todo` nodes, a direct targeted run is a structural no-op: the node is considered resolved, but it should not emit normal execution events or count as a meaningful self outcome
 
+### Targeted Traversal Contract
+
+The current runtime resolves `NodeIndex` values with these exact rules:
+
+- `NodeIndex` is a path of child ordinals from a supplied parent
+- an empty `NodeIndex` targets the supplied parent itself
+- at the exported Wasm level, `discover()` without any staged buffer means
+  root discovery, while `run()` without any staged buffer fails
+- at the host API level, `discover([])` and `run([])` stage an empty
+  `NodeIndex`, so they target the root node
+- `run([])` is therefore allowed to succeed and may emit root-scoped lifecycle
+  events when the root owns hooks
+- each ordinal is evaluated against the visible immediate children of the
+  current parent after local `only` filtering is applied
+- when a parent has one or more immediate `only` children, non-`only` siblings
+  are not addressable through `discover(...)` or `run(...)`
+- a missing ordinal, a pruned descendant under `skip`, or a filtered
+  non-`only` target resolves as missing
+- `skip` nodes are still discoverable as nodes, but their descendants are not
+  discoverable or runnable through targeted traversal
+- `todo` nodes are still discoverable as nodes, their descendants remain
+  discoverable and runnable, but the `todo` node's own direct `run(...)`
+  result suppresses normal self-outcome events
+- ancestor callbacks may be replayed during targeted rediscovery, so repeated
+  `discover(...)` and `run(...)` calls must be treated as structural replay
+  attempts rather than a shared incremental traversal session
+
 `invoke()`:
 
 - trampoline export used by the host-managed callback trap boundary
@@ -310,6 +337,8 @@ It is useful for host-level probes such as trampoline status checks.
 - returns `true` on successful discovery
 - returns `false` on invalid input, missing node, or discovery failure
 - should emit `nodeFound` callbacks for discovered children
+- `discover([])` targets the root node and is the host-API form of root
+  discovery
 
 ### `run(nodeIndex)`
 
@@ -320,6 +349,7 @@ It is useful for host-level probes such as trampoline status checks.
 - should emit `nodeFail` for node-level assertion mismatches, traps, and end-of-scope plan failures
 - should emit `callbackFail` when a lifecycle callback fails before node completion
 - should surface guest `trace(...)` calls through `log` events
+- `run([])` targets the root node and may replay root-scoped lifecycle hooks
 - for `todo` targets, success means the node was resolved without trapping, but the host should expect no normal execution events for the `todo` node itself
 
 ### `start()`
