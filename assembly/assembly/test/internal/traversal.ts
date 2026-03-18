@@ -1,5 +1,5 @@
 import { SuiteContext, TestContext } from "../../node_test";
-import { DeclarationMode, NodeKind } from "../../internal/imports";
+import { DeclarationMode, HookKind, NodeKind } from "../../internal/imports";
 import { currentNode, Node, NodeExecutionOptions } from "../../internal/node";
 import {
   discoverChildrenByIndexFrom,
@@ -73,6 +73,18 @@ function stableParentTestCallback(_context: TestContext): void {
 function declareStableReplaySuite(_context: SuiteContext): void {
   const stableParent = currentNode.createChild(NodeKind.Test, "stable parent");
   stableParent.setTestCallback(stableParentTestCallback);
+}
+
+let replayTrapAttemptCount = 0;
+
+function declareTrapThenRecoverSuite(_context: SuiteContext): void {
+  replayTrapAttemptCount++;
+  currentNode.registerHook(HookKind.BeforeEach, plainTestCallback);
+  const nested = currentNode.createChild(NodeKind.Test, "nested");
+  nested.setTestCallback(nestedTestCallback);
+  if (replayTrapAttemptCount == 1) {
+    unreachable();
+  }
 }
 
 function testFindNodeByIndexFromDiscoversNestedChildren(): void {
@@ -310,6 +322,27 @@ function testReplayDeterministicallyRediscoversNestedDescribeAndTestTrees(): voi
   assert(executionTrace[1] == "stable leaf");
 }
 
+function testTraversalReplayStateResetsAfterTrapAndSuccess(): void {
+  replayTrapAttemptCount = 0;
+
+  const localRoot = new Node(NodeKind.Root, "local root");
+  const suite = localRoot.createChild(NodeKind.Describe, "suite");
+  suite.setSuiteCallback(declareTrapThenRecoverSuite);
+
+  assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == -1);
+  assert(!suite.hasActiveReplayState());
+  assert(suite.getReplayChildBufferLength() == 0);
+  assert(suite.getHooks(HookKind.BeforeEach).length == 0);
+
+  assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
+  assert(!suite.hasActiveReplayState());
+  assert(suite.getReplayChildBufferLength() == 0);
+
+  assert(runNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>));
+  assert(!suite.hasActiveReplayState());
+  assert(suite.getReplayChildBufferLength() == 0);
+}
+
 testFindNodeByIndexFromDiscoversNestedChildren();
 testFindNodeByIndexFromRejectsMissingOrdinals();
 testFindNodeByIndexFromEmptyIndexReturnsParent();
@@ -328,3 +361,4 @@ testDiscoverImmediateChildrenOfFiltersOnlyChildren();
 testRunNodeByIndexFromRejectsNonOnlyTargets();
 testDiscoverAndRunNestedOnlyChildren();
 testReplayDeterministicallyRediscoversNestedDescribeAndTestTrees();
+testTraversalReplayStateResetsAfterTrapAndSuccess();

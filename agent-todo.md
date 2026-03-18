@@ -130,12 +130,12 @@ host-runner work.
 
 ### Ephemeral Runtime State
 
-- [ ] Implement attempt-local tracking for the active node path.
-- [ ] Track current hook phase during lifecycle execution.
-- [ ] Track the current traversal target.
-- [ ] Maintain per-traversal child discovery buffers.
-- [ ] Maintain temporary replay state needed to rediscover branches.
-- [ ] Reset ephemeral state cleanly between attempts so the host remains the durable source of truth.
+- [x] Implement attempt-local tracking for the active node path.
+- [x] Track current hook phase during lifecycle execution.
+- [x] Track the current traversal target.
+- [x] Maintain per-traversal child discovery buffers.
+- [x] Maintain temporary replay state needed to rediscover branches.
+- [x] Reset ephemeral state cleanly between attempts so the host remains the durable source of truth.
 
 ### Contracts, Fixtures, and Verification
 

@@ -33,16 +33,27 @@ export class Node {
 
   private readonly baseDeclarationModeValue: DeclarationMode;
   private declarationModeValue: DeclarationMode;
+  private replayDeclarationModeValue: DeclarationMode;
   private parentValue: Node | null = null;
   private ordinalValue: u32 = 0;
   private childrenValue: Array<Node> = new Array<Node>();
   private childrenResolved: bool = false;
+  private replayStateActive: bool = false;
+  private replayChildrenValue: Array<Node> = new Array<Node>();
   private testCallbackValue: TestNodeCallback | null = null;
   private suiteCallbackValue: SuiteNodeCallback | null = null;
   private beforeAllHooks: Array<HookRegistration> = new Array<HookRegistration>();
   private beforeEachHooks: Array<HookRegistration> = new Array<HookRegistration>();
   private afterEachHooks: Array<HookRegistration> = new Array<HookRegistration>();
   private afterAllHooks: Array<HookRegistration> = new Array<HookRegistration>();
+  private replayBeforeAllHooks: Array<HookRegistration> =
+    new Array<HookRegistration>();
+  private replayBeforeEachHooks: Array<HookRegistration> =
+    new Array<HookRegistration>();
+  private replayAfterEachHooks: Array<HookRegistration> =
+    new Array<HookRegistration>();
+  private replayAfterAllHooks: Array<HookRegistration> =
+    new Array<HookRegistration>();
 
   constructor(
     kind: NodeKind,
@@ -55,6 +66,7 @@ export class Node {
     this.name = name;
     this.baseDeclarationModeValue = declarationMode;
     this.declarationModeValue = declarationMode;
+    this.replayDeclarationModeValue = declarationMode;
     this.callback = callback !== null ? callback : noop;
     this.only = options !== null ? options.only : false;
     this.expectFailure = options !== null ? options.expectFailure : false;
@@ -68,6 +80,10 @@ export class Node {
   }
 
   get declarationMode(): DeclarationMode {
+    if (this.replayStateActive) {
+      return this.replayDeclarationModeValue;
+    }
+
     return this.declarationModeValue;
   }
 
@@ -91,10 +107,21 @@ export class Node {
   }
 
   rediscoverChildren(): Array<Node> {
-    this.resetReplayState();
-    this.childrenResolved = true;
+    this.beginReplayState();
     this.invokeCallback();
-    return this.childrenValue;
+    return this.replayChildrenValue;
+  }
+
+  getReplayChildren(): Array<Node> {
+    return this.replayChildrenValue;
+  }
+
+  hasActiveReplayState(): bool {
+    return this.replayStateActive;
+  }
+
+  getReplayChildBufferLength(): i32 {
+    return this.replayChildrenValue.length;
   }
 
   createChild(
@@ -106,8 +133,11 @@ export class Node {
   ): Node {
     const child = new Node(kind, name, declarationMode, callback, options);
     child.parentValue = this;
-    child.ordinalValue = <u32>this.childrenValue.length;
-    this.childrenValue.push(child);
+    const children = this.replayStateActive
+      ? this.replayChildrenValue
+      : this.childrenValue;
+    child.ordinalValue = <u32>children.length;
+    children.push(child);
     return child;
   }
 
@@ -122,17 +152,32 @@ export class Node {
   }
 
   setDeclarationMode(mode: DeclarationMode): void {
+    if (this.replayStateActive) {
+      this.replayDeclarationModeValue = mode;
+      return;
+    }
+
     this.declarationModeValue = mode;
   }
 
-  resetReplayState(): void {
-    this.declarationModeValue = this.baseDeclarationModeValue;
-    this.childrenValue.length = 0;
-    this.childrenResolved = false;
-    this.beforeAllHooks.length = 0;
-    this.beforeEachHooks.length = 0;
-    this.afterEachHooks.length = 0;
-    this.afterAllHooks.length = 0;
+  private beginReplayState(): void {
+    this.replayStateActive = true;
+    this.replayDeclarationModeValue = this.baseDeclarationModeValue;
+    this.replayChildrenValue.length = 0;
+    this.replayBeforeAllHooks.length = 0;
+    this.replayBeforeEachHooks.length = 0;
+    this.replayAfterEachHooks.length = 0;
+    this.replayAfterAllHooks.length = 0;
+  }
+
+  clearReplayState(): void {
+    this.replayStateActive = false;
+    this.replayDeclarationModeValue = this.baseDeclarationModeValue;
+    this.replayChildrenValue.length = 0;
+    this.replayBeforeAllHooks.length = 0;
+    this.replayBeforeEachHooks.length = 0;
+    this.replayAfterEachHooks.length = 0;
+    this.replayAfterAllHooks.length = 0;
   }
 
   invokeCallback(): void {
@@ -178,39 +223,64 @@ export class Node {
     timeout: i32 = -1,
   ): void {
     const registration = new HookRegistration(kind, callback, timeout);
+    const beforeAllHooks = this.replayStateActive
+      ? this.replayBeforeAllHooks
+      : this.beforeAllHooks;
+    const beforeEachHooks = this.replayStateActive
+      ? this.replayBeforeEachHooks
+      : this.beforeEachHooks;
+    const afterEachHooks = this.replayStateActive
+      ? this.replayAfterEachHooks
+      : this.afterEachHooks;
+    const afterAllHooks = this.replayStateActive
+      ? this.replayAfterAllHooks
+      : this.afterAllHooks;
 
     if (kind == HookKind.BeforeAll) {
-      this.beforeAllHooks.push(registration);
+      beforeAllHooks.push(registration);
       return;
     }
 
     if (kind == HookKind.BeforeEach) {
-      this.beforeEachHooks.push(registration);
+      beforeEachHooks.push(registration);
       return;
     }
 
     if (kind == HookKind.AfterEach) {
-      this.afterEachHooks.push(registration);
+      afterEachHooks.push(registration);
       return;
     }
 
-    this.afterAllHooks.push(registration);
+    afterAllHooks.push(registration);
   }
 
   getHooks(kind: HookKind): Array<HookRegistration> {
+    const beforeAllHooks = this.replayStateActive
+      ? this.replayBeforeAllHooks
+      : this.beforeAllHooks;
+    const beforeEachHooks = this.replayStateActive
+      ? this.replayBeforeEachHooks
+      : this.beforeEachHooks;
+    const afterEachHooks = this.replayStateActive
+      ? this.replayAfterEachHooks
+      : this.afterEachHooks;
+    const afterAllHooks = this.replayStateActive
+      ? this.replayAfterAllHooks
+      : this.afterAllHooks;
+
     if (kind == HookKind.BeforeAll) {
-      return this.beforeAllHooks;
+      return beforeAllHooks;
     }
 
     if (kind == HookKind.BeforeEach) {
-      return this.beforeEachHooks;
+      return beforeEachHooks;
     }
 
     if (kind == HookKind.AfterEach) {
-      return this.afterEachHooks;
+      return afterEachHooks;
     }
 
-    return this.afterAllHooks;
+    return afterAllHooks;
   }
 }
 

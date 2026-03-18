@@ -1,5 +1,8 @@
+import { HookKind } from "./imports";
 import { clearActiveErrorMessage } from "./failure-state";
 import { failAssertion } from "./assert-bridge";
+
+type NodeIndex = StaticArray<u32>;
 
 let assertionScopeActive: bool = false;
 let plannedAssertionCount: i32 = -1;
@@ -8,6 +11,22 @@ let activeNodeName = "";
 let activeAttempt: i32 = 0;
 let activeNodePassed: bool = false;
 let activeRunOnly: bool = false;
+let activeHookKind: u32 = 0;
+let activeNodeIndex: NodeIndex | null = null;
+let activeTraversalTarget: NodeIndex | null = null;
+
+function cloneNodeIndex(nodeIndex: NodeIndex | null): NodeIndex | null {
+  if (nodeIndex === null) {
+    return null;
+  }
+
+  const copy = new StaticArray<u32>(nodeIndex.length);
+  for (let index = 0, length = nodeIndex.length; index < length; index++) {
+    unchecked((copy[index] = unchecked(nodeIndex[index])));
+  }
+
+  return copy;
+}
 
 function resetAssertionScopeState(): void {
   assertionScopeActive = false;
@@ -116,6 +135,78 @@ export function getActiveAttempt(): i32 {
 
 export function getActiveNodePassed(): bool {
   return activeNodePassed;
+}
+
+export function setActiveHookPhase(kind: HookKind): void {
+  activeHookKind = <u32>kind;
+}
+
+export function clearActiveHookPhase(): void {
+  activeHookKind = 0;
+}
+
+export function getActiveHookPhase(): u32 {
+  return activeHookKind;
+}
+
+export function setActiveNodeIndex(nodeIndex: NodeIndex | null): void {
+  activeNodeIndex = cloneNodeIndex(nodeIndex);
+}
+
+export function clearActiveNodeIndex(): void {
+  activeNodeIndex = null;
+}
+
+export function hasActiveNodeIndex(): bool {
+  return activeNodeIndex !== null;
+}
+
+export function getActiveNodeIndexLength(): i32 {
+  const nodeIndex = activeNodeIndex;
+  if (nodeIndex === null) {
+    return -1;
+  }
+
+  return nodeIndex.length;
+}
+
+export function getActiveNodeIndexElement(index: i32): u32 {
+  const nodeIndex = activeNodeIndex;
+  if (nodeIndex === null) {
+    return 0;
+  }
+
+  return unchecked(nodeIndex[index]);
+}
+
+export function setActiveTraversalTarget(nodeIndex: NodeIndex | null): void {
+  activeTraversalTarget = cloneNodeIndex(nodeIndex);
+}
+
+export function clearActiveTraversalTarget(): void {
+  activeTraversalTarget = null;
+}
+
+export function hasActiveTraversalTarget(): bool {
+  return activeTraversalTarget !== null;
+}
+
+export function getActiveTraversalTargetLength(): i32 {
+  const nodeIndex = activeTraversalTarget;
+  if (nodeIndex === null) {
+    return -1;
+  }
+
+  return nodeIndex.length;
+}
+
+export function getActiveTraversalTargetElement(index: i32): u32 {
+  const nodeIndex = activeTraversalTarget;
+  if (nodeIndex === null) {
+    return 0;
+  }
+
+  return unchecked(nodeIndex[index]);
 }
 
 export function setActiveRunOnly(shouldRunOnlyTests: bool): void {

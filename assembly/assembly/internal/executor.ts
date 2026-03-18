@@ -1,9 +1,13 @@
 import {
   abandonAssertionScope,
   beginAssertionScope,
+  clearActiveHookPhase,
+  clearActiveNodeIndex,
   endAssertionScope,
   getActiveRunOnly,
   markActiveNodeCallbackPassed,
+  setActiveHookPhase,
+  setActiveNodeIndex,
   setActiveRunOnly,
 } from "./execution-state";
 import {
@@ -76,10 +80,14 @@ function executeHookRegistrations(
   for (let i = 0, length = registrations.length; i < length; i++) {
     const registration = unchecked(registrations[i]);
     const previousRunOnly = getActiveRunOnly();
+    setActiveNodeIndex(nodeIndex);
+    setActiveHookPhase(registration.kind);
     callbackStart(registration.kind, nodeIndex);
     stagedHookRegistration = registration;
     const trapped = didCallbackTrap(invokeStagedHookRegistration);
     stagedHookRegistration = null;
+    clearActiveHookPhase();
+    clearActiveNodeIndex();
     setActiveRunOnly(previousRunOnly);
     if (trapped) {
       callbackFail(registration.kind, nodeIndex, resolveFailureKind());
@@ -140,9 +148,12 @@ export function executeNode(node: Node): bool {
 
   const previousNode = currentNode;
   const previousRunOnly = getActiveRunOnly();
+  setActiveNodeIndex(nodeIndex);
+  clearActiveHookPhase();
   stagedNodeForInvocation = node;
   const nodeTrapped = didCallbackTrap(invokeStagedNodeCallback);
   stagedNodeForInvocation = null;
+  clearActiveNodeIndex();
   setCurrentNode(previousNode);
   setActiveRunOnly(previousRunOnly);
   if (nodeTrapped) {
