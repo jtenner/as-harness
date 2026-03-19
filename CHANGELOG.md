@@ -2,6 +2,7 @@
 
 ## 2026-03-19
 
+- **vitest: ship the first thin guest adapter slice** Add `assembly/assembly/vitest/` plus the bundled `"vitest"` library entry point, reuse the shipped Jest matcher subset for `expect(...)`, expose `test` / `it` / `describe` / `suite`, `fails`, `skipIf` / `runIf`, hooks, and `assertType(...)`, add internal AssemblyScript coverage plus guest and CLI smoke tests, regenerate the bundled virtual sources, and update the README set, roadmap, adapter TODO, and changelog to document the new supported surface. GitHub: *@jtenner*
 - **repo: ignore the `wasmtime` build cache and document cache-ignore hygiene** Add `harness/wasmtime/.cache/` to the package-level ignore rules so local Rust/Node build cache material stops showing up as untracked repo noise, and update `AGENTS.md` so newly discovered build/cache directories are explicitly treated as ignore candidates when they are not meant to be tracked. GitHub: *@jtenner*
 - **docs: define the recommended `vitest` adapter surface and limits** Add `docs/Vitest.md` as a detailed implementation research guide for the next guest test adapter, choose `vitest` as the best post-`node:test` / post-`jest` target, map the upstream API into `Ship now` / `Later` / `Skip` buckets against the current shared Wasm runtime, and record exactly which pieces should be deferred or rejected because they depend on closures, Promises, dynamic mocks, fixtures, or other AssemblyScript-misaligned features. GitHub: *@jtenner*
 

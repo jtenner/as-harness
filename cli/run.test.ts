@@ -274,6 +274,93 @@ describe("jest adapter", (_context): void => {
 	);
 });
 
+test('cli run executes a thin vitest adapter entry from the bundled "vitest" guest library', async () => {
+	await withTempEntryFile(
+		`
+import {
+  afterEach,
+  assertType,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  suite,
+  test,
+  TestContext,
+} from "vitest";
+
+let beforeEachCount = 0;
+let afterEachCount = 0;
+let suiteSetupCount = 0;
+
+function shouldNeverExecuteSkippedSuite(): void {
+  unreachable();
+}
+
+function throwsUnreachable(): void {
+  unreachable();
+}
+
+const strictArrayNeedle = [2, 3];
+const strictArrayHaystack = [strictArrayNeedle, [4, 5]];
+
+beforeAll((_context: TestContext): void => {
+  suiteSetupCount = 1;
+});
+
+beforeEach((_context: TestContext): void => {
+  beforeEachCount += 1;
+});
+
+afterEach((_context: TestContext): void => {
+  afterEachCount += 1;
+});
+
+describe("vitest adapter", (_context): void => {
+  suite.skipIf(true)("skipped suite", (_nestedContext): void => {
+    shouldNeverExecuteSkippedSuite();
+  });
+
+  describe.runIf(false)("runIf skipped suite", (_nestedContext): void => {
+    shouldNeverExecuteSkippedSuite();
+  });
+
+  test.fails("expected failure metadata", (_context: TestContext): void => {});
+  test("implicit todo metadata");
+
+  test.skipIf(false)("conditional pass", (_context: TestContext): void => {});
+
+  it("passes through vitest adapter", (context: TestContext): void => {
+    assertType<i32>(suiteSetupCount);
+    expect<i32>(suiteSetupCount).toBe(1);
+    expect<i32>(beforeEachCount).toBeGreaterThan(0);
+    expect<Array<Array<i32>>>(strictArrayHaystack).toContain(strictArrayNeedle);
+    expect<Array<Array<i32>>>(strictArrayHaystack).toContainEqual([2, 3]);
+    expect<Array<i32>>([1, 2, 3]).toHaveLength(3);
+    expect<i32>(5).toBeGreaterThan(4);
+    expect<i32>(4).toBeLessThan(5);
+    expect<f64>(NaN).toBeNaN();
+    expect<() => void>(throwsUnreachable).toThrow();
+    context.diagnostic("vitest adapter diagnostic");
+  });
+});
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 3 passed, 0 failed, 4 discovered with js.",
+			);
+		},
+	);
+});
+
 test("cli run emits coverage output through the js harness", async () => {
 	await withTempEntryFile(
 		`

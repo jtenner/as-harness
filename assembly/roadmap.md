@@ -33,9 +33,10 @@ Tracked adapters:
 - `jasmine`
 - `qunit`
 
-The active adapter work today is the shipped Node-shaped surface plus a thin
-Jest declaration adapter. The current supported Jest-shaped guest API is
-described in [docs/Jest.md](../docs/Jest.md).
+The active adapter work today is the shipped Node-shaped surface plus thin
+Jest- and Vitest-shaped adapters. The current supported guest APIs are
+described in [docs/Jest.md](../docs/Jest.md) and
+[docs/Vitest.md](../docs/Vitest.md).
 
 ## How To Read The Adapter TODO Pages
 

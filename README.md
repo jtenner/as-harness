@@ -21,11 +21,13 @@ What works today:
 - merged coverage output in `text`, `json`, `yaml`, `csv`, `lcov`, or `cobertura`
 - coverage filtering with `--coverage-include`, `--coverage-exclude`, and repeated `--coverage-point-type`
 - a bundled thin Jest-shaped guest adapter available through `import ... from "jest"`
+- a bundled thin Vitest-shaped guest adapter available through `import ... from "vitest"`
 
 Current limits:
 
 - async or Promise-based test APIs are not part of the current surface
 - the Jest adapter is intentionally small and not full Jest parity
+- the Vitest adapter is intentionally small and not full Vitest parity
 - packaged releases include `js` and target-specific `wazero`; `wasmtime` is source-only
 - official distribution is packaged Bun executables, not `npm`
 
@@ -92,6 +94,24 @@ bun run ./cli/index.ts run ./example-jest.test.ts
 ```
 
 For the exact supported Jest surface, see [docs/Jest.md](./docs/Jest.md).
+
+Thin Vitest-shaped guest API:
+
+```ts
+import { describe, expect, test } from "vitest";
+
+describe("math", () => {
+	test("adds numbers", () => {
+		expect<i32>(1 + 1).toBe(2);
+	});
+});
+```
+
+```bash
+bun run ./cli/index.ts run ./example-vitest.test.ts
+```
+
+For the exact supported Vitest surface, see [docs/Vitest.md](./docs/Vitest.md).
 
 ## Release Targets
 

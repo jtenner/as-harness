@@ -2,16 +2,21 @@
 
 Status:
 
-- planned
+- first implementation slice implemented
 - not in `v0.1.0`
+- current supported surface documented in [docs/Vitest.md](../../../docs/Vitest.md)
 
 First implementation slice:
 
-- map `test`, `describe`, `skip`, `todo`, and core lifecycle hooks
-- keep Vitest-specific naming in this folder
-- add one minimal traversal fixture
+- [x] map `test`, `it`, `describe`, `suite`, `skip`, `todo`, and core lifecycle hooks
+- [x] add `fails`, `skipIf`, `runIf`, and `assertType(...)`
+- [x] reuse the shipped Jest matcher subset for `expect(...)`
+- [x] keep Vitest-specific naming in this folder
+- [x] add guest smoke coverage and a bundled CLI smoke path
 
 Current non-goals:
 
 - mocks, spies, and call-tracking matchers
+- fixture extension and `vi`
 - Promise-based matchers such as `.resolves` and `.rejects`
+- snapshots, `expectTypeOf`, `bench`, and async helpers

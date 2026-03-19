@@ -53,6 +53,15 @@ containment, length/size checks, numeric checks, `NaN`, and `toThrow()`.
 For the exact guest-facing Jest surface, including alias mapping and skip
 semantics, see [docs/Jest.md](../docs/Jest.md).
 
+The same bundled-library path now also exposes a thin Vitest-shaped adapter.
+Importing from `"vitest"` works without adding `--lib vitest` manually. That
+adapter currently covers test/suite declarations, `fails`,
+`skipIf` / `runIf`, core hooks, `assertType(...)`, and the same shared
+assertion-backed `expect(...)` matcher subset shipped for `jest`.
+
+For the exact guest-facing Vitest surface and current non-goals, see
+[docs/Vitest.md](../docs/Vitest.md).
+
 ## Built-In Harnesses
 
 - `js`
