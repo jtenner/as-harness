@@ -708,6 +708,7 @@ function createHarness(bytes) {
 	return decorateHarness(new Harness(compiledModule), {
 		bytes: wasmBytes,
 		createLocalHarness,
+		runInBand: true,
 		workerModulePath: __filename,
 	});
 }

@@ -53,10 +53,11 @@ registerSharedStartPlannerSmokeSuite({
 	test,
 });
 
-test("start() runs graph execution through a single worker thread like wazero", async () => {
+test("start() runs graph execution through one in-band shared execution slot", async () => {
 	const harness = decorateHarness(createParallelStartHarness(), {
 		bytes: Buffer.alloc(0),
 		createLocalHarness: createParallelStartHarness,
+		runInBand: true,
 		workerModulePath: parallelStartHarnessModulePath,
 	});
 
@@ -70,7 +71,7 @@ test("start() runs graph execution through a single worker thread like wazero", 
 		const diagnosticEvent = branch.executions[0].events.find(
 			(event) => event.type === "diagnostic",
 		);
-		assert.match(diagnosticEvent?.data?.message ?? "", /^run-thread-[1-9][0-9]*$/);
+		assert.equal(diagnosticEvent?.data?.message ?? "", "run-thread-0");
 	}
 
 	harness.close();
@@ -80,6 +81,7 @@ test("start() preserves empty coverage snapshots when coverage is enabled", asyn
 	const harness = decorateHarness(createParallelStartHarness(), {
 		bytes: Buffer.alloc(0),
 		createLocalHarness: createParallelStartHarness,
+		runInBand: true,
 		workerModulePath: parallelStartHarnessModulePath,
 	});
 
@@ -97,6 +99,7 @@ test("start() keeps deep replayed descendants distinct when local node ids repea
 	const harness = decorateHarness(createNestedIdentityHarness(), {
 		bytes: Buffer.alloc(0),
 		createLocalHarness: createNestedIdentityHarness,
+		runInBand: true,
 		workerModulePath: nestedIdentityHarnessModulePath,
 	});
 
@@ -140,6 +143,7 @@ test("start() executes sequential-scope branches without forcing root barriers",
 	const harness = decorateHarness(createSequentialStartHarness(), {
 		bytes: Buffer.alloc(0),
 		createLocalHarness: createSequentialStartHarness,
+		runInBand: true,
 		workerModulePath: sequentialStartHarnessModulePath,
 	});
 

@@ -30,7 +30,7 @@ This host:
 - decodes event payloads emitted through `write_event(...)`
 - stages `NodeIndex` values for `discover()` and `run()`
 - observes traps through the trampoline boundary
-- provides `start()` scheduling through worker threads
+- provides `start()` scheduling through the shared in-band execution slot
 - intercepts AssemblyScript `trace(...)` calls and surfaces them as `log` events
 - implements the conditional `__asCovers` imports and returns merged coverage snapshots when the guest is instrumented
 - supports explicit `close()` calls for interface parity, though it does not hold native resources
@@ -41,7 +41,7 @@ The package now shares the main host-behavior smoke suite with `harness/wazero` 
 
 Package-local extra coverage still exists for:
 
-- JS-specific worker-thread `start()` behavior
+- JS-specific in-band shared-start behavior
 
 ## Commands
 

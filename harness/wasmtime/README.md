@@ -13,7 +13,8 @@ and shares the same smoke-suite expectations as `harness/js` and
   harness events back to the JS wrapper.
 - `index.cjs`
   The JS wrapper that decodes raw events, exposes the shared harness methods,
-  and adds the shared `start()` orchestration through `harness/shared/start.cjs`.
+  and adds the shared in-band `start()` orchestration through
+  `harness/shared/start.cjs`.
 - `scripts/build.mjs`
   The local cargo build helper that compiles the Rust addon and stages
   `dist/wasmtime.node`, including the platform-specific Node-API linker setup
@@ -46,7 +47,8 @@ Current status:
 - source-based host runtime works through a Rust `Node-API` addon
 - the package exposes the same public host surface as the other shipped hosts
 - the shared smoke suite covers event decoding, `callI32`, `discover`, `run`,
-  `start`, traps, and replay behavior
+  `start`, traps, replay behavior, and the same in-band execution-slot contract
+  shipped by `harness/js` and `harness/wazero`
 - AssemblyScript `trace(...)` calls surface through the shared `log` event
 - the conditional `__asCovers` imports are implemented and the harness returns merged coverage snapshots
 - CLI source execution supports `--harness wasmtime`

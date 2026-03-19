@@ -112,8 +112,8 @@ Field-level contract:
 - `blocked` contains planner-blocked tests together with their primary issue
   and dependency identity
 - `workerCount` reports the number of execution slots actually used by the
-  shared executor for the run; some hosts may satisfy that contract in-band
-  without a dedicated worker thread
+  shared executor for the run; the current shipped hosts satisfy that contract
+  in-band without a dedicated worker thread
 - `coverage` is either the merged snapshot for the run or `null` when coverage
   was not requested
 

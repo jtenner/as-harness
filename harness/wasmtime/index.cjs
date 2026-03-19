@@ -520,6 +520,7 @@ function createHarness(bytes) {
 	return decorateHarness(createLocalHarness(wasmBytes), {
 		bytes: wasmBytes,
 		createLocalHarness,
+		runInBand: true,
 		workerModulePath: __filename,
 	});
 }

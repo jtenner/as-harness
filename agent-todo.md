@@ -69,9 +69,6 @@ Remaining work:
   policy, blocked semantics, or adapter surfaces change again
 - prove the now-updated host contract through non-JS hosts and CLI-facing
   blocked/planning paths
-- decide whether any host besides `js` should use the worker-thread execution
-  path, or whether in-band shared execution is the honest cross-host contract
-  for `v0.3.0`
 - decide whether targeted replay stays as the execution primitive for `v0.3.0`
   or whether scheduler-step entrypoints need to return earlier than previously
   planned
