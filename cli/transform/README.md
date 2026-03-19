@@ -33,9 +33,9 @@ The guest runtime owns:
 - cycle handling
 - reflected-value construction
 
-That split is documented in [docs/strict-equality-machinery.md](../../docs/strict-equality-machinery.md).
+That split is documented in [docs/002-2026-03-13-strict-equality-machinery.md](../../docs/002-2026-03-13-strict-equality-machinery.md).
 
 ## Related Docs
 
-- Strict equality design: [docs/strict-equality-machinery.md](../../docs/strict-equality-machinery.md)
+- Strict equality design: [docs/002-2026-03-13-strict-equality-machinery.md](../../docs/002-2026-03-13-strict-equality-machinery.md)
 - CLI overview: [cli/README.md](../README.md)

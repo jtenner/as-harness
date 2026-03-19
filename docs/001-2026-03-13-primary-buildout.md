@@ -2,9 +2,9 @@
 
 This document explains the intended split between guest runtime work and host harness work.
 
-For the concrete host boundary, use [docs/harness-abi.md](./harness-abi.md). This document is the architectural view above that ABI.
+For the concrete host boundary, use [docs/003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md). This document is the architectural view above that ABI.
 For the internal guest-runtime ownership boundaries, use
-[docs/guest-runtime-contracts.md](./guest-runtime-contracts.md).
+[docs/006-2026-03-17-guest-runtime-contracts.md](./006-2026-03-17-guest-runtime-contracts.md).
 
 ## Core Principle
 
@@ -70,7 +70,7 @@ The guest buildout still groups naturally into these areas:
 - attempt-local execution state
 
 The current module-by-module ownership contract for those areas now lives in
-[docs/guest-runtime-contracts.md](./guest-runtime-contracts.md).
+[docs/006-2026-03-17-guest-runtime-contracts.md](./006-2026-03-17-guest-runtime-contracts.md).
 
 ## Host Buildout Areas
 
@@ -88,7 +88,7 @@ The repo now has shared smoke coverage for those parity areas, but the host boun
 ## Recommended Reading Order
 
 1. [README.md](../README.md)
-2. [docs/harness-abi.md](./harness-abi.md)
-3. [docs/guest-runtime-contracts.md](./guest-runtime-contracts.md)
+2. [docs/003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md)
+3. [docs/006-2026-03-17-guest-runtime-contracts.md](./006-2026-03-17-guest-runtime-contracts.md)
 4. [assembly/README.md](../assembly/README.md)
 5. [agent-todo.md](../agent-todo.md)

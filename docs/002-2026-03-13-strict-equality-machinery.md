@@ -79,5 +79,5 @@ Still open:
 ## Related Docs
 
 - Transform overview: [cli/transform/README.md](../cli/transform/README.md)
-- Guest architecture: [docs/primary-buildout.md](./primary-buildout.md)
-- Host ABI: [docs/harness-abi.md](./harness-abi.md)
+- Guest architecture: [docs/001-2026-03-13-primary-buildout.md](./001-2026-03-13-primary-buildout.md)
+- Host ABI: [docs/003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md)

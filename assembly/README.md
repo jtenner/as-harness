@@ -8,9 +8,9 @@ The most important rule is:
 - host code instantiates, schedules, decodes, and reports
 
 The guest/host boundary used by the shipped hosts is documented in
-[docs/harness-abi.md](../docs/harness-abi.md), and the JavaScript-facing
+[docs/003-2026-03-17-harness-abi.md](../docs/003-2026-03-17-harness-abi.md), and the JavaScript-facing
 runner surface above that boundary is documented in
-[docs/host-runner-contract.md](../docs/host-runner-contract.md). The current
+[docs/007-2026-03-17-host-runner-contract.md](../docs/007-2026-03-17-host-runner-contract.md). The current
 source-host set exercising that contract is `harness/js`, `harness/wazero`,
 and `harness/wasmtime`.
 
@@ -24,10 +24,10 @@ and `harness/wasmtime`.
   The current test-declaration adapter.
 - `assembly/assembly/jest/`
   A thin Jest-shaped declaration adapter built on the same runtime primitives.
-  See [docs/Jest.md](../docs/Jest.md) for the current guest-facing surface.
+  See [docs/005-2026-03-17-jest-adapter.md](../docs/005-2026-03-17-jest-adapter.md) for the current guest-facing surface.
 - `assembly/assembly/vitest/`
   A thin Vitest-shaped declaration adapter built on the same runtime
-  primitives. See [docs/Vitest.md](../docs/Vitest.md) for the current
+  primitives. See [docs/008-2026-03-19-vitest-adapter.md](../docs/008-2026-03-19-vitest-adapter.md) for the current
   guest-facing surface.
 - `assembly/assembly/node_assert/`
   The current assertion adapters.
@@ -70,7 +70,7 @@ Hosts compile or receive Wasm built from this package and then:
 4. call `discover()` and `run()`
 5. decode events emitted through `write_event(...)`
 
-If you are implementing a harness, start with [docs/harness-abi.md](../docs/harness-abi.md) before reading the guest internals.
+If you are implementing a harness, start with [docs/003-2026-03-17-harness-abi.md](../docs/003-2026-03-17-harness-abi.md) before reading the guest internals.
 
 ## Writing Tests
 
@@ -105,7 +105,7 @@ length/size checks, numeric comparisons, `NaN`, and `toThrow()`. It does not
 try to provide broad matcher parity, mocks, spies, or async Jest helpers.
 
 The exact supported API, alias mapping, skip-pruning behavior, and current
-`toThrow()` callback contract are described in [docs/Jest.md](../docs/Jest.md).
+`toThrow()` callback contract are described in [docs/005-2026-03-17-jest-adapter.md](../docs/005-2026-03-17-jest-adapter.md).
 
 A thin Vitest-shaped declaration path also exists through the bundled
 `"vitest"` guest library:
@@ -127,7 +127,7 @@ provide fixtures, `vi`, snapshots, async helpers, or broad upstream Vitest
 parity.
 
 The exact supported API and deferred surface are described in
-[docs/Vitest.md](../docs/Vitest.md).
+[docs/008-2026-03-19-vitest-adapter.md](../docs/008-2026-03-19-vitest-adapter.md).
 
 The current source-host validation matrix exercises the same guest runtime
 through JavaScript, Go/wazero, and Rust/Wasmtime hosts.
@@ -149,8 +149,8 @@ bun test
 ## Related Docs
 
 - Repo overview: [README.md](../README.md)
-- Harness ABI: [docs/harness-abi.md](../docs/harness-abi.md)
-- Host runner contract: [docs/host-runner-contract.md](../docs/host-runner-contract.md)
-- Guest runtime contracts: [docs/guest-runtime-contracts.md](../docs/guest-runtime-contracts.md)
-- Guest runtime architecture: [docs/primary-buildout.md](../docs/primary-buildout.md)
+- Harness ABI: [docs/003-2026-03-17-harness-abi.md](../docs/003-2026-03-17-harness-abi.md)
+- Host runner contract: [docs/007-2026-03-17-host-runner-contract.md](../docs/007-2026-03-17-host-runner-contract.md)
+- Guest runtime contracts: [docs/006-2026-03-17-guest-runtime-contracts.md](../docs/006-2026-03-17-guest-runtime-contracts.md)
+- Guest runtime architecture: [docs/001-2026-03-13-primary-buildout.md](../docs/001-2026-03-13-primary-buildout.md)
 - Guest roadmap: [assembly/roadmap.md](./roadmap.md)

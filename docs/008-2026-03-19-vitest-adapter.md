@@ -11,7 +11,7 @@ Research basis:
   `assemblyscript.org/status.html`
 - the current shared guest runtime in
   [`assembly/assembly/internal/`](../assembly/assembly/internal/)
-- the shipped thin Jest adapter in [Jest.md](./Jest.md)
+- the shipped thin Jest adapter in [005-2026-03-17-jest-adapter.md](./005-2026-03-17-jest-adapter.md)
 
 The short conclusion is:
 
@@ -647,7 +647,7 @@ Recommended status:
 - `Ship now`, by reusing the current thin Jest matcher surface
 
 That first Vitest matcher slice should be exactly the already-shipped guest
-matcher family documented in [Jest.md](./Jest.md):
+matcher family documented in [005-2026-03-17-jest-adapter.md](./005-2026-03-17-jest-adapter.md):
 
 - `toBe`
 - `toEqual`

@@ -28,5 +28,5 @@ The hosted matrix is now the canonical way the release gathers the packaged targ
 
 - Repo overview: [README.md](../../README.md)
 - CLI packaging docs: [cli/README.md](../README.md)
-- Harness ABI: [docs/harness-abi.md](../../docs/harness-abi.md)
+- Harness ABI: [docs/003-2026-03-17-harness-abi.md](../../docs/003-2026-03-17-harness-abi.md)
 - wazero host package: [harness/wazero/README.md](../../harness/wazero/README.md)

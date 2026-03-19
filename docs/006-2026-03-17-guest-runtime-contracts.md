@@ -2,11 +2,11 @@
 
 This document describes the internal guest-runtime module contracts that sit
 behind the public harness ABI. Use it together with
-[harness-abi.md](./harness-abi.md) and
-[host-runner-contract.md](./host-runner-contract.md):
+[003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md) and
+[007-2026-03-17-host-runner-contract.md](./007-2026-03-17-host-runner-contract.md):
 
-- [harness-abi.md](./harness-abi.md) defines the host-visible wire contract
-- [host-runner-contract.md](./host-runner-contract.md) defines the
+- [003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md) defines the host-visible wire contract
+- [007-2026-03-17-host-runner-contract.md](./007-2026-03-17-host-runner-contract.md) defines the
   JavaScript-facing host object and runner orchestration contract
 - this document defines the current guest-runtime ownership boundaries
 

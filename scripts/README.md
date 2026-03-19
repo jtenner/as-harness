@@ -66,5 +66,5 @@ bun run release:manifest -- --tag v0.1.0 --asset-dir ./dist/release-assets --not
 
 - Repo overview: [README.md](../README.md)
 - CLI docs: [cli/README.md](../cli/README.md)
-- Release process: [docs/release-process.md](../docs/release-process.md)
+- Release process: [docs/004-2026-03-17-release-process.md](../docs/004-2026-03-17-release-process.md)
 - Third-party notices: [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)

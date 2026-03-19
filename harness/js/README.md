@@ -11,7 +11,7 @@ Node.js 22 baseline across the supported hosted runner matrix.
 - no per-platform build artifact
 - easiest host to understand when implementing the ABI in another language
 
-If you want to understand the contract before reading the native addons, start here and pair it with [docs/harness-abi.md](../../docs/harness-abi.md).
+If you want to understand the contract before reading the native addons, start here and pair it with [docs/003-2026-03-17-harness-abi.md](../../docs/003-2026-03-17-harness-abi.md).
 
 ## Surface
 
@@ -53,5 +53,5 @@ npm test
 ## Related Docs
 
 - Repo overview: [README.md](../../README.md)
-- Harness ABI: [docs/harness-abi.md](../../docs/harness-abi.md)
+- Harness ABI: [docs/003-2026-03-17-harness-abi.md](../../docs/003-2026-03-17-harness-abi.md)
 - Shared smoke parity suite: [smoke-suite.cjs](../shared/smoke-suite.cjs)

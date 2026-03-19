@@ -99,7 +99,7 @@ The current source-host proof contract is:
 - Node.js 22
 
 The shipped JavaScript-facing host-runner contract exercised by that matrix is
-documented in [host-runner-contract.md](./host-runner-contract.md).
+documented in [007-2026-03-17-host-runner-contract.md](./007-2026-03-17-host-runner-contract.md).
 
 The packaged verification path is owned by [verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts).
 The source-host matrix is emitted by [host-validation-matrix.ts](../scripts/host-validation-matrix.ts).
@@ -183,4 +183,4 @@ The current packaged verification helper models this by:
 - Legal staging: [scripts/stage-release-legal.ts](../scripts/stage-release-legal.ts)
 - Packaged smoke verification: [scripts/verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts)
 - Release target map: [cli/build-targets.ts](../cli/build-targets.ts)
-- Host runner contract: [docs/host-runner-contract.md](./host-runner-contract.md)
+- Host runner contract: [docs/007-2026-03-17-host-runner-contract.md](./007-2026-03-17-host-runner-contract.md)

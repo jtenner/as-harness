@@ -1,6 +1,6 @@
 // Flat imported ABI shared by the internal AssemblyScript runtime primitives.
 // These declarations cover the imported host event sink called out in
-// docs/primary-buildout.md.
+// docs/001-2026-03-13-primary-buildout.md.
 
 export const enum NodeKind {
   Root = 0,

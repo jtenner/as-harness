@@ -29,7 +29,7 @@ The CLI works in two layers:
 1. compile guest code into Wasm with the bundled guest support files
 2. hand the Wasm bytes to a selected host runtime
 
-The host runtime contract used by the CLI is the `Runtime` interface in [types.ts](./runtime/types.ts). The lower-level host ABI itself is documented in [docs/harness-abi.md](../docs/harness-abi.md).
+The host runtime contract used by the CLI is the `Runtime` interface in [types.ts](./runtime/types.ts). The lower-level host ABI itself is documented in [docs/003-2026-03-17-harness-abi.md](../docs/003-2026-03-17-harness-abi.md).
 
 The default reporter currently:
 
@@ -51,7 +51,7 @@ adapter currently covers test/suite declarations, core hooks, and a small
 containment, length/size checks, numeric checks, `NaN`, and `toThrow()`.
 
 For the exact guest-facing Jest surface, including alias mapping and skip
-semantics, see [docs/Jest.md](../docs/Jest.md).
+semantics, see [docs/005-2026-03-17-jest-adapter.md](../docs/005-2026-03-17-jest-adapter.md).
 
 The same bundled-library path now also exposes a thin Vitest-shaped adapter.
 Importing from `"vitest"` works without adding `--lib vitest` manually. That
@@ -60,7 +60,7 @@ aliases, `fails`, `skipIf` / `runIf`, core hooks, `assertType(...)`, and the sam
 assertion-backed `expect(...)` matcher subset shipped for `jest`.
 
 For the exact guest-facing Vitest surface and current non-goals, see
-[docs/Vitest.md](../docs/Vitest.md).
+[docs/008-2026-03-19-vitest-adapter.md](../docs/008-2026-03-19-vitest-adapter.md).
 
 ## Built-In Harnesses
 
@@ -147,8 +147,8 @@ Common CLI failure classes:
 ## Related Docs
 
 - Repo overview: [README.md](../README.md)
-- Harness ABI: [docs/harness-abi.md](../docs/harness-abi.md)
-- Release process: [docs/release-process.md](../docs/release-process.md)
+- Harness ABI: [docs/003-2026-03-17-harness-abi.md](../docs/003-2026-03-17-harness-abi.md)
+- Release process: [docs/004-2026-03-17-release-process.md](../docs/004-2026-03-17-release-process.md)
 - Third-party notices: [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)
 - Native addon staging: [cli/n-api/README.md](./n-api/README.md)
 - Strict-equality transform: [cli/transform/README.md](./transform/README.md)

@@ -4,7 +4,7 @@ Status:
 
 - first declaration slice implemented
 - not in `v0.1.0`
-- current supported surface documented in [docs/Jest.md](../../../docs/Jest.md)
+- current supported surface documented in [docs/005-2026-03-17-jest-adapter.md](../../../docs/005-2026-03-17-jest-adapter.md)
 
 First implementation slice:
 

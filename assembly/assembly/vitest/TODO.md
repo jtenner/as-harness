@@ -4,7 +4,7 @@ Status:
 
 - first implementation slice implemented
 - not in `v0.1.0`
-- current supported surface documented in [docs/Vitest.md](../../../docs/Vitest.md)
+- current supported surface documented in [docs/008-2026-03-19-vitest-adapter.md](../../../docs/008-2026-03-19-vitest-adapter.md)
 
 First implementation slice:
 

@@ -93,7 +93,7 @@ describe("math", () => {
 bun run ./cli/index.ts run ./example-jest.test.ts
 ```
 
-For the exact supported Jest surface, see [docs/Jest.md](./docs/Jest.md).
+For the exact supported Jest surface, see [docs/005-2026-03-17-jest-adapter.md](./docs/005-2026-03-17-jest-adapter.md).
 
 Thin Vitest-shaped guest API:
 
@@ -111,7 +111,7 @@ describe("math", () => {
 bun run ./cli/index.ts run ./example-vitest.test.ts
 ```
 
-For the exact supported Vitest surface, see [docs/Vitest.md](./docs/Vitest.md).
+For the exact supported Vitest surface, see [docs/008-2026-03-19-vitest-adapter.md](./docs/008-2026-03-19-vitest-adapter.md).
 
 ## Release Targets
 
@@ -153,10 +153,10 @@ bun run verify:packaged-cli -- --target bun-linux-x64 --report-dir ./dist/packag
 
 - CLI details: [cli/README.md](./cli/README.md)
 - Guest runtime details: [assembly/README.md](./assembly/README.md)
-- Harness ABI: [docs/harness-abi.md](./docs/harness-abi.md)
-- Host runner contract: [docs/host-runner-contract.md](./docs/host-runner-contract.md)
-- Guest runtime contracts: [docs/guest-runtime-contracts.md](./docs/guest-runtime-contracts.md)
-- Release process: [docs/release-process.md](./docs/release-process.md)
+- Harness ABI: [docs/003-2026-03-17-harness-abi.md](./docs/003-2026-03-17-harness-abi.md)
+- Host runner contract: [docs/007-2026-03-17-host-runner-contract.md](./docs/007-2026-03-17-host-runner-contract.md)
+- Guest runtime contracts: [docs/006-2026-03-17-guest-runtime-contracts.md](./docs/006-2026-03-17-guest-runtime-contracts.md)
+- Release process: [docs/004-2026-03-17-release-process.md](./docs/004-2026-03-17-release-process.md)
 - Host-specific notes: [harness/js/README.md](./harness/js/README.md), [harness/wazero/README.md](./harness/wazero/README.md), [harness/wasmtime/README.md](./harness/wasmtime/README.md)
 - Current backlog: [agent-todo.md](./agent-todo.md)
 

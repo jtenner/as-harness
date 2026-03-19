@@ -25,9 +25,9 @@ Official Vitest references checked on 2026-03-19:
 
 Local contract references:
 
-- [docs/Vitest.md](./Vitest.md)
-- [docs/harness-abi.md](./harness-abi.md)
-- [docs/host-runner-contract.md](./host-runner-contract.md)
+- [docs/008-2026-03-19-vitest-adapter.md](./008-2026-03-19-vitest-adapter.md)
+- [docs/003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md)
+- [docs/007-2026-03-17-host-runner-contract.md](./007-2026-03-17-host-runner-contract.md)
 - [assembly/assembly/internal/node.ts](../assembly/assembly/internal/node.ts)
 - [assembly/assembly/internal/traversal.ts](../assembly/assembly/internal/traversal.ts)
 - [harness/shared/start.cjs](../harness/shared/start.cjs)

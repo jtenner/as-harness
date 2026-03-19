@@ -83,5 +83,5 @@ Package-local extra coverage still exists for:
 ## Related Docs
 
 - Repo overview: [README.md](../../README.md)
-- Harness ABI: [docs/harness-abi.md](../../docs/harness-abi.md)
+- Harness ABI: [docs/003-2026-03-17-harness-abi.md](../../docs/003-2026-03-17-harness-abi.md)
 - CLI native addon staging: [cli/n-api/README.md](../../cli/n-api/README.md)

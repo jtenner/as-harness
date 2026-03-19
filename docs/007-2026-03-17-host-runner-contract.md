@@ -4,9 +4,9 @@ This document defines the shipped JavaScript-facing host-runner contract used by
 the CLI and proved across `harness/js`, `harness/wazero`, and
 `harness/wasmtime`.
 
-Use it with [harness-abi.md](./harness-abi.md):
+Use it with [003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md):
 
-- [harness-abi.md](./harness-abi.md) defines the guest Wasm import/export and
+- [003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md) defines the guest Wasm import/export and
   event-payload wire contract
 - this document defines the host object shape, method semantics, and
   orchestration contract above that wire layer
@@ -77,7 +77,7 @@ Registration contract:
 - `run([])` stages an empty `NodeIndex`, so it targets the root node
 
 The exact traversal and event rules behind those methods are defined in
-[harness-abi.md](./harness-abi.md).
+[003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md).
 
 ## `start()`
 
@@ -134,7 +134,7 @@ Coverage methods are part of the same host-runner contract:
 
 The point and report shape is defined in
 [harness/shared/covers-types.d.ts](../harness/shared/covers-types.d.ts) and the
-coverage ABI notes in [harness-abi.md](./harness-abi.md).
+coverage ABI notes in [003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md).
 
 ## Lifetime
 
@@ -157,4 +157,4 @@ The current parity proof for this contract is:
 - package-local host tests in `harness/js`, `harness/wazero`, and
   `harness/wasmtime`
 - the CI source-host matrix and packaged verification flow described in
-  [release-process.md](./release-process.md)
+  [004-2026-03-17-release-process.md](./004-2026-03-17-release-process.md)
