@@ -380,6 +380,63 @@ async function runTasksInWorkerPool(
 	});
 }
 
+function runBranchTaskInBand(options, task) {
+	const harness = options.createLocalHarness(options.bytes);
+	let currentEvents = null;
+
+	try {
+		for (const [registrationName, type] of EVENT_TYPES) {
+			harness[registrationName]((event) => {
+				if (currentEvents === null) {
+					return;
+				}
+
+				currentEvents.push({
+					type,
+					data: cloneEvent(event),
+				});
+			});
+		}
+
+		const executions = [];
+		for (const node of task.runTargets) {
+			currentEvents = [];
+			const ok = harness.run(node.nodeIndex);
+			executions.push({
+				node,
+				ok,
+				events: currentEvents,
+			});
+			currentEvents = null;
+		}
+
+		return {
+			executions,
+			coverage: readCoverageSnapshot(harness),
+		};
+	} finally {
+		closeHarness(harness);
+	}
+}
+
+async function runExecutionTasks(options, tasks) {
+	if (tasks.length === 0) {
+		return [];
+	}
+
+	if (options.runInBand === true) {
+		return tasks.map((task) => runBranchTaskInBand(options, task));
+	}
+
+	return runTasksInWorkerPool(
+		options.workerModulePath,
+		options.bytes,
+		"runBranch",
+		tasks,
+		1,
+	);
+}
+
 function createExecutionTarget(branchIndex, executionIndex, node) {
 	return {
 		branchIndex,
@@ -890,14 +947,10 @@ async function executePlannedStages(options, branches, plan) {
 			continue;
 		}
 
-		const executionGroups = await runTasksInWorkerPool(
-			options.workerModulePath,
-			options.bytes,
-			"runBranch",
+		const executionGroups = await runExecutionTasks(options,
 			stageTargets.map((target) => ({
 				runTargets: [target.node],
 			})),
-			1,
 		);
 		workerCount = 1;
 
@@ -1057,6 +1110,7 @@ function decorateHarness(harness, options) {
 		return startHarness({
 			bytes: Buffer.from(options.bytes),
 			createLocalHarness: options.createLocalHarness,
+			runInBand: options.runInBand === true,
 			workerModulePath: path.resolve(options.workerModulePath),
 		});
 	};

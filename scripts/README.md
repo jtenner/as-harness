@@ -7,7 +7,9 @@
 - `validate.ts`
   Runs Biome format and lint checks for `cli/`.
 - `test.ts`
-  Runs the repo-level AssemblyScript-focused test flow and assertion bridge smoke coverage.
+  Runs the repo-level AssemblyScript-focused test flow, assertion bridge smoke
+  coverage, and the package host smoke suites for `js`, `wazero`, and
+  `wasmtime`.
 - `test-bootstrap.ts`
   Loads the compiled AssemblyScript bootstrap fixture under Bun.
 - `assert-bridge-smoke.ts`
@@ -17,7 +19,9 @@
 - `host-validation-matrix.ts`
   Emits the source-host validation matrix consumed by GitHub Actions.
 - `verify-source-hosts.ts`
-  Runs the expected source-host package checks for one matrix target, verifies that the active `node` on `PATH` matches the target's declared baseline, and writes JSON/Markdown proof reports.
+  Runs the expected source-host package build/test commands for one matrix
+  target, verifies that the active `node` on `PATH` matches the target's
+  declared baseline, and writes JSON/Markdown proof reports.
 - `release-manifest.ts`
   Emits `release-manifest.json`, `SHA256SUMS.txt`, and release-notes text from the shared release-target metadata.
 - `stage-release-legal.ts`
@@ -30,6 +34,7 @@
 - the CLI formatting and lint baseline
 - the guest runtime still compiles
 - the assertion bridge still works
+- the package host smoke suites still pass through the root test entrypoint
 - the source-host matrix is explicit rather than hard-coded into one CI job
 - the explicit first supported source-host Node baseline is Node.js 22
 - source-host proof now produces persisted per-target reports instead of relying only on CI step names

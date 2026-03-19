@@ -24,9 +24,12 @@ This host:
 - validates and compiles Wasm through wazero
 - decodes the same event protocol as `harness/js`
 - intercepts AssemblyScript `trace(...)` calls and surfaces them as `log` events
-- implements `callI32`, `discover`, `run`, and `start`
-- keeps branch discovery and execution scheduling inside the native addon
-- implements the conditional `__asCovers` imports and returns merged coverage snapshots when the guest is instrumented
+- implements native `callI32`, `discover`, and `run`
+- relies on the shared `start()` planner in `harness/shared/start.cjs` through an
+  in-band execution mode rather than a worker-thread scheduler
+- implements the conditional `__asCovers` imports and now exposes persistent
+  `getCoverageSnapshot()` / `resetCoverage()` methods so shared `start()` and
+  CLI coverage reporting can merge native coverage state
 - now requires explicit `close()` to release the native runtime promptly instead of waiting for GC finalization
 
 ## Build Requirements
@@ -74,7 +77,7 @@ The hosted release matrix now builds and verifies the packaged targets in CI. Th
 
 ## Testing
 
-This package shares the main host-parity smoke suite with `harness/js` and `harness/wasmtime`.
+This package shares the main host-parity smoke suite with `harness/js` and `harness/wasmtime`, and the root `bun run test` flow now invokes those package smoke commands directly instead of delegating through wrapper scripts.
 
 Package-local extra coverage still exists for:
 

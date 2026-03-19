@@ -45,6 +45,8 @@ extern napi_value GoCallI32(napi_env env, napi_callback_info info);
 extern napi_value GoDiscoverHarness(napi_env env, napi_callback_info info);
 extern napi_value GoRunHarness(napi_env env, napi_callback_info info);
 extern napi_value GoStartHarness(napi_env env, napi_callback_info info);
+extern napi_value GoGetCoverageSnapshot(napi_env env, napi_callback_info info);
+extern napi_value GoResetCoverage(napi_env env, napi_callback_info info);
 extern napi_value GoCloseHarness(napi_env env, napi_callback_info info);
 extern void GoFinalizeHarness(node_api_basic_env env, void* data, void* hint);
 */
@@ -106,6 +108,7 @@ const (
 type harnessState struct {
 	runtime   wazero.Runtime
 	compiled  wazero.CompiledModule
+	coverage  *coverageCollector
 	env       C.napi_env
 	callbacks [callbackSlotCount]C.napi_ref
 }
@@ -293,6 +296,18 @@ func (collector *coverageCollector) Snapshot() *coverageSnapshot {
 	}
 }
 
+func (collector *coverageCollector) Reset() {
+	if collector == nil {
+		return
+	}
+
+	collector.mu.Lock()
+	defer collector.mu.Unlock()
+
+	collector.points = map[uint32]coveragePoint{}
+	collector.covered = map[uint32]struct{}{}
+}
+
 var (
 	harnessMu     sync.Mutex
 	nextHarnessID int64 = 1
@@ -358,6 +373,15 @@ func throwError(env C.napi_env, message string) bool {
 func undefined(env C.napi_env) C.napi_value {
 	var result C.napi_value
 	if !must(C.napi_get_undefined(env, &result), env, "failed to get undefined") {
+		return nil
+	}
+
+	return result
+}
+
+func null(env C.napi_env) C.napi_value {
+	var result C.napi_value
+	if !must(C.napi_get_null(env, &result), env, "failed to get null") {
 		return nil
 	}
 
@@ -841,10 +865,10 @@ func createNodeFoundEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
 	if !setNamedProperty(env, result, "dependencyNodeIds", dependencyNodeIDsValue) {
 		return nil, false
 	}
-	if !setNamedProperty(env, result, "only", createBool(env, node.Only)) {
+	if !setNamedProperty(env, result, "only", createBoolean(env, node.Only)) {
 		return nil, false
 	}
-	if !setNamedProperty(env, result, "expectFailure", createBool(env, node.ExpectFailure)) {
+	if !setNamedProperty(env, result, "expectFailure", createBoolean(env, node.ExpectFailure)) {
 		return nil, false
 	}
 	if !setNamedProperty(env, result, "declarationMode", createUint32(env, node.DeclarationMode)) {
@@ -1447,6 +1471,7 @@ func compileHarness(bytes []byte) (*harnessState, error) {
 	return &harnessState{
 		runtime:  runtime,
 		compiled: compiled,
+		coverage: newCoverageCollector(),
 	}, nil
 }
 
@@ -1644,6 +1669,12 @@ func createHarnessObject(env C.napi_env, id int64) C.napi_value {
 		return nil
 	}
 	if !setNamedProperty(env, harness, "start", createFunction(env, "start", (C.napi_callback)(C.GoStartHarness))) {
+		return nil
+	}
+	if !setNamedProperty(env, harness, "getCoverageSnapshot", createFunction(env, "getCoverageSnapshot", (C.napi_callback)(C.GoGetCoverageSnapshot))) {
+		return nil
+	}
+	if !setNamedProperty(env, harness, "resetCoverage", createFunction(env, "resetCoverage", (C.napi_callback)(C.GoResetCoverage))) {
 		return nil
 	}
 	if !setNamedProperty(env, harness, "close", createFunction(env, "close", (C.napi_callback)(C.GoCloseHarness))) {
@@ -1912,10 +1943,10 @@ func createNodeSnapshotValue(env C.napi_env, node nodeSnapshot) (C.napi_value, b
 	if !setNamedProperty(env, result, "dependencyNodeIds", dependencyNodeIDsValue) {
 		return nil, false
 	}
-	if !setNamedProperty(env, result, "only", createBool(env, node.Only)) {
+	if !setNamedProperty(env, result, "only", createBoolean(env, node.Only)) {
 		return nil, false
 	}
-	if !setNamedProperty(env, result, "expectFailure", createBool(env, node.ExpectFailure)) {
+	if !setNamedProperty(env, result, "expectFailure", createBoolean(env, node.ExpectFailure)) {
 		return nil, false
 	}
 	if !setNamedProperty(env, result, "kind", createUint32(env, node.Kind)) {
@@ -2283,7 +2314,7 @@ func createCoverageSnapshotValue(env C.napi_env, snapshot coverageSnapshot) (C.n
 }
 
 func runNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) bool {
-	return runNodeIndexWithSink(ctx, state, nodeIndex, nil, nil)
+	return runNodeIndexWithSink(ctx, state, nodeIndex, nil, state.coverage)
 }
 
 func runNodeIndexWithSink(ctx context.Context, state *harnessState, nodeIndex []uint32, sink writeEventSink, coverage *coverageCollector) bool {
@@ -2336,7 +2367,7 @@ func runNodeIndexWithSink(ctx context.Context, state *harnessState, nodeIndex []
 }
 
 func discoverNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) bool {
-	return discoverNodeIndexWithSink(ctx, state, nodeIndex, nil, nil)
+	return discoverNodeIndexWithSink(ctx, state, nodeIndex, nil, state.coverage)
 }
 
 func discoverNodeIndexWithSink(ctx context.Context, state *harnessState, nodeIndex []uint32, sink writeEventSink, coverage *coverageCollector) bool {
@@ -2562,6 +2593,47 @@ func GoStartHarness(env C.napi_env, info C.napi_callback_info) C.napi_value {
 	}
 
 	return createResolvedPromise(env, resultValue)
+}
+
+//export GoGetCoverageSnapshot
+func GoGetCoverageSnapshot(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	_, thisArg, ok := getCallbackArguments(env, info, 0)
+	if !ok {
+		return nil
+	}
+
+	state, ok := requireHarness(env, thisArg)
+	if !ok {
+		return nil
+	}
+
+	snapshot := state.coverage.Snapshot()
+	if snapshot == nil {
+		return null(env)
+	}
+
+	value, ok := createCoverageSnapshotValue(env, *snapshot)
+	if !ok {
+		return nil
+	}
+
+	return value
+}
+
+//export GoResetCoverage
+func GoResetCoverage(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	_, thisArg, ok := getCallbackArguments(env, info, 0)
+	if !ok {
+		return nil
+	}
+
+	state, ok := requireHarness(env, thisArg)
+	if !ok {
+		return nil
+	}
+
+	state.coverage.Reset()
+	return undefined(env)
 }
 
 //export GoCloseHarness

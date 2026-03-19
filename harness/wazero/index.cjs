@@ -1,6 +1,7 @@
 "use strict";
 
 const native = require("./dist/wazero.node");
+const { decorateHarness } = require("../shared/start.cjs");
 
 function toWasmBytes(value) {
 	if (Buffer.isBuffer(value)) {
@@ -23,8 +24,15 @@ function toWasmBytes(value) {
 }
 
 function createHarness(bytes) {
-	const wasmBytes = toWasmBytes(bytes);
-	return native.createHarness(wasmBytes);
+	const wasmBytes = Buffer.from(toWasmBytes(bytes));
+
+	return decorateHarness(native.createHarness(wasmBytes), {
+		bytes: wasmBytes,
+		createLocalHarness: (localBytes) =>
+			native.createHarness(Buffer.from(toWasmBytes(localBytes))),
+		runInBand: true,
+		workerModulePath: __filename,
+	});
 }
 
 module.exports = {

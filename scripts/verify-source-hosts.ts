@@ -15,7 +15,7 @@ type ParsedArguments = {
 };
 
 type HarnessReport = {
-	command: string[];
+	commands: Array<string[]>;
 	durationMs: number;
 	exitCode: number;
 	harness: SourceHarness;
@@ -31,19 +31,39 @@ type CommandResult = {
 
 const HARNESS_COMMANDS: Record<
 	SourceHarness,
-	{ command: string[]; cwd: string }
+	{ commands: { command: string[]; cwd: string }[] }
 > = {
 	js: {
-		command: ["npm", "test"],
-		cwd: join(REPO_DIR, "harness", "js"),
+		commands: [
+			{
+				command: ["node", "--test", "./test/smoke.host.cjs"],
+				cwd: join(REPO_DIR, "harness", "js"),
+			},
+		],
 	},
 	wazero: {
-		command: ["npm", "test"],
-		cwd: join(REPO_DIR, "harness", "wazero"),
+		commands: [
+			{
+				command: ["node", "./scripts/build.mjs"],
+				cwd: join(REPO_DIR, "harness", "wazero"),
+			},
+			{
+				command: ["node", "--test", "./test/smoke.host.cjs"],
+				cwd: join(REPO_DIR, "harness", "wazero"),
+			},
+		],
 	},
 	wasmtime: {
-		command: ["npm", "test"],
-		cwd: join(REPO_DIR, "harness", "wasmtime"),
+		commands: [
+			{
+				command: ["node", "./scripts/build.mjs"],
+				cwd: join(REPO_DIR, "harness", "wasmtime"),
+			},
+			{
+				command: ["node", "--test", "./test/smoke.host.cjs"],
+				cwd: join(REPO_DIR, "harness", "wasmtime"),
+			},
+		],
 	},
 };
 
@@ -158,21 +178,32 @@ async function main() {
 	let hasFailure = false;
 
 	for (const harness of target.sourceHarnesses) {
-		const { command, cwd } = HARNESS_COMMANDS[harness];
+		const { commands } = HARNESS_COMMANDS[harness];
 		const startedAt = performance.now();
 		console.log(`Running ${harness} host verification for ${target.label}...`);
-		const result = await runCommand(command, cwd);
+		let stdout = "";
+		let stderr = "";
+		let exitCode = 0;
+		for (const { command, cwd } of commands) {
+			const result = await runCommand(command, cwd);
+			stdout += result.stdout;
+			stderr += result.stderr;
+			exitCode = result.exitCode;
+			if (exitCode !== 0) {
+				break;
+			}
+		}
 		const durationMs = Math.round(performance.now() - startedAt);
 		reports.push({
-			command,
+			commands: commands.map(({ command }) => command),
 			durationMs,
-			exitCode: result.exitCode,
+			exitCode,
 			harness,
-			stderr: result.stderr,
-			stdout: result.stdout,
+			stderr,
+			stdout,
 		});
 
-		if (result.exitCode !== 0) {
+		if (exitCode !== 0) {
 			hasFailure = true;
 		}
 	}

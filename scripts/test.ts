@@ -4,6 +4,9 @@ import { $ } from "bun";
 
 const rootDir = import.meta.dir + "/..";
 const assemblyDir = `${rootDir}/assembly`;
+const jsHarnessDir = `${rootDir}/harness/js`;
+const wazeroHarnessDir = `${rootDir}/harness/wazero`;
+const wasmtimeHarnessDir = `${rootDir}/harness/wasmtime`;
 const outputFile = "build/test-debug.wasm";
 const legacyAssertSmokeFile = "build/assert-bridge-node-assert.wasm";
 const strictAssertSmokeFile = "build/assert-bridge-node-assert-strict.wasm";
@@ -44,3 +47,23 @@ console.log("Running node:assert bridge smoke checks...");
 await $`bun run ${rootDir}/scripts/assert-bridge-smoke.ts`;
 
 console.log("node:assert bridge smoke checks completed.");
+
+console.log("Running js host smoke checks...");
+
+await $`node --test ./test/smoke.host.cjs`.cwd(jsHarnessDir);
+
+console.log("js host smoke checks completed.");
+
+console.log("Running wazero host smoke checks...");
+
+await $`node ./scripts/build.mjs`.cwd(wazeroHarnessDir);
+await $`node --test ./test/smoke.host.cjs`.cwd(wazeroHarnessDir);
+
+console.log("wazero host smoke checks completed.");
+
+console.log("Running wasmtime host smoke checks...");
+
+await $`node ./scripts/build.mjs`.cwd(wasmtimeHarnessDir);
+await $`node --test ./test/smoke.host.cjs`.cwd(wasmtimeHarnessDir);
+
+console.log("wasmtime host smoke checks completed.");

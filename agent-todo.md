@@ -23,8 +23,9 @@
   branch barriers, and the shared planner now has direct proof coverage while
   `only`, expected-failure intent, and dependency node IDs now cross discovery
   cleanly, and the shared executor now suppresses blocked dependents before
-  they run, but the repo still lacks a public dependency declaration surface
-  and non-JS end-to-end blocked/planning proof
+  they run, and `wazero` now uses the shared `start()` contract in-band with
+  working coverage snapshots, but the repo still lacks a public dependency
+  declaration surface and non-JS end-to-end blocked/planning proof
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
 - a native dependency API will be unstable if it lands before shared identity
@@ -69,8 +70,9 @@ Remaining work:
   graph-metadata shapes are chosen
 - prove the now-updated host contract through non-JS hosts and CLI-facing
   blocked/planning paths
-- investigate why `harness/wazero` hangs when routed through the shared
-  worker-based `start()` path and decide the honest parity story for `v0.3.0`
+- decide whether any host besides `js` should use the worker-thread execution
+  path, or whether in-band shared execution is the honest cross-host contract
+  for `v0.3.0`
 - decide whether targeted replay stays as the execution primitive for `v0.3.0`
   or whether scheduler-step entrypoints need to return earlier than previously
   planned
@@ -101,9 +103,13 @@ Remaining work:
   so stable IDs, declaration order, dependency node IDs, and the new
   planning/blocked result fields are exercised by scheduler-facing paths
 - add host proof that execution-time blocked dependents are skipped rather than
-  merely reported after they already ran
+  merely reported after they already ran, including non-JS hosts once guest
+  dependency declarations exist
 - add CLI and end-to-end smoke coverage for sequential groups and explicit
   dependencies across `js`, `wazero`, and `wasmtime`
+- keep the root `bun run test` and source-host verification scripts aligned
+  with the actual per-host smoke commands so host regressions cannot hide
+  behind wrapper scripts
 - prove that `only`, `skip`, `todo`, and expected-failure semantics interact
   with dependency planning exactly as documented
 - add regression coverage that shows graph-aware scheduling does not duplicate
