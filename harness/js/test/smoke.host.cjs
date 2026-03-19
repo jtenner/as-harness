@@ -5,6 +5,9 @@ const test = require("node:test");
 const addon = require("..");
 const { decorateHarness } = require("../../shared/start.cjs");
 const {
+	registerSharedStartPlannerSmokeSuite,
+} = require("../../shared/start-planner-smoke.cjs");
+const {
 	compileSmokeFixtures,
 	registerHarnessSmokeSuite,
 } = require("../../shared/smoke-suite.cjs");
@@ -17,12 +20,6 @@ const {
 const {
 	createHarness: createSequentialStartHarness,
 } = require("./fixtures/sequential-start-harness.cjs");
-const {
-	createHarness: createDependencyStartHarness,
-} = require("./fixtures/dependency-start-harness.cjs");
-const {
-	createHarness: createDependencyOutcomesHarness,
-} = require("./fixtures/dependency-outcomes-harness.cjs");
 
 const repoDir = path.resolve(__dirname, "..", "..", "..");
 const parallelStartHarnessModulePath = path.join(
@@ -40,17 +37,6 @@ const sequentialStartHarnessModulePath = path.join(
 	"fixtures",
 	"sequential-start-harness.cjs",
 );
-const dependencyStartHarnessModulePath = path.join(
-	__dirname,
-	"fixtures",
-	"dependency-start-harness.cjs",
-);
-const dependencyOutcomesHarnessModulePath = path.join(
-	__dirname,
-	"fixtures",
-	"dependency-outcomes-harness.cjs",
-);
-
 const fixtures = compileSmokeFixtures({
 	cacheDir: path.join(repoDir, "harness", "js", ".cache"),
 	repoDir,
@@ -61,6 +47,10 @@ registerHarnessSmokeSuite({
 	assert,
 	test,
 	...fixtures,
+});
+registerSharedStartPlannerSmokeSuite({
+	assert,
+	test,
 });
 
 test("start() runs graph execution through a single worker thread like wazero", async () => {
@@ -166,107 +156,6 @@ test("start() executes sequential-scope branches without forcing root barriers",
 			["branch-c-child"],
 			["branch-d-child"],
 			["branch-e-child"],
-		],
-	);
-
-	harness.close();
-});
-
-test("start() surfaces missing dependencyNodeIds as blocked planning results", async () => {
-	const harness = decorateHarness(createDependencyStartHarness(), {
-		bytes: Buffer.alloc(0),
-		createLocalHarness: createDependencyStartHarness,
-		workerModulePath: dependencyStartHarnessModulePath,
-	});
-
-	const result = await harness.start();
-
-	assert.equal(result.discoveryOk, true);
-	assert.equal(result.ok, false);
-	assert.equal(result.planningOk, false);
-	assert.equal(result.workerCount, 1);
-	assert.deepEqual(
-		result.planIssues,
-		[
-			{
-				type: "missing-dependency",
-				targetIdentityKey: "id:2/id:11",
-				dependencyIdentityKey: "nodeId:999",
-			},
-		],
-	);
-	assert.deepEqual(
-		result.blocked.map((blocked) => ({
-			name: blocked.node.name,
-			dependencyNodeIds: blocked.node.dependencyNodeIds,
-			issueType: blocked.issueType,
-			dependencyIdentityKey: blocked.dependencyIdentityKey,
-		})),
-		[
-			{
-				name: "blocked missing",
-				dependencyNodeIds: [999],
-				issueType: "missing-dependency",
-				dependencyIdentityKey: "nodeId:999",
-			},
-		],
-	);
-	assert.deepEqual(
-		result.branches.map((branch) => branch.executions.map((execution) => execution.node.name)),
-		[["prereq"], [], ["plain ready"]],
-	);
-
-	harness.close();
-});
-
-test("start() skips blocked dependents while allowing satisfied expected-failure prerequisites", async () => {
-	const harness = decorateHarness(createDependencyOutcomesHarness(), {
-		bytes: Buffer.alloc(0),
-		createLocalHarness: createDependencyOutcomesHarness,
-		workerModulePath: dependencyOutcomesHarnessModulePath,
-	});
-
-	const result = await harness.start();
-
-	assert.equal(result.discoveryOk, true);
-	assert.equal(result.ok, false);
-	assert.equal(result.planningOk, false);
-	assert.equal(result.workerCount, 1);
-	assert.deepEqual(
-		result.planIssues,
-		[
-			{
-				type: "blocked-dependency",
-				targetIdentityKey: "id:2/id:11",
-				dependencyIdentityKey: "id:1/id:10",
-			},
-		],
-	);
-	assert.deepEqual(
-		result.blocked.map((blocked) => ({
-			name: blocked.node.name,
-			dependencyNodeIds: blocked.node.dependencyNodeIds,
-			issueType: blocked.issueType,
-			dependencyIdentityKey: blocked.dependencyIdentityKey,
-		})),
-		[
-			{
-				name: "blocked by failing prereq",
-				dependencyNodeIds: [10],
-				issueType: "blocked-dependency",
-				dependencyIdentityKey: "id:1/id:10",
-			},
-		],
-	);
-	assert.deepEqual(
-		result.branches.map((branch) =>
-			branch.executions.map((execution) => [execution.node.name, execution.ok]),
-		),
-		[
-			[["failing prereq", false]],
-			[],
-			[["expected failure prereq", false]],
-			[["depends on expected failure", true]],
 		],
 	);
 

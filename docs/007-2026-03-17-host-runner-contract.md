@@ -166,6 +166,8 @@ The current parity proof for this contract is:
 
 - shared smoke coverage in
   [harness/shared/smoke-suite.cjs](../harness/shared/smoke-suite.cjs)
+- shared planner-focused smoke coverage in
+  [harness/shared/start-planner-smoke.cjs](../harness/shared/start-planner-smoke.cjs)
 - package-local host tests in `harness/js`, `harness/wazero`, and
   `harness/wasmtime`
 - the CI source-host matrix and packaged verification flow described in

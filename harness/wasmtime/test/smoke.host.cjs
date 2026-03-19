@@ -10,6 +10,9 @@ const {
 	compileSmokeFixtures,
 	registerHarnessSmokeSuite,
 } = require("../../shared/smoke-suite.cjs");
+const {
+	registerSharedStartPlannerSmokeSuite,
+} = require("../../shared/start-planner-smoke.cjs");
 
 const repoDir = path.resolve(__dirname, "..", "..", "..");
 const cliEntrypointPath = path.join(repoDir, "cli", "index.ts");
@@ -24,6 +27,10 @@ registerHarnessSmokeSuite({
 	assert,
 	test,
 	...fixtures,
+});
+registerSharedStartPlannerSmokeSuite({
+	assert,
+	test,
 });
 
 test("cli run executes tests through the wasmtime harness", () => {

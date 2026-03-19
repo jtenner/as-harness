@@ -25,7 +25,8 @@
   cleanly, and the shared executor now suppresses blocked dependents before
   they run, and `wazero` now uses the shared `start()` contract in-band with
   working coverage snapshots, but the repo still lacks a public dependency
-  declaration surface and non-JS end-to-end blocked/planning proof
+  declaration surface and true guest-declared end-to-end dependency smoke
+  coverage
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
 - a native dependency API will be unstable if it lands before shared identity
@@ -99,12 +100,10 @@ Remaining work:
   declaration-order tie-breaking, blocked propagation, and prerequisite-outcome
   handling now that missing dependencies, cycle detection, and prerequisite
   satisfaction have pure proof
-- extend CLI and cross-host proof from discovery visibility into planner usage
-  so stable IDs, declaration order, dependency node IDs, and the new
-  planning/blocked result fields are exercised by scheduler-facing paths
-- add host proof that execution-time blocked dependents are skipped rather than
-  merely reported after they already ran, including non-JS hosts once guest
-  dependency declarations exist
+- extend CLI-facing and true guest-declared cross-host proof from discovery
+  visibility into planner usage so stable IDs, declaration order, dependency
+  node IDs, and the new planning/blocked result fields are exercised by real
+  scheduler-facing paths
 - add CLI and end-to-end smoke coverage for sequential groups and explicit
   dependencies across `js`, `wazero`, and `wasmtime`
 - keep the root `bun run test` and source-host verification scripts aligned
