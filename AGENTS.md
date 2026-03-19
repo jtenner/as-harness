@@ -25,6 +25,19 @@
 - Changelog entries must include: date, bold title, short description, emphasized GitHub username of the changer.
 - Write commit text to a temp file, commit with `git commit -F`, then delete the temp file.
 
+## Publish Workflow
+
+- When asked to publish a release, require an explicit semver bump type: `patch`, `minor`, or `major`.
+- Run `bun validate` and stop immediately if it fails.
+- Bump all package versions for the requested release type, keeping versions aligned if the repo uses lockstep versioning.
+- Write a short changelog summary to a temporary file and reuse the same text for both the tag annotation and the GitHub release notes.
+- Commit all release-related changes using the normal repository commit strategy.
+- Create an annotated tag named `v#.#.#` with `git tag -a -F <temp file>`; do not use a lightweight tag.
+- Push the release commit and the tag.
+- Create or update the GitHub release for the same tag using the same changelog summary; do not create duplicate releases.
+- Monitor CI until it passes.
+- Report the relevant commit, tag, release, and CI details.
+
 ## Research Process
 
 - Research must be detailed, directly relevant to current or planned `as-harness` work, and grounded in the current repo state.
