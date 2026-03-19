@@ -540,6 +540,64 @@ function compileSmokeFixtures(options) {
 	};
 }
 
+function summarizeStartResult(result) {
+	return {
+		ok: result.ok,
+		discoveryOk: result.discoveryOk,
+		planningOk: result.planningOk,
+		discoveredTestCount: result.discoveredTestCount,
+		workerCount: result.workerCount,
+		topLevelNodes: result.topLevelNodes.map((node) => ({
+			name: node.name,
+			nodeIndex: node.nodeIndex,
+			nodeId: node.nodeId,
+			parentNodeId: node.parentNodeId,
+			declarationOrder: node.declarationOrder,
+			dependencyNodeIds: node.dependencyNodeIds,
+			only: node.only,
+			expectFailure: node.expectFailure,
+		})),
+		planIssues: result.planIssues,
+		blocked: result.blocked.map((blocked) => ({
+			name: blocked.node.name,
+			nodeIndex: blocked.node.nodeIndex,
+			nodeId: blocked.node.nodeId,
+			parentNodeId: blocked.node.parentNodeId,
+			declarationOrder: blocked.node.declarationOrder,
+			dependencyNodeIds: blocked.node.dependencyNodeIds,
+			issueType: blocked.issueType,
+			dependencyIdentityKey: blocked.dependencyIdentityKey,
+		})),
+		branches: result.branches.map((branch) => ({
+			root: {
+				name: branch.root.name,
+				nodeIndex: branch.root.nodeIndex,
+				nodeId: branch.root.nodeId,
+				parentNodeId: branch.root.parentNodeId,
+				declarationOrder: branch.root.declarationOrder,
+			},
+			discoveryOk: branch.discovery.ok,
+			discoveryNodes: branch.discovery.nodes.map((node) => ({
+				name: node.name,
+				nodeIndex: node.nodeIndex,
+				nodeId: node.nodeId,
+				parentNodeId: node.parentNodeId,
+				declarationOrder: node.declarationOrder,
+				dependencyNodeIds: node.dependencyNodeIds,
+				only: node.only,
+				expectFailure: node.expectFailure,
+			})),
+			executions: branch.executions.map((execution) => ({
+				name: execution.node.name,
+				nodeIndex: execution.node.nodeIndex,
+				nodeId: execution.node.nodeId,
+				ok: execution.ok,
+				eventTypes: execution.events.map((event) => event.type),
+			})),
+		})),
+	};
+}
+
 function registerHarnessSmokeSuite(options) {
 	const {
 		addon,
@@ -1266,6 +1324,18 @@ function registerHarnessSmokeSuite(options) {
 		assert.deepEqual(
 			branchesByName.get("passing test").executions[0].events,
 			PASSING_BRANCH_EVENTS,
+		);
+	});
+
+	test("start() remains stable across repeated calls on the same harness", async () => {
+		const harness = createHarness(compiledNodeTestWasm);
+
+		const firstResult = await harness.start();
+		const secondResult = await harness.start();
+
+		assert.deepEqual(
+			summarizeStartResult(secondResult),
+			summarizeStartResult(firstResult),
 		);
 	});
 

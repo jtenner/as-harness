@@ -27,9 +27,9 @@
   working coverage snapshots, and `node:test` now exposes chainable
   dependency handles with guest-declared metadata proved through discovery and
   `start()`, and guest-declared failing, skip, todo, expected-failure, and
-  `only`-filtered prerequisites now exercise real blocked/planning paths, but
-  repeated `start()` stability and broader scheduler proof are still not fully
-  covered
+  `only`-filtered prerequisites now exercise real blocked/planning paths, and
+  repeated `start()` stability is now covered too, but broader scheduler proof
+  is still not fully covered
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
 - a native dependency API will be unstable if it lands before shared identity
@@ -113,5 +113,3 @@ Remaining work:
   from real bundled-host hangs
 - prove that `only`, `skip`, `todo`, and expected-failure semantics interact
   with dependency planning exactly as documented
-- add regression coverage that shows graph-aware scheduling does not duplicate
-  work or mutate durable node metadata across repeated `start()` calls
