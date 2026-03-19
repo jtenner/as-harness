@@ -535,11 +535,11 @@ test("classifyDependencyOutcome treats expected failures as satisfied only when 
 		"unsatisfied",
 	);
 	assert.equal(
-		classifyDependencyOutcome(expectedFailureTarget, { ok: false }),
+		classifyDependencyOutcome(expectedFailureTarget, { ok: true }),
 		"satisfied",
 	);
 	assert.equal(
-		classifyDependencyOutcome(expectedFailureTarget, { ok: true }),
+		classifyDependencyOutcome(expectedFailureTarget, { ok: false }),
 		"unsatisfied",
 	);
 });
@@ -622,7 +622,7 @@ test("evaluatePlannedExecution keeps unrelated work satisfied while blocking onl
 			["id:120/id:121", { ok: false }],
 			["id:120/id:122", { ok: true }],
 			["id:120/id:123", { ok: true }],
-			["id:120/id:124", { ok: false }],
+			["id:120/id:124", { ok: true }],
 			["id:120/id:125", { ok: true }],
 			["id:120/id:126", { ok: true }],
 		]),
@@ -705,7 +705,7 @@ test("evaluatePlannedExecution blocks downstream dependents after an unsatisfied
 	const evaluated = evaluatePlannedExecution(
 		plan,
 		new Map([
-			["id:40/id:41", { ok: true }],
+			["id:40/id:41", { ok: false }],
 			["id:40/id:42", { ok: true }],
 			["id:40/id:43", { ok: true }],
 		]),

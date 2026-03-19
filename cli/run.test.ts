@@ -204,6 +204,37 @@ test("dependency dependent", (_context: TestContext): void => {}).dependsOn(
 		);
 	});
 
+	test(`cli run treats expected-failure prerequisites that fail as satisfied through the ${harnessName} host`, async () => {
+		await withTempEntryFile(
+			`
+import { test, TestContext } from "node:test";
+
+const prereq = test.expectFailure(
+  "dependency expected failure prereq",
+  (context: TestContext): void => {
+    context.assert.strictEqual<i32>(61, 62, "dependency expected failure prereq mismatch");
+  },
+);
+
+test("dependency satisfied dependent", (_context: TestContext): void => {}).dependsOn(
+  prereq,
+);
+`,
+			async (entryFile, cwd) => {
+				const result = await runCliWithArguments(
+					["run", "--harness", harnessName, entryFile],
+					cwd,
+				);
+
+				expect(result.exitCode).toBe(0);
+				expect(result.stderr).toBe("");
+				expect(result.stdout).toContain(
+					`PASS 2 passed, 0 failed, 2 discovered with ${harnessName}.`,
+				);
+			},
+		);
+	});
+
 	test(`cli run reports guest-declared blocked dependencies through the ${harnessName} host`, async () => {
 		await withTempEntryFile(
 			`
@@ -314,10 +345,11 @@ test(
 				expect(result.exitCode).toBe(1);
 				expect(result.stdout).toBe("");
 				expect(result.stderr).toContain(
-					`FAIL 1 passed, 0 failed, 1 blocked, 2 discovered with ${harnessName}.`,
+					`FAIL 0 passed, 1 failed, 1 blocked, 2 discovered with ${harnessName}.`,
 				);
-				expect(result.stderr).not.toContain(
-					"- dependency unexpected pass prereq",
+				expect(result.stderr).toContain("- dependency unexpected pass prereq");
+				expect(result.stderr).toContain(
+					"  fail: expected failure passed unexpectedly",
 				);
 				expect(result.stderr).toContain(
 					"- dependency unexpected pass dependent",
@@ -528,7 +560,9 @@ describe("vitest adapter", (_context): void => {
     shouldNeverExecuteSkippedSuite();
   });
 
-  test.fails("expected failure metadata", (_context: TestContext): void => {});
+  test.fails("expected failure metadata", (context: TestContext): void => {
+    context.assert.strictEqual<i32>(31, 32, "vitest expected failure mismatch");
+  });
   test("implicit todo metadata");
   test.sequential("sequential pass", (_context: TestContext): void => {});
 

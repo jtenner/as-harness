@@ -94,6 +94,8 @@ Current dependency policy for that surface:
 - `skip`, `todo`, or `only`-filtered prerequisites block their dependents
 - `expectFailure` prerequisites satisfy dependents only when they fail
   as expected
+- an `expectFailure` prerequisite that passes unexpectedly is treated as a
+  failing prerequisite and can block its dependents
 
 That source is compiled into Wasm by the CLI, then executed by a harness.
 

@@ -45,7 +45,9 @@ describe("vitest adapter", (_context): void => {
 		shouldNeverExecuteSkippedSuite();
 	});
 
-	test.fails("expected failure metadata", (_context: TestContext): void => {});
+	test.fails("expected failure metadata", (context: TestContext): void => {
+		context.assert.strictEqual<i32>(31, 32, "vitest expected failure mismatch");
+	});
 	test("implicit todo metadata");
 	test.sequential("sequential pass", (_context: TestContext): void => {});
 	it.sequential("sequential it pass", (_context: TestContext): void => {});

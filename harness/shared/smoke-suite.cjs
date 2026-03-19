@@ -1467,7 +1467,7 @@ function registerHarnessSmokeSuite(options) {
 		);
 		assert.equal(
 			branchesByName.get("dependency expected failure prereq").executions[0].ok,
-			false,
+			true,
 		);
 		assert.equal(
 			branchesByName.get("dependency satisfied dependent").executions[0].ok,
@@ -1491,7 +1491,7 @@ function registerHarnessSmokeSuite(options) {
 		);
 		assert.equal(
 			branchesByName.get("dependency unexpected pass prereq").executions[0].ok,
-			true,
+			false,
 		);
 		assert.deepEqual(
 			branchesByName.get("dependency unexpected pass dependent").executions,

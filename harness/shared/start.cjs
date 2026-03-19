@@ -29,6 +29,23 @@ function closeHarness(harness) {
 	}
 }
 
+function isExecutionSatisfied(node, rawOk) {
+	const passed = rawOk === true;
+	if (node?.expectFailure === true) {
+		return !passed;
+	}
+
+	return passed;
+}
+
+function createExecutionRecord(node, rawOk, events) {
+	return {
+		node,
+		ok: isExecutionSatisfied(node, rawOk),
+		events,
+	};
+}
+
 function readCoverageSnapshot(harness) {
 	if (!harness || typeof harness.getCoverageSnapshot !== "function") {
 		return null;
@@ -403,12 +420,8 @@ function runBranchTaskInBand(options, task) {
 		const executions = [];
 		for (const node of task.runTargets) {
 			currentEvents = [];
-			const ok = harness.run(node.nodeIndex);
-			executions.push({
-				node,
-				ok,
-				events: currentEvents,
-			});
+			const rawOk = harness.run(node.nodeIndex);
+			executions.push(createExecutionRecord(node, rawOk, currentEvents));
 			currentEvents = null;
 		}
 
@@ -891,12 +904,7 @@ function classifyDependencyOutcome(target, execution) {
 		return "blocked";
 	}
 
-	const passed = execution.ok === true;
-	if (target.node?.expectFailure === true) {
-		return passed ? "unsatisfied" : "satisfied";
-	}
-
-	return passed ? "satisfied" : "unsatisfied";
+	return execution.ok === true ? "satisfied" : "unsatisfied";
 }
 
 function evaluatePlannedExecution(plan, executionsByIdentity = new Map()) {
@@ -1226,6 +1234,7 @@ module.exports = {
 	classifyDependencyOutcome,
 	cloneEvent,
 	closeHarness,
+	createExecutionRecord,
 	discoverBranch,
 	decorateHarness,
 	EVENT_TYPES,

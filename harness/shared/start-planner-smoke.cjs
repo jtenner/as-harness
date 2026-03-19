@@ -118,7 +118,7 @@ function registerSharedStartPlannerSmokeSuite(options) {
 			[
 				[["failing prereq", false]],
 				[],
-				[["expected failure prereq", false]],
+				[["expected failure prereq", true]],
 				[["depends on expected failure", true]],
 			],
 		);

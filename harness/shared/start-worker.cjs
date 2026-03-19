@@ -4,6 +4,7 @@ const { parentPort, workerData } = require("node:worker_threads");
 const {
 	cloneEvent,
 	closeHarness,
+	createExecutionRecord,
 	discoverBranch,
 	EVENT_TYPES,
 	readCoverageSnapshot,
@@ -37,12 +38,8 @@ function runBranch(branch) {
 		const executions = [];
 		for (const node of branch.runTargets) {
 			currentEvents = [];
-			const ok = harness.run(node.nodeIndex);
-			executions.push({
-				node,
-				ok,
-				events: currentEvents,
-			});
+			const rawOk = harness.run(node.nodeIndex);
+			executions.push(createExecutionRecord(node, rawOk, currentEvents));
 			currentEvents = null;
 		}
 

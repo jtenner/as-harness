@@ -5,7 +5,7 @@ import {
 	type ReporterLogger,
 } from "./reporter";
 
-function createNode(name: string, declarationOrder = 0) {
+function createNode(name: string, declarationOrder = 0, expectFailure = false) {
 	return {
 		nodeIndex: [declarationOrder],
 		nodeId: declarationOrder + 1,
@@ -13,7 +13,7 @@ function createNode(name: string, declarationOrder = 0) {
 		declarationOrder,
 		sequenceMode: 0,
 		only: false,
-		expectFailure: false,
+		expectFailure,
 		kind: 1,
 		declarationMode: 1,
 		name,
@@ -133,5 +133,103 @@ test("defaultRunReporter prints blocked failures distinctly when blocked tests e
 	expect(messages.error).toContain("  blocked: blocked-dependency (id:1)");
 	expect(messages.error).toContain(
 		"  issue: missing-dependency (id:2 <- id:missing)",
+	);
+});
+
+test("createHarnessRunReport counts expected-failure executions by semantic outcome", () => {
+	const report = createHarnessRunReport({
+		ok: false,
+		discoveryOk: true,
+		planningOk: true,
+		discoveredTestCount: 2,
+		topLevelNodes: [createNode("root", 0)],
+		workerCount: 1,
+		branches: [
+			{
+				root: createNode("root", 0),
+				discovery: {
+					ok: true,
+					nodes: [createNode("root", 0)],
+					testCount: 2,
+				},
+				executions: [
+					{
+						node: createNode("expected failure prereq", 1, true),
+						ok: true,
+						events: [],
+					},
+					{
+						node: createNode("unexpected pass prereq", 2, true),
+						ok: false,
+						events: [],
+					},
+				],
+				ok: false,
+			},
+		],
+		planIssues: [],
+		blocked: [],
+		coverage: null,
+	});
+
+	expect(report.passedTestCount).toBe(1);
+	expect(report.failedTestCount).toBe(1);
+});
+
+test("defaultRunReporter explains unexpected-pass expectFailure executions", () => {
+	const messages = {
+		error: [] as string[],
+		info: [] as string[],
+	};
+	const logger: ReporterLogger = {
+		error(message) {
+			messages.error.push(message);
+		},
+		info(message) {
+			messages.info.push(message);
+		},
+	};
+	const report = createHarnessRunReport({
+		ok: false,
+		discoveryOk: true,
+		planningOk: true,
+		discoveredTestCount: 1,
+		topLevelNodes: [createNode("root", 0)],
+		workerCount: 1,
+		branches: [
+			{
+				root: createNode("root", 0),
+				discovery: {
+					ok: true,
+					nodes: [createNode("root", 0)],
+					testCount: 1,
+				},
+				executions: [
+					{
+						node: createNode("unexpected pass prereq", 1, true),
+						ok: false,
+						events: [],
+					},
+				],
+				ok: false,
+			},
+		],
+		planIssues: [],
+		blocked: [],
+		coverage: null,
+	});
+
+	defaultRunReporter.accept(report, {
+		harnessName: "js",
+		logger,
+	});
+
+	expect(messages.info).toEqual([]);
+	expect(messages.error).toContain(
+		"FAIL 0 passed, 1 failed, 1 discovered with js.",
+	);
+	expect(messages.error).toContain("- unexpected pass prereq");
+	expect(messages.error).toContain(
+		"  fail: expected failure passed unexpectedly",
 	);
 });

@@ -124,6 +124,10 @@ Dependency policy:
 - a prerequisite satisfies a dependent when it passes normally
 - an `expectFailure` prerequisite satisfies a dependent only when it fails
   as expected
+- an `expectFailure` execution that fails as expected is semantically
+  successful in `execution.ok`, branch/result `ok`, and CLI reporting
+- an `expectFailure` execution that passes unexpectedly is a failing
+  prerequisite and can block its dependents
 - a failing or trapping prerequisite blocks its dependents with
   `blocked-dependency`
 - a skipped, todo, filtered-out, or otherwise undiscovered prerequisite blocks

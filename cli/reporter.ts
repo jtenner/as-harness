@@ -204,6 +204,14 @@ function formatLogDetail(
 	return `${detail.source}: ${detail.message}`;
 }
 
+function getFallbackFailureMessage(execution: HarnessExecutionReport) {
+	if (execution.node.expectFailure) {
+		return "expected failure passed unexpectedly";
+	}
+
+	return "failed without a fail message";
+}
+
 export const defaultRunReporter: RunReporter = {
 	accept(report, context) {
 		const { harnessName, logger } = context;
@@ -247,7 +255,7 @@ export const defaultRunReporter: RunReporter = {
 					}
 
 					if (!sawFailMessage) {
-						logger.error("  fail: failed without a fail message");
+						logger.error(`  fail: ${getFallbackFailureMessage(execution)}`);
 					}
 				}
 			}

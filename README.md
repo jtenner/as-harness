@@ -54,6 +54,8 @@ Dependency notes:
 - prerequisites must stay runnable in the discovered graph
 - `skip`, `todo`, or `only`-filtered prerequisites block their dependents
 - `expectFailure` prerequisites satisfy dependents only when they actually fail
+- an `expectFailure` prerequisite that passes unexpectedly is reported as a
+  failing prerequisite and can block its dependents
 
 Run it:
 
