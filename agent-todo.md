@@ -1,99 +1,105 @@
-# Harness Buildout Tasks
+# Harness Todo
 
-Current planning milestone: `v0.2.0`. This checklist tracks the remaining
-post-`v0.1.0` Wasm-runtime, host, CLI, and release slices that still block the
-next release line.
+## v0.3.0
 
-## Scope Notes
+### Blockers
 
-Shipped `v0.1.0` baseline:
+- Stable Test Identity and Declaration Metadata
+- Graph-Aware Scheduling Semantics
+- Host Contract and Runner Reshape
+- Native `as-harness` Adapter Surface
+- Proof and Verification Matrix
 
-- synchronous `node:test`
-- `node:assert`
-- `node:assert/strict`
-- shipped hosts: `js`, `wazero`
-- source-only host under the supported source-host proof matrix: `wasmtime`
-- deterministic result-tree reporting with pass/fail counts, failure messages, and failed-test logs
-- GitHub build/tag/release distribution
+### Risks
 
-Accepted `v0.2.0` scope additions:
+- `NodeIndex` is not a stable graph identifier, so graph-aware scheduling can
+  drift immediately if IDs are not fixed first
+- the current branch-worker `start()` orchestration is incompatible with
+  cross-branch dependency edges unless scheduling becomes global or graph scope
+  is constrained
+- graph scheduling is host-planner work, not just adapter API work, so the ABI,
+  host types, and reporting contract will all move together
+- a native dependency API will be unstable if it lands before shared identity
+  and blocked-outcome semantics are pinned down
+- the main regressions here will be semantic and ordering-related, so weak
+  proof coverage will hide real scheduler bugs
 
-- user-facing `as-harness run --coverage`
-- `text`, `json`, `yaml`, `csv`, `lcov`, and `cobertura` coverage output
-- merged coverage snapshots returned from `start()`
-- coverage support through the `js`, `wazero`, and `wasmtime` hosts
-- coverage as part of the shared harness contract, with `null` only when the current run did not request coverage
-- coverage include/exclude filters plus point-type selection through the bundled transform path
+### Stable Test Identity and Declaration Metadata
 
-Explicitly deferred for now:
+Remaining work:
 
-- async or Promise-based test APIs
-- snapshots
-- worker-oriented user controls
-- additional framework adapters beyond `node:test`
-- Linux `musl`
-- packaged `wasmtime`
-- scheduler-step entrypoints
-- reflected custom display-override decision
+- introduce stable opaque test and suite identifiers that are independent of
+  `NodeIndex` and survive replay-driven rediscovery
+- define the identifier contract: uniqueness within one module, deterministic
+  assignment for deterministic declarations, and no dependence on `only`
+  filtering or branch-worker partitioning
+- decide whether stable IDs require durable declaration slots, replay-node
+  reuse, or a different extraction path before more graph metadata lands
+- extend shared declaration metadata to capture declaration order, parent
+  identity, `only`, expected-failure intent, and future ordering or dependency
+  flags without making adapter code own scheduler logic
+- decide which identity fields must cross the Wasm ABI, host-runner types, CLI
+  JSON output, and reporter surfaces
 
-Explicit release-policy decisions:
+### Graph-Aware Scheduling Semantics
 
-- downloadable Bun-compiled executables are the official release channel
-- `npm` publication is not a current release goal
-- packaged releases include `js` and `wazero` only; `wasmtime` remains source-only
-- the current CI source-host proof plus packaged clean-environment verification are the release-proof baseline
+Remaining work:
 
-## v0.2.0 Blocker Slices
+- define the first shared ordering model for plain declaration order,
+  sequential groups, and explicit dependency edges
+- decide the exact meaning of `dependsOn(...)` outcomes: pass-through on
+  success, blocked-on-failure behavior, and transitive handling for blocked
+  prerequisites
+- decide how `skip`, `todo`, `only`, and expected-failure nodes affect
+  dependents and whether blocked tests need a first-class outcome distinct from
+  skipped tests
+- define cycle detection, missing-dependency handling, duplicate-edge collapse,
+  and deterministic tie-breaking between otherwise ready nodes
+- make the concurrency stance explicit for `v0.3.0`, likely keeping execution
+  globally sequential while preserving metadata that can support future
+  worker-aware scheduling
 
-### Strict Equality Machinery
+### Host Contract and Runner Reshape
 
-Cross-package scope: `cli/transform`, `assembly/`, and
-`docs/strict-equality-machinery.md`.
+Remaining work:
 
-Current blocker/risk:
+- redesign `start()` planning so execution order is derived from discovered
+  graph metadata instead of independent branch-local test lists alone
+- decide whether graph edges may cross top-level branches; if yes, replace
+  branch-local worker scheduling with a module-global scheduler
+- extend the harness host types and decoded event objects to carry stable IDs
+  plus any graph metadata required by reporters or external hosts
+- document the updated host-runner and ABI contracts once the stable-ID and
+  graph-metadata shapes are chosen
+- decide whether targeted replay stays as the execution primitive for `v0.3.0`
+  or whether scheduler-step entrypoints need to return earlier than previously
+  planned
 
-- the remaining strict-equality follow-through is mostly fixture and audit work, so regressions can still hide behind the generated hook path until those runtime and diagnostics fixtures are filled in
+### Native `as-harness` Adapter Surface
 
-#### Reflected Diagnostics Instrumentation
+Remaining work:
 
-- [ ] Decide whether reflected extraction must support custom display overrides in v1 or later.
+- design an ergonomic native declaration surface for sequential groups that
+  lowers cleanly onto shared graph metadata
+- decide whether explicit dependencies use returned declaration handles, named
+  refs, or another stable-ID-backed API
+- keep thin framework adapters thin by mapping their declaration metadata into
+  the shared scheduler model instead of duplicating scheduling logic in
+  adapter-specific code
+- define the minimum reporter and diagnostic wording needed when user-declared
+  graph constraints are invalid
 
-#### Compiler Wrapper Integration
+### Proof and Verification Matrix
 
-- [ ] Ensure bundled virtual AssemblyScript sources can reference the transform-generated runtime hooks safely.
-- [ ] Add debug output or inspection hooks so generated methods can be audited during development.
+Remaining work:
 
-#### Fixtures and Verification
-
-- [ ] Add runtime equality fixtures for primitives, nullability, arrays, typed arrays, maps, sets, and classes.
-- [ ] Add cycle fixtures that prove recursive graphs terminate cleanly.
-- [ ] Add diagnostics fixtures that prove reflected class key/value extraction matches the generated member list.
-- [ ] Add `node:assert.deepEqual(...)` fixtures only after the structural core is stable.
-
-### Framework Library Entry Points and Declaration Adapters
-
-Current note: thin `jest` and `vitest` adapters now exist for the synchronous
-declaration surface, with `vitest` also exposing low-risk `sequential` aliases,
-plus a small shared-assertion-backed `expect(...)` subset. Broader matcher
-parity, fixtures, mocking, and async helpers remain deferred. The current
-user-facing adapter surfaces are documented in
-[docs/Jest.md](./docs/Jest.md) and [docs/Vitest.md](./docs/Vitest.md).
-
-Current blocker/risk:
-
-- additional framework work can drift into adapter-specific execution semantics unless the shared declaration/runtime boundary stays explicit and metadata capture remains standardized across adapters
-
-- [ ] Define the exported declarations each framework entry point must provide to match that framework's test-definition surface. Do this incrementally as adapter capabilities land through `v1.0`.
-- [ ] Map each framework's declaration surface onto shared internal representations for `test`, `describe`, `skip`, `todo`, hooks, and assertion integration.
-- [ ] Route the shared internal declaration representations through WebAssembly imports as required by the current design.
-- [ ] Standardize the metadata captured by every adapter at declaration time: node kind, name, declaration mode, callback reference, and parent scope context.
-- [ ] Document the boundary between framework adapter code and the shared Wasm runtime so the adapters stay thin and deterministic.
-
-### Traversal and Replay
-
-Note: after the current `node:test` closeout, the remaining unchecked items in
-this section stay deferred unless the project explicitly resumes fuller
-host-runner work.
-
-- [ ] Investigate whether the existing replay-based discovery/execution model has reached its practical maintenance limit before adding more adapter surface or runner features.
-- [ ] Investigate AST traversal / transform-generated test-shape extraction as an alternative to replay-driven runtime visitation.
+- add guest/internal tests that prove stable IDs and declaration-order metadata
+  remain deterministic across repeated discovery and run replay
+- add host-level scheduler tests for topological ordering, declaration-order
+  tie-breaking, cycle detection, missing dependencies, and blocked propagation
+- add CLI and end-to-end smoke coverage for sequential groups and explicit
+  dependencies across `js`, `wazero`, and `wasmtime`
+- prove that `only`, `skip`, `todo`, and expected-failure semantics interact
+  with dependency planning exactly as documented
+- add regression coverage that shows graph-aware scheduling does not duplicate
+  work or mutate durable node metadata across repeated `start()` calls
