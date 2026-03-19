@@ -81,3 +81,31 @@ const dependencyPrereq = test(
 test("dependency dependent", (_context: TestContext): void => {}).dependsOn(
   dependencyPrereq,
 );
+
+const dependencyFailingPrereq = test(
+  "dependency failing prereq",
+  (context: TestContext): void => {
+    context.assert.strictEqual<i32>(51, 52, "dependency failing prereq mismatch");
+  },
+);
+
+test(
+  "dependency blocked dependent",
+  (_context: TestContext): void => {},
+).dependsOn(dependencyFailingPrereq);
+
+const dependencyExpectedFailurePrereq = test.expectFailure(
+  "dependency expected failure prereq",
+  (context: TestContext): void => {
+    context.assert.strictEqual<i32>(
+      61,
+      62,
+      "dependency expected failure prereq mismatch",
+    );
+  },
+);
+
+test(
+  "dependency satisfied dependent",
+  (_context: TestContext): void => {},
+).dependsOn(dependencyExpectedFailurePrereq);

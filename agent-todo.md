@@ -26,8 +26,9 @@
   they run, and `wazero` now uses the shared `start()` contract in-band with
   working coverage snapshots, and `node:test` now exposes chainable
   dependency handles with guest-declared metadata proved through discovery and
-  `start()`, but blocked/planning semantics are still not yet exercised
-  through guest-declared failing, skipped, or todo prerequisites
+  `start()`, and guest-declared failing plus expected-failure prerequisites now
+  exercise real blocked/planning paths, but skip/todo and unexpected-pass
+  prerequisite policy is still not yet proved end to end
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
 - a native dependency API will be unstable if it lands before shared identity
@@ -105,8 +106,9 @@ Remaining work:
   dependency node IDs, and the new planning/blocked result fields are
   exercised by real scheduler-facing paths
 - add CLI and end-to-end blocked/planning smoke coverage for sequential groups
-  and explicit guest-declared dependencies across `js`, `wazero`, and
-  `wasmtime`
+  and the remaining guest-declared dependency policies such as `skip`, `todo`,
+  and unexpected-pass expected-failure prerequisites across `js`, `wazero`,
+  and `wasmtime`
 - keep the root `bun run test` and source-host verification scripts aligned
   with the actual per-host smoke commands so host regressions cannot hide
   behind wrapper scripts

@@ -19,11 +19,15 @@ const NODE_METADATA_BY_INDEX = new Map([
 	["11", { nodeId: 12, parentNodeId: 0, declarationOrder: 11 }],
 	["12", { nodeId: 13, parentNodeId: 0, declarationOrder: 12 }],
 	["13", { nodeId: 14, parentNodeId: 0, declarationOrder: 13, dependencyNodeIds: [13] }],
-	["3.0", { nodeId: 15, parentNodeId: 4, declarationOrder: 14 }],
-	["4.0", { nodeId: 15, parentNodeId: 5, declarationOrder: 14, only: true }],
-	["7.0", { nodeId: 15, parentNodeId: 8, declarationOrder: 14 }],
-	["9.0", { nodeId: 15, parentNodeId: 10, declarationOrder: 14 }],
-	["10.0", { nodeId: 15, parentNodeId: 11, declarationOrder: 14 }],
+	["14", { nodeId: 15, parentNodeId: 0, declarationOrder: 14 }],
+	["15", { nodeId: 16, parentNodeId: 0, declarationOrder: 15, dependencyNodeIds: [15] }],
+	["16", { nodeId: 17, parentNodeId: 0, declarationOrder: 16, expectFailure: true }],
+	["17", { nodeId: 18, parentNodeId: 0, declarationOrder: 17, dependencyNodeIds: [17] }],
+	["3.0", { nodeId: 19, parentNodeId: 4, declarationOrder: 18 }],
+	["4.0", { nodeId: 19, parentNodeId: 5, declarationOrder: 18, only: true }],
+	["7.0", { nodeId: 19, parentNodeId: 8, declarationOrder: 18 }],
+	["9.0", { nodeId: 19, parentNodeId: 10, declarationOrder: 18 }],
+	["10.0", { nodeId: 19, parentNodeId: 11, declarationOrder: 18 }],
 ]);
 
 function annotateNode(node) {
@@ -242,6 +246,30 @@ const DISCOVERED_NODES = annotateNodes([
 		kind: 1,
 		declarationMode: 1,
 		name: "dependency dependent",
+	},
+	{
+		nodeIndex: [14],
+		kind: 1,
+		declarationMode: 1,
+		name: "dependency failing prereq",
+	},
+	{
+		nodeIndex: [15],
+		kind: 1,
+		declarationMode: 1,
+		name: "dependency blocked dependent",
+	},
+	{
+		nodeIndex: [16],
+		kind: 1,
+		declarationMode: 1,
+		name: "dependency expected failure prereq",
+	},
+	{
+		nodeIndex: [17],
+		kind: 1,
+		declarationMode: 1,
+		name: "dependency satisfied dependent",
 	},
 	{
 		nodeIndex: [3, 0],
@@ -537,7 +565,7 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.discover([]), true);
 		assert.equal(harness.run([0]), true);
 		assert.deepEqual(staleFound, []);
-		assert.deepEqual(activeFound, DISCOVERED_NODES.slice(0, 14));
+		assert.deepEqual(activeFound, DISCOVERED_NODES.slice(0, 18));
 		assert.deepEqual(staleStarts, []);
 		assert.deepEqual(activeStarts, [{ nodeIndex: [0] }]);
 		closeHarness(harness);
@@ -703,7 +731,7 @@ function registerHarnessSmokeSuite(options) {
 		});
 
 		assert.equal(harness.discover([]), true);
-		assert.deepEqual(found, DISCOVERED_NODES.slice(0, 14));
+		assert.deepEqual(found, DISCOVERED_NODES.slice(0, 18));
 
 		found.length = 0;
 		assert.equal(harness.discover([3]), true);
@@ -906,19 +934,40 @@ function registerHarnessSmokeSuite(options) {
 		);
 
 		assert.equal(result.discoveryOk, true);
-		assert.equal(result.planningOk, true);
+		assert.equal(result.planningOk, false);
 		assert.equal(result.ok, false);
-		assert.equal(result.discoveredTestCount, 19);
-		assert.equal(result.topLevelNodes.length, 14);
-		assert.deepEqual(result.planIssues, []);
-		assert.deepEqual(result.blocked, []);
+		assert.equal(result.discoveredTestCount, 23);
+		assert.equal(result.topLevelNodes.length, 18);
+		assert.deepEqual(result.planIssues, [
+			{
+				type: "blocked-dependency",
+				targetIdentityKey: "id:16",
+				dependencyIdentityKey: "id:15",
+			},
+		]);
+		assert.deepEqual(
+			result.blocked.map((blocked) => ({
+				name: blocked.node.name,
+				dependencyNodeIds: blocked.node.dependencyNodeIds,
+				issueType: blocked.issueType,
+				dependencyIdentityKey: blocked.dependencyIdentityKey,
+			})),
+			[
+				{
+					name: "dependency blocked dependent",
+					dependencyNodeIds: [15],
+					issueType: "blocked-dependency",
+					dependencyIdentityKey: "id:15",
+				},
+			],
+		);
 		assert.deepEqual(
 			result.topLevelNodes.map((node) => node.nodeId),
-			[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+			[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
 		);
 		assert.deepEqual(
 			result.topLevelNodes.map((node) => node.declarationOrder),
-			[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+			[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
 		);
 		assert.equal(result.workerCount, 1);
 		assert.deepEqual(
@@ -941,7 +990,7 @@ function registerHarnessSmokeSuite(options) {
 			branchesByName
 				.get("todo parent")
 				.executions.map((execution) => execution.node.nodeId),
-			[15],
+			[19],
 		);
 		assert.deepEqual(branchesByName.get("top-level todo leaf").executions, []);
 		assert.deepEqual(
@@ -952,6 +1001,12 @@ function registerHarnessSmokeSuite(options) {
 		);
 		assert.equal(
 			branchesByName.get("expected failure test").discovery.nodes[0].expectFailure,
+			true,
+		);
+		assert.equal(
+			branchesByName
+				.get("dependency expected failure prereq")
+				.discovery.nodes[0].expectFailure,
 			true,
 		);
 		assert.deepEqual(
@@ -997,8 +1052,32 @@ function registerHarnessSmokeSuite(options) {
 				.discovery.nodes.map((node) => [node.nodeId, node.parentNodeId]),
 			[
 				[4, 0],
-				[15, 4],
+				[19, 4],
 			],
+		);
+		assert.equal(
+			branchesByName.get("dependency prereq").executions[0].ok,
+			true,
+		);
+		assert.equal(
+			branchesByName.get("dependency dependent").executions[0].ok,
+			true,
+		);
+		assert.equal(
+			branchesByName.get("dependency failing prereq").executions[0].ok,
+			false,
+		);
+		assert.deepEqual(
+			branchesByName.get("dependency blocked dependent").executions,
+			[],
+		);
+		assert.equal(
+			branchesByName.get("dependency expected failure prereq").executions[0].ok,
+			false,
+		);
+		assert.equal(
+			branchesByName.get("dependency satisfied dependent").executions[0].ok,
+			true,
 		);
 		assert.deepEqual(
 			branchesByName.get("discovery trap parent").executions[0].events,

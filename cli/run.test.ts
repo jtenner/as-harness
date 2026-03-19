@@ -197,6 +197,40 @@ test("dependency dependent", (_context: TestContext): void => {}).dependsOn(
 	);
 });
 
+test("cli run reports guest-declared blocked dependencies through the js host", async () => {
+	await withTempEntryFile(
+		`
+import { test, TestContext } from "node:test";
+
+const prereq = test("dependency failing prereq", (context: TestContext): void => {
+  context.assert.strictEqual<i32>(71, 72, "guest dependency prereq mismatch");
+});
+
+test("dependency blocked dependent", (_context: TestContext): void => {}).dependsOn(
+  prereq,
+);
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(1);
+			expect(result.stdout).toBe("");
+			expect(result.stderr).toContain(
+				"FAIL 0 passed, 1 failed, 1 blocked, 2 discovered with js.",
+			);
+			expect(result.stderr).toContain("- dependency failing prereq");
+			expect(result.stderr).toContain(
+				"  fail: guest dependency prereq mismatch",
+			);
+			expect(result.stderr).toContain("- dependency blocked dependent");
+			expect(result.stderr).toContain("  blocked: blocked-dependency (id:1)");
+		},
+	);
+});
+
 test('cli run executes a thin jest adapter entry from the bundled "jest" guest library', async () => {
 	await withTempEntryFile(
 		`
