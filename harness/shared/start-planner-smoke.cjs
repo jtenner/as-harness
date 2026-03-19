@@ -91,8 +91,8 @@ function registerSharedStartPlannerSmokeSuite(options) {
 			[
 				{
 					type: "blocked-dependency",
-					targetIdentityKey: "id:2/id:11",
-					dependencyIdentityKey: "id:1/id:10",
+					targetIdentityKey: "id:2",
+					dependencyIdentityKey: "id:1",
 				},
 			],
 		);
@@ -106,9 +106,9 @@ function registerSharedStartPlannerSmokeSuite(options) {
 			[
 				{
 					name: "blocked by failing prereq",
-					dependencyNodeIds: [10],
+					dependencyNodeIds: [1],
 					issueType: "blocked-dependency",
-					dependencyIdentityKey: "id:1/id:10",
+					dependencyIdentityKey: "id:1",
 				},
 			],
 		);

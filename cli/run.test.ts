@@ -318,6 +318,49 @@ test(
 	);
 });
 
+test("cli run reports only-filtered prerequisites as missing dependencies through the js host", async () => {
+	await withTempEntryFile(
+		`
+import { test, TestContext } from "node:test";
+
+test("dependency only parent", (context: TestContext): void => {
+  const prereq = context.test(
+    "dependency only filtered prereq",
+    (_nestedContext: TestContext): void => {},
+  );
+
+  context.runOnly(true);
+  context
+    .test(
+      "dependency only included dependent",
+      (_nestedContext: TestContext): void => {},
+    )
+    .dependsOn(prereq);
+});
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(1);
+			expect(result.stdout).toBe("");
+			expect(result.stderr).toContain(
+				"FAIL 1 passed, 0 failed, 1 blocked, 2 discovered with js.",
+			);
+			expect(result.stderr).not.toContain("- dependency only filtered prereq");
+			expect(result.stderr).toContain("- dependency only included dependent");
+			expect(result.stderr).toContain(
+				"  blocked: missing-dependency (nodeId:2)",
+			);
+			expect(result.stderr).toContain(
+				"  issue: missing-dependency (id:1/id:3 <- nodeId:2)",
+			);
+		},
+	);
+});
+
 test('cli run executes a thin jest adapter entry from the bundled "jest" guest library', async () => {
 	await withTempEntryFile(
 		`

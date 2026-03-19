@@ -26,9 +26,10 @@
   they run, and `wazero` now uses the shared `start()` contract in-band with
   working coverage snapshots, and `node:test` now exposes chainable
   dependency handles with guest-declared metadata proved through discovery and
-  `start()`, and guest-declared failing, skip, todo, and expected-failure
-  prerequisites now exercise real blocked/planning paths, but `only`-filtered
-  prerequisite policy is still not yet proved end to end
+  `start()`, and guest-declared failing, skip, todo, expected-failure, and
+  `only`-filtered prerequisites now exercise real blocked/planning paths, but
+  that dependency policy is still not yet documented as a stable public
+  contract
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
 - a native dependency API will be unstable if it lands before shared identity
@@ -53,7 +54,7 @@ Remaining work:
 
 - decide the exact meaning of `dependsOn(...)` outcomes: pass-through on
   success, blocked-on-failure behavior, transitive handling for blocked
-  prerequisites, and the remaining `only`-filter interaction
+  prerequisites, and whether any future soft-prerequisite mode is desirable
 - document the current blocked-vs-skipped distinction as the intended public
   dependency policy for `v0.3.0`, not just a planner implementation detail
 - define cycle detection, missing-dependency handling, duplicate-edge collapse,
@@ -105,8 +106,7 @@ Remaining work:
   dependency node IDs, and the new planning/blocked result fields are
   exercised by real scheduler-facing paths
 - add CLI and end-to-end blocked/planning smoke coverage for sequential groups
-  and the remaining guest-declared dependency policy around `only`-filtered
-  prerequisites across `js`, `wazero`, and `wasmtime`
+  across `js`, `wazero`, and `wasmtime`
 - keep the root `bun run test` and source-host verification scripts aligned
   with the actual per-host smoke commands so host regressions cannot hide
   behind wrapper scripts

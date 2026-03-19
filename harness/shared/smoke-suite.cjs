@@ -29,11 +29,13 @@ const NODE_METADATA_BY_INDEX = new Map([
 	["21", { nodeId: 22, parentNodeId: 0, declarationOrder: 21, dependencyNodeIds: [21] }],
 	["22", { nodeId: 23, parentNodeId: 0, declarationOrder: 22, expectFailure: true }],
 	["23", { nodeId: 24, parentNodeId: 0, declarationOrder: 23, dependencyNodeIds: [23] }],
-	["3.0", { nodeId: 25, parentNodeId: 4, declarationOrder: 24 }],
-	["4.0", { nodeId: 25, parentNodeId: 5, declarationOrder: 24, only: true }],
-	["7.0", { nodeId: 25, parentNodeId: 8, declarationOrder: 24 }],
-	["9.0", { nodeId: 25, parentNodeId: 10, declarationOrder: 24 }],
-	["10.0", { nodeId: 25, parentNodeId: 11, declarationOrder: 24 }],
+	["24", { nodeId: 25, parentNodeId: 0, declarationOrder: 24 }],
+	["3.0", { nodeId: 26, parentNodeId: 4, declarationOrder: 25 }],
+	["4.0", { nodeId: 26, parentNodeId: 5, declarationOrder: 25, only: true }],
+	["7.0", { nodeId: 26, parentNodeId: 8, declarationOrder: 25 }],
+	["9.0", { nodeId: 26, parentNodeId: 10, declarationOrder: 25 }],
+	["10.0", { nodeId: 26, parentNodeId: 11, declarationOrder: 25 }],
+	["24.1", { nodeId: 27, parentNodeId: 25, declarationOrder: 26, only: true, dependencyNodeIds: [26] }],
 ]);
 
 function annotateNode(node) {
@@ -314,6 +316,12 @@ const DISCOVERED_NODES = annotateNodes([
 		name: "dependency unexpected pass dependent",
 	},
 	{
+		nodeIndex: [24],
+		kind: 1,
+		declarationMode: 1,
+		name: "dependency only parent",
+	},
+	{
 		nodeIndex: [3, 0],
 		kind: 1,
 		declarationMode: 1,
@@ -342,6 +350,12 @@ const DISCOVERED_NODES = annotateNodes([
 		kind: 1,
 		declarationMode: 1,
 		name: "trapping child",
+	},
+	{
+		nodeIndex: [24, 1],
+		kind: 1,
+		declarationMode: 1,
+		name: "dependency only included dependent",
 	},
 ]);
 
@@ -444,6 +458,21 @@ const TARGETED_TRAP_DISCOVERY = annotateNodes([
 		kind: 1,
 		declarationMode: 1,
 		name: "trapping child",
+	},
+]);
+
+const TARGETED_ONLY_DEPENDENCY_DISCOVERY = annotateNodes([
+	{
+		nodeIndex: [24],
+		kind: 1,
+		declarationMode: 1,
+		name: "dependency only parent",
+	},
+	{
+		nodeIndex: [24, 1],
+		kind: 1,
+		declarationMode: 1,
+		name: "dependency only included dependent",
 	},
 ]);
 
@@ -607,7 +636,7 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.discover([]), true);
 		assert.equal(harness.run([0]), true);
 		assert.deepEqual(staleFound, []);
-		assert.deepEqual(activeFound, DISCOVERED_NODES.slice(0, 24));
+		assert.deepEqual(activeFound, DISCOVERED_NODES.slice(0, 25));
 		assert.deepEqual(staleStarts, []);
 		assert.deepEqual(activeStarts, [{ nodeIndex: [0] }]);
 		closeHarness(harness);
@@ -773,7 +802,7 @@ function registerHarnessSmokeSuite(options) {
 		});
 
 		assert.equal(harness.discover([]), true);
-		assert.deepEqual(found, DISCOVERED_NODES.slice(0, 24));
+		assert.deepEqual(found, DISCOVERED_NODES.slice(0, 25));
 
 		found.length = 0;
 		assert.equal(harness.discover([3]), true);
@@ -806,6 +835,10 @@ function registerHarnessSmokeSuite(options) {
 		found.length = 0;
 		assert.equal(harness.discover([10]), true);
 		assert.deepEqual(found, TARGETED_TRAP_DISCOVERY);
+
+		found.length = 0;
+		assert.equal(harness.discover([24]), true);
+		assert.deepEqual(found, TARGETED_ONLY_DEPENDENCY_DISCOVERY);
 
 		found.length = 0;
 		assert.equal(harness.discover([11]), false);
@@ -978,8 +1011,8 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(result.discoveryOk, true);
 		assert.equal(result.planningOk, false);
 		assert.equal(result.ok, false);
-		assert.equal(result.discoveredTestCount, 29);
-		assert.equal(result.topLevelNodes.length, 24);
+		assert.equal(result.discoveredTestCount, 31);
+		assert.equal(result.topLevelNodes.length, 25);
 		assert.deepEqual(result.planIssues, [
 			{
 				type: "blocked-dependency",
@@ -1000,6 +1033,11 @@ function registerHarnessSmokeSuite(options) {
 				type: "blocked-dependency",
 				targetIdentityKey: "id:24",
 				dependencyIdentityKey: "id:23",
+			},
+			{
+				type: "missing-dependency",
+				targetIdentityKey: "id:25/id:27",
+				dependencyIdentityKey: "nodeId:26",
 			},
 		]);
 		assert.deepEqual(
@@ -1034,20 +1072,26 @@ function registerHarnessSmokeSuite(options) {
 					issueType: "blocked-dependency",
 					dependencyIdentityKey: "id:23",
 				},
+				{
+					name: "dependency only included dependent",
+					dependencyNodeIds: [26],
+					issueType: "missing-dependency",
+					dependencyIdentityKey: "nodeId:26",
+				},
 			],
 		);
 		assert.deepEqual(
 			result.topLevelNodes.map((node) => node.nodeId),
 			[
 				1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-				20, 21, 22, 23, 24,
+				20, 21, 22, 23, 24, 25,
 			],
 		);
 		assert.deepEqual(
 			result.topLevelNodes.map((node) => node.declarationOrder),
 			[
 				0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
-				19, 20, 21, 22, 23,
+				19, 20, 21, 22, 23, 24,
 			],
 		);
 		assert.equal(result.workerCount, 1);
@@ -1071,7 +1115,7 @@ function registerHarnessSmokeSuite(options) {
 			branchesByName
 				.get("todo parent")
 				.executions.map((execution) => execution.node.nodeId),
-			[25],
+			[26],
 		);
 		assert.deepEqual(branchesByName.get("top-level todo leaf").executions, []);
 		assert.deepEqual(
@@ -1133,7 +1177,7 @@ function registerHarnessSmokeSuite(options) {
 				.discovery.nodes.map((node) => [node.nodeId, node.parentNodeId]),
 			[
 				[4, 0],
-				[25, 4],
+				[26, 4],
 			],
 		);
 		assert.equal(
@@ -1183,6 +1227,35 @@ function registerHarnessSmokeSuite(options) {
 		assert.deepEqual(
 			branchesByName.get("dependency unexpected pass dependent").executions,
 			[],
+		);
+		assert.deepEqual(
+			branchesByName
+				.get("dependency only parent")
+				.discovery.nodes.map((node) => ({
+					name: node.name,
+					only: node.only,
+					dependencyNodeIds: node.dependencyNodeIds,
+				})),
+			[
+				{
+					name: "dependency only parent",
+					only: false,
+					dependencyNodeIds: [],
+				},
+				{
+					name: "dependency only included dependent",
+					only: true,
+					dependencyNodeIds: [26],
+				},
+			],
+		);
+		assert.deepEqual(
+			branchesByName
+				.get("dependency only parent")
+				.executions.map((execution) => [execution.node.nodeIndex, execution.ok]),
+			[
+				[[24], true],
+			],
 		);
 		assert.deepEqual(
 			branchesByName.get("discovery trap parent").executions[0].events,

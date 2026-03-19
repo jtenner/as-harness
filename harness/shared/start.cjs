@@ -446,9 +446,72 @@ function createExecutionTarget(branchIndex, executionIndex, node) {
 	};
 }
 
-function listDependencyKeys(node, targetsByNodeId = new Map()) {
+function createScopedNodeIdMap() {
+	return new Map();
+}
+
+function getScopeTargetsByNodeId(targetsByScopeAndNodeId, parentIdentityKey) {
+	const scopeIdentityKey =
+		typeof parentIdentityKey === "string" && parentIdentityKey.length > 0
+			? parentIdentityKey
+			: "";
+	let scopeTargetsByNodeId =
+		targetsByScopeAndNodeId.get(scopeIdentityKey) || null;
+	if (scopeTargetsByNodeId !== null) {
+		return scopeTargetsByNodeId;
+	}
+
+	scopeTargetsByNodeId = new Map();
+	targetsByScopeAndNodeId.set(scopeIdentityKey, scopeTargetsByNodeId);
+	return scopeTargetsByNodeId;
+}
+
+function createParentIdentityChain(parentIdentityKey) {
+	const chain = [];
+	let currentIdentityKey =
+		typeof parentIdentityKey === "string" && parentIdentityKey.length > 0
+			? parentIdentityKey
+			: "";
+
+	while (true) {
+		chain.push(currentIdentityKey);
+		if (!currentIdentityKey) {
+			break;
+		}
+
+		currentIdentityKey = currentIdentityKey.includes("/")
+			? currentIdentityKey.slice(0, currentIdentityKey.lastIndexOf("/"))
+			: "";
+	}
+
+	return chain;
+}
+
+function resolveDependencyNodeId(target, dependencyNodeId, targetsByScopeAndNodeId) {
+	if (typeof dependencyNodeId !== "number" || dependencyNodeId <= 0) {
+		return null;
+	}
+
+	const normalizedDependencyNodeId = dependencyNodeId >>> 0;
+	for (const parentIdentityKey of createParentIdentityChain(
+		getNodeParentIdentityKey(target?.node),
+	)) {
+		const scopeTargetsByNodeId =
+			targetsByScopeAndNodeId.get(parentIdentityKey) || null;
+		const dependencyTarget =
+			scopeTargetsByNodeId?.get(normalizedDependencyNodeId) || null;
+		if (dependencyTarget !== null) {
+			return dependencyTarget;
+		}
+	}
+
+	return null;
+}
+
+function listDependencyKeys(target, targetsByScopeAndNodeId = new Map()) {
 	const dependencyKeys = [];
 	const seen = new Set();
+	const node = target?.node || null;
 	if (Array.isArray(node?.dependencyKeys)) {
 		for (const dependencyKey of node.dependencyKeys) {
 			if (typeof dependencyKey !== "string" || dependencyKey.length === 0) {
@@ -470,8 +533,11 @@ function listDependencyKeys(node, targetsByNodeId = new Map()) {
 			}
 
 			const normalizedDependencyNodeId = dependencyNodeId >>> 0;
-			const dependencyTarget =
-				targetsByNodeId.get(normalizedDependencyNodeId) || null;
+			const dependencyTarget = resolveDependencyNodeId(
+				target,
+				normalizedDependencyNodeId,
+				targetsByScopeAndNodeId,
+			);
 			const dependencyKey =
 				dependencyTarget?.identityKey || `nodeId:${normalizedDependencyNodeId}`;
 			if (seen.has(dependencyKey)) {
@@ -489,7 +555,7 @@ function listDependencyKeys(node, targetsByNodeId = new Map()) {
 function createExecutionTargetMap(branches) {
 	const targets = [];
 	const targetsByIdentity = new Map();
-	const targetsByNodeId = new Map();
+	const targetsByScopeAndNodeId = createScopedNodeIdMap();
 	const targetsByBranchIndex = new Map();
 
 	for (const branch of branches) {
@@ -502,12 +568,14 @@ function createExecutionTargetMap(branches) {
 			const target = createExecutionTarget(branch.index, index, node);
 			targets.push(target);
 			targetsByIdentity.set(target.identityKey, target);
-			if (
-				typeof node?.nodeId === "number" &&
-				node.nodeId > 0 &&
-				!targetsByNodeId.has(node.nodeId >>> 0)
-			) {
-				targetsByNodeId.set(node.nodeId >>> 0, target);
+			if (typeof node?.nodeId === "number" && node.nodeId > 0) {
+				const scopeTargetsByNodeId = getScopeTargetsByNodeId(
+					targetsByScopeAndNodeId,
+					getNodeParentIdentityKey(node),
+				);
+				if (!scopeTargetsByNodeId.has(node.nodeId >>> 0)) {
+					scopeTargetsByNodeId.set(node.nodeId >>> 0, target);
+				}
 			}
 			branchTargets.push(target);
 		}
@@ -518,7 +586,7 @@ function createExecutionTargetMap(branches) {
 	return {
 		targets,
 		targetsByIdentity,
-		targetsByNodeId,
+		targetsByScopeAndNodeId,
 		targetsByBranchIndex,
 	};
 }
@@ -640,7 +708,7 @@ function propagateBlockedTargets(initialBlockedKeys, adjacency) {
 function buildExecutionDependencies(
 	branches,
 	targetsByIdentity,
-	targetsByNodeId,
+	targetsByScopeAndNodeId,
 	targetsByBranchIndex,
 ) {
 	const adjacency = new Map();
@@ -677,8 +745,8 @@ function buildExecutionDependencies(
 
 	for (const target of targetsByIdentity.values()) {
 		for (const dependencyKey of listDependencyKeys(
-			target.node,
-			targetsByNodeId,
+			target,
+			targetsByScopeAndNodeId,
 		)) {
 			const dependencyTarget = targetsByIdentity.get(dependencyKey) || null;
 			if (dependencyTarget === null) {
@@ -728,12 +796,17 @@ function createPlanSuccessorMap(adjacency, blockedTargets) {
 }
 
 function planExecutionStages(branches) {
-	const { targets, targetsByIdentity, targetsByNodeId, targetsByBranchIndex } =
+	const {
+		targets,
+		targetsByIdentity,
+		targetsByScopeAndNodeId,
+		targetsByBranchIndex,
+	} =
 		createExecutionTargetMap(branches);
 	const { adjacency, blockedKeys, issues, prereqCounts } = buildExecutionDependencies(
 		branches,
 		targetsByIdentity,
-		targetsByNodeId,
+		targetsByScopeAndNodeId,
 		targetsByBranchIndex,
 	);
 	const runnableTargets = targets.filter((target) => !blockedKeys.has(target.identityKey));

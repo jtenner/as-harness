@@ -1,42 +1,13 @@
 "use strict";
 
 const NODE_KIND_TEST = 1;
-const NODE_KIND_SUITE = 2;
 const DECLARATION_MODE_NORMAL = 1;
 const FAILURE_KIND_ASSERTION = 1;
 const NODE_METADATA_BY_INDEX = new Map([
 	["0", { nodeId: 1, parentNodeId: 0, declarationOrder: 0 }],
-	["1", { nodeId: 2, parentNodeId: 0, declarationOrder: 1 }],
-	["2", { nodeId: 3, parentNodeId: 0, declarationOrder: 2 }],
-	["3", { nodeId: 4, parentNodeId: 0, declarationOrder: 3 }],
-	["0.0", { nodeId: 10, parentNodeId: 1, declarationOrder: 4 }],
-	[
-		"1.0",
-		{
-			nodeId: 11,
-			parentNodeId: 2,
-			declarationOrder: 5,
-			dependencyNodeIds: [10],
-		},
-	],
-	[
-		"2.0",
-		{
-			nodeId: 12,
-			parentNodeId: 3,
-			declarationOrder: 6,
-			expectFailure: true,
-		},
-	],
-	[
-		"3.0",
-		{
-			nodeId: 13,
-			parentNodeId: 4,
-			declarationOrder: 7,
-			dependencyNodeIds: [12],
-		},
-	],
+	["1", { nodeId: 2, parentNodeId: 0, declarationOrder: 1, dependencyNodeIds: [1] }],
+	["2", { nodeId: 3, parentNodeId: 0, declarationOrder: 2, expectFailure: true }],
+	["3", { nodeId: 4, parentNodeId: 0, declarationOrder: 3, dependencyNodeIds: [3] }],
 ]);
 
 class FakeHarness {
@@ -104,27 +75,15 @@ class FakeHarness {
 	discover(nodeIndex) {
 		switch (Array.isArray(nodeIndex) ? nodeIndex.join(".") : "<invalid>") {
 			case "":
-				this.#emitNode([0], NODE_KIND_SUITE, "failing prereq branch");
-				this.#emitNode([1], NODE_KIND_SUITE, "blocked dependent branch");
-				this.#emitNode([2], NODE_KIND_SUITE, "expected failure prereq branch");
-				this.#emitNode([3], NODE_KIND_SUITE, "satisfied dependent branch");
+				this.#emitNode([0], NODE_KIND_TEST, "failing prereq");
+				this.#emitNode([1], NODE_KIND_TEST, "blocked by failing prereq");
+				this.#emitNode([2], NODE_KIND_TEST, "expected failure prereq");
+				this.#emitNode([3], NODE_KIND_TEST, "depends on expected failure");
 				return true;
 			case "0":
-				this.#emitNode([0, 0], NODE_KIND_TEST, "failing prereq");
-				return true;
 			case "1":
-				this.#emitNode([1, 0], NODE_KIND_TEST, "blocked by failing prereq");
-				return true;
 			case "2":
-				this.#emitNode([2, 0], NODE_KIND_TEST, "expected failure prereq");
-				return true;
 			case "3":
-				this.#emitNode([3, 0], NODE_KIND_TEST, "depends on expected failure");
-				return true;
-			case "0.0":
-			case "1.0":
-			case "2.0":
-			case "3.0":
 				return false;
 			default:
 				return true;
@@ -136,14 +95,14 @@ class FakeHarness {
 		this.#emit("nodeStart", { nodeIndex: normalizedNodeIndex });
 
 		switch (normalizedNodeIndex.join(".")) {
-			case "0.0":
+			case "0":
 				this.#emit("failMessage", { message: "failing prereq failed" });
 				this.#emit("nodeFail", {
 					nodeIndex: normalizedNodeIndex,
 					failureKind: FAILURE_KIND_ASSERTION,
 				});
 				return false;
-			case "2.0":
+			case "2":
 				this.#emit("failMessage", { message: "expected failure prereq failed" });
 				this.#emit("nodeFail", {
 					nodeIndex: normalizedNodeIndex,

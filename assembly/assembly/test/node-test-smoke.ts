@@ -139,3 +139,18 @@ test(
   "dependency unexpected pass dependent",
   (_context: TestContext): void => {},
 ).dependsOn(dependencyUnexpectedPassPrereq);
+
+test("dependency only parent", (context: TestContext): void => {
+  const dependencyOnlyFilteredPrereq = context.test(
+    "dependency only filtered prereq",
+    (_nestedContext: TestContext): void => {},
+  );
+
+  context.runOnly(true);
+  context
+    .test(
+      "dependency only included dependent",
+      (_nestedContext: TestContext): void => {},
+    )
+    .dependsOn(dependencyOnlyFilteredPrereq);
+});

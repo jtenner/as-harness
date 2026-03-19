@@ -262,6 +262,62 @@ test("planExecutionStages resolves dependencyNodeIds onto discovered targets", (
 	assert.deepEqual(plan.issues, []);
 });
 
+test("planExecutionStages does not resolve repeated local nodeIds across unrelated scopes", () => {
+	const otherRoot = createPlannerNode({
+		identityKey: "id:28",
+		nodeId: 28,
+		declarationOrder: 0,
+		kind: 2,
+		name: "other root",
+	});
+	const otherNested = createPlannerNode({
+		identityKey: "id:28/id:29",
+		parentIdentityKey: "id:28",
+		nodeId: 29,
+		parentNodeId: 28,
+		declarationOrder: 1,
+		name: "other nested",
+	});
+	const focusedParent = createPlannerNode({
+		identityKey: "id:30",
+		nodeId: 30,
+		declarationOrder: 2,
+		kind: 2,
+		name: "focused suite",
+	});
+	const focusedDependent = createPlannerNode({
+		identityKey: "id:30/id:31",
+		parentIdentityKey: "id:30",
+		nodeId: 31,
+		parentNodeId: 30,
+		declarationOrder: 3,
+		dependencyNodeIds: [29],
+		name: "focused dependent",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [otherRoot, otherNested]),
+		createPlannerBranch(1, [focusedParent, focusedDependent]),
+	]);
+
+	assert.equal(plan.complete, false);
+	assert.deepEqual(
+		plan.stages.map((stage) => stage.map((target) => target.node.name)),
+		[["other nested"]],
+	);
+	assert.deepEqual(
+		plan.blockedTargets.map((target) => target.node.name),
+		["focused dependent"],
+	);
+	assert.deepEqual(plan.issues, [
+		{
+			type: "missing-dependency",
+			targetIdentityKey: "id:30/id:31",
+			dependencyIdentityKey: "nodeId:29",
+		},
+	]);
+});
+
 test("planExecutionStages reports missing dependencyNodeIds with blocked dependents", () => {
 	const root = createPlannerNode({
 		identityKey: "id:28",
