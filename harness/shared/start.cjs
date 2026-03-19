@@ -273,48 +273,6 @@ function discoverBranch(harness, rootNode) {
 	};
 }
 
-function createNodeMapByIdentity(nodes) {
-	const nodeMap = new Map();
-	for (const node of nodes) {
-		nodeMap.set(getNodeIdentityKey(node), node);
-	}
-	return nodeMap;
-}
-
-function nodeHasSequentialAncestors(node, nodeMap) {
-	let cursor = node;
-	while (cursor) {
-		if ((cursor.sequenceMode >>> 0) === SEQUENCE_MODE_SEQUENTIAL) {
-			return true;
-		}
-
-		const parentIdentityKey = getNodeParentIdentityKey(cursor);
-		if (!parentIdentityKey) {
-			return false;
-		}
-
-		cursor = nodeMap.get(parentIdentityKey) ?? null;
-	}
-
-	return false;
-}
-
-function branchRequiresSequentialExecution(branch) {
-	const runnableTests = listRunnableTests(branch.discovery.nodes);
-	if (runnableTests.length === 0) {
-		return false;
-	}
-
-	const nodeMap = createNodeMapByIdentity(branch.discovery.nodes);
-	for (const node of runnableTests) {
-		if (nodeHasSequentialAncestors(node, nodeMap)) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
 function getWorkerCount(branchCount) {
 	if (branchCount === 0) {
 		return 0;
@@ -428,45 +386,6 @@ async function runTasksInWorkerPool(
 	});
 }
 
-function createParallelBranchStage(branches) {
-	return {
-		branchIndexes: branches.map((branch) => branch.index),
-	};
-}
-
-function createSequentialBranchStage(branch) {
-	return {
-		branchIndexes: [branch.index],
-	};
-}
-
-function planBranchExecutionStages(branches) {
-	const stages = [];
-	let pendingParallelBranches = [];
-
-	const flushPendingParallelBranches = () => {
-		if (pendingParallelBranches.length === 0) {
-			return;
-		}
-
-		stages.push(createParallelBranchStage(pendingParallelBranches));
-		pendingParallelBranches = [];
-	};
-
-	for (const branch of branches) {
-		if (branchRequiresSequentialExecution(branch)) {
-			flushPendingParallelBranches();
-			stages.push(createSequentialBranchStage(branch));
-			continue;
-		}
-
-		pendingParallelBranches.push(branch);
-	}
-
-	flushPendingParallelBranches();
-	return stages;
-}
-
 function createExecutionTarget(branchIndex, executionIndex, node) {
 	return {
 		branchIndex,
@@ -504,6 +423,51 @@ function createExecutionTargetMap(branches) {
 	};
 }
 
+function isIdentityWithinScope(identityKey, scopeIdentityKey) {
+	return (
+		identityKey === scopeIdentityKey ||
+		identityKey.startsWith(`${scopeIdentityKey}/`)
+	);
+}
+
+function findNearestRunnableAncestorTarget(target, targetsByIdentity) {
+	let parentIdentityKey = getNodeParentIdentityKey(target.node);
+	while (parentIdentityKey) {
+		const ancestorTarget = targetsByIdentity.get(parentIdentityKey) || null;
+		if (ancestorTarget !== null) {
+			return ancestorTarget;
+		}
+
+		parentIdentityKey = parentIdentityKey.includes("/")
+			? parentIdentityKey.slice(0, parentIdentityKey.lastIndexOf("/"))
+			: "";
+	}
+
+	return null;
+}
+
+function collectSequentialScopeTargets(branch, branchTargets) {
+	const scopeTargets = [];
+
+	for (const node of branch.discovery.nodes) {
+		if ((node.sequenceMode >>> 0) !== SEQUENCE_MODE_SEQUENTIAL) {
+			continue;
+		}
+
+		const scopeIdentityKey = getNodeIdentityKey(node);
+		const targetsInScope = branchTargets
+			.filter((target) =>
+				isIdentityWithinScope(target.identityKey, scopeIdentityKey),
+			)
+			.sort(compareExecutionTargets);
+		if (targetsInScope.length > 1) {
+			scopeTargets.push(targetsInScope);
+		}
+	}
+
+	return scopeTargets;
+}
+
 function addExecutionDependency(adjacency, prereqCounts, fromTarget, toTarget) {
 	if (!fromTarget || !toTarget || fromTarget.identityKey === toTarget.identityKey) {
 		return;
@@ -525,12 +489,7 @@ function addExecutionDependency(adjacency, prereqCounts, fromTarget, toTarget) {
 	);
 }
 
-function buildExecutionDependencies(
-	branches,
-	targetsByIdentity,
-	targetsByBranchIndex,
-	branchStages,
-) {
+function buildExecutionDependencies(branches, targetsByIdentity, targetsByBranchIndex) {
 	const adjacency = new Map();
 	const prereqCounts = new Map();
 
@@ -540,41 +499,22 @@ function buildExecutionDependencies(
 
 	for (const branch of branches) {
 		const branchTargets = targetsByBranchIndex.get(branch.index) || [];
-		for (let index = 1; index < branchTargets.length; index += 1) {
+		for (const target of branchTargets) {
 			addExecutionDependency(
 				adjacency,
 				prereqCounts,
-				branchTargets[index - 1],
-				branchTargets[index],
+				findNearestRunnableAncestorTarget(target, targetsByIdentity),
+				target,
 			);
 		}
-	}
 
-	for (let stageIndex = 1; stageIndex < branchStages.length; stageIndex += 1) {
-		const previousStage = branchStages[stageIndex - 1];
-		const nextStage = branchStages[stageIndex];
-
-		for (const previousBranchIndex of previousStage.branchIndexes) {
-			const previousBranchTargets =
-				targetsByBranchIndex.get(previousBranchIndex) || [];
-			if (previousBranchTargets.length === 0) {
-				continue;
-			}
-
-			const previousLastTarget =
-				previousBranchTargets[previousBranchTargets.length - 1] || null;
-			for (const nextBranchIndex of nextStage.branchIndexes) {
-				const nextBranchTargets = targetsByBranchIndex.get(nextBranchIndex) || [];
-				if (nextBranchTargets.length === 0) {
-					continue;
-				}
-
-				const nextFirstTarget = nextBranchTargets[0] || null;
+		for (const scopeTargets of collectSequentialScopeTargets(branch, branchTargets)) {
+			for (let index = 1; index < scopeTargets.length; index += 1) {
 				addExecutionDependency(
 					adjacency,
 					prereqCounts,
-					previousLastTarget,
-					nextFirstTarget,
+					scopeTargets[index - 1],
+					scopeTargets[index],
 				);
 			}
 		}
@@ -591,14 +531,12 @@ function compareExecutionTargets(left, right) {
 }
 
 function planExecutionStages(branches) {
-	const branchStages = planBranchExecutionStages(branches);
 	const { targets, targetsByIdentity, targetsByBranchIndex } =
 		createExecutionTargetMap(branches);
 	const { adjacency, prereqCounts } = buildExecutionDependencies(
 		branches,
 		targetsByIdentity,
 		targetsByBranchIndex,
-		branchStages,
 	);
 	const readyTargets = targets
 		.filter((target) => (prereqCounts.get(target.identityKey) || 0) === 0)
@@ -781,5 +719,7 @@ module.exports = {
 	discoverBranch,
 	decorateHarness,
 	EVENT_TYPES,
+	planExecutionStages,
 	readCoverageSnapshot,
+	setNodeIdentity,
 };
