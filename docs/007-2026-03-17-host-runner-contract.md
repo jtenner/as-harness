@@ -182,6 +182,10 @@ The current parity proof for this contract is:
   [harness/shared/smoke-suite.cjs](../harness/shared/smoke-suite.cjs)
 - shared planner-focused smoke coverage in
   [harness/shared/start-planner-smoke.cjs](../harness/shared/start-planner-smoke.cjs)
+- CLI run coverage in
+  [cli/run.test.ts](../cli/run.test.ts), including guest-declared dependency
+  success, blocked, and missing-dependency reporting through the shipped
+  `js`, `wazero`, and source-built `wasmtime` hosts
 - package-local host tests in `harness/js`, `harness/wazero`, and
   `harness/wasmtime`
 - the CI source-host matrix and packaged verification flow described in

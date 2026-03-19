@@ -67,8 +67,6 @@ Remaining work:
   leak back into adapters
 - keep the updated host-runner and README contracts aligned if dependency
   policy, blocked semantics, or adapter surfaces change again
-- prove the now-updated host contract through non-JS hosts and CLI-facing
-  blocked/planning paths
 - decide whether targeted replay stays as the execution primitive for `v0.3.0`
   or whether scheduler-step entrypoints need to return earlier than previously
   planned
@@ -92,10 +90,6 @@ Remaining work:
 
 Remaining work:
 
-- extend CLI-facing and true guest-declared cross-host proof from dependency
-  metadata visibility into planner usage so stable IDs, declaration order,
-  dependency node IDs, and the new planning/blocked result fields are
-  exercised by real scheduler-facing paths
 - keep the root `bun run test` and source-host verification scripts aligned
   with the actual per-host smoke commands so host regressions cannot hide
   behind wrapper scripts
