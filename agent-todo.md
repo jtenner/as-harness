@@ -45,39 +45,14 @@ Explicit release-policy decisions:
 
 ## v0.2.0 Blocker Slices
 
-### Coverage Shipping
-
-- [x] Ship `as-harness run --coverage` through the CLI, compiler wrapper, guest coverage declarations, and host imports.
-- [x] Merge per-worker coverage snapshots and surface merged coverage on `HarnessStartResult`.
-- [x] Emit `text`, `json`, `yaml`, `csv`, `lcov`, and `cobertura` reports as the current public coverage-output contract.
-- [x] Document the conditional `__asCovers` ABI surface and the shared host coverage contract.
-- [x] Reach `wasmtime` coverage parity for `v0.2.0`.
-- [x] Ship coverage include/exclude filters plus point-type selection through the CLI and bundled transform path.
-
-Cross-package scope: root CLI/product surface plus `assembly/`, `harness/js`,
-`harness/wazero`, `harness/wasmtime`, and the top-level docs/release workflow.
-
-### Host Runtime Shipping
-
-- [x] Prove `harness/js` works on the supported Node versions for the release.
-- [x] Prove `harness/wazero` builds and runs on the supported OS / architecture matrix.
-- [x] Prove `harness/wasmtime` builds and runs across the intended source-host validation matrix.
-- [x] Keep Node.js `22` as the explicit first supported source-host baseline.
-
-### Wasm Runtime / ABI
-
-- [x] Finish the remaining host-runner contract items required for shipping.
-- [x] Decide whether scheduler-step entrypoints are required for the shipped runner or explicitly deferred.
-
-### Release Engineering
-
-- [x] Keep standalone Bun-compiled executables as the official release channel and defer `npm` publication.
-- [x] Verify install and smoke-run flows from a clean environment on each supported platform.
-
 ### Strict Equality Machinery
 
 Cross-package scope: `cli/transform`, `assembly/`, and
 `docs/strict-equality-machinery.md`.
+
+Current blocker/risk:
+
+- the remaining strict-equality follow-through is mostly fixture and audit work, so regressions can still hide behind the generated hook path until those runtime and diagnostics fixtures are filled in
 
 #### Reflected Diagnostics Instrumentation
 
@@ -97,12 +72,15 @@ Cross-package scope: `cli/transform`, `assembly/`, and
 
 ### Framework Library Entry Points and Declaration Adapters
 
-Current note: a thin `jest` adapter now exists for `test` / `it` / `describe`,
-skip/todo/only aliases, core hooks, and a small shared-assertion-backed
-`expect(...)` surface including equality, containment, length/size checks,
-numeric checks, `NaN`, and `toThrow()`. Full matcher parity, mocking, and async
-Jest helpers remain deferred. The current user-facing adapter surface is
-documented in [docs/Jest.md](./docs/Jest.md).
+Current note: thin `jest` and `vitest` adapters now exist for the synchronous
+declaration surface plus a small shared-assertion-backed `expect(...)` subset.
+Broader matcher parity, fixtures, mocking, and async helpers remain deferred.
+The current user-facing adapter surfaces are documented in
+[docs/Jest.md](./docs/Jest.md) and [docs/Vitest.md](./docs/Vitest.md).
+
+Current blocker/risk:
+
+- additional framework work can drift into adapter-specific execution semantics unless the shared declaration/runtime boundary stays explicit and metadata capture remains standardized across adapters
 
 - [ ] Define the exported declarations each framework entry point must provide to match that framework's test-definition surface. Do this incrementally as adapter capabilities land through `v1.0`.
 - [ ] Map each framework's declaration surface onto shared internal representations for `test`, `describe`, `skip`, `todo`, hooks, and assertion integration.
@@ -116,22 +94,5 @@ Note: after the current `node:test` closeout, the remaining unchecked items in
 this section stay deferred unless the project explicitly resumes fuller
 host-runner work.
 
+- [ ] Investigate whether the existing replay-based discovery/execution model has reached its practical maintenance limit before adding more adapter surface or runner features.
 - [ ] Investigate AST traversal / transform-generated test-shape extraction as an alternative to replay-driven runtime visitation.
-- [x] Define the targeted traversal input contract for replaying toward a requested node path.
-- [x] Emit `NodeFound` during discovery for every structurally visible node.
-- [x] Enforce declaration-mode traversal semantics for `skip`: emit discovery metadata, stop traversal at that node, and do not traverse children.
-- [x] Enforce declaration-mode traversal semantics for `todo`: emit discovery metadata, continue descendant traversal, and suppress the node's own outcome significance.
-
-### Ephemeral Runtime State
-
-- [x] Implement attempt-local tracking for the active node path.
-- [x] Track current hook phase during lifecycle execution.
-- [x] Track the current traversal target.
-- [x] Maintain per-traversal child discovery buffers.
-- [x] Maintain temporary replay state needed to rediscover branches.
-- [x] Reset ephemeral state cleanly between attempts so the host remains the durable source of truth.
-
-### Contracts, Fixtures, and Verification
-
-- [x] Write a module-by-module contract for `api`, `registry`, `traversal`, `executor`, `hooks`, `assert_bridge`, `events`, `abi`, and `state`.
-- [x] For each module, define inputs, outputs, owned state, and forbidden decisions.
