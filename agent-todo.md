@@ -15,7 +15,7 @@
 - stable IDs now cross discovery events and host node snapshots, but `start()`
   planning still executes by `NodeIndex`, so graph-aware scheduling can still
   drift until the host lowers ordering and dependency constraints onto the
-  discovered declaration graph instead of branch-local run lists
+  discovered declaration graph with the final intended scope semantics
 - the current branch-worker `start()` orchestration is incompatible with
   cross-branch dependency edges unless scheduling becomes global or graph scope
   is constrained
@@ -67,8 +67,9 @@ Remaining work:
 
 Remaining work:
 
-- redesign `start()` planning so execution order is derived from discovered
-  graph metadata instead of independent branch-local test lists alone
+- refine `start()` planning so execution order is derived from discovered graph
+  metadata with minimal sequential-scope edges instead of the current
+  top-level barriers plus per-branch declaration chains
 - decide whether graph edges may cross top-level branches; if yes, replace
   branch-local worker scheduling with a module-global scheduler
 - extend the harness host types and decoded event objects with any remaining

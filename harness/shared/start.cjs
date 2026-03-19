@@ -430,14 +430,12 @@ async function runTasksInWorkerPool(
 
 function createParallelBranchStage(branches) {
 	return {
-		type: "parallel",
 		branchIndexes: branches.map((branch) => branch.index),
 	};
 }
 
 function createSequentialBranchStage(branch) {
 	return {
-		type: "sequential",
 		branchIndexes: [branch.index],
 	};
 }
@@ -469,17 +467,187 @@ function planBranchExecutionStages(branches) {
 	return stages;
 }
 
+function createExecutionTarget(branchIndex, executionIndex, node) {
+	return {
+		branchIndex,
+		executionIndex,
+		identityKey: getNodeIdentityKey(node),
+		node,
+	};
+}
+
+function createExecutionTargetMap(branches) {
+	const targets = [];
+	const targetsByIdentity = new Map();
+	const targetsByBranchIndex = new Map();
+
+	for (const branch of branches) {
+		const runnableTests = listRunnableTests(branch.discovery.nodes);
+		branch.executions = new Array(runnableTests.length);
+		const branchTargets = [];
+
+		for (let index = 0; index < runnableTests.length; index += 1) {
+			const node = runnableTests[index];
+			const target = createExecutionTarget(branch.index, index, node);
+			targets.push(target);
+			targetsByIdentity.set(target.identityKey, target);
+			branchTargets.push(target);
+		}
+
+		targetsByBranchIndex.set(branch.index, branchTargets);
+	}
+
+	return {
+		targets,
+		targetsByIdentity,
+		targetsByBranchIndex,
+	};
+}
+
+function addExecutionDependency(adjacency, prereqCounts, fromTarget, toTarget) {
+	if (!fromTarget || !toTarget || fromTarget.identityKey === toTarget.identityKey) {
+		return;
+	}
+
+	let successors = adjacency.get(fromTarget.identityKey) || null;
+	if (successors === null) {
+		successors = new Set();
+		adjacency.set(fromTarget.identityKey, successors);
+	}
+	if (successors.has(toTarget.identityKey)) {
+		return;
+	}
+
+	successors.add(toTarget.identityKey);
+	prereqCounts.set(
+		toTarget.identityKey,
+		(prereqCounts.get(toTarget.identityKey) || 0) + 1,
+	);
+}
+
+function buildExecutionDependencies(
+	branches,
+	targetsByIdentity,
+	targetsByBranchIndex,
+	branchStages,
+) {
+	const adjacency = new Map();
+	const prereqCounts = new Map();
+
+	for (const target of targetsByIdentity.values()) {
+		prereqCounts.set(target.identityKey, 0);
+	}
+
+	for (const branch of branches) {
+		const branchTargets = targetsByBranchIndex.get(branch.index) || [];
+		for (let index = 1; index < branchTargets.length; index += 1) {
+			addExecutionDependency(
+				adjacency,
+				prereqCounts,
+				branchTargets[index - 1],
+				branchTargets[index],
+			);
+		}
+	}
+
+	for (let stageIndex = 1; stageIndex < branchStages.length; stageIndex += 1) {
+		const previousStage = branchStages[stageIndex - 1];
+		const nextStage = branchStages[stageIndex];
+
+		for (const previousBranchIndex of previousStage.branchIndexes) {
+			const previousBranchTargets =
+				targetsByBranchIndex.get(previousBranchIndex) || [];
+			if (previousBranchTargets.length === 0) {
+				continue;
+			}
+
+			const previousLastTarget =
+				previousBranchTargets[previousBranchTargets.length - 1] || null;
+			for (const nextBranchIndex of nextStage.branchIndexes) {
+				const nextBranchTargets = targetsByBranchIndex.get(nextBranchIndex) || [];
+				if (nextBranchTargets.length === 0) {
+					continue;
+				}
+
+				const nextFirstTarget = nextBranchTargets[0] || null;
+				addExecutionDependency(
+					adjacency,
+					prereqCounts,
+					previousLastTarget,
+					nextFirstTarget,
+				);
+			}
+		}
+	}
+
+	return {
+		adjacency,
+		prereqCounts,
+	};
+}
+
+function compareExecutionTargets(left, right) {
+	return compareNodeDeclarationOrder(left?.node, right?.node);
+}
+
+function planExecutionStages(branches) {
+	const branchStages = planBranchExecutionStages(branches);
+	const { targets, targetsByIdentity, targetsByBranchIndex } =
+		createExecutionTargetMap(branches);
+	const { adjacency, prereqCounts } = buildExecutionDependencies(
+		branches,
+		targetsByIdentity,
+		targetsByBranchIndex,
+		branchStages,
+	);
+	const readyTargets = targets
+		.filter((target) => (prereqCounts.get(target.identityKey) || 0) === 0)
+		.sort(compareExecutionTargets);
+	const plannedStages = [];
+	let completedTargetCount = 0;
+
+	while (readyTargets.length > 0) {
+		const stageTargets = readyTargets.splice(0, readyTargets.length);
+		plannedStages.push(stageTargets);
+		completedTargetCount += stageTargets.length;
+
+		for (const target of stageTargets) {
+			const successors = adjacency.get(target.identityKey);
+			if (!successors) {
+				continue;
+			}
+
+			for (const successorIdentityKey of successors) {
+				const nextCount = (prereqCounts.get(successorIdentityKey) || 0) - 1;
+				prereqCounts.set(successorIdentityKey, nextCount);
+				if (nextCount === 0) {
+					const successorTarget = targetsByIdentity.get(successorIdentityKey);
+					if (successorTarget) {
+						readyTargets.push(successorTarget);
+					}
+				}
+			}
+		}
+
+		readyTargets.sort(compareExecutionTargets);
+	}
+
+	return {
+		complete: completedTargetCount === targets.length,
+		stages: plannedStages,
+		targetCount: targets.length,
+	};
+}
+
 async function executePlannedStages(options, branches, stages) {
 	let maxWorkerCount = 0;
 
 	for (const stage of stages) {
-		const stageBranches = stage.branchIndexes.map((index) => branches[index]);
-		if (stageBranches.length === 0) {
+		if (stage.length === 0) {
 			continue;
 		}
 
-		const stageWorkerCount =
-			stage.type === "sequential" ? 1 : getWorkerCount(stageBranches.length);
+		const stageWorkerCount = getWorkerCount(stage.length);
 		if (stageWorkerCount === 0) {
 			continue;
 		}
@@ -489,17 +657,22 @@ async function executePlannedStages(options, branches, stages) {
 			options.workerModulePath,
 			options.bytes,
 			"runBranch",
-			stageBranches.map((branch) => ({
-				runTargets: listRunnableTests(branch.discovery.nodes),
+			stage.map((target) => ({
+				runTargets: [target.node],
 			})),
 			stageWorkerCount,
 		);
 
-		for (let index = 0; index < stageBranches.length; index += 1) {
-			const branch = stageBranches[index];
+		for (let index = 0; index < stage.length; index += 1) {
+			const target = stage[index];
 			const executionGroup = executionGroups[index] || null;
-			branch.executions = executionGroup?.executions || [];
-			branch.coverage = executionGroup?.coverage ?? null;
+			const branch = branches[target.branchIndex];
+			branch.executions[target.executionIndex] =
+				executionGroup?.executions?.[0] || null;
+			if (executionGroup?.coverage) {
+				branch.coverageSnapshots = branch.coverageSnapshots || [];
+				branch.coverageSnapshots.push(executionGroup.coverage);
+			}
 		}
 	}
 
@@ -547,8 +720,15 @@ async function startHarness(options) {
 
 	let workerCount = 0;
 	if (discoveryOk) {
-		const stages = planBranchExecutionStages(branches);
-		workerCount = await executePlannedStages(options, branches, stages);
+		const plannedExecution = planExecutionStages(branches);
+		discoveryOk = plannedExecution.complete;
+		if (discoveryOk) {
+			workerCount = await executePlannedStages(
+				options,
+				branches,
+				plannedExecution.stages,
+			);
+		}
 	}
 
 	let ok = discoveryOk;
@@ -556,15 +736,16 @@ async function startHarness(options) {
 	const coverageSnapshots = initialCoverage ? [initialCoverage] : [];
 	for (const branch of branches) {
 		discoveredTestCount += branch.discovery.testCount;
+		branch.executions = branch.executions.filter(Boolean);
 		branch.ok =
 			branch.discovery.ok && branch.executions.every((execution) => execution.ok);
 		if (!branch.ok) {
 			ok = false;
 		}
-		if (branch.coverage) {
-			coverageSnapshots.push(branch.coverage);
+		if (Array.isArray(branch.coverageSnapshots)) {
+			coverageSnapshots.push(...branch.coverageSnapshots);
 		}
-		delete branch.coverage;
+		delete branch.coverageSnapshots;
 		delete branch.index;
 	}
 
