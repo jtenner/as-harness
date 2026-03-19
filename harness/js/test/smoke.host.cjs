@@ -47,7 +47,7 @@ registerHarnessSmokeSuite({
 	...fixtures,
 });
 
-test("start() runs per-branch execution in worker threads like wazero", async () => {
+test("start() runs graph execution through a single worker thread like wazero", async () => {
 	const harness = decorateHarness(createParallelStartHarness(), {
 		bytes: Buffer.alloc(0),
 		createLocalHarness: createParallelStartHarness,
@@ -59,7 +59,7 @@ test("start() runs per-branch execution in worker threads like wazero", async ()
 	assert.equal(result.discoveryOk, true);
 	assert.equal(result.ok, true);
 	assert.equal(result.branches.length, 2);
-	assert.ok(result.workerCount >= 1);
+	assert.equal(result.workerCount, 1);
 	for (const branch of result.branches) {
 		const diagnosticEvent = branch.executions[0].events.find(
 			(event) => event.type === "diagnostic",
@@ -141,7 +141,7 @@ test("start() executes sequential-scope branches without forcing root barriers",
 
 	assert.equal(result.discoveryOk, true);
 	assert.equal(result.ok, true);
-	assert.ok(result.workerCount >= 1);
+	assert.equal(result.workerCount, 1);
 	assert.deepEqual(
 		result.branches.map((branch) => branch.executions.map((execution) => execution.node.name)),
 		[

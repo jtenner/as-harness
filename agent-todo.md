@@ -12,13 +12,13 @@
 
 ### Risks
 
-- stable IDs now cross discovery events and host node snapshots, but `start()`
-  planning still executes by `NodeIndex`, so graph-aware scheduling can still
-  drift until the host lowers ordering and dependency constraints onto the
-  discovered declaration graph with the final intended scope semantics
-- the current branch-worker `start()` orchestration is incompatible with
-  cross-branch dependency edges unless scheduling becomes global or graph scope
-  is constrained
+- stable IDs now drive discovery and planning, but execution still targets
+  `NodeIndex`, so future dependency/reporting work must keep declaration
+  identity authoritative while treating the path only as the replay handle
+- `start()` now executes the discovered graph through one shared worker in
+  deterministic order, so future worker-aware parallelism will need a separate
+  scheduler/executor design once dependency and blocked-outcome semantics are
+  pinned down
 - `sequenceMode` now lowers onto runnable-test ordering rather than top-level
   branch barriers, and the shared planner now has direct proof coverage, but
   the scheduler still lacks explicit dependency-edge semantics plus CLI and
@@ -60,19 +60,14 @@ Remaining work:
   skipped tests
 - define cycle detection, missing-dependency handling, duplicate-edge collapse,
   and deterministic tie-breaking between otherwise ready nodes
-- make the concurrency stance explicit for `v0.3.0`, likely keeping execution
-  globally sequential while preserving metadata that can support future
-  worker-aware scheduling
 
 ### Host Contract and Runner Reshape
 
 Remaining work:
 
-- refine `start()` planning so execution order is derived from discovered graph
-  metadata with minimal sequential-scope edges instead of the current
-  top-level barriers plus per-branch declaration chains
-- decide whether graph edges may cross top-level branches; if yes, replace
-  branch-local worker scheduling with a module-global scheduler
+- keep the new module-global `start()` scheduler aligned with future explicit
+  dependency edges and blocked outcomes instead of letting executor details
+  leak back into adapters
 - extend the harness host types and decoded event objects with any remaining
   graph metadata required by reporters or external hosts beyond the now-exposed
   stable IDs, declaration order, and sequence mode

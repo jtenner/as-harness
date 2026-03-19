@@ -877,8 +877,7 @@ function registerHarnessSmokeSuite(options) {
 			result.topLevelNodes.map((node) => node.declarationOrder),
 			[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 		);
-		assert.ok(result.workerCount >= 1);
-		assert.ok(result.workerCount <= result.branches.length);
+		assert.equal(result.workerCount, 1);
 		assert.deepEqual(
 			branchesByName
 				.get("parent test")

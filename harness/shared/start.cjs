@@ -1,6 +1,5 @@
 "use strict";
 
-const os = require("node:os");
 const path = require("node:path");
 const { Worker } = require("node:worker_threads");
 const { mergeCoverageSnapshots } = require("./covers.cjs");
@@ -271,18 +270,6 @@ function discoverBranch(harness, rootNode) {
 		nodes: nodes.slice().sort(compareNodeDeclarationOrder),
 		testCount: countTestNodes(nodes),
 	};
-}
-
-function getWorkerCount(branchCount) {
-	if (branchCount === 0) {
-		return 0;
-	}
-
-	const parallelism =
-		typeof os.availableParallelism === "function"
-			? os.availableParallelism()
-			: os.cpus().length;
-	return Math.max(1, Math.min(branchCount, parallelism));
 }
 
 function terminateWorkers(workers) {
@@ -578,43 +565,39 @@ function planExecutionStages(branches) {
 }
 
 async function executePlannedStages(options, branches, stages) {
-	let maxWorkerCount = 0;
-
+	const orderedTargets = [];
 	for (const stage of stages) {
-		if (stage.length === 0) {
-			continue;
-		}
-
-		const stageWorkerCount = getWorkerCount(stage.length);
-		if (stageWorkerCount === 0) {
-			continue;
-		}
-
-		maxWorkerCount = Math.max(maxWorkerCount, stageWorkerCount);
-		const executionGroups = await runTasksInWorkerPool(
-			options.workerModulePath,
-			options.bytes,
-			"runBranch",
-			stage.map((target) => ({
-				runTargets: [target.node],
-			})),
-			stageWorkerCount,
-		);
-
-		for (let index = 0; index < stage.length; index += 1) {
-			const target = stage[index];
-			const executionGroup = executionGroups[index] || null;
-			const branch = branches[target.branchIndex];
-			branch.executions[target.executionIndex] =
-				executionGroup?.executions?.[0] || null;
-			if (executionGroup?.coverage) {
-				branch.coverageSnapshots = branch.coverageSnapshots || [];
-				branch.coverageSnapshots.push(executionGroup.coverage);
-			}
+		for (const target of stage) {
+			orderedTargets.push(target);
 		}
 	}
 
-	return maxWorkerCount;
+	if (orderedTargets.length === 0) {
+		return 0;
+	}
+
+	const executionGroups = await runTasksInWorkerPool(
+		options.workerModulePath,
+		options.bytes,
+		"runBranch",
+		orderedTargets.map((target) => ({
+			runTargets: [target.node],
+		})),
+		1,
+	);
+
+	for (let index = 0; index < orderedTargets.length; index += 1) {
+		const target = orderedTargets[index];
+		const executionGroup = executionGroups[index] || null;
+		const branch = branches[target.branchIndex];
+		branch.executions[target.executionIndex] = executionGroup?.executions?.[0] || null;
+		if (executionGroup?.coverage) {
+			branch.coverageSnapshots = branch.coverageSnapshots || [];
+			branch.coverageSnapshots.push(executionGroup.coverage);
+		}
+	}
+
+	return 1;
 }
 
 async function startHarness(options) {
