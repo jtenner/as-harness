@@ -867,40 +867,91 @@ function toPlanIssues(issues) {
 	}));
 }
 
-async function executePlannedStages(options, branches, stages) {
-	const orderedTargets = [];
-	for (const stage of stages) {
-		for (const target of stage) {
-			orderedTargets.push(target);
+async function executePlannedStages(options, branches, plan) {
+	const blockedTargets = Array.isArray(plan?.blockedTargets)
+		? plan.blockedTargets.slice().sort(compareExecutionTargets)
+		: [];
+	const blockedKeys = new Set(blockedTargets.map((target) => target.identityKey));
+	const issues = Array.isArray(plan?.issues) ? plan.issues.slice() : [];
+	const outcomesByIdentity = new Map();
+	const successorsByIdentity =
+		plan?.successorsByIdentity instanceof Map ? plan.successorsByIdentity : new Map();
+	const targetsByIdentity =
+		plan?.targetsByIdentity instanceof Map ? plan.targetsByIdentity : new Map();
+	let workerCount = 0;
+
+	for (const blockedTarget of blockedTargets) {
+		outcomesByIdentity.set(blockedTarget.identityKey, "blocked");
+	}
+
+	for (const stage of Array.isArray(plan?.stages) ? plan.stages : []) {
+		const stageTargets = stage.filter((target) => !blockedKeys.has(target.identityKey));
+		if (stageTargets.length === 0) {
+			continue;
+		}
+
+		const executionGroups = await runTasksInWorkerPool(
+			options.workerModulePath,
+			options.bytes,
+			"runBranch",
+			stageTargets.map((target) => ({
+				runTargets: [target.node],
+			})),
+			1,
+		);
+		workerCount = 1;
+
+		for (let index = 0; index < stageTargets.length; index += 1) {
+			const target = stageTargets[index];
+			const executionGroup = executionGroups[index] || null;
+			const branch = branches[target.branchIndex];
+			const execution = executionGroup?.executions?.[0] || null;
+			branch.executions[target.executionIndex] = execution;
+			if (executionGroup?.coverage) {
+				branch.coverageSnapshots = branch.coverageSnapshots || [];
+				branch.coverageSnapshots.push(executionGroup.coverage);
+			}
+
+			const outcome = classifyDependencyOutcome(target, execution);
+			outcomesByIdentity.set(target.identityKey, outcome);
+			if (outcome === "satisfied") {
+				continue;
+			}
+
+			const queue = [...(successorsByIdentity.get(target.identityKey) || [])];
+			while (queue.length > 0) {
+				const successorIdentityKey = queue.shift();
+				if (!successorIdentityKey || blockedKeys.has(successorIdentityKey)) {
+					continue;
+				}
+
+				const successorTarget = targetsByIdentity.get(successorIdentityKey) || null;
+				if (successorTarget !== null) {
+					blockedTargets.push(successorTarget);
+				}
+				blockedKeys.add(successorIdentityKey);
+				outcomesByIdentity.set(successorIdentityKey, "blocked");
+				issues.push(
+					createPlanIssue(
+						"blocked-dependency",
+						successorIdentityKey,
+						target.identityKey,
+					),
+				);
+				queue.push(...(successorsByIdentity.get(successorIdentityKey) || []));
+			}
 		}
 	}
 
-	if (orderedTargets.length === 0) {
-		return 0;
-	}
+	blockedTargets.sort(compareExecutionTargets);
+	issues.sort(comparePlanIssues);
 
-	const executionGroups = await runTasksInWorkerPool(
-		options.workerModulePath,
-		options.bytes,
-		"runBranch",
-		orderedTargets.map((target) => ({
-			runTargets: [target.node],
-		})),
-		1,
-	);
-
-	for (let index = 0; index < orderedTargets.length; index += 1) {
-		const target = orderedTargets[index];
-		const executionGroup = executionGroups[index] || null;
-		const branch = branches[target.branchIndex];
-		branch.executions[target.executionIndex] = executionGroup?.executions?.[0] || null;
-		if (executionGroup?.coverage) {
-			branch.coverageSnapshots = branch.coverageSnapshots || [];
-			branch.coverageSnapshots.push(executionGroup.coverage);
-		}
-	}
-
-	return 1;
+	return {
+		blockedTargets,
+		issues,
+		outcomesByIdentity,
+		workerCount,
+	};
 }
 
 async function startHarness(options) {
@@ -950,18 +1001,12 @@ async function startHarness(options) {
 	};
 	if (discoveryOk) {
 		const plannedExecution = planExecutionStages(branches);
-		workerCount = await executePlannedStages(options, branches, plannedExecution.stages);
-		const executionsByIdentity = new Map();
-		for (const branch of branches) {
-			for (const execution of branch.executions) {
-				if (!execution) {
-					continue;
-				}
-
-				executionsByIdentity.set(getNodeIdentityKey(execution.node), execution);
-			}
-		}
-		evaluatedExecution = evaluatePlannedExecution(plannedExecution, executionsByIdentity);
+		evaluatedExecution = await executePlannedStages(
+			options,
+			branches,
+			plannedExecution,
+		);
+		workerCount = evaluatedExecution.workerCount;
 	}
 
 	let ok = discoveryOk;
