@@ -121,10 +121,13 @@ type hostCallState struct {
 }
 
 type nodeSnapshot struct {
-	NodeIndex       []uint32
-	Kind            uint32
-	DeclarationMode uint32
-	Name            string
+	NodeIndex        []uint32
+	NodeID           uint32
+	ParentNodeID     uint32
+	DeclarationOrder uint32
+	Kind             uint32
+	DeclarationMode  uint32
+	Name             string
 }
 
 type immediateDiscoverySnapshot struct {
@@ -139,15 +142,18 @@ type discoverySnapshot struct {
 }
 
 type eventSnapshot struct {
-	Type            string
-	NodeIndex       []uint32
-	Kind            uint32
-	DeclarationMode uint32
-	Name            string
-	Hook            uint32
-	FailureKind     uint32
-	Message         string
-	Values          []float64
+	Type             string
+	NodeIndex        []uint32
+	NodeID           uint32
+	ParentNodeID     uint32
+	DeclarationOrder uint32
+	Kind             uint32
+	DeclarationMode  uint32
+	Name             string
+	Hook             uint32
+	FailureKind      uint32
+	Message          string
+	Values           []float64
 }
 
 type executionSnapshot struct {
@@ -718,13 +724,26 @@ func createNodeEventObject(env C.napi_env, nodeIndex []uint32) (C.napi_value, bo
 
 func decodeNodeFoundSnapshot(payload []byte) (nodeSnapshot, bool) {
 	nodeIndex, offset, ok := decodeNodeIndex(payload, 0)
-	if !ok || offset+8 > len(payload) {
+	if !ok || offset+20 > len(payload) {
 		return nodeSnapshot{}, false
 	}
 
-	kind := uint32(payload[offset])
-	mode := uint32(payload[offset+1])
-	nameLength, nextOffset, ok := decodeUint32(payload, offset+4)
+	nodeID, nextOffset, ok := decodeUint32(payload, offset)
+	if !ok {
+		return nodeSnapshot{}, false
+	}
+	parentNodeID, nextOffset, ok := decodeUint32(payload, nextOffset)
+	if !ok {
+		return nodeSnapshot{}, false
+	}
+	declarationOrder, nextOffset, ok := decodeUint32(payload, nextOffset)
+	if !ok || nextOffset+8 > len(payload) {
+		return nodeSnapshot{}, false
+	}
+
+	kind := uint32(payload[nextOffset])
+	mode := uint32(payload[nextOffset+1])
+	nameLength, nextOffset, ok := decodeUint32(payload, nextOffset+4)
 	if !ok {
 		return nodeSnapshot{}, false
 	}
@@ -733,10 +752,13 @@ func decodeNodeFoundSnapshot(payload []byte) (nodeSnapshot, bool) {
 	}
 
 	return nodeSnapshot{
-		NodeIndex:       cloneNodeIndex(nodeIndex),
-		Kind:            kind,
-		DeclarationMode: mode,
-		Name:            string(payload[nextOffset : nextOffset+int(nameLength)]),
+		NodeIndex:        cloneNodeIndex(nodeIndex),
+		NodeID:           nodeID,
+		ParentNodeID:     parentNodeID,
+		DeclarationOrder: declarationOrder,
+		Kind:             kind,
+		DeclarationMode:  mode,
+		Name:             string(payload[nextOffset : nextOffset+int(nameLength)]),
 	}, true
 }
 
@@ -752,6 +774,15 @@ func createNodeFoundEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
 	}
 
 	if !setNamedProperty(env, result, "kind", createUint32(env, node.Kind)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "nodeId", createUint32(env, node.NodeID)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "parentNodeId", createUint32(env, node.ParentNodeID)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "declarationOrder", createUint32(env, node.DeclarationOrder)) {
 		return nil, false
 	}
 	if !setNamedProperty(env, result, "declarationMode", createUint32(env, node.DeclarationMode)) {
@@ -992,11 +1023,14 @@ func decodeEventSnapshot(kind uint32, payload []byte) (eventSnapshot, bool) {
 		}
 
 		return eventSnapshot{
-			Type:            "nodeFound",
-			NodeIndex:       cloneNodeIndex(node.NodeIndex),
-			Kind:            node.Kind,
-			DeclarationMode: node.DeclarationMode,
-			Name:            node.Name,
+			Type:             "nodeFound",
+			NodeIndex:        cloneNodeIndex(node.NodeIndex),
+			NodeID:           node.NodeID,
+			ParentNodeID:     node.ParentNodeID,
+			DeclarationOrder: node.DeclarationOrder,
+			Kind:             node.Kind,
+			DeclarationMode:  node.DeclarationMode,
+			Name:             node.Name,
 		}, true
 	case eventKindNodeStart:
 		nodeIndex, _, ok := decodeNodeIndex(payload, 0)
@@ -1793,6 +1827,15 @@ func createNodeSnapshotValue(env C.napi_env, node nodeSnapshot) (C.napi_value, b
 		return nil, false
 	}
 
+	if !setNamedProperty(env, result, "nodeId", createUint32(env, node.NodeID)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "parentNodeId", createUint32(env, node.ParentNodeID)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "declarationOrder", createUint32(env, node.DeclarationOrder)) {
+		return nil, false
+	}
 	if !setNamedProperty(env, result, "kind", createUint32(env, node.Kind)) {
 		return nil, false
 	}
@@ -1821,10 +1864,13 @@ func createEventSnapshotValue(env C.napi_env, event eventSnapshot) (C.napi_value
 	case "nodeFound":
 		var ok bool
 		data, ok = createNodeSnapshotValue(env, nodeSnapshot{
-			NodeIndex:       event.NodeIndex,
-			Kind:            event.Kind,
-			DeclarationMode: event.DeclarationMode,
-			Name:            event.Name,
+			NodeIndex:        event.NodeIndex,
+			NodeID:           event.NodeID,
+			ParentNodeID:     event.ParentNodeID,
+			DeclarationOrder: event.DeclarationOrder,
+			Kind:             event.Kind,
+			DeclarationMode:  event.DeclarationMode,
+			Name:             event.Name,
 		})
 		if !ok {
 			return nil, false

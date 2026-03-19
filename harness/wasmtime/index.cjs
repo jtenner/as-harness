@@ -103,11 +103,26 @@ function decodeNodeEvent(bytes) {
 
 function decodeNodeFoundEvent(bytes) {
 	const decodedNodeIndex = decodeNodeIndex(bytes, 0);
-	if (decodedNodeIndex === null || decodedNodeIndex.offset + 8 > bytes.byteLength) {
+	if (decodedNodeIndex === null || decodedNodeIndex.offset + 20 > bytes.byteLength) {
 		return null;
 	}
 
-	const nameLength = decodeUint32(bytes, decodedNodeIndex.offset + 4);
+	const nodeId = decodeUint32(bytes, decodedNodeIndex.offset);
+	if (nodeId === null) {
+		return null;
+	}
+
+	const parentNodeId = decodeUint32(bytes, nodeId.offset);
+	if (parentNodeId === null) {
+		return null;
+	}
+
+	const declarationOrder = decodeUint32(bytes, parentNodeId.offset);
+	if (declarationOrder === null || declarationOrder.offset + 8 > bytes.byteLength) {
+		return null;
+	}
+
+	const nameLength = decodeUint32(bytes, declarationOrder.offset + 4);
 	if (nameLength === null) {
 		return null;
 	}
@@ -117,8 +132,11 @@ function decodeNodeFoundEvent(bytes) {
 
 	return {
 		nodeIndex: decodedNodeIndex.nodeIndex,
-		kind: bytes[decodedNodeIndex.offset],
-		declarationMode: bytes[decodedNodeIndex.offset + 1],
+		nodeId: nodeId.value,
+		parentNodeId: parentNodeId.value,
+		declarationOrder: declarationOrder.value,
+		kind: bytes[declarationOrder.offset],
+		declarationMode: bytes[declarationOrder.offset + 1],
 		name: readUtf8(bytes, nameLength.offset, nameLength.value),
 	};
 }

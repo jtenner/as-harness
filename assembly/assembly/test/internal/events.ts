@@ -44,21 +44,27 @@ function testSerializeNodeFound(): void {
   const nodeIndex = [3, 5, 8] as StaticArray<u32>;
   const payload = serializeNodeFound(
     nodeIndex,
+    21,
+    13,
+    8,
     NodeKind.Describe,
     DeclarationMode.Todo,
     "alpha",
   );
 
-  assert(payload.length == 29);
+  assert(payload.length == 41);
   assertU32(payload, 0, 3);
   assertU32(payload, 4, 3);
   assertU32(payload, 8, 5);
   assertU32(payload, 12, 8);
-  assertByte(payload, 16, <u8>NodeKind.Describe);
-  assertByte(payload, 17, <u8>DeclarationMode.Todo);
-  assertU16(payload, 18, 0);
-  assertU32(payload, 20, 5);
-  assertUtf8Bytes(payload, 24, "alpha");
+  assertU32(payload, 16, 21);
+  assertU32(payload, 20, 13);
+  assertU32(payload, 24, 8);
+  assertByte(payload, 28, <u8>NodeKind.Describe);
+  assertByte(payload, 29, <u8>DeclarationMode.Todo);
+  assertU16(payload, 30, 0);
+  assertU32(payload, 32, 5);
+  assertUtf8Bytes(payload, 36, "alpha");
 }
 
 function testSerializeNodeStart(): void {

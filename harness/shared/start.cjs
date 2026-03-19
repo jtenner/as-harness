@@ -46,6 +46,13 @@ function cloneEvent(event) {
 function cloneNode(node) {
 	return {
 		nodeIndex: Array.isArray(node.nodeIndex) ? node.nodeIndex.slice() : [],
+		nodeId: typeof node.nodeId === "number" ? node.nodeId >>> 0 : 0,
+		parentNodeId:
+			typeof node.parentNodeId === "number" ? node.parentNodeId >>> 0 : 0,
+		declarationOrder:
+			typeof node.declarationOrder === "number"
+				? node.declarationOrder >>> 0
+				: 0,
 		kind: typeof node.kind === "number" ? node.kind >>> 0 : 0,
 		declarationMode:
 			typeof node.declarationMode === "number" ? node.declarationMode >>> 0 : 0,

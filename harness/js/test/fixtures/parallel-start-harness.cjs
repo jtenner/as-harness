@@ -5,6 +5,12 @@ const { threadId } = require("node:worker_threads");
 const NODE_KIND_TEST = 1;
 const NODE_KIND_SUITE = 2;
 const DECLARATION_MODE_NORMAL = 1;
+const NODE_METADATA_BY_INDEX = new Map([
+	["0", { nodeId: 1, parentNodeId: 0, declarationOrder: 0 }],
+	["1", { nodeId: 2, parentNodeId: 0, declarationOrder: 1 }],
+	["0.0", { nodeId: 3, parentNodeId: 1, declarationOrder: 2 }],
+	["1.0", { nodeId: 4, parentNodeId: 2, declarationOrder: 3 }],
+]);
 
 class FakeHarness {
 	#callbacks = {
@@ -103,8 +109,17 @@ class FakeHarness {
 	}
 
 	#emitNode(nodeIndex, kind, name) {
+		const metadata =
+			NODE_METADATA_BY_INDEX.get(nodeIndex.join(".")) ?? {
+				nodeId: 0,
+				parentNodeId: 0,
+				declarationOrder: 0,
+			};
 		this.#emit("nodeFound", {
 			nodeIndex,
+			nodeId: metadata.nodeId,
+			parentNodeId: metadata.parentNodeId,
+			declarationOrder: metadata.declarationOrder,
 			kind,
 			declarationMode: DECLARATION_MODE_NORMAL,
 			name,

@@ -12,9 +12,10 @@
 
 ### Risks
 
-- the guest runtime now has stable declaration identity, but the host contract
-  is still `NodeIndex`-shaped, so graph-aware scheduling can still drift until
-  stable IDs cross the Wasm ABI and host planner types
+- stable IDs now cross discovery events and host node snapshots, but `start()`
+  planning still treats `NodeIndex` as the practical execution identity, so
+  graph-aware scheduling can still drift until planner state and lookup tables
+  pivot to `nodeId`
 - the current branch-worker `start()` orchestration is incompatible with
   cross-branch dependency edges unless scheduling becomes global or graph scope
   is constrained
@@ -32,11 +33,11 @@ Remaining work:
 - extend shared declaration metadata to capture declaration order, parent
   identity, `only`, expected-failure intent, and future ordering or dependency
   flags without making adapter code own scheduler logic
-- export stable node identity and declaration-order metadata through the Wasm
-  event ABI and decoded host-node shapes without breaking current traversal
-  entrypoints
-- decide which identity fields must cross the Wasm ABI, host-runner types, CLI
-  JSON output, and reporter surfaces
+- make host planning, dedupe, and reporter-facing lookups prefer `nodeId`
+  while keeping `nodeIndex` only as the traversal target
+- decide which additional identity or graph fields beyond `nodeId`,
+  `parentNodeId`, and declaration order must cross the Wasm ABI, host-runner
+  types, CLI JSON output, and reporter surfaces
 
 ### Graph-Aware Scheduling Semantics
 
@@ -64,8 +65,9 @@ Remaining work:
   graph metadata instead of independent branch-local test lists alone
 - decide whether graph edges may cross top-level branches; if yes, replace
   branch-local worker scheduling with a module-global scheduler
-- extend the harness host types and decoded event objects to carry stable IDs
-  plus any graph metadata required by reporters or external hosts
+- extend the harness host types and decoded event objects with any remaining
+  graph metadata required by reporters or external hosts beyond the now-exposed
+  stable IDs and declaration order
 - document the updated host-runner and ABI contracts once the stable-ID and
   graph-metadata shapes are chosen
 - decide whether targeted replay stays as the execution primitive for `v0.3.0`
@@ -92,8 +94,8 @@ Remaining work:
 
 - add host-level scheduler tests for topological ordering, declaration-order
   tie-breaking, cycle detection, missing dependencies, and blocked propagation
-- extend host and CLI proof so stable IDs and declaration order are visible and
-  deterministic across `js`, `wazero`, and `wasmtime`
+- extend host and CLI proof from discovery visibility into planner usage so
+  stable IDs and declaration order are exercised by scheduler-facing paths
 - add CLI and end-to-end smoke coverage for sequential groups and explicit
   dependencies across `js`, `wazero`, and `wasmtime`
 - prove that `only`, `skip`, `todo`, and expected-failure semantics interact

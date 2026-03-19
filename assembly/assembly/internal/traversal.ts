@@ -153,6 +153,9 @@ function collectImmediateVisibleChildrenOfWithReplay(
 function emitDiscoveredNode(node: Node): void {
   nodeFound(
     node.getNodeIndex(),
+    node.nodeId,
+    node.parent !== null ? changetype<Node>(node.parent).nodeId : 0,
+    node.declarationOrder,
     node.kind,
     node.declarationMode,
     node.name,

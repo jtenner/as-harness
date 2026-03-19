@@ -41,11 +41,15 @@ function copyUtf8Bytes(destination: usize, value: string): void {
  *
  * Payload grammar:
  * `[node_index_length: u32] [node_index: ...bytes] [node_kind: u8]
- * [declaration_mode: u8] [2 bytes empty for alignment]
+ * [node_id: u32] [parent_node_id: u32] [declaration_order: u32]
+ * [node_kind: u8] [declaration_mode: u8] [2 bytes empty for alignment]
  * [name_byte_length: u32] [name: ...bytes]`
  */
 export function serializeNodeFound(
   nodeIndex: NodeIndex,
+  nodeId: u32,
+  parentNodeId: u32,
+  declarationOrder: u32,
   kind: NodeKind,
   mode: DeclarationMode,
   name: string,
@@ -56,6 +60,9 @@ export function serializeNodeFound(
   const totalByteLength =
     U32_BYTE_LENGTH +
     nodeIndexBytes +
+    U32_BYTE_LENGTH +
+    U32_BYTE_LENGTH +
+    U32_BYTE_LENGTH +
     U8_BYTE_LENGTH +
     U8_BYTE_LENGTH +
     NODE_FOUND_ALIGNMENT_PADDING +
@@ -70,6 +77,15 @@ export function serializeNodeFound(
 
   copyNodeIndexBytes(payloadStart + offset, nodeIndex);
   offset += <usize>nodeIndexBytes;
+
+  store<u32>(payloadStart + offset, nodeId);
+  offset += <usize>U32_BYTE_LENGTH;
+
+  store<u32>(payloadStart + offset, parentNodeId);
+  offset += <usize>U32_BYTE_LENGTH;
+
+  store<u32>(payloadStart + offset, declarationOrder);
+  offset += <usize>U32_BYTE_LENGTH;
 
   store<u8>(payloadStart + offset, <u8>kind);
   offset += <usize>U8_BYTE_LENGTH;
@@ -347,11 +363,25 @@ function sendEvent(kind: EventKind, payload: StaticArray<u8>): void {
  */
 export function nodeFound(
   nodeIndex: NodeIndex,
+  nodeId: u32,
+  parentNodeId: u32,
+  declarationOrder: u32,
   kind: NodeKind,
   mode: DeclarationMode,
   name: string,
 ): void {
-  sendEvent(EventKind.NodeFound, serializeNodeFound(nodeIndex, kind, mode, name));
+  sendEvent(
+    EventKind.NodeFound,
+    serializeNodeFound(
+      nodeIndex,
+      nodeId,
+      parentNodeId,
+      declarationOrder,
+      kind,
+      mode,
+      name,
+    ),
+  );
 }
 
 /**

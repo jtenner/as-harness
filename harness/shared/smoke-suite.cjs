@@ -4,6 +4,43 @@ const { execFileSync } = require("node:child_process");
 const { mkdirSync, readFileSync } = require("node:fs");
 const path = require("node:path");
 
+const NODE_METADATA_BY_INDEX = new Map([
+	["0", { nodeId: 1, parentNodeId: 0, declarationOrder: 0 }],
+	["1", { nodeId: 2, parentNodeId: 0, declarationOrder: 1 }],
+	["2", { nodeId: 3, parentNodeId: 0, declarationOrder: 2 }],
+	["3", { nodeId: 4, parentNodeId: 0, declarationOrder: 3 }],
+	["4", { nodeId: 5, parentNodeId: 0, declarationOrder: 4 }],
+	["5", { nodeId: 6, parentNodeId: 0, declarationOrder: 5 }],
+	["6", { nodeId: 7, parentNodeId: 0, declarationOrder: 6 }],
+	["7", { nodeId: 8, parentNodeId: 0, declarationOrder: 7 }],
+	["8", { nodeId: 9, parentNodeId: 0, declarationOrder: 8 }],
+	["9", { nodeId: 10, parentNodeId: 0, declarationOrder: 9 }],
+	["10", { nodeId: 11, parentNodeId: 0, declarationOrder: 10 }],
+	["3.0", { nodeId: 12, parentNodeId: 4, declarationOrder: 11 }],
+	["4.0", { nodeId: 13, parentNodeId: 5, declarationOrder: 12 }],
+	["6.0", { nodeId: 15, parentNodeId: 7, declarationOrder: 14 }],
+	["8.0", { nodeId: 16, parentNodeId: 9, declarationOrder: 15 }],
+	["9.0", { nodeId: 17, parentNodeId: 10, declarationOrder: 16 }],
+]);
+
+function annotateNode(node) {
+	const metadata = NODE_METADATA_BY_INDEX.get(node.nodeIndex.join("."));
+	if (!metadata) {
+		return { ...node, nodeId: 0, parentNodeId: 0, declarationOrder: 0 };
+	}
+
+	return {
+		...node,
+		nodeId: metadata.nodeId,
+		parentNodeId: metadata.parentNodeId,
+		declarationOrder: metadata.declarationOrder,
+	};
+}
+
+function annotateNodes(nodes) {
+	return nodes.map((node) => annotateNode(node));
+}
+
 const PASSING_TEST_EVENTS = [
 	["nodeStart", { nodeIndex: [0] }],
 	["callbackStart", { hook: 1, nodeIndex: [] }],
@@ -105,7 +142,7 @@ const DISCOVERY_TRAP_ROOT_EVENTS = [
 	["nodeFail", { nodeIndex: [10], failureKind: 2 }],
 ];
 
-const DISCOVERED_NODES = [
+const DISCOVERED_NODES = annotateNodes([
 	{
 		nodeIndex: [0],
 		kind: 1,
@@ -202,9 +239,9 @@ const DISCOVERED_NODES = [
 		declarationMode: 1,
 		name: "trapping child",
 	},
-];
+]);
 
-const TARGETED_PARENT_DISCOVERY = [
+const TARGETED_PARENT_DISCOVERY = annotateNodes([
 	{
 		nodeIndex: [3],
 		kind: 1,
@@ -217,9 +254,9 @@ const TARGETED_PARENT_DISCOVERY = [
 		declarationMode: 1,
 		name: "nested child",
 	},
-];
+]);
 
-const TARGETED_ONLY_DISCOVERY = [
+const TARGETED_ONLY_DISCOVERY = annotateNodes([
 	{
 		nodeIndex: [4],
 		kind: 1,
@@ -232,18 +269,18 @@ const TARGETED_ONLY_DISCOVERY = [
 		declarationMode: 1,
 		name: "run-only nested child",
 	},
-];
+]);
 
-const TARGETED_SKIP_DISCOVERY = [
+const TARGETED_SKIP_DISCOVERY = annotateNodes([
 	{
 		nodeIndex: [5],
 		kind: 1,
 		declarationMode: 2,
 		name: "skipped parent",
 	},
-];
+]);
 
-const TARGETED_TODO_DISCOVERY = [
+const TARGETED_TODO_DISCOVERY = annotateNodes([
 	{
 		nodeIndex: [6],
 		kind: 1,
@@ -256,18 +293,18 @@ const TARGETED_TODO_DISCOVERY = [
 		declarationMode: 1,
 		name: "todo nested child",
 	},
-];
+]);
 
-const TARGETED_TODO_LEAF_DISCOVERY = [
+const TARGETED_TODO_LEAF_DISCOVERY = annotateNodes([
 	{
 		nodeIndex: [7],
 		kind: 1,
 		declarationMode: 3,
 		name: "top-level todo leaf",
 	},
-];
+]);
 
-const TARGETED_HOOK_FAILURE_DISCOVERY = [
+const TARGETED_HOOK_FAILURE_DISCOVERY = annotateNodes([
 	{
 		nodeIndex: [8],
 		kind: 1,
@@ -280,9 +317,9 @@ const TARGETED_HOOK_FAILURE_DISCOVERY = [
 		declarationMode: 1,
 		name: "hook failure child",
 	},
-];
+]);
 
-const TARGETED_TRAP_DISCOVERY = [
+const TARGETED_TRAP_DISCOVERY = annotateNodes([
 	{
 		nodeIndex: [9],
 		kind: 1,
@@ -295,7 +332,7 @@ const TARGETED_TRAP_DISCOVERY = [
 		declarationMode: 1,
 		name: "trapping child",
 	},
-];
+]);
 
 const PASSING_BRANCH_EVENTS = [
 	{ type: "nodeStart", data: { nodeIndex: [0] } },
@@ -864,14 +901,14 @@ function registerHarnessSmokeSuite(options) {
 		);
 		assert.deepEqual(
 			branchesByName.get("discovery trap parent").discovery.nodes,
-			[
+			annotateNodes([
 				{
 					nodeIndex: [10],
 					kind: 1,
 					declarationMode: 1,
 					name: "discovery trap parent",
 				},
-			],
+			]),
 		);
 		assert.deepEqual(
 			branchesByName

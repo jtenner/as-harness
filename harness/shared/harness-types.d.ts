@@ -24,6 +24,9 @@ export type HarnessBytes = Buffer | ArrayBufferView | ArrayBuffer;
 
 export interface HarnessNode {
 	nodeIndex: Array<number>;
+	nodeId: number;
+	parentNodeId: number;
+	declarationOrder: number;
 	kind: number;
 	declarationMode: number;
 	name: string;
