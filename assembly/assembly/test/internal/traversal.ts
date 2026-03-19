@@ -75,6 +75,13 @@ function declareStableReplaySuite(_context: SuiteContext): void {
   stableParent.setTestCallback(stableParentTestCallback);
 }
 
+function declareStableSiblingReplaySuite(_context: SuiteContext): void {
+  const first = currentNode.createChild(NodeKind.Test, "first stable child");
+  first.setTestCallback(plainTestCallback);
+  const second = currentNode.createChild(NodeKind.Test, "second stable child");
+  second.setTestCallback(nestedTestCallback);
+}
+
 let replayTrapAttemptCount = 0;
 
 function declareTrapThenRecoverSuite(_context: SuiteContext): void {
@@ -322,6 +329,52 @@ function testReplayDeterministicallyRediscoversNestedDescribeAndTestTrees(): voi
   assert(executionTrace[1] == "stable leaf");
 }
 
+function testReplayKeepsStableNodeIdsAcrossRepeatedLookup(): void {
+  const localRoot = new Node(NodeKind.Root, "local root");
+  const suite = localRoot.createChild(NodeKind.Describe, "stable suite");
+  suite.setSuiteCallback(declareStableReplaySuite);
+
+  const firstLeaf = findNodeByIndexFrom(localRoot, [0, 0, 0] as StaticArray<u32>);
+  assert(firstLeaf !== null);
+
+  const secondLeaf = findNodeByIndexFrom(localRoot, [0, 0, 0] as StaticArray<u32>);
+  assert(secondLeaf !== null);
+
+  if (firstLeaf !== null && secondLeaf !== null) {
+    assert(firstLeaf !== secondLeaf);
+    assert(firstLeaf.nodeId == secondLeaf.nodeId);
+    assert(firstLeaf.declarationOrder == secondLeaf.declarationOrder);
+  }
+}
+
+function testReplayKeepsSiblingDeclarationOrderStable(): void {
+  const localRoot = new Node(NodeKind.Root, "local root");
+  const suite = localRoot.createChild(NodeKind.Describe, "stable suite");
+  suite.setSuiteCallback(declareStableSiblingReplaySuite);
+
+  const firstChild = findNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>);
+  const secondChild = findNodeByIndexFrom(localRoot, [0, 1] as StaticArray<u32>);
+  assert(firstChild !== null);
+  assert(secondChild !== null);
+
+  const repeatedFirstChild = findNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>);
+  const repeatedSecondChild = findNodeByIndexFrom(localRoot, [0, 1] as StaticArray<u32>);
+  assert(repeatedFirstChild !== null);
+  assert(repeatedSecondChild !== null);
+
+  if (
+    firstChild !== null &&
+    secondChild !== null &&
+    repeatedFirstChild !== null &&
+    repeatedSecondChild !== null
+  ) {
+    assert(firstChild.nodeId == repeatedFirstChild.nodeId);
+    assert(secondChild.nodeId == repeatedSecondChild.nodeId);
+    assert(firstChild.declarationOrder < secondChild.declarationOrder);
+    assert(repeatedFirstChild.declarationOrder < repeatedSecondChild.declarationOrder);
+  }
+}
+
 function testTraversalReplayStateResetsAfterTrapAndSuccess(): void {
   replayTrapAttemptCount = 0;
 
@@ -361,4 +414,6 @@ testDiscoverImmediateChildrenOfFiltersOnlyChildren();
 testRunNodeByIndexFromRejectsNonOnlyTargets();
 testDiscoverAndRunNestedOnlyChildren();
 testReplayDeterministicallyRediscoversNestedDescribeAndTestTrees();
+testReplayKeepsStableNodeIdsAcrossRepeatedLookup();
+testReplayKeepsSiblingDeclarationOrderStable();
 testTraversalReplayStateResetsAfterTrapAndSuccess();

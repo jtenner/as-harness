@@ -12,8 +12,9 @@
 
 ### Risks
 
-- `NodeIndex` is not a stable graph identifier, so graph-aware scheduling can
-  drift immediately if IDs are not fixed first
+- the guest runtime now has stable declaration identity, but the host contract
+  is still `NodeIndex`-shaped, so graph-aware scheduling can still drift until
+  stable IDs cross the Wasm ABI and host planner types
 - the current branch-worker `start()` orchestration is incompatible with
   cross-branch dependency edges unless scheduling becomes global or graph scope
   is constrained
@@ -28,16 +29,12 @@
 
 Remaining work:
 
-- introduce stable opaque test and suite identifiers that are independent of
-  `NodeIndex` and survive replay-driven rediscovery
-- define the identifier contract: uniqueness within one module, deterministic
-  assignment for deterministic declarations, and no dependence on `only`
-  filtering or branch-worker partitioning
-- decide whether stable IDs require durable declaration slots, replay-node
-  reuse, or a different extraction path before more graph metadata lands
 - extend shared declaration metadata to capture declaration order, parent
   identity, `only`, expected-failure intent, and future ordering or dependency
   flags without making adapter code own scheduler logic
+- export stable node identity and declaration-order metadata through the Wasm
+  event ABI and decoded host-node shapes without breaking current traversal
+  entrypoints
 - decide which identity fields must cross the Wasm ABI, host-runner types, CLI
   JSON output, and reporter surfaces
 
@@ -93,10 +90,10 @@ Remaining work:
 
 Remaining work:
 
-- add guest/internal tests that prove stable IDs and declaration-order metadata
-  remain deterministic across repeated discovery and run replay
 - add host-level scheduler tests for topological ordering, declaration-order
   tie-breaking, cycle detection, missing dependencies, and blocked propagation
+- extend host and CLI proof so stable IDs and declaration order are visible and
+  deterministic across `js`, `wazero`, and `wasmtime`
 - add CLI and end-to-end smoke coverage for sequential groups and explicit
   dependencies across `js`, `wazero`, and `wasmtime`
 - prove that `only`, `skip`, `todo`, and expected-failure semantics interact

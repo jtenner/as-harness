@@ -40,6 +40,15 @@ function resolveTraversalChildren(
   const trapped = didCallbackTrap(invokeStagedReplayParent);
   stagedReplayParent = null;
   if (trapped) {
+    const slotSource = parent.getDeclarationSlotSource();
+    if (!slotSource.hasResolvedChildren()) {
+      slotSource.resetUnresolvedDurableState();
+    }
+    parent.clearReplayState();
+    return null;
+  }
+
+  if (parent.hasReplayShapeDrift()) {
     parent.clearReplayState();
     return null;
   }

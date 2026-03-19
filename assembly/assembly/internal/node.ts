@@ -9,6 +9,41 @@ export type SuiteNodeCallback = (context: SuiteContext) => void;
 
 function noop(): void {}
 
+let nextStableNodeId: u32 = 1;
+let nextDeclarationOrder: u32 = 0;
+
+function allocateStableNodeId(): u32 {
+  const nodeId = nextStableNodeId;
+  nextStableNodeId += 1;
+  return nodeId;
+}
+
+function allocateDeclarationOrder(): u32 {
+  const declarationOrder = nextDeclarationOrder;
+  nextDeclarationOrder += 1;
+  return declarationOrder;
+}
+
+function createExecutionOptionsFromNode(source: Node): NodeExecutionOptions {
+  const options = new NodeExecutionOptions();
+  options.only = source.only;
+  options.expectFailure = source.expectFailure;
+  options.timeout = source.timeout;
+  options.concurrency = source.concurrency;
+  options.plan = source.plan;
+  return options;
+}
+
+function copyHookRegistrations(
+  source: Array<HookRegistration>,
+  destination: Array<HookRegistration>,
+): void {
+  destination.length = 0;
+  for (let index: i32 = 0, length = source.length; index < length; index++) {
+    destination.push(unchecked(source[index]));
+  }
+}
+
 export class NodeExecutionOptions {
   only: bool = false;
   expectFailure: bool = false;
@@ -22,6 +57,8 @@ export class NodeExecutionOptions {
  * rediscover descendants when traversal replays the node later.
  */
 export class Node {
+  readonly nodeId: u32;
+  readonly declarationOrder: u32;
   readonly kind: NodeKind;
   readonly name: string;
   readonly callback: NodeCallback;
@@ -36,9 +73,11 @@ export class Node {
   private replayDeclarationModeValue: DeclarationMode;
   private parentValue: Node | null = null;
   private ordinalValue: u32 = 0;
+  private slotSourceValue: Node | null = null;
   private childrenValue: Array<Node> = new Array<Node>();
   private childrenResolved: bool = false;
   private replayStateActive: bool = false;
+  private replayShapeDrifted: bool = false;
   private replayChildrenValue: Array<Node> = new Array<Node>();
   private testCallbackValue: TestNodeCallback | null = null;
   private suiteCallbackValue: SuiteNodeCallback | null = null;
@@ -61,7 +100,20 @@ export class Node {
     declarationMode: DeclarationMode = DeclarationMode.Normal,
     callback: NodeCallback | null = null,
     options: NodeExecutionOptions | null = null,
+    stableNodeId: u32 = 0,
+    declarationOrder: u32 = 0,
+    reuseStableIdentity: bool = false,
   ) {
+    if (reuseStableIdentity) {
+      this.nodeId = stableNodeId;
+      this.declarationOrder = declarationOrder;
+    } else if (kind == NodeKind.Root) {
+      this.nodeId = 0;
+      this.declarationOrder = 0;
+    } else {
+      this.nodeId = allocateStableNodeId();
+      this.declarationOrder = allocateDeclarationOrder();
+    }
     this.kind = kind;
     this.name = name;
     this.baseDeclarationModeValue = declarationMode;
@@ -79,12 +131,22 @@ export class Node {
     return this.parentValue;
   }
 
+  getDeclarationSlotSource(): Node {
+    return this.slotSourceValue !== null
+      ? changetype<Node>(this.slotSourceValue)
+      : this;
+  }
+
   get declarationMode(): DeclarationMode {
     if (this.replayStateActive) {
       return this.replayDeclarationModeValue;
     }
 
     return this.declarationModeValue;
+  }
+
+  hasResolvedChildren(): bool {
+    return this.childrenResolved;
   }
 
   get ordinal(): u32 {
@@ -100,13 +162,21 @@ export class Node {
       return this.childrenValue;
     }
 
-    this.childrenResolved = true;
     this.invokeCallback();
+    this.childrenResolved = true;
 
     return this.childrenValue;
   }
 
   rediscoverChildren(): Array<Node> {
+    const slotSource = this.getDeclarationSlotSource();
+    if (!slotSource.childrenResolved) {
+      slotSource.getChildren();
+      this.beginReplayState();
+      this.copyReplayShapeFromSlotSource(slotSource);
+      return this.replayChildrenValue;
+    }
+
     this.beginReplayState();
     this.invokeCallback();
     return this.replayChildrenValue;
@@ -131,24 +201,41 @@ export class Node {
     callback: NodeCallback | null = null,
     options: NodeExecutionOptions | null = null,
   ): Node {
+    if (this.replayStateActive) {
+      return this.createReplayChild(
+        kind,
+        name,
+        declarationMode,
+        callback,
+        options,
+      );
+    }
+
     const child = new Node(kind, name, declarationMode, callback, options);
     child.parentValue = this;
-    const children = this.replayStateActive
-      ? this.replayChildrenValue
-      : this.childrenValue;
-    child.ordinalValue = <u32>children.length;
-    children.push(child);
+    child.ordinalValue = <u32>this.childrenValue.length;
+    this.childrenValue.push(child);
     return child;
   }
 
   setTestCallback(callback: TestNodeCallback): void {
     this.testCallbackValue = callback;
     this.suiteCallbackValue = null;
+    if (this.slotSourceValue !== null) {
+      const slotSource = changetype<Node>(this.slotSourceValue);
+      slotSource.testCallbackValue = callback;
+      slotSource.suiteCallbackValue = null;
+    }
   }
 
   setSuiteCallback(callback: SuiteNodeCallback): void {
     this.suiteCallbackValue = callback;
     this.testCallbackValue = null;
+    if (this.slotSourceValue !== null) {
+      const slotSource = changetype<Node>(this.slotSourceValue);
+      slotSource.suiteCallbackValue = callback;
+      slotSource.testCallbackValue = null;
+    }
   }
 
   setDeclarationMode(mode: DeclarationMode): void {
@@ -162,6 +249,7 @@ export class Node {
 
   private beginReplayState(): void {
     this.replayStateActive = true;
+    this.replayShapeDrifted = false;
     this.replayDeclarationModeValue = this.baseDeclarationModeValue;
     this.replayChildrenValue.length = 0;
     this.replayBeforeAllHooks.length = 0;
@@ -172,12 +260,26 @@ export class Node {
 
   clearReplayState(): void {
     this.replayStateActive = false;
+    this.replayShapeDrifted = false;
     this.replayDeclarationModeValue = this.baseDeclarationModeValue;
     this.replayChildrenValue.length = 0;
     this.replayBeforeAllHooks.length = 0;
     this.replayBeforeEachHooks.length = 0;
     this.replayAfterEachHooks.length = 0;
     this.replayAfterAllHooks.length = 0;
+  }
+
+  resetUnresolvedDurableState(): void {
+    if (this.childrenResolved) {
+      return;
+    }
+
+    this.declarationModeValue = this.baseDeclarationModeValue;
+    this.childrenValue.length = 0;
+    this.beforeAllHooks.length = 0;
+    this.beforeEachHooks.length = 0;
+    this.afterEachHooks.length = 0;
+    this.afterAllHooks.length = 0;
   }
 
   invokeCallback(): void {
@@ -193,6 +295,18 @@ export class Node {
     }
     setActiveRunOnly(previousRunOnly);
     currentNode = previousNode;
+  }
+
+  hasReplayShapeDrift(): bool {
+    if (!this.replayStateActive) {
+      return false;
+    }
+
+    const slotSource = this.getDeclarationSlotSource();
+    return (
+      this.replayShapeDrifted ||
+      this.replayChildrenValue.length != slotSource.childrenValue.length
+    );
   }
 
   getNodeIndex(): StaticArray<u32> {
@@ -281,6 +395,93 @@ export class Node {
     }
 
     return afterAllHooks;
+  }
+
+  private matchesDeclarationShape(
+    kind: NodeKind,
+    name: string,
+    declarationMode: DeclarationMode,
+    options: NodeExecutionOptions | null,
+  ): bool {
+    return (
+      this.kind == kind &&
+      this.name == name &&
+      this.baseDeclarationModeValue == declarationMode &&
+      this.only == (options !== null ? options.only : false) &&
+      this.expectFailure == (options !== null ? options.expectFailure : false) &&
+      this.timeout == (options !== null ? options.timeout : -1) &&
+      this.concurrency == (options !== null ? options.concurrency : 0) &&
+      this.plan == (options !== null ? options.plan : -1)
+    );
+  }
+
+  private createReplayChildFromSlotSource(slotSource: Node): Node {
+    const replayChild = new Node(
+      slotSource.kind,
+      slotSource.name,
+      slotSource.baseDeclarationModeValue,
+      null,
+      createExecutionOptionsFromNode(slotSource),
+      slotSource.nodeId,
+      slotSource.declarationOrder,
+      true,
+    );
+    replayChild.parentValue = this;
+    replayChild.ordinalValue = slotSource.ordinal;
+    replayChild.slotSourceValue = slotSource;
+    replayChild.testCallbackValue = slotSource.testCallbackValue;
+    replayChild.suiteCallbackValue = slotSource.suiteCallbackValue;
+    return replayChild;
+  }
+
+  private copyReplayShapeFromSlotSource(slotSource: Node): void {
+    copyHookRegistrations(slotSource.beforeAllHooks, this.replayBeforeAllHooks);
+    copyHookRegistrations(slotSource.beforeEachHooks, this.replayBeforeEachHooks);
+    copyHookRegistrations(slotSource.afterEachHooks, this.replayAfterEachHooks);
+    copyHookRegistrations(slotSource.afterAllHooks, this.replayAfterAllHooks);
+
+    for (
+      let index: i32 = 0, length = slotSource.childrenValue.length;
+      index < length;
+      index++
+    ) {
+      const slotChild = unchecked(slotSource.childrenValue[index]);
+      this.replayChildrenValue.push(this.createReplayChildFromSlotSource(slotChild));
+    }
+  }
+
+  private createReplayChild(
+    kind: NodeKind,
+    name: string,
+    declarationMode: DeclarationMode,
+    callback: NodeCallback | null = null,
+    options: NodeExecutionOptions | null = null,
+  ): Node {
+    const slotSource = this.getDeclarationSlotSource();
+    const replaySlotIndex = this.replayChildrenValue.length;
+    if (replaySlotIndex >= slotSource.childrenValue.length) {
+      this.replayShapeDrifted = true;
+      const extraReplayChild = new Node(
+        kind,
+        name,
+        declarationMode,
+        callback,
+        options,
+      );
+      extraReplayChild.parentValue = this;
+      extraReplayChild.ordinalValue = <u32>replaySlotIndex;
+      this.replayChildrenValue.push(extraReplayChild);
+      return extraReplayChild;
+    }
+
+    const slotChild = unchecked(slotSource.childrenValue[replaySlotIndex]);
+    if (!slotChild.matchesDeclarationShape(kind, name, declarationMode, options)) {
+      this.replayShapeDrifted = true;
+    }
+
+    const replayChild = this.createReplayChildFromSlotSource(slotChild);
+    this.replayChildrenValue.push(replayChild);
+    return replayChild;
   }
 }
 
