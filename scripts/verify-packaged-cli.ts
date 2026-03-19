@@ -17,31 +17,14 @@ import {
 	packagedHarnessesForCompileTarget,
 	releaseAssetFilenameForTarget,
 } from "../cli/build-targets";
+import {
+	COMMAND_TIMEOUT_ENV_VAR,
+	createPackagedCommandRunnerSource,
+	DEFAULT_COMMAND_TIMEOUT_MS,
+} from "./packaged-command-runner";
 
 const REPO_DIR = join(import.meta.dir, "..");
-const NODE_RUNNER_SOURCE = String.raw`
-const { spawnSync } = require("node:child_process");
-
-const cwd = process.argv[1];
-const command = process.argv.slice(2);
-const timeoutMs = Number(process.env.AS_HARNESS_TIMEOUT_MS || "60000");
-const result = spawnSync(command[0], command.slice(1), {
-	cwd,
-	encoding: "utf8",
-	timeout: timeoutMs,
-});
-const timedOut = result.error?.code === "ETIMEDOUT";
-const payload = {
-	exitCode: result.status ?? (timedOut ? 124 : 1),
-	stdout: result.stdout ?? "",
-	stderr: result.stderr ?? "",
-	timedOut,
-	errorMessage:
-		result.error && !timedOut ? String(result.error.message || result.error) : "",
-};
-process.stdout.write(JSON.stringify(payload));
-process.exit(result.error && !timedOut ? 1 : 0);
-`;
+const NODE_RUNNER_SOURCE = createPackagedCommandRunnerSource();
 
 type ParsedArguments = {
 	assetDir?: string;
@@ -69,7 +52,7 @@ type HarnessRunReport = {
 	timedOut: boolean;
 };
 
-const COMMAND_TIMEOUT_MS = 60_000;
+const COMMAND_TIMEOUT_MS = DEFAULT_COMMAND_TIMEOUT_MS;
 
 function parseArguments(argv: string[]): ParsedArguments {
 	let assetDir: string | undefined;
@@ -142,7 +125,7 @@ async function runCommand(
 			cwd,
 			env: {
 				...process.env,
-				AS_HARNESS_TIMEOUT_MS: String(COMMAND_TIMEOUT_MS),
+				[COMMAND_TIMEOUT_ENV_VAR]: String(COMMAND_TIMEOUT_MS),
 			},
 			stdio: ["ignore", "pipe", "pipe"],
 		});

@@ -75,10 +75,10 @@ Remaining work:
 - decide whether any host besides `js` should use the worker-thread execution
   path, or whether in-band shared execution is the honest cross-host contract
   for `v0.3.0`
-- isolate the remaining packaged-CI shutdown hang after the packaged `wazero`
-  runtime was restored to the shared decorated `start()` path; the unresolved
-  report is the Windows packaged `js` smoke that prints `PASS` but does not
-  exit before the verifier timeout
+- verify on hosted Windows whether the new file-backed packaged-command
+  supervisor clears the packaged `js` smoke timeout; if it does not, the next
+  issue to isolate is Bun's standalone executable exit path rather than host
+  runtime orchestration
 - decide whether targeted replay stays as the execution primitive for `v0.3.0`
   or whether scheduler-step entrypoints need to return earlier than previously
   planned
@@ -116,9 +116,9 @@ Remaining work:
 - keep the root `bun run test` and source-host verification scripts aligned
   with the actual per-host smoke commands so host regressions cannot hide
   behind wrapper scripts
-- add bounded regression coverage around the remaining packaged shutdown issues
-  so hosted/package failures identify whether the fault is the packaged CLI,
-  Bun subprocess supervision, or a host-runtime leak instead of hanging
+- keep bounded regression coverage around packaged-command supervision so
+  hosted/package failures distinguish verifier pipe-handle leaks from real
+  packaged CLI shutdown bugs
 - prove that `only`, `skip`, `todo`, and expected-failure semantics interact
   with dependency planning exactly as documented
 - add regression coverage that shows graph-aware scheduling does not duplicate
