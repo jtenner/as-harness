@@ -20,8 +20,9 @@
   cross-branch dependency edges unless scheduling becomes global or graph scope
   is constrained
 - `sequenceMode` now lowers onto runnable-test ordering rather than top-level
-  branch barriers, but the proof is still thin outside the JS-host planner
-  checks and the scheduler still lacks explicit dependency-edge semantics
+  branch barriers, and the shared planner now has direct proof coverage, but
+  the scheduler still lacks explicit dependency-edge semantics plus CLI and
+  non-JS end-to-end graph proof
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
 - a native dependency API will be unstable if it lands before shared identity
@@ -99,10 +100,11 @@ Remaining work:
 
 Remaining work:
 
-- add host-level scheduler tests for topological ordering, declaration-order
-  tie-breaking, cycle detection, missing dependencies, and blocked propagation
-- extend host and CLI proof from discovery visibility into planner usage so
-  stable IDs and declaration order are exercised by scheduler-facing paths
+- add host-level scheduler tests for broader topological ordering,
+  declaration-order tie-breaking, cycle detection, missing dependencies, and
+  blocked propagation
+- extend CLI and cross-host proof from discovery visibility into planner usage
+  so stable IDs and declaration order are exercised by scheduler-facing paths
 - add CLI and end-to-end smoke coverage for sequential groups and explicit
   dependencies across `js`, `wazero`, and `wasmtime`
 - prove that `only`, `skip`, `todo`, and expected-failure semantics interact
