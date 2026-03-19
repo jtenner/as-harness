@@ -12,7 +12,6 @@
 - Validation deliverables: run `bun validate`, confirm zero diagnostics, run all primary test suites.
 - Every commit needs a title and detailed body with changed files and reasons.
 - Every commit must update `CHANGELOG.md`.
-- Mark completed items in `agent-todo.md` before commit when the corresponding work is actually done.
 - Before commit, investigate `agent-todo.md` and update the tasks with new blockers, risks, and removing completed items.
 - Gitignore newly discovered build/cache directories when they are not meant to be tracked.
 - Update relevant `README.md` files when surface API or user-facing project info changes.
