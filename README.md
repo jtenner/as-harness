@@ -49,6 +49,12 @@ const first = test("runs first", (_t) => {});
 test("runs after first", (_t) => {}).dependsOn(first);
 ```
 
+Dependency notes:
+
+- prerequisites must stay runnable in the discovered graph
+- `skip`, `todo`, or `only`-filtered prerequisites block their dependents
+- `expectFailure` prerequisites satisfy dependents only when they actually fail
+
 Run it:
 
 ```bash

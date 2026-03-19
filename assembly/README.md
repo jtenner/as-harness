@@ -88,6 +88,13 @@ const first = test("runs first", (_t) => {});
 test("runs after first", (_t) => {}).dependsOn(first);
 ```
 
+Current dependency policy for that surface:
+
+- prerequisites must remain runnable in the discovered test graph
+- `skip`, `todo`, or `only`-filtered prerequisites block their dependents
+- `expectFailure` prerequisites satisfy dependents only when they fail
+  as expected
+
 That source is compiled into Wasm by the CLI, then executed by a harness.
 
 A thin Jest-shaped declaration path also exists through the bundled `"jest"`

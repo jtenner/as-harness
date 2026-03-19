@@ -117,6 +117,20 @@ Field-level contract:
 - `coverage` is either the merged snapshot for the run or `null` when coverage
   was not requested
 
+Dependency policy:
+
+- `dependencyNodeIds` resolve through the dependent node's parent-identity
+  chain, not through a single module-global `nodeId` map
+- a prerequisite satisfies a dependent when it passes normally
+- an `expectFailure` prerequisite satisfies a dependent only when it fails
+  as expected
+- a failing or trapping prerequisite blocks its dependents with
+  `blocked-dependency`
+- a skipped, todo, filtered-out, or otherwise undiscovered prerequisite blocks
+  its dependents with `missing-dependency`
+- blocked tests are distinct from skipped tests in reporting because the user
+  declared a runnable node, but the graph made execution impossible
+
 Targeted discovery detail:
 
 - successful non-root guest `discover(nodeIndex)` now emits the resolved target

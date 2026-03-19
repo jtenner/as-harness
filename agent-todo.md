@@ -28,8 +28,8 @@
   dependency handles with guest-declared metadata proved through discovery and
   `start()`, and guest-declared failing, skip, todo, expected-failure, and
   `only`-filtered prerequisites now exercise real blocked/planning paths, but
-  that dependency policy is still not yet documented as a stable public
-  contract
+  repeated `start()` stability and broader scheduler proof are still not fully
+  covered
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
 - a native dependency API will be unstable if it lands before shared identity
@@ -55,8 +55,6 @@ Remaining work:
 - decide the exact meaning of `dependsOn(...)` outcomes: pass-through on
   success, blocked-on-failure behavior, transitive handling for blocked
   prerequisites, and whether any future soft-prerequisite mode is desirable
-- document the current blocked-vs-skipped distinction as the intended public
-  dependency policy for `v0.3.0`, not just a planner implementation detail
 - define cycle detection, missing-dependency handling, duplicate-edge collapse,
   and deterministic tie-breaking between otherwise ready nodes
 
@@ -67,8 +65,8 @@ Remaining work:
 - keep the new module-global `start()` scheduler aligned with future explicit
   dependency edges and blocked outcomes instead of letting executor details
   leak back into adapters
-- document the updated host-runner and ABI contracts once the stable-ID and
-  graph-metadata shapes are chosen
+- keep the updated host-runner and README contracts aligned if dependency
+  policy, blocked semantics, or adapter surfaces change again
 - prove the now-updated host contract through non-JS hosts and CLI-facing
   blocked/planning paths
 - decide whether any host besides `js` should use the worker-thread execution

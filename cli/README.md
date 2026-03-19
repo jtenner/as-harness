@@ -37,6 +37,10 @@ The default reporter currently:
 - prints failure messages for failing executions
 - treats blocked tests as failed runs when graph constraints make a declared
   test unrunnable
+- reports `missing-dependency` when a prerequisite is skipped, todo, or
+  filtered out of the discovered runnable set
+- reports `blocked-dependency` when a discovered prerequisite runs but does not
+  satisfy its dependents
 - prints `diagnostic` and `trace` logs only for failed executions
 - prints coverage after the test summary when `--coverage` is enabled
 
