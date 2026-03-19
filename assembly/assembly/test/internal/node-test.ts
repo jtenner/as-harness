@@ -42,9 +42,9 @@ function declareViaContext(context: TestContext): void {
   context.assert.equal<i32>(1, 1);
   context.assert.deepEqual<i32>(2, 2);
   context.runOnly(true);
-  context.test("run-only child", noopTest);
+  const runOnlyChild = context.test("run-only child", noopTest);
   context.runOnly(false);
-  context.test("plain child", noopTest);
+  context.test("plain child", noopTest).dependsOn(runOnlyChild);
   context.beforeEach(noopHook);
 }
 
@@ -161,6 +161,9 @@ function testNodeTestContextMethods(): void {
   assert(plainNested.kind == NodeKind.Test);
   assert(plainNested.name == "plain child");
   assert(!plainNested.only);
+  const dependencyNodeIds = plainNested.getDependencyNodeIds();
+  assert(dependencyNodeIds.length == 1);
+  assert(unchecked(dependencyNodeIds[0]) == runOnlyNested.nodeId);
 
   resetCurrentNode();
 }
@@ -185,7 +188,30 @@ function testNodeTestContextSkipAndTodo(): void {
   resetCurrentNode();
 }
 
+function testNodeTestDependencyHandles(): void {
+  const localRoot = new Node(NodeKind.Root, "local root");
+  setCurrentNode(localRoot);
+
+  const prereq = test("dependency prereq", noopTest);
+  const dependent = test("dependency dependent", noopTest);
+  const chained = dependent.dependsOn(prereq);
+
+  assert(chained === dependent);
+
+  const children = localRoot.getChildren();
+  assert(children.length == 2);
+
+  const prereqNode = unchecked(children[0]);
+  const dependentNode = unchecked(children[1]);
+  const dependencyNodeIds = dependentNode.getDependencyNodeIds();
+  assert(dependencyNodeIds.length == 1);
+  assert(unchecked(dependencyNodeIds[0]) == prereqNode.nodeId);
+
+  resetCurrentNode();
+}
+
 testNodeTestDeclarationRegistration();
 testNodeTestAnonymousNames();
 testNodeTestContextMethods();
 testNodeTestContextSkipAndTodo();
+testNodeTestDependencyHandles();

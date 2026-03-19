@@ -45,6 +45,7 @@ Implemented today:
 - targeted `run()` by staged `NodeIndex`
 - top-level and immediate-child `discover()` flows
 - a synchronous `node:test` declaration and execution core
+- chainable `node:test` declaration handles for explicit dependency edges
 - a thin synchronous `jest` adapter for `test` / `it` / `describe`, core hooks, and a small `expect(...)` surface including containment, length/size, numeric checks, `NaN`, and `toThrow()`
 - a thin synchronous `vitest` adapter for `test` / `it` / `describe` / `suite`, low-risk `sequential` aliases, core hooks, `fails`, `skipIf` / `runIf`, `assertType(...)`, and the same small `expect(...)` surface reused from `jest`
 - `node:assert` and `node:assert/strict` bridge work
@@ -82,6 +83,9 @@ import { test } from "node:test";
 test("works", (t) => {
 	t.assert.strictEqual<i32>(1, 1);
 });
+
+const first = test("runs first", (_t) => {});
+test("runs after first", (_t) => {}).dependsOn(first);
 ```
 
 That source is compiled into Wasm by the CLI, then executed by a harness.

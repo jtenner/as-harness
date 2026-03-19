@@ -7,6 +7,7 @@ import {
   declareTestNode,
   NodeDeclarationOptions,
   registerHook,
+  TestDeclarationHandle,
 } from "./api";
 import { getActiveErrorPointer } from "./failure-state";
 import {
@@ -128,15 +129,14 @@ export class AssertionFacade {
 function declareNestedTest(
   name: string = "",
   callback: ((context: TestContext) => void) | null = null,
-): void {
+): TestDeclarationHandle {
   if (!getActiveRunOnly()) {
-    declareTestNode(name, callback);
-    return;
+    return new TestDeclarationHandle(declareTestNode(name, callback));
   }
 
   const options = new NodeDeclarationOptions();
   options.only = true;
-  declareTestNode(name, callback, options);
+  return new TestDeclarationHandle(declareTestNode(name, callback, options));
 }
 
 function registerContextHook(
@@ -220,8 +220,8 @@ export class TestContext {
   test(
     name: string = "",
     callback: ((context: TestContext) => void) | null = null,
-  ): void {
-    declareNestedTest(name, callback);
+  ): TestDeclarationHandle {
+    return declareNestedTest(name, callback);
   }
 
   before(callback: HookCallback | null = null): void {

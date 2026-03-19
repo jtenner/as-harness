@@ -1,4 +1,5 @@
 import { NodeDeclarationOptions, declareSuiteNode, declareTestNode, registerHook } from "../internal/api";
+import { Node } from "../internal/node";
 import { DeclarationMode, HookKind, SequenceMode } from "../internal/imports";
 import { HookFn, SuiteFn, TestFn } from "./types";
 
@@ -19,8 +20,8 @@ function createDeclarationOptions(
 export function declareTest(
   name: string = "",
   callback: TestFn | null = null,
-): void {
-  declareTestNode(name, callback);
+): Node {
+  return declareTestNode(name, callback);
 }
 
 export function declareModifiedTest(
@@ -30,8 +31,8 @@ export function declareModifiedTest(
   only: bool = false,
   expectFailure: bool = false,
   sequenceMode: SequenceMode = SequenceMode.Inherit,
-): void {
-  declareTestNode(
+): Node {
+  return declareTestNode(
     name,
     callback,
     createDeclarationOptions(mode, only, expectFailure, sequenceMode),
@@ -41,8 +42,8 @@ export function declareModifiedTest(
 export function declareSuite(
   name: string = "",
   callback: SuiteFn | null = null,
-): void {
-  declareSuiteNode(name, callback);
+): Node {
+  return declareSuiteNode(name, callback);
 }
 
 export function declareModifiedSuite(
@@ -52,8 +53,8 @@ export function declareModifiedSuite(
   only: bool = false,
   expectFailure: bool = false,
   sequenceMode: SequenceMode = SequenceMode.Inherit,
-): void {
-  declareSuiteNode(
+): Node {
+  return declareSuiteNode(
     name,
     callback,
     createDeclarationOptions(mode, only, expectFailure, sequenceMode),

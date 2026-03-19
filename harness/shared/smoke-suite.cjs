@@ -17,11 +17,13 @@ const NODE_METADATA_BY_INDEX = new Map([
 	["9", { nodeId: 10, parentNodeId: 0, declarationOrder: 9 }],
 	["10", { nodeId: 11, parentNodeId: 0, declarationOrder: 10 }],
 	["11", { nodeId: 12, parentNodeId: 0, declarationOrder: 11 }],
-	["3.0", { nodeId: 13, parentNodeId: 4, declarationOrder: 12 }],
-	["4.0", { nodeId: 13, parentNodeId: 5, declarationOrder: 12, only: true }],
-	["7.0", { nodeId: 13, parentNodeId: 8, declarationOrder: 12 }],
-	["9.0", { nodeId: 13, parentNodeId: 10, declarationOrder: 12 }],
-	["10.0", { nodeId: 13, parentNodeId: 11, declarationOrder: 12 }],
+	["12", { nodeId: 13, parentNodeId: 0, declarationOrder: 12 }],
+	["13", { nodeId: 14, parentNodeId: 0, declarationOrder: 13, dependencyNodeIds: [13] }],
+	["3.0", { nodeId: 15, parentNodeId: 4, declarationOrder: 14 }],
+	["4.0", { nodeId: 15, parentNodeId: 5, declarationOrder: 14, only: true }],
+	["7.0", { nodeId: 15, parentNodeId: 8, declarationOrder: 14 }],
+	["9.0", { nodeId: 15, parentNodeId: 10, declarationOrder: 14 }],
+	["10.0", { nodeId: 15, parentNodeId: 11, declarationOrder: 14 }],
 ]);
 
 function annotateNode(node) {
@@ -45,7 +47,7 @@ function annotateNode(node) {
 		parentNodeId: metadata.parentNodeId,
 		declarationOrder: metadata.declarationOrder,
 		sequenceMode: 0,
-		dependencyNodeIds: [],
+		dependencyNodeIds: metadata.dependencyNodeIds ?? [],
 		only: metadata.only ?? false,
 		expectFailure: metadata.expectFailure ?? false,
 	};
@@ -228,6 +230,18 @@ const DISCOVERED_NODES = annotateNodes([
 		kind: 1,
 		declarationMode: 1,
 		name: "discovery trap parent",
+	},
+	{
+		nodeIndex: [12],
+		kind: 1,
+		declarationMode: 1,
+		name: "dependency prereq",
+	},
+	{
+		nodeIndex: [13],
+		kind: 1,
+		declarationMode: 1,
+		name: "dependency dependent",
 	},
 	{
 		nodeIndex: [3, 0],
@@ -523,7 +537,7 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.discover([]), true);
 		assert.equal(harness.run([0]), true);
 		assert.deepEqual(staleFound, []);
-		assert.deepEqual(activeFound, DISCOVERED_NODES.slice(0, 12));
+		assert.deepEqual(activeFound, DISCOVERED_NODES.slice(0, 14));
 		assert.deepEqual(staleStarts, []);
 		assert.deepEqual(activeStarts, [{ nodeIndex: [0] }]);
 		closeHarness(harness);
@@ -689,7 +703,7 @@ function registerHarnessSmokeSuite(options) {
 		});
 
 		assert.equal(harness.discover([]), true);
-		assert.deepEqual(found, DISCOVERED_NODES.slice(0, 12));
+		assert.deepEqual(found, DISCOVERED_NODES.slice(0, 14));
 
 		found.length = 0;
 		assert.equal(harness.discover([3]), true);
@@ -894,17 +908,17 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(result.discoveryOk, true);
 		assert.equal(result.planningOk, true);
 		assert.equal(result.ok, false);
-		assert.equal(result.discoveredTestCount, 17);
-		assert.equal(result.topLevelNodes.length, 12);
+		assert.equal(result.discoveredTestCount, 19);
+		assert.equal(result.topLevelNodes.length, 14);
 		assert.deepEqual(result.planIssues, []);
 		assert.deepEqual(result.blocked, []);
 		assert.deepEqual(
 			result.topLevelNodes.map((node) => node.nodeId),
-			[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+			[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
 		);
 		assert.deepEqual(
 			result.topLevelNodes.map((node) => node.declarationOrder),
-			[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
 		);
 		assert.equal(result.workerCount, 1);
 		assert.deepEqual(
@@ -927,9 +941,15 @@ function registerHarnessSmokeSuite(options) {
 			branchesByName
 				.get("todo parent")
 				.executions.map((execution) => execution.node.nodeId),
-			[13],
+			[15],
 		);
 		assert.deepEqual(branchesByName.get("top-level todo leaf").executions, []);
+		assert.deepEqual(
+			branchesByName
+				.get("dependency dependent")
+				.discovery.nodes[0].dependencyNodeIds,
+			[13],
+		);
 		assert.equal(
 			branchesByName.get("expected failure test").discovery.nodes[0].expectFailure,
 			true,
@@ -977,7 +997,7 @@ function registerHarnessSmokeSuite(options) {
 				.discovery.nodes.map((node) => [node.nodeId, node.parentNodeId]),
 			[
 				[4, 0],
-				[13, 4],
+				[15, 4],
 			],
 		);
 		assert.deepEqual(

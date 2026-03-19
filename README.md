@@ -15,7 +15,8 @@ What works today:
 
 - `as-harness list` discovers test entry files
 - `as-harness run` compiles and executes them
-- guest authoring through synchronous `node:test`
+- guest authoring through synchronous `node:test`, including chainable
+  declaration handles for explicit dependencies
 - guest assertions through `node:assert` and `node:assert/strict`
 - built-in source harnesses: `js`, `wazero`, `wasmtime`
 - merged coverage output in `text`, `json`, `yaml`, `csv`, `lcov`, or `cobertura`
@@ -43,6 +44,9 @@ import { test } from "node:test";
 test("adds numbers", (t) => {
 	t.assert.strictEqual<i32>(1 + 1, 2);
 });
+
+const first = test("runs first", (_t) => {});
+test("runs after first", (_t) => {}).dependsOn(first);
 ```
 
 Run it:

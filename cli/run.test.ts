@@ -171,6 +171,32 @@ test("passing test", (_context: TestContext): void => {});
 	);
 });
 
+test("cli run compiles and executes node:test dependency handles through the js host", async () => {
+	await withTempEntryFile(
+		`
+import { test, TestContext } from "node:test";
+
+const prereq = test("dependency prereq", (_context: TestContext): void => {});
+
+test("dependency dependent", (_context: TestContext): void => {}).dependsOn(
+  prereq,
+);
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 2 passed, 0 failed, 2 discovered with js.",
+			);
+		},
+	);
+});
+
 test('cli run executes a thin jest adapter entry from the bundled "jest" guest library', async () => {
 	await withTempEntryFile(
 		`

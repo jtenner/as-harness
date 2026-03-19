@@ -72,3 +72,12 @@ test("discovery trap parent", (context: TestContext): void => {
   context.test("pruned child", (_nestedContext: TestContext): void => {});
   unreachable();
 });
+
+const dependencyPrereq = test(
+  "dependency prereq",
+  (_context: TestContext): void => {},
+);
+
+test("dependency dependent", (_context: TestContext): void => {}).dependsOn(
+  dependencyPrereq,
+);

@@ -24,9 +24,10 @@
   `only`, expected-failure intent, and dependency node IDs now cross discovery
   cleanly, and the shared executor now suppresses blocked dependents before
   they run, and `wazero` now uses the shared `start()` contract in-band with
-  working coverage snapshots, but the repo still lacks a public dependency
-  declaration surface and true guest-declared end-to-end dependency smoke
-  coverage
+  working coverage snapshots, and `node:test` now exposes chainable
+  dependency handles with guest-declared metadata proved through discovery and
+  `start()`, but blocked/planning semantics are still not yet exercised
+  through guest-declared failing, skipped, or todo prerequisites
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
 - a native dependency API will be unstable if it lands before shared identity
@@ -55,8 +56,6 @@ Remaining work:
 - decide how `skip`, `todo`, `only`, and expected-failure nodes affect
   dependents and whether blocked tests need a first-class outcome distinct from
   skipped tests
-- expose an actual guest declaration API that lowers onto the now-wired stable
-  dependency metadata without making thin adapters own scheduler logic
 - define cycle detection, missing-dependency handling, duplicate-edge collapse,
   and deterministic tie-breaking between otherwise ready nodes
 
@@ -84,8 +83,9 @@ Remaining work:
 
 - design an ergonomic native declaration surface for sequential groups that
   lowers cleanly onto shared graph metadata
-- decide whether explicit dependencies use returned declaration handles, named
-  refs, or another stable-ID-backed API
+- carry the returned-handle dependency API from the current `node:test`
+  surface into a future native `"as-harness"` adapter without forcing thin
+  framework adapters to own scheduler logic
 - keep thin framework adapters thin by mapping their declaration metadata into
   the shared scheduler model instead of duplicating scheduling logic in
   adapter-specific code
@@ -100,12 +100,13 @@ Remaining work:
   declaration-order tie-breaking, blocked propagation, and prerequisite-outcome
   handling now that missing dependencies, cycle detection, and prerequisite
   satisfaction have pure proof
-- extend CLI-facing and true guest-declared cross-host proof from discovery
-  visibility into planner usage so stable IDs, declaration order, dependency
-  node IDs, and the new planning/blocked result fields are exercised by real
-  scheduler-facing paths
-- add CLI and end-to-end smoke coverage for sequential groups and explicit
-  dependencies across `js`, `wazero`, and `wasmtime`
+- extend CLI-facing and true guest-declared cross-host proof from dependency
+  metadata visibility into planner usage so stable IDs, declaration order,
+  dependency node IDs, and the new planning/blocked result fields are
+  exercised by real scheduler-facing paths
+- add CLI and end-to-end blocked/planning smoke coverage for sequential groups
+  and explicit guest-declared dependencies across `js`, `wazero`, and
+  `wasmtime`
 - keep the root `bun run test` and source-host verification scripts aligned
   with the actual per-host smoke commands so host regressions cannot hide
   behind wrapper scripts

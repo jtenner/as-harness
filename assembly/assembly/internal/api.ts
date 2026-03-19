@@ -20,6 +20,23 @@ export class NodeDeclarationOptions {
   sequenceMode: SequenceMode = SequenceMode.Inherit;
 }
 
+export class TestDeclarationHandle {
+  private readonly node: Node;
+
+  constructor(node: Node) {
+    this.node = node.getDeclarationSlotSource();
+  }
+
+  dependsOn(dependency: TestDeclarationHandle | null = null): TestDeclarationHandle {
+    if (dependency === null) {
+      return this;
+    }
+
+    this.node.registerDependency(dependency.node);
+    return this;
+  }
+}
+
 function normalizeNodeName(name: string): string {
   return name.length > 0 ? name : DEFAULT_NAME;
 }

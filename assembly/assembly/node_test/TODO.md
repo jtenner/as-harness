@@ -9,6 +9,7 @@ Implemented scope:
 
 - synchronous top-level `test`, `it`, `suite`, and `describe`
 - declaration modifiers such as `skip`, `todo`, `only`, and `expectFailure`
+- chainable returned test declarations for explicit dependency edges
 - top-level lifecycle hooks
 - first `TestContext` and `SuiteContext` surface
 - targeted `run()` and first `discover()` flows
