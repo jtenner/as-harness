@@ -25,9 +25,7 @@
   cleanly, and the shared executor now suppresses blocked dependents before
   they run, and `wazero` now uses the shared `start()` contract in-band with
   working coverage snapshots, but the repo still lacks a public dependency
-  declaration surface, non-JS end-to-end blocked/planning proof, and a clean
-  story for the lingering `wazero` timeout-sensitive paths in hosted/package
-  smoke coverage
+  declaration surface and non-JS end-to-end blocked/planning proof
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
 - a native dependency API will be unstable if it lands before shared identity
@@ -75,10 +73,6 @@ Remaining work:
 - decide whether any host besides `js` should use the worker-thread execution
   path, or whether in-band shared execution is the honest cross-host contract
   for `v0.3.0`
-- verify on hosted Linux x64 whether bypassing synchronous bundled `wazero`
-  close calls clears the packaged timeout under Bun `1.3.10`; if it does not,
-  use the new `AS_HARNESS_TRACE_WAZERO=1` rerun to identify whether the hang is
-  before native harness creation, inside `start()`, or during packaged Bun exit
 - decide whether targeted replay stays as the execution primitive for `v0.3.0`
   or whether scheduler-step entrypoints need to return earlier than previously
   planned

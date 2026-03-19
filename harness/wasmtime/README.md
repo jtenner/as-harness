@@ -16,7 +16,8 @@ and shares the same smoke-suite expectations as `harness/js` and
   and adds the shared `start()` orchestration through `harness/shared/start.cjs`.
 - `scripts/build.mjs`
   The local cargo build helper that compiles the Rust addon and stages
-  `dist/wasmtime.node`.
+  `dist/wasmtime.node`, including the platform-specific Node-API linker setup
+  needed for macOS builds.
 - `test/smoke.host.cjs`
   The shared host-behavior smoke suite plus a CLI smoke that runs
   `as-harness run --harness wasmtime`.

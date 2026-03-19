@@ -53,6 +53,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "napi",
+ "napi-build",
  "napi-derive",
  "wasmtime",
 ]
@@ -696,6 +697,12 @@ dependencies = [
  "napi-sys",
  "once_cell",
 ]
+
+[[package]]
+name = "napi-build"
+version = "2.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d376940fd5b723c6893cd1ee3f33abbfd86acb1cd1ec079f3ab04a2a3bc4d3b1"
 
 [[package]]
 name = "napi-derive"
