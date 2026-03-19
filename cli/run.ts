@@ -252,7 +252,7 @@ export async function runEntryFiles(
 		};
 	}
 
-	if (report.failedTestCount > 0) {
+	if (report.failedTestCount > 0 || report.blockedTestCount > 0) {
 		reporter.accept(report, { harnessName: runtime.name, logger });
 		if (coverageOptions.enabled && result.coverage) {
 			logger.info(stringifyCoverage(result.coverage, coverageOptions.format));

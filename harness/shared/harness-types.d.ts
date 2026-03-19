@@ -102,6 +102,18 @@ export interface HarnessExecution {
 	events: Array<HarnessEvent>;
 }
 
+export interface HarnessPlanIssue {
+	type: string;
+	targetIdentityKey: string;
+	dependencyIdentityKey: string;
+}
+
+export interface HarnessBlockedNode {
+	node: HarnessNode;
+	issueType: string;
+	dependencyIdentityKey: string;
+}
+
 export interface HarnessBranchDiscovery {
 	ok: boolean;
 	nodes: Array<HarnessNode>;
@@ -118,10 +130,13 @@ export interface HarnessBranch {
 export interface HarnessStartResult {
 	ok: boolean;
 	discoveryOk: boolean;
+	planningOk: boolean;
 	discoveredTestCount: number;
 	topLevelNodes: Array<HarnessNode>;
 	workerCount: number;
 	branches: Array<HarnessBranch>;
+	planIssues: Array<HarnessPlanIssue>;
+	blocked: Array<HarnessBlockedNode>;
 	coverage: HarnessCoverageSnapshot | null;
 }
 

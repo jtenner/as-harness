@@ -890,9 +890,12 @@ function registerHarnessSmokeSuite(options) {
 		);
 
 		assert.equal(result.discoveryOk, true);
+		assert.equal(result.planningOk, true);
 		assert.equal(result.ok, false);
 		assert.equal(result.discoveredTestCount, 17);
 		assert.equal(result.topLevelNodes.length, 12);
+		assert.deepEqual(result.planIssues, []);
+		assert.deepEqual(result.blocked, []);
 		assert.deepEqual(
 			result.topLevelNodes.map((node) => node.nodeId),
 			[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],

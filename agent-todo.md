@@ -22,8 +22,9 @@
 - `sequenceMode` now lowers onto runnable-test ordering rather than top-level
   branch barriers, and the shared planner now has direct proof coverage while
   `only` and expected-failure intent cross discovery cleanly, but the
-  scheduler still lacks ABI-emitted dependency metadata, blocked reporting,
-  and CLI/non-JS end-to-end graph proof
+  scheduler still lacks ABI-emitted dependency metadata and non-JS end-to-end
+  graph proof; blocked/planning result plumbing now exists in the host and CLI
+  reporter but is still dormant until the guest emits real dependencies
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
 - a native dependency API will be unstable if it lands before shared identity
@@ -52,8 +53,9 @@ Remaining work:
 - decide the guest-to-host dependency metadata shape now that the shared
   planner can already model missing dependencies, cycles, prerequisite
   satisfaction, and blocked propagation in pure tests
-- extend the current sequential-scope lowering and dependency-ready planner so
-  blocked outcomes and prerequisite result handling compose cleanly
+- wire the current blocked/planning host result plumbing to real dependency
+  metadata and execution-time prerequisite outcomes instead of leaving it
+  synthetic-only
 - decide the exact meaning of `dependsOn(...)` outcomes: pass-through on
   success, blocked-on-failure behavior, and transitive handling for blocked
   prerequisites
@@ -103,7 +105,8 @@ Remaining work:
   handling now that missing dependencies, cycle detection, and prerequisite
   satisfaction have pure proof
 - extend CLI and cross-host proof from discovery visibility into planner usage
-  so stable IDs and declaration order are exercised by scheduler-facing paths
+  so stable IDs, declaration order, and the new planning/blocked result fields
+  are exercised by scheduler-facing paths
 - add CLI and end-to-end smoke coverage for sequential groups and explicit
   dependencies across `js`, `wazero`, and `wasmtime`
 - prove that `only`, `skip`, `todo`, and expected-failure semantics interact

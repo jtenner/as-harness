@@ -1,4 +1,5 @@
 import type {
+	HarnessBlockedNode,
 	HarnessBranchDiscovery,
 	HarnessDiagnosticEvent,
 	HarnessEvent,
@@ -6,6 +7,7 @@ import type {
 	HarnessFailMessageEvent,
 	HarnessLogEvent,
 	HarnessNode,
+	HarnessPlanIssue,
 	HarnessStartResult,
 } from "../harness/shared/harness-types";
 
@@ -44,12 +46,16 @@ export type HarnessBranchReport = {
 
 export type HarnessRunReport = {
 	branches: HarnessBranchReport[];
+	blocked: HarnessBlockedNode[];
+	blockedTestCount: number;
 	discoveredTestCount: number;
 	discoveryFailures: HarnessNode[];
 	discoveryOk: boolean;
 	failedTestCount: number;
 	ok: boolean;
 	passedTestCount: number;
+	planIssues: HarnessPlanIssue[];
+	planningOk: boolean;
 	topLevelNodes: HarnessNode[];
 	workerCount: number;
 };
@@ -173,12 +179,16 @@ export function createHarnessRunReport(
 
 	return {
 		branches,
+		blocked: result.blocked.slice(),
+		blockedTestCount: result.blocked.length,
 		discoveredTestCount: result.discoveredTestCount,
 		discoveryFailures,
 		discoveryOk: result.discoveryOk,
 		failedTestCount,
 		ok: result.ok,
 		passedTestCount,
+		planIssues: result.planIssues.slice(),
+		planningOk: result.planningOk,
 		topLevelNodes: result.topLevelNodes.slice(),
 		workerCount: result.workerCount,
 	};
@@ -210,9 +220,11 @@ export const defaultRunReporter: RunReporter = {
 			return;
 		}
 
-		if (report.failedTestCount > 0) {
+		if (report.failedTestCount > 0 || report.blockedTestCount > 0) {
 			logger.error(
-				`FAIL ${report.passedTestCount} passed, ${report.failedTestCount} failed, ${report.discoveredTestCount} discovered with ${harnessName}.`,
+				report.blockedTestCount > 0
+					? `FAIL ${report.passedTestCount} passed, ${report.failedTestCount} failed, ${report.blockedTestCount} blocked, ${report.discoveredTestCount} discovered with ${harnessName}.`
+					: `FAIL ${report.passedTestCount} passed, ${report.failedTestCount} failed, ${report.discoveredTestCount} discovered with ${harnessName}.`,
 			);
 
 			for (const branch of report.branches) {
@@ -238,6 +250,27 @@ export const defaultRunReporter: RunReporter = {
 						logger.error("  fail: failed without a fail message");
 					}
 				}
+			}
+
+			for (const blocked of report.blocked) {
+				logger.error(`- ${blocked.node.name}`);
+				logger.error(
+					blocked.dependencyIdentityKey.length > 0
+						? `  blocked: ${blocked.issueType} (${blocked.dependencyIdentityKey})`
+						: `  blocked: ${blocked.issueType}`,
+				);
+			}
+
+			for (const issue of report.planIssues) {
+				if (issue.type === "blocked-dependency") {
+					continue;
+				}
+
+				logger.error(
+					issue.dependencyIdentityKey.length > 0
+						? `  issue: ${issue.type} (${issue.targetIdentityKey} <- ${issue.dependencyIdentityKey})`
+						: `  issue: ${issue.type} (${issue.targetIdentityKey})`,
+				);
 			}
 
 			return;

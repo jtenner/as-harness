@@ -6,6 +6,7 @@ export type {
 	Harness,
 	HarnessBranch,
 	HarnessBranchDiscovery,
+	HarnessBlockedNode,
 	HarnessBytes,
 	HarnessCoverageFileOverview,
 	HarnessCoverageJSONFile,
@@ -26,5 +27,6 @@ export type {
 	HarnessNode,
 	HarnessNodeEvent,
 	HarnessNodeFoundEvent,
+	HarnessPlanIssue,
 	HarnessStartResult,
 } from "../shared/harness-types";

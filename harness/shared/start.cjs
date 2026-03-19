@@ -780,6 +780,52 @@ function evaluatePlannedExecution(plan, executionsByIdentity = new Map()) {
 	};
 }
 
+function createBlockedNodeIssueMap(evaluatedExecution) {
+	const blockedIssueMap = new Map();
+
+	for (const issue of Array.isArray(evaluatedExecution?.issues)
+		? evaluatedExecution.issues
+		: []) {
+		if (
+			!issue ||
+			typeof issue.targetIdentityKey !== "string" ||
+			issue.targetIdentityKey.length === 0
+		) {
+			continue;
+		}
+		if (blockedIssueMap.has(issue.targetIdentityKey)) {
+			continue;
+		}
+
+		blockedIssueMap.set(issue.targetIdentityKey, issue);
+	}
+
+	return blockedIssueMap;
+}
+
+function toBlockedNode(target, issue) {
+	return {
+		node: cloneNode(target.node),
+		issueType: typeof issue?.type === "string" ? issue.type : "blocked-dependency",
+		dependencyIdentityKey:
+			typeof issue?.dependencyIdentityKey === "string"
+				? issue.dependencyIdentityKey
+				: "",
+	};
+}
+
+function toPlanIssues(issues) {
+	return (Array.isArray(issues) ? issues : []).map((issue) => ({
+		type: typeof issue?.type === "string" ? issue.type : "",
+		targetIdentityKey:
+			typeof issue?.targetIdentityKey === "string" ? issue.targetIdentityKey : "",
+		dependencyIdentityKey:
+			typeof issue?.dependencyIdentityKey === "string"
+				? issue.dependencyIdentityKey
+				: "",
+	}));
+}
+
 async function executePlannedStages(options, branches, stages) {
 	const orderedTargets = [];
 	for (const stage of stages) {
@@ -856,19 +902,36 @@ async function startHarness(options) {
 	}
 
 	let workerCount = 0;
+	let evaluatedExecution = {
+		blockedTargets: [],
+		issues: [],
+		outcomesByIdentity: new Map(),
+	};
 	if (discoveryOk) {
 		const plannedExecution = planExecutionStages(branches);
-		discoveryOk = plannedExecution.complete;
-		if (discoveryOk) {
-			workerCount = await executePlannedStages(
-				options,
-				branches,
-				plannedExecution.stages,
-			);
+		workerCount = await executePlannedStages(options, branches, plannedExecution.stages);
+		const executionsByIdentity = new Map();
+		for (const branch of branches) {
+			for (const execution of branch.executions) {
+				if (!execution) {
+					continue;
+				}
+
+				executionsByIdentity.set(getNodeIdentityKey(execution.node), execution);
+			}
 		}
+		evaluatedExecution = evaluatePlannedExecution(plannedExecution, executionsByIdentity);
 	}
 
 	let ok = discoveryOk;
+	const blockedIssueMap = createBlockedNodeIssueMap(evaluatedExecution);
+	const blocked = evaluatedExecution.blockedTargets.map((target) =>
+		toBlockedNode(target, blockedIssueMap.get(target.identityKey) || null),
+	);
+	const planningOk = evaluatedExecution.issues.length === 0;
+	if (!planningOk || blocked.length > 0) {
+		ok = false;
+	}
 	let discoveredTestCount = 0;
 	const coverageSnapshots = initialCoverage ? [initialCoverage] : [];
 	for (const branch of branches) {
@@ -889,10 +952,13 @@ async function startHarness(options) {
 	return {
 		ok,
 		discoveryOk,
+		planningOk,
 		discoveredTestCount,
 		topLevelNodes,
 		workerCount,
 		branches,
+		planIssues: toPlanIssues(evaluatedExecution.issues),
+		blocked,
 		coverage:
 			coverageSnapshots.length > 0
 				? mergeCoverageSnapshots(coverageSnapshots)
