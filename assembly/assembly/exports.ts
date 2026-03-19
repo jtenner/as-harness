@@ -1,8 +1,8 @@
 export { invoke } from "./internal/trampoline";
 import {
-  discoverChildrenByIndex,
-  discoverRootNodes,
-  runNodeByIndex,
+	discoverChildrenByIndex,
+	discoverRootNodes,
+	runNodeByIndex,
 } from "./internal/traversal";
 
 let nodeIndexScratch: StaticArray<u32> | null = null;
@@ -12,8 +12,8 @@ let nodeIndexScratch: StaticArray<u32> | null = null;
  * and returns the linear-memory pointer to its first element.
  */
 export function allocateNodeIndexBuffer(length: u32): usize {
-  nodeIndexScratch = new StaticArray<u32>(length);
-  return changetype<usize>(nodeIndexScratch);
+	nodeIndexScratch = new StaticArray<u32>(length);
+	return changetype<usize>(nodeIndexScratch);
 }
 
 /**
@@ -25,12 +25,12 @@ export function allocateNodeIndexBuffer(length: u32): usize {
  * - `1`: the target node was found and completed without trapping
  */
 export function run(): i32 {
-  if (nodeIndexScratch === null) {
-    return 0;
-  }
+	if (nodeIndexScratch === null) {
+		return 0;
+	}
 
-  const nodeIndex = changetype<StaticArray<u32>>(nodeIndexScratch);
-  return runNodeByIndex(nodeIndex) ? 1 : 0;
+	const nodeIndex = changetype<StaticArray<u32>>(nodeIndexScratch);
+	return runNodeByIndex(nodeIndex) ? 1 : 0;
 }
 
 /**
@@ -40,10 +40,10 @@ export function run(): i32 {
  * staged. The return value remains the discovered immediate-child count.
  */
 export function discover(): i32 {
-  if (nodeIndexScratch === null) {
-    return discoverRootNodes();
-  }
+	if (nodeIndexScratch === null) {
+		return discoverRootNodes();
+	}
 
-  const nodeIndex = changetype<StaticArray<u32>>(nodeIndexScratch);
-  return discoverChildrenByIndex(nodeIndex);
+	const nodeIndex = changetype<StaticArray<u32>>(nodeIndexScratch);
+	return discoverChildrenByIndex(nodeIndex);
 }

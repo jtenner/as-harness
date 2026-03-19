@@ -4,261 +4,247 @@
 
 import { DeclarationMode, HookKind } from "./imports";
 import {
-  declareTestNode,
-  NodeDeclarationOptions,
-  registerHook,
-  TestDeclarationHandle,
+	declareTestNode,
+	NodeDeclarationOptions,
+	registerHook,
+	TestDeclarationHandle,
 } from "./api";
 import { getActiveErrorPointer } from "./failure-state";
 import {
-  getActiveAttempt,
-  getActiveRunOnly,
-  getActiveNodePassed,
-  recordAssertionCall,
-  setActiveRunOnly,
-  setPlannedAssertionCount,
+	getActiveAttempt,
+	getActiveRunOnly,
+	getActiveNodePassed,
+	recordAssertionCall,
+	setActiveRunOnly,
+	setPlannedAssertionCount,
 } from "./execution-state";
 import { diagnostic as emitDiagnostic } from "./events";
 import { HookCallback } from "./hooks";
 import { currentNode } from "./node";
 import {
-  doesNotThrow,
-  fail,
-  ifError,
-  notDeepStrictEqual,
-  notStrictEqual,
-  ok,
-  strictEqual,
-  throws,
-  deepStrictEqual,
+	doesNotThrow,
+	fail,
+	ifError,
+	notDeepStrictEqual,
+	notStrictEqual,
+	ok,
+	strictEqual,
+	throws,
+	deepStrictEqual,
 } from "../node_assert/shared";
 
 export class AssertionFacade {
-  ok<T>(value: T, message: string | null = null): void {
-    recordAssertionCall();
-    ok(value, message);
-  }
+	ok<T>(value: T, message: string | null = null): void {
+		recordAssertionCall();
+		ok(value, message);
+	}
 
-  equal<T>(actual: T, expected: T, message: string | null = null): void {
-    recordAssertionCall();
-    strictEqual(actual, expected, message);
-  }
+	equal<T>(actual: T, expected: T, message: string | null = null): void {
+		recordAssertionCall();
+		strictEqual(actual, expected, message);
+	}
 
-  notEqual<T>(actual: T, expected: T, message: string | null = null): void {
-    recordAssertionCall();
-    notStrictEqual(actual, expected, message);
-  }
+	notEqual<T>(actual: T, expected: T, message: string | null = null): void {
+		recordAssertionCall();
+		notStrictEqual(actual, expected, message);
+	}
 
-  deepEqual<T>(actual: T, expected: T, message: string | null = null): void {
-    recordAssertionCall();
-    deepStrictEqual(actual, expected, message);
-  }
+	deepEqual<T>(actual: T, expected: T, message: string | null = null): void {
+		recordAssertionCall();
+		deepStrictEqual(actual, expected, message);
+	}
 
-  notDeepEqual<T>(
-    actual: T,
-    expected: T,
-    message: string | null = null,
-  ): void {
-    recordAssertionCall();
-    notDeepStrictEqual(actual, expected, message);
-  }
+	notDeepEqual<T>(actual: T, expected: T, message: string | null = null): void {
+		recordAssertionCall();
+		notDeepStrictEqual(actual, expected, message);
+	}
 
-  strictEqual<T>(
-    actual: T,
-    expected: T,
-    message: string | null = null,
-  ): void {
-    recordAssertionCall();
-    strictEqual(actual, expected, message);
-  }
+	strictEqual<T>(actual: T, expected: T, message: string | null = null): void {
+		recordAssertionCall();
+		strictEqual(actual, expected, message);
+	}
 
-  notStrictEqual<T>(
-    actual: T,
-    expected: T,
-    message: string | null = null,
-  ): void {
-    recordAssertionCall();
-    notStrictEqual(actual, expected, message);
-  }
+	notStrictEqual<T>(
+		actual: T,
+		expected: T,
+		message: string | null = null,
+	): void {
+		recordAssertionCall();
+		notStrictEqual(actual, expected, message);
+	}
 
-  deepStrictEqual<T>(
-    actual: T,
-    expected: T,
-    message: string | null = null,
-  ): void {
-    recordAssertionCall();
-    deepStrictEqual(actual, expected, message);
-  }
+	deepStrictEqual<T>(
+		actual: T,
+		expected: T,
+		message: string | null = null,
+	): void {
+		recordAssertionCall();
+		deepStrictEqual(actual, expected, message);
+	}
 
-  notDeepStrictEqual<T>(
-    actual: T,
-    expected: T,
-    message: string | null = null,
-  ): void {
-    recordAssertionCall();
-    notDeepStrictEqual(actual, expected, message);
-  }
+	notDeepStrictEqual<T>(
+		actual: T,
+		expected: T,
+		message: string | null = null,
+	): void {
+		recordAssertionCall();
+		notDeepStrictEqual(actual, expected, message);
+	}
 
-  throws(
-    callback: () => void,
-    message: string | null = null,
-  ): void {
-    recordAssertionCall();
-    throws(callback, message);
-  }
+	throws(callback: () => void, message: string | null = null): void {
+		recordAssertionCall();
+		throws(callback, message);
+	}
 
-  doesNotThrow(
-    callback: () => void,
-    message: string | null = null,
-  ): void {
-    recordAssertionCall();
-    doesNotThrow(callback, message);
-  }
+	doesNotThrow(callback: () => void, message: string | null = null): void {
+		recordAssertionCall();
+		doesNotThrow(callback, message);
+	}
 
-  ifError<T>(value: T): void {
-    recordAssertionCall();
-    ifError(value);
-  }
+	ifError<T>(value: T): void {
+		recordAssertionCall();
+		ifError(value);
+	}
 
-  fail(message: string | null = null): void {
-    recordAssertionCall();
-    fail(message);
-  }
+	fail(message: string | null = null): void {
+		recordAssertionCall();
+		fail(message);
+	}
 }
 
 function declareNestedTest(
-  name: string = "",
-  callback: ((context: TestContext) => void) | null = null,
+	name: string = "",
+	callback: ((context: TestContext) => void) | null = null,
 ): TestDeclarationHandle {
-  if (!getActiveRunOnly()) {
-    return new TestDeclarationHandle(declareTestNode(name, callback));
-  }
+	if (!getActiveRunOnly()) {
+		return new TestDeclarationHandle(declareTestNode(name, callback));
+	}
 
-  const options = new NodeDeclarationOptions();
-  options.only = true;
-  return new TestDeclarationHandle(declareTestNode(name, callback, options));
+	const options = new NodeDeclarationOptions();
+	options.only = true;
+	return new TestDeclarationHandle(declareTestNode(name, callback, options));
 }
 
 function registerContextHook(
-  kind: HookKind,
-  callback: HookCallback | null = null,
+	kind: HookKind,
+	callback: HookCallback | null = null,
 ): void {
-  registerHook(kind, callback);
+	registerHook(kind, callback);
 }
 
 function fullNameForCurrentNode(): string {
-  let result = currentNode.name;
-  let cursor = currentNode.parent;
+	let result = currentNode.name;
+	let cursor = currentNode.parent;
 
-  while (cursor !== null && cursor.parent !== null) {
-    result = cursor.name + " > " + result;
-    cursor = cursor.parent;
-  }
+	while (cursor !== null && cursor.parent !== null) {
+		result = cursor.name + " > " + result;
+		cursor = cursor.parent;
+	}
 
-  return result;
+	return result;
 }
 
 function markCurrentNode(mode: DeclarationMode): void {
-  currentNode.setDeclarationMode(mode);
+	currentNode.setDeclarationMode(mode);
 }
 
 export class SuiteContext {
-  get name(): string {
-    return currentNode.name;
-  }
+	get name(): string {
+		return currentNode.name;
+	}
 
-  get fullName(): string {
-    return fullNameForCurrentNode();
-  }
+	get fullName(): string {
+		return fullNameForCurrentNode();
+	}
 
-  get filePath(): string {
-    return "";
-  }
+	get filePath(): string {
+		return "";
+	}
 
-  get signal(): usize {
-    return 0;
-  }
+	get signal(): usize {
+		return 0;
+	}
 }
 
 export class TestContext {
-  get assert(): AssertionFacade {
-    return sharedAssertionFacade;
-  }
+	get assert(): AssertionFacade {
+		return sharedAssertionFacade;
+	}
 
-  get name(): string {
-    return currentNode.name;
-  }
+	get name(): string {
+		return currentNode.name;
+	}
 
-  get fullName(): string {
-    return fullNameForCurrentNode();
-  }
+	get fullName(): string {
+		return fullNameForCurrentNode();
+	}
 
-  get filePath(): string {
-    return "";
-  }
+	get filePath(): string {
+		return "";
+	}
 
-  get signal(): usize {
-    return 0;
-  }
+	get signal(): usize {
+		return 0;
+	}
 
-  get passed(): bool {
-    return getActiveNodePassed();
-  }
+	get passed(): bool {
+		return getActiveNodePassed();
+	}
 
-  get error(): usize {
-    return getActiveErrorPointer();
-  }
+	get error(): usize {
+		return getActiveErrorPointer();
+	}
 
-  get attempt(): i32 {
-    return getActiveAttempt();
-  }
+	get attempt(): i32 {
+		return getActiveAttempt();
+	}
 
-  get workerId(): i32 {
-    return 0;
-  }
+	get workerId(): i32 {
+		return 0;
+	}
 
-  test(
-    name: string = "",
-    callback: ((context: TestContext) => void) | null = null,
-  ): TestDeclarationHandle {
-    return declareNestedTest(name, callback);
-  }
+	test(
+		name: string = "",
+		callback: ((context: TestContext) => void) | null = null,
+	): TestDeclarationHandle {
+		return declareNestedTest(name, callback);
+	}
 
-  before(callback: HookCallback | null = null): void {
-    registerContextHook(HookKind.BeforeAll, callback);
-  }
+	before(callback: HookCallback | null = null): void {
+		registerContextHook(HookKind.BeforeAll, callback);
+	}
 
-  after(callback: HookCallback | null = null): void {
-    registerContextHook(HookKind.AfterAll, callback);
-  }
+	after(callback: HookCallback | null = null): void {
+		registerContextHook(HookKind.AfterAll, callback);
+	}
 
-  beforeEach(callback: HookCallback | null = null): void {
-    registerContextHook(HookKind.BeforeEach, callback);
-  }
+	beforeEach(callback: HookCallback | null = null): void {
+		registerContextHook(HookKind.BeforeEach, callback);
+	}
 
-  afterEach(callback: HookCallback | null = null): void {
-    registerContextHook(HookKind.AfterEach, callback);
-  }
+	afterEach(callback: HookCallback | null = null): void {
+		registerContextHook(HookKind.AfterEach, callback);
+	}
 
-  diagnostic(message: string): void {
-    emitDiagnostic(currentNode.getNodeIndex(), message);
-  }
+	diagnostic(message: string): void {
+		emitDiagnostic(currentNode.getNodeIndex(), message);
+	}
 
-  plan(count: i32): void {
-    setPlannedAssertionCount(count);
-  }
+	plan(count: i32): void {
+		setPlannedAssertionCount(count);
+	}
 
-  runOnly(shouldRunOnlyTests: bool): void {
-    setActiveRunOnly(shouldRunOnlyTests);
-  }
+	runOnly(shouldRunOnlyTests: bool): void {
+		setActiveRunOnly(shouldRunOnlyTests);
+	}
 
-  skip(_message: string | null = null): void {
-    markCurrentNode(DeclarationMode.Skip);
-  }
+	skip(_message: string | null = null): void {
+		markCurrentNode(DeclarationMode.Skip);
+	}
 
-  todo(_message: string | null = null): void {
-    markCurrentNode(DeclarationMode.Todo);
-  }
+	todo(_message: string | null = null): void {
+		markCurrentNode(DeclarationMode.Todo);
+	}
 }
 
 export const sharedAssertionFacade = new AssertionFacade();

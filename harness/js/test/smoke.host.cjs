@@ -153,7 +153,9 @@ test("start() executes sequential-scope branches without forcing root barriers",
 	assert.equal(result.ok, true);
 	assert.equal(result.workerCount, 1);
 	assert.deepEqual(
-		result.branches.map((branch) => branch.executions.map((execution) => execution.node.name)),
+		result.branches.map((branch) =>
+			branch.executions.map((execution) => execution.node.name),
+		),
 		[
 			["branch-a-child"],
 			["branch-b-child"],

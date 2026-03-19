@@ -12,6 +12,10 @@
 
 ### Risks
 
+- repo-wide formatting now runs through `bun format`, `gofmt`, and `cargo fmt`,
+  but Biome still cannot parse the two AssemblyScript sources that use
+  top-level `@external(...)` declarations, so those files stay outside the
+  current JS/TS formatter baseline until a compatible formatter path is added
 - stable IDs now drive discovery and planning, but execution still targets
   `NodeIndex`, so future dependency/reporting work must keep declaration
   identity authoritative while treating the path only as the replay handle

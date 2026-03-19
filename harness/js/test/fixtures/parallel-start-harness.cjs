@@ -84,10 +84,18 @@ class FakeHarness {
 				this.#emitNode([1], NODE_KIND_SUITE, "branch-b");
 				return true;
 			case "0":
-				this.#emitNode([0, 0], NODE_KIND_TEST, `branch-a-child-thread-${threadId}`);
+				this.#emitNode(
+					[0, 0],
+					NODE_KIND_TEST,
+					`branch-a-child-thread-${threadId}`,
+				);
 				return true;
 			case "1":
-				this.#emitNode([1, 0], NODE_KIND_TEST, `branch-b-child-thread-${threadId}`);
+				this.#emitNode(
+					[1, 0],
+					NODE_KIND_TEST,
+					`branch-b-child-thread-${threadId}`,
+				);
 				return true;
 			case "0.0":
 			case "1.0":
@@ -98,7 +106,9 @@ class FakeHarness {
 	}
 
 	run(nodeIndex) {
-		const normalizedNodeIndex = Array.isArray(nodeIndex) ? nodeIndex.slice() : [];
+		const normalizedNodeIndex = Array.isArray(nodeIndex)
+			? nodeIndex.slice()
+			: [];
 		this.#emit("nodeStart", { nodeIndex: normalizedNodeIndex });
 		this.#emit("diagnostic", {
 			nodeIndex: normalizedNodeIndex,
@@ -109,13 +119,12 @@ class FakeHarness {
 	}
 
 	#emitNode(nodeIndex, kind, name) {
-		const metadata =
-			NODE_METADATA_BY_INDEX.get(nodeIndex.join(".")) ?? {
-				nodeId: 0,
-				parentNodeId: 0,
-				declarationOrder: 0,
-				sequenceMode: 0,
-			};
+		const metadata = NODE_METADATA_BY_INDEX.get(nodeIndex.join(".")) ?? {
+			nodeId: 0,
+			parentNodeId: 0,
+			declarationOrder: 0,
+			sequenceMode: 0,
+		};
 		this.#emit("nodeFound", {
 			nodeIndex,
 			nodeId: metadata.nodeId,

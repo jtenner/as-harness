@@ -141,12 +141,16 @@ function getNodeParentIdentityKey(node) {
 }
 
 function nodeIndexesEqual(left, right) {
-	if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
+	if (
+		!Array.isArray(left) ||
+		!Array.isArray(right) ||
+		left.length !== right.length
+	) {
 		return false;
 	}
 
 	for (let index = 0; index < left.length; index += 1) {
-		if ((left[index] >>> 0) !== (right[index] >>> 0)) {
+		if (left[index] >>> 0 !== right[index] >>> 0) {
 			return false;
 		}
 	}
@@ -156,9 +160,13 @@ function nodeIndexesEqual(left, right) {
 
 function compareNodeDeclarationOrder(left, right) {
 	const leftOrder =
-		typeof left?.declarationOrder === "number" ? left.declarationOrder >>> 0 : 0;
+		typeof left?.declarationOrder === "number"
+			? left.declarationOrder >>> 0
+			: 0;
 	const rightOrder =
-		typeof right?.declarationOrder === "number" ? right.declarationOrder >>> 0 : 0;
+		typeof right?.declarationOrder === "number"
+			? right.declarationOrder >>> 0
+			: 0;
 	if (leftOrder !== rightOrder) {
 		return leftOrder - rightOrder;
 	}
@@ -345,18 +353,12 @@ async function runTasksInWorkerPool(
 					return;
 				}
 
-				if (
-					message.type === "taskError" &&
-					message.taskType === taskType
-				) {
+				if (message.type === "taskError" && message.taskType === taskType) {
 					settleError(new Error(message.error || `${taskType} worker failed`));
 					return;
 				}
 
-				if (
-					message.type !== "taskResult" ||
-					message.taskType !== taskType
-				) {
+				if (message.type !== "taskResult" || message.taskType !== taskType) {
 					return;
 				}
 
@@ -487,7 +489,11 @@ function createParentIdentityChain(parentIdentityKey) {
 	return chain;
 }
 
-function resolveDependencyNodeId(target, dependencyNodeId, targetsByScopeAndNodeId) {
+function resolveDependencyNodeId(
+	target,
+	dependencyNodeId,
+	targetsByScopeAndNodeId,
+) {
 	if (typeof dependencyNodeId !== "number" || dependencyNodeId <= 0) {
 		return null;
 	}
@@ -618,7 +624,7 @@ function collectSequentialScopeTargets(branch, branchTargets) {
 	const scopeTargets = [];
 
 	for (const node of branch.discovery.nodes) {
-		if ((node.sequenceMode >>> 0) !== SEQUENCE_MODE_SEQUENTIAL) {
+		if (node.sequenceMode >>> 0 !== SEQUENCE_MODE_SEQUENTIAL) {
 			continue;
 		}
 
@@ -637,7 +643,11 @@ function collectSequentialScopeTargets(branch, branchTargets) {
 }
 
 function addExecutionDependency(adjacency, prereqCounts, fromTarget, toTarget) {
-	if (!fromTarget || !toTarget || fromTarget.identityKey === toTarget.identityKey) {
+	if (
+		!fromTarget ||
+		!toTarget ||
+		fromTarget.identityKey === toTarget.identityKey
+	) {
 		return;
 	}
 
@@ -731,7 +741,10 @@ function buildExecutionDependencies(
 			);
 		}
 
-		for (const scopeTargets of collectSequentialScopeTargets(branch, branchTargets)) {
+		for (const scopeTargets of collectSequentialScopeTargets(
+			branch,
+			branchTargets,
+		)) {
 			for (let index = 1; index < scopeTargets.length; index += 1) {
 				addExecutionDependency(
 					adjacency,
@@ -801,15 +814,17 @@ function planExecutionStages(branches) {
 		targetsByIdentity,
 		targetsByScopeAndNodeId,
 		targetsByBranchIndex,
-	} =
-		createExecutionTargetMap(branches);
-	const { adjacency, blockedKeys, issues, prereqCounts } = buildExecutionDependencies(
-		branches,
-		targetsByIdentity,
-		targetsByScopeAndNodeId,
-		targetsByBranchIndex,
+	} = createExecutionTargetMap(branches);
+	const { adjacency, blockedKeys, issues, prereqCounts } =
+		buildExecutionDependencies(
+			branches,
+			targetsByIdentity,
+			targetsByScopeAndNodeId,
+			targetsByBranchIndex,
+		);
+	const runnableTargets = targets.filter(
+		(target) => !blockedKeys.has(target.identityKey),
 	);
-	const runnableTargets = targets.filter((target) => !blockedKeys.has(target.identityKey));
 	const readyTargets = runnableTargets
 		.filter((target) => (prereqCounts.get(target.identityKey) || 0) === 0)
 		.sort(compareExecutionTargets);
@@ -888,7 +903,9 @@ function evaluatePlannedExecution(plan, executionsByIdentity = new Map()) {
 	const blockedTargets = Array.isArray(plan?.blockedTargets)
 		? plan.blockedTargets.slice().sort(compareExecutionTargets)
 		: [];
-	const blockedKeys = new Set(blockedTargets.map((target) => target.identityKey));
+	const blockedKeys = new Set(
+		blockedTargets.map((target) => target.identityKey),
+	);
 	const issues = Array.isArray(plan?.issues) ? plan.issues.slice() : [];
 	const outcomesByIdentity = new Map();
 
@@ -898,7 +915,9 @@ function evaluatePlannedExecution(plan, executionsByIdentity = new Map()) {
 
 	const stages = Array.isArray(plan?.stages) ? plan.stages : [];
 	const successorsByIdentity =
-		plan?.successorsByIdentity instanceof Map ? plan.successorsByIdentity : new Map();
+		plan?.successorsByIdentity instanceof Map
+			? plan.successorsByIdentity
+			: new Map();
 
 	for (const stage of stages) {
 		for (const target of stage) {
@@ -977,7 +996,8 @@ function createBlockedNodeIssueMap(evaluatedExecution) {
 function toBlockedNode(target, issue) {
 	return {
 		node: cloneNode(target.node),
-		issueType: typeof issue?.type === "string" ? issue.type : "blocked-dependency",
+		issueType:
+			typeof issue?.type === "string" ? issue.type : "blocked-dependency",
 		dependencyIdentityKey:
 			typeof issue?.dependencyIdentityKey === "string"
 				? issue.dependencyIdentityKey
@@ -989,7 +1009,9 @@ function toPlanIssues(issues) {
 	return (Array.isArray(issues) ? issues : []).map((issue) => ({
 		type: typeof issue?.type === "string" ? issue.type : "",
 		targetIdentityKey:
-			typeof issue?.targetIdentityKey === "string" ? issue.targetIdentityKey : "",
+			typeof issue?.targetIdentityKey === "string"
+				? issue.targetIdentityKey
+				: "",
 		dependencyIdentityKey:
 			typeof issue?.dependencyIdentityKey === "string"
 				? issue.dependencyIdentityKey
@@ -1001,11 +1023,15 @@ async function executePlannedStages(options, branches, plan) {
 	const blockedTargets = Array.isArray(plan?.blockedTargets)
 		? plan.blockedTargets.slice().sort(compareExecutionTargets)
 		: [];
-	const blockedKeys = new Set(blockedTargets.map((target) => target.identityKey));
+	const blockedKeys = new Set(
+		blockedTargets.map((target) => target.identityKey),
+	);
 	const issues = Array.isArray(plan?.issues) ? plan.issues.slice() : [];
 	const outcomesByIdentity = new Map();
 	const successorsByIdentity =
-		plan?.successorsByIdentity instanceof Map ? plan.successorsByIdentity : new Map();
+		plan?.successorsByIdentity instanceof Map
+			? plan.successorsByIdentity
+			: new Map();
 	const targetsByIdentity =
 		plan?.targetsByIdentity instanceof Map ? plan.targetsByIdentity : new Map();
 	let workerCount = 0;
@@ -1015,12 +1041,15 @@ async function executePlannedStages(options, branches, plan) {
 	}
 
 	for (const stage of Array.isArray(plan?.stages) ? plan.stages : []) {
-		const stageTargets = stage.filter((target) => !blockedKeys.has(target.identityKey));
+		const stageTargets = stage.filter(
+			(target) => !blockedKeys.has(target.identityKey),
+		);
 		if (stageTargets.length === 0) {
 			continue;
 		}
 
-		const executionGroups = await runExecutionTasks(options,
+		const executionGroups = await runExecutionTasks(
+			options,
 			stageTargets.map((target) => ({
 				runTargets: [target.node],
 			})),
@@ -1051,7 +1080,8 @@ async function executePlannedStages(options, branches, plan) {
 					continue;
 				}
 
-				const successorTarget = targetsByIdentity.get(successorIdentityKey) || null;
+				const successorTarget =
+					targetsByIdentity.get(successorIdentityKey) || null;
 				if (successorTarget !== null) {
 					blockedTargets.push(successorTarget);
 				}
@@ -1150,7 +1180,8 @@ async function startHarness(options) {
 		discoveredTestCount += branch.discovery.testCount;
 		branch.executions = branch.executions.filter(Boolean);
 		branch.ok =
-			branch.discovery.ok && branch.executions.every((execution) => execution.ok);
+			branch.discovery.ok &&
+			branch.executions.every((execution) => execution.ok);
 		if (!branch.ok) {
 			ok = false;
 		}

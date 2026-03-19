@@ -1,12 +1,12 @@
 {
-  "name": "@as-harness/wazero",
-  "license": "MIT",
-  "private": true,
-  "type": "module",
-  "main": "./index.cjs",
-  "types": "./index.d.ts",
-  "scripts": {
-    "build": "node ./scripts/build.mjs",
-    "test": "node ./scripts/build.mjs && node --test ./test/smoke.host.cjs"
-  }
+	"name": "@as-harness/wazero",
+	"license": "MIT",
+	"private": true,
+	"type": "module",
+	"main": "./index.cjs",
+	"types": "./index.d.ts",
+	"scripts": {
+		"build": "node ./scripts/build.mjs",
+		"test": "node ./scripts/build.mjs && node --test ./test/smoke.host.cjs"
+	}
 }

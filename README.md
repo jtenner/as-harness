@@ -142,6 +142,7 @@ Packaged release artifacts currently ship as:
 Primary repo validation from the root:
 
 ```bash
+bun format
 bun validate
 bun test
 cd harness/js && npm test

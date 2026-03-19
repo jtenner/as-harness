@@ -1,10 +1,10 @@
 {
-  "name": "@as-harness/js",
-  "license": "MIT",
-  "private": true,
-  "main": "./index.cjs",
-  "types": "./index.d.ts",
-  "scripts": {
-    "test": "node --test ./test/smoke.host.cjs"
-  }
+	"name": "@as-harness/js",
+	"license": "MIT",
+	"private": true,
+	"main": "./index.cjs",
+	"types": "./index.d.ts",
+	"scripts": {
+		"test": "node --test ./test/smoke.host.cjs"
+	}
 }

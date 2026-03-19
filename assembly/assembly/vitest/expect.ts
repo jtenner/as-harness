@@ -1,5 +1,5 @@
 export {
-  Expectation,
-  expect,
-  NegatedExpectation,
+	Expectation,
+	expect,
+	NegatedExpectation,
 } from "../jest/expect";

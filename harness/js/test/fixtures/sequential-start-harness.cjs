@@ -123,20 +123,21 @@ class FakeHarness {
 	}
 
 	run(nodeIndex) {
-		const normalizedNodeIndex = Array.isArray(nodeIndex) ? nodeIndex.slice() : [];
+		const normalizedNodeIndex = Array.isArray(nodeIndex)
+			? nodeIndex.slice()
+			: [];
 		this.#emit("nodeStart", { nodeIndex: normalizedNodeIndex });
 		this.#emit("nodePass", { nodeIndex: normalizedNodeIndex });
 		return true;
 	}
 
 	#emitNode(nodeIndex, kind, name) {
-		const metadata =
-			NODE_METADATA_BY_INDEX.get(nodeIndex.join(".")) ?? {
-				nodeId: 0,
-				parentNodeId: 0,
-				declarationOrder: 0,
-				sequenceMode: 0,
-			};
+		const metadata = NODE_METADATA_BY_INDEX.get(nodeIndex.join(".")) ?? {
+			nodeId: 0,
+			parentNodeId: 0,
+			declarationOrder: 0,
+			sequenceMode: 0,
+		};
 		this.#emit("nodeFound", {
 			nodeIndex,
 			nodeId: metadata.nodeId,

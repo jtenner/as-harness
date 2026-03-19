@@ -35,7 +35,9 @@ registerSharedStartPlannerSmokeSuite({
 });
 
 test("cli run executes tests through the wazero harness", () => {
-	const tempDirectory = mkdtempSync(path.join(tmpdir(), "as-harness-wazero-cli-"));
+	const tempDirectory = mkdtempSync(
+		path.join(tmpdir(), "as-harness-wazero-cli-"),
+	);
 
 	try {
 		const entryFile = path.join(tempDirectory, "suite.test.ts");
@@ -71,7 +73,9 @@ test("cli run executes tests through the wazero harness", () => {
 });
 
 test("cli run emits coverage through the wazero harness", () => {
-	const tempDirectory = mkdtempSync(path.join(tmpdir(), "as-harness-wazero-cover-"));
+	const tempDirectory = mkdtempSync(
+		path.join(tmpdir(), "as-harness-wazero-cover-"),
+	);
 
 	try {
 		const entryFile = path.join(tempDirectory, "suite.test.ts");
@@ -122,8 +126,10 @@ test("cli run emits coverage through the wazero harness", () => {
 	}
 });
 
-test('cli run executes a thin vitest adapter entry through the wazero harness', () => {
-	const tempDirectory = mkdtempSync(path.join(tmpdir(), "as-harness-wazero-vitest-"));
+test("cli run executes a thin vitest adapter entry through the wazero harness", () => {
+	const tempDirectory = mkdtempSync(
+		path.join(tmpdir(), "as-harness-wazero-vitest-"),
+	);
 
 	try {
 		const entryFile = path.join(tempDirectory, "suite.test.ts");

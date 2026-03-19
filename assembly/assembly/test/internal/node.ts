@@ -4,96 +4,100 @@ import { Node, currentNode, rootNode } from "../../internal/node";
 let callbackRuns: i32 = 0;
 
 function declareRootChildren(): void {
-  callbackRuns++;
+	callbackRuns++;
 
-  currentNode.createChild(NodeKind.Test, "first child", DeclarationMode.Skip);
-  currentNode.createChild(NodeKind.Describe, "second child", DeclarationMode.Todo);
+	currentNode.createChild(NodeKind.Test, "first child", DeclarationMode.Skip);
+	currentNode.createChild(
+		NodeKind.Describe,
+		"second child",
+		DeclarationMode.Todo,
+	);
 }
 
 function testRootNodeDefaults(): void {
-  assert(rootNode.kind == NodeKind.Root);
-  assert(rootNode.name == "~root");
-  assert(rootNode.parent === null);
-  assert(rootNode.ordinal == 0);
-  assert(currentNode === rootNode);
+	assert(rootNode.kind == NodeKind.Root);
+	assert(rootNode.name == "~root");
+	assert(rootNode.parent === null);
+	assert(rootNode.ordinal == 0);
+	assert(currentNode === rootNode);
 }
 
 function testNodeMetadataAndLazyChildren(): void {
-  const root = new Node(
-    NodeKind.Describe,
-    "root",
-    DeclarationMode.Normal,
-    declareRootChildren,
-  );
+	const root = new Node(
+		NodeKind.Describe,
+		"root",
+		DeclarationMode.Normal,
+		declareRootChildren,
+	);
 
-  assert(root.kind == NodeKind.Describe);
-  assert(root.name == "root");
-  assert(root.declarationMode == DeclarationMode.Normal);
-  assert(root.parent === null);
-  assert(root.ordinal == 0);
+	assert(root.kind == NodeKind.Describe);
+	assert(root.name == "root");
+	assert(root.declarationMode == DeclarationMode.Normal);
+	assert(root.parent === null);
+	assert(root.ordinal == 0);
 
-  const firstChildren = root.getChildren();
-  assert(callbackRuns == 1);
-  assert(firstChildren.length == 2);
+	const firstChildren = root.getChildren();
+	assert(callbackRuns == 1);
+	assert(firstChildren.length == 2);
 
-  const firstChild = unchecked(firstChildren[0]);
-  assert(firstChild.kind == NodeKind.Test);
-  assert(firstChild.name == "first child");
-  assert(firstChild.declarationMode == DeclarationMode.Skip);
-  assert(firstChild.parent === root);
-  assert(firstChild.ordinal == 0);
+	const firstChild = unchecked(firstChildren[0]);
+	assert(firstChild.kind == NodeKind.Test);
+	assert(firstChild.name == "first child");
+	assert(firstChild.declarationMode == DeclarationMode.Skip);
+	assert(firstChild.parent === root);
+	assert(firstChild.ordinal == 0);
 
-  const secondChild = unchecked(firstChildren[1]);
-  assert(secondChild.kind == NodeKind.Describe);
-  assert(secondChild.name == "second child");
-  assert(secondChild.declarationMode == DeclarationMode.Todo);
-  assert(secondChild.parent === root);
-  assert(secondChild.ordinal == 1);
+	const secondChild = unchecked(firstChildren[1]);
+	assert(secondChild.kind == NodeKind.Describe);
+	assert(secondChild.name == "second child");
+	assert(secondChild.declarationMode == DeclarationMode.Todo);
+	assert(secondChild.parent === root);
+	assert(secondChild.ordinal == 1);
 
-  const secondChildren = root.getChildren();
-  assert(callbackRuns == 1);
-  assert(secondChildren === firstChildren);
+	const secondChildren = root.getChildren();
+	assert(callbackRuns == 1);
+	assert(secondChildren === firstChildren);
 }
 
 function testManualAddChild(): void {
-  const root = new Node(NodeKind.Describe, "root");
-  const child = root.createChild(NodeKind.Test, "child");
-  const children = root.getChildren();
+	const root = new Node(NodeKind.Describe, "root");
+	const child = root.createChild(NodeKind.Test, "child");
+	const children = root.getChildren();
 
-  assert(children.length == 1);
-  assert(unchecked(children[0]) === child);
-  assert(child.parent === root);
-  assert(child.ordinal == 0);
+	assert(children.length == 1);
+	assert(unchecked(children[0]) === child);
+	assert(child.parent === root);
+	assert(child.ordinal == 0);
 }
 
 function testRegisterDependencyTracksStableIdsAndDedupes(): void {
-  const root = new Node(NodeKind.Describe, "root");
-  const first = root.createChild(NodeKind.Test, "first");
-  const second = root.createChild(NodeKind.Test, "second");
+	const root = new Node(NodeKind.Describe, "root");
+	const first = root.createChild(NodeKind.Test, "first");
+	const second = root.createChild(NodeKind.Test, "second");
 
-  second.registerDependency(first);
-  second.registerDependency(first);
+	second.registerDependency(first);
+	second.registerDependency(first);
 
-  const dependencyNodeIds = second.getDependencyNodeIds();
-  assert(dependencyNodeIds.length == 1);
-  assert(unchecked(dependencyNodeIds[0]) == first.nodeId);
+	const dependencyNodeIds = second.getDependencyNodeIds();
+	assert(dependencyNodeIds.length == 1);
+	assert(unchecked(dependencyNodeIds[0]) == first.nodeId);
 }
 
 function testReplayChildrenReuseDependencyMetadata(): void {
-  const root = new Node(NodeKind.Describe, "root");
-  const first = root.createChild(NodeKind.Test, "first");
-  const second = root.createChild(NodeKind.Test, "second");
-  second.registerDependency(first);
+	const root = new Node(NodeKind.Describe, "root");
+	const first = root.createChild(NodeKind.Test, "first");
+	const second = root.createChild(NodeKind.Test, "second");
+	second.registerDependency(first);
 
-  const replayChildren = root.rediscoverChildren();
-  assert(replayChildren.length == 2);
+	const replayChildren = root.rediscoverChildren();
+	assert(replayChildren.length == 2);
 
-  const replaySecond = unchecked(replayChildren[1]);
-  const dependencyNodeIds = replaySecond.getDependencyNodeIds();
-  assert(dependencyNodeIds.length == 1);
-  assert(unchecked(dependencyNodeIds[0]) == first.nodeId);
+	const replaySecond = unchecked(replayChildren[1]);
+	const dependencyNodeIds = replaySecond.getDependencyNodeIds();
+	assert(dependencyNodeIds.length == 1);
+	assert(unchecked(dependencyNodeIds[0]) == first.nodeId);
 
-  root.clearReplayState();
+	root.clearReplayState();
 }
 
 testRootNodeDefaults();

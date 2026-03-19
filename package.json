@@ -1,14 +1,15 @@
 {
-  "name": "as-harness",
-  "license": "MIT",
-  "private": true,
-  "scripts": {
-    "host:matrix": "bun run ./scripts/host-validation-matrix.ts",
-    "release:manifest": "bun run ./scripts/release-manifest.ts",
-    "release:matrix": "bun run ./scripts/release-matrix.ts",
-    "test": "bun run ./scripts/test.ts",
-    "validate": "bun run ./scripts/validate.ts",
-    "verify:source-hosts": "bun run ./scripts/verify-source-hosts.ts",
-    "verify:packaged-cli": "bun run ./scripts/verify-packaged-cli.ts"
-  }
+	"name": "as-harness",
+	"license": "MIT",
+	"private": true,
+	"scripts": {
+		"format": "bun run ./scripts/format.ts",
+		"host:matrix": "bun run ./scripts/host-validation-matrix.ts",
+		"release:manifest": "bun run ./scripts/release-manifest.ts",
+		"release:matrix": "bun run ./scripts/release-matrix.ts",
+		"test": "bun run ./scripts/test.ts",
+		"validate": "bun run ./scripts/validate.ts",
+		"verify:source-hosts": "bun run ./scripts/verify-source-hosts.ts",
+		"verify:packaged-cli": "bun run ./scripts/verify-packaged-cli.ts"
+	}
 }

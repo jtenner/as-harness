@@ -122,15 +122,19 @@ async function runCommand(
 	return await new Promise((resolve, reject) => {
 		let stdout = "";
 		let stderr = "";
-		const child = spawn(resolveNodeExecutable(), ["-e", NODE_RUNNER_SOURCE, cwd, ...command], {
-			cwd,
-			env: {
-				...process.env,
-				...extraEnv,
-				[COMMAND_TIMEOUT_ENV_VAR]: String(COMMAND_TIMEOUT_MS),
+		const child = spawn(
+			resolveNodeExecutable(),
+			["-e", NODE_RUNNER_SOURCE, cwd, ...command],
+			{
+				cwd,
+				env: {
+					...process.env,
+					...extraEnv,
+					[COMMAND_TIMEOUT_ENV_VAR]: String(COMMAND_TIMEOUT_MS),
+				},
+				stdio: ["ignore", "pipe", "pipe"],
 			},
-			stdio: ["ignore", "pipe", "pipe"],
-		});
+		);
 
 		child.stdout.on("data", (chunk: Buffer | string) => {
 			stdout += chunk.toString();
@@ -150,7 +154,10 @@ async function runCommand(
 					);
 				}
 
-				const result = JSON.parse(stdout) as Omit<CommandResult, "command" | "cwd"> & {
+				const result = JSON.parse(stdout) as Omit<
+					CommandResult,
+					"command" | "cwd"
+				> & {
 					errorMessage?: string;
 				};
 				if (result.errorMessage) {
@@ -251,7 +258,9 @@ async function main() {
 		);
 	}
 
-	const tempDirectory = await mkdtemp(join(tmpdir(), "as-harness-packaged-cli-"));
+	const tempDirectory = await mkdtemp(
+		join(tmpdir(), "as-harness-packaged-cli-"),
+	);
 
 	try {
 		const installDirectory = join(tempDirectory, "install");
@@ -360,7 +369,11 @@ async function main() {
 			await writeFile(jsonPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 			await writeFile(markdownPath, markdownSummary, "utf8");
 			if (process.env.GITHUB_STEP_SUMMARY) {
-				await appendFile(process.env.GITHUB_STEP_SUMMARY, markdownSummary, "utf8");
+				await appendFile(
+					process.env.GITHUB_STEP_SUMMARY,
+					markdownSummary,
+					"utf8",
+				);
 			}
 			console.log(markdownSummary);
 			console.log(`Wrote ${jsonPath}`);

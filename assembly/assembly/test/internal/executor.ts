@@ -1,7 +1,7 @@
 import { executeNode } from "../../internal/executor";
 import {
-  getObservedAssertionCount,
-  getPlannedAssertionCount,
+	getObservedAssertionCount,
+	getPlannedAssertionCount,
 } from "../../internal/execution-state";
 import { DeclarationMode, HookKind, NodeKind } from "../../internal/imports";
 import { Node } from "../../internal/node";
@@ -10,155 +10,155 @@ import { TestContext } from "../../internal/context";
 const executionTrace = new Array<string>();
 
 function resetExecutionTrace(): void {
-  executionTrace.length = 0;
+	executionTrace.length = 0;
 }
 
 function pushTrace(value: string): void {
-  executionTrace.push(value);
+	executionTrace.push(value);
 }
 
 function beforeAllRoot(_context: TestContext): void {
-  pushTrace("root beforeAll");
+	pushTrace("root beforeAll");
 }
 
 function beforeEachRoot(_context: TestContext): void {
-  pushTrace("root beforeEach");
+	pushTrace("root beforeEach");
 }
 
 function afterEachRoot(_context: TestContext): void {
-  pushTrace("root afterEach");
+	pushTrace("root afterEach");
 }
 
 function afterAllRoot(_context: TestContext): void {
-  pushTrace("root afterAll");
+	pushTrace("root afterAll");
 }
 
 function beforeAllChild(_context: TestContext): void {
-  pushTrace("child beforeAll");
+	pushTrace("child beforeAll");
 }
 
 function beforeEachChild(_context: TestContext): void {
-  pushTrace("child beforeEach");
+	pushTrace("child beforeEach");
 }
 
 function afterEachChild(_context: TestContext): void {
-  pushTrace("child afterEach");
+	pushTrace("child afterEach");
 }
 
 function afterAllChild(_context: TestContext): void {
-  pushTrace("child afterAll");
+	pushTrace("child afterAll");
 }
 
 function beforeEachMetadata(context: TestContext): void {
-  assert(!context.passed);
-  assert(context.attempt == 1);
-  assert(context.error == 0);
+	assert(!context.passed);
+	assert(context.attempt == 1);
+	assert(context.error == 0);
 }
 
 function afterEachMetadata(context: TestContext): void {
-  assert(context.passed);
-  assert(context.attempt == 1);
-  assert(context.error == 0);
+	assert(context.passed);
+	assert(context.attempt == 1);
+	assert(context.error == 0);
 }
 
 function executeTestCallback(_context: TestContext): void {
-  pushTrace("test callback");
+	pushTrace("test callback");
 }
 
 function executeSuiteCallback(): void {
-  pushTrace("suite callback");
+	pushTrace("suite callback");
 }
 
 function executePlannedTestCallback(context: TestContext): void {
-  context.plan(2);
-  context.assert.equal<i32>(1, 1);
-  context.assert.deepEqual<i32>(2, 2);
-  pushTrace("planned callback");
+	context.plan(2);
+	context.assert.equal<i32>(1, 1);
+	context.assert.deepEqual<i32>(2, 2);
+	pushTrace("planned callback");
 }
 
 function testExecuteNodeRunsHooksInExpectedOrder(): void {
-  resetExecutionTrace();
+	resetExecutionTrace();
 
-  const root = new Node(NodeKind.Describe, "root");
-  root.registerHook(HookKind.BeforeAll, beforeAllRoot);
-  root.registerHook(HookKind.BeforeEach, beforeEachRoot);
-  root.registerHook(HookKind.AfterEach, afterEachRoot);
-  root.registerHook(HookKind.AfterAll, afterAllRoot);
+	const root = new Node(NodeKind.Describe, "root");
+	root.registerHook(HookKind.BeforeAll, beforeAllRoot);
+	root.registerHook(HookKind.BeforeEach, beforeEachRoot);
+	root.registerHook(HookKind.AfterEach, afterEachRoot);
+	root.registerHook(HookKind.AfterAll, afterAllRoot);
 
-  const child = root.createChild(NodeKind.Test, "child");
-  child.setTestCallback(executeTestCallback);
-  child.registerHook(HookKind.BeforeAll, beforeAllChild);
-  child.registerHook(HookKind.BeforeEach, beforeEachChild);
-  child.registerHook(HookKind.AfterEach, afterEachChild);
-  child.registerHook(HookKind.AfterAll, afterAllChild);
+	const child = root.createChild(NodeKind.Test, "child");
+	child.setTestCallback(executeTestCallback);
+	child.registerHook(HookKind.BeforeAll, beforeAllChild);
+	child.registerHook(HookKind.BeforeEach, beforeEachChild);
+	child.registerHook(HookKind.AfterEach, afterEachChild);
+	child.registerHook(HookKind.AfterAll, afterAllChild);
 
-  executeNode(child);
+	executeNode(child);
 
-  assert(executionTrace.length == 9);
-  assert(executionTrace[0] == "root beforeAll");
-  assert(executionTrace[1] == "child beforeAll");
-  assert(executionTrace[2] == "root beforeEach");
-  assert(executionTrace[3] == "child beforeEach");
-  assert(executionTrace[4] == "test callback");
-  assert(executionTrace[5] == "child afterEach");
-  assert(executionTrace[6] == "root afterEach");
-  assert(executionTrace[7] == "child afterAll");
-  assert(executionTrace[8] == "root afterAll");
+	assert(executionTrace.length == 9);
+	assert(executionTrace[0] == "root beforeAll");
+	assert(executionTrace[1] == "child beforeAll");
+	assert(executionTrace[2] == "root beforeEach");
+	assert(executionTrace[3] == "child beforeEach");
+	assert(executionTrace[4] == "test callback");
+	assert(executionTrace[5] == "child afterEach");
+	assert(executionTrace[6] == "root afterEach");
+	assert(executionTrace[7] == "child afterAll");
+	assert(executionTrace[8] == "root afterAll");
 }
 
 function testExecuteNodeRunsPlainSuiteCallbacks(): void {
-  resetExecutionTrace();
+	resetExecutionTrace();
 
-  const suite = new Node(
-    NodeKind.Describe,
-    "suite",
-    DeclarationMode.Normal,
-    executeSuiteCallback,
-  );
+	const suite = new Node(
+		NodeKind.Describe,
+		"suite",
+		DeclarationMode.Normal,
+		executeSuiteCallback,
+	);
 
-  executeNode(suite);
+	executeNode(suite);
 
-  assert(executionTrace.length == 1);
-  assert(executionTrace[0] == "suite callback");
+	assert(executionTrace.length == 1);
+	assert(executionTrace[0] == "suite callback");
 }
 
 function testExecuteNodeSkipsNonRunnableModes(): void {
-  resetExecutionTrace();
+	resetExecutionTrace();
 
-  const skipped = new Node(NodeKind.Test, "skipped", DeclarationMode.Skip);
-  skipped.setTestCallback(executeTestCallback);
-  const todo = new Node(NodeKind.Test, "todo", DeclarationMode.Todo);
-  todo.setTestCallback(executeTestCallback);
+	const skipped = new Node(NodeKind.Test, "skipped", DeclarationMode.Skip);
+	skipped.setTestCallback(executeTestCallback);
+	const todo = new Node(NodeKind.Test, "todo", DeclarationMode.Todo);
+	todo.setTestCallback(executeTestCallback);
 
-  executeNode(skipped);
-  executeNode(todo);
+	executeNode(skipped);
+	executeNode(todo);
 
-  assert(executionTrace.length == 0);
+	assert(executionTrace.length == 0);
 }
 
 function testExecuteNodeTracksPlannedAssertionsThroughContextAssert(): void {
-  resetExecutionTrace();
+	resetExecutionTrace();
 
-  const planned = new Node(NodeKind.Test, "planned");
-  planned.setTestCallback(executePlannedTestCallback);
+	const planned = new Node(NodeKind.Test, "planned");
+	planned.setTestCallback(executePlannedTestCallback);
 
-  executeNode(planned);
+	executeNode(planned);
 
-  assert(executionTrace.length == 1);
-  assert(executionTrace[0] == "planned callback");
-  assert(getPlannedAssertionCount() == -1);
-  assert(getObservedAssertionCount() == 0);
+	assert(executionTrace.length == 1);
+	assert(executionTrace[0] == "planned callback");
+	assert(getPlannedAssertionCount() == -1);
+	assert(getObservedAssertionCount() == 0);
 }
 
 function testExecuteNodeExposesAttemptAndPassedThroughLifecycleHooks(): void {
-  const root = new Node(NodeKind.Describe, "root");
-  root.registerHook(HookKind.BeforeEach, beforeEachMetadata);
-  root.registerHook(HookKind.AfterEach, afterEachMetadata);
+	const root = new Node(NodeKind.Describe, "root");
+	root.registerHook(HookKind.BeforeEach, beforeEachMetadata);
+	root.registerHook(HookKind.AfterEach, afterEachMetadata);
 
-  const child = root.createChild(NodeKind.Test, "child");
-  child.setTestCallback(executeTestCallback);
+	const child = root.createChild(NodeKind.Test, "child");
+	child.setTestCallback(executeTestCallback);
 
-  executeNode(child);
+	executeNode(child);
 }
 
 testExecuteNodeRunsHooksInExpectedOrder();

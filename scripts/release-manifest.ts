@@ -116,7 +116,8 @@ async function main() {
 	const targets = await Promise.all(
 		RELEASE_BUILD_TARGETS.map(
 			async ({ artifactName, compileTarget, packagedHarnesses, runner }) => {
-				const releaseAssetFilename = releaseAssetFilenameForTarget(compileTarget);
+				const releaseAssetFilename =
+					releaseAssetFilenameForTarget(compileTarget);
 				const releaseAssetPath = join(assetDir, releaseAssetFilename);
 				const sha256 = await sha256ForFile(releaseAssetPath);
 
@@ -145,7 +146,11 @@ async function main() {
 
 	await mkdir(assetDir, { recursive: true });
 	await mkdir(dirname(notesFile), { recursive: true });
-	await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+	await writeFile(
+		manifestPath,
+		`${JSON.stringify(manifest, null, 2)}\n`,
+		"utf8",
+	);
 	await writeFile(checksumsPath, `${checksumLines.join("\n")}\n`, "utf8");
 	await writeFile(notesFile, renderReleaseNotes(tag), "utf8");
 

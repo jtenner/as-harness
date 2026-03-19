@@ -2,398 +2,426 @@ import { SuiteContext, TestContext } from "../../node_test";
 import { DeclarationMode, HookKind, NodeKind } from "../../internal/imports";
 import { currentNode, Node, NodeExecutionOptions } from "../../internal/node";
 import {
-  discoverChildrenByIndexFrom,
-  discoverImmediateChildrenOf,
-  findNodeByIndexFrom,
-  runNodeByIndexFrom,
+	discoverChildrenByIndexFrom,
+	discoverImmediateChildrenOf,
+	findNodeByIndexFrom,
+	runNodeByIndexFrom,
 } from "../../internal/traversal";
 
 const executionTrace = new Array<string>();
 
 function resetExecutionTrace(): void {
-  executionTrace.length = 0;
+	executionTrace.length = 0;
 }
 
 function pushTrace(value: string): void {
-  executionTrace.push(value);
+	executionTrace.push(value);
 }
 
 function nestedTestCallback(_context: TestContext): void {
-  pushTrace("nested test");
+	pushTrace("nested test");
 }
 
 function plainTestCallback(_context: TestContext): void {
-  pushTrace("plain test");
+	pushTrace("plain test");
 }
 
 function declareNestedSuite(_context: SuiteContext): void {
-  const nested = currentNode.createChild(NodeKind.Test, "nested");
-  nested.setTestCallback(nestedTestCallback);
+	const nested = currentNode.createChild(NodeKind.Test, "nested");
+	nested.setTestCallback(nestedTestCallback);
 }
 
 let replayedChildDiscoveryCount = 0;
 
 function declareReplaySensitiveSuite(_context: SuiteContext): void {
-  replayedChildDiscoveryCount++;
-  if (replayedChildDiscoveryCount == 1) {
-    const nested = currentNode.createChild(NodeKind.Test, "replayed nested");
-    nested.setTestCallback(nestedTestCallback);
-  }
+	replayedChildDiscoveryCount++;
+	if (replayedChildDiscoveryCount == 1) {
+		const nested = currentNode.createChild(NodeKind.Test, "replayed nested");
+		nested.setTestCallback(nestedTestCallback);
+	}
 }
 
 function createOnlyOptions(): NodeExecutionOptions {
-  const options = new NodeExecutionOptions();
-  options.only = true;
-  return options;
+	const options = new NodeExecutionOptions();
+	options.only = true;
+	return options;
 }
 
 function declareOnlyNestedSuite(_context: SuiteContext): void {
-  const onlyNested = currentNode.createChild(
-    NodeKind.Test,
-    "only nested",
-    DeclarationMode.Normal,
-    null,
-    createOnlyOptions(),
-  );
-  onlyNested.setTestCallback(nestedTestCallback);
+	const onlyNested = currentNode.createChild(
+		NodeKind.Test,
+		"only nested",
+		DeclarationMode.Normal,
+		null,
+		createOnlyOptions(),
+	);
+	onlyNested.setTestCallback(nestedTestCallback);
 
-  const plainNested = currentNode.createChild(NodeKind.Test, "plain nested");
-  plainNested.setTestCallback(plainTestCallback);
+	const plainNested = currentNode.createChild(NodeKind.Test, "plain nested");
+	plainNested.setTestCallback(plainTestCallback);
 }
 
 function stableLeafTestCallback(_context: TestContext): void {
-  pushTrace("stable leaf");
+	pushTrace("stable leaf");
 }
 
 function stableParentTestCallback(_context: TestContext): void {
-  const stableLeaf = currentNode.createChild(NodeKind.Test, "stable leaf");
-  stableLeaf.setTestCallback(stableLeafTestCallback);
+	const stableLeaf = currentNode.createChild(NodeKind.Test, "stable leaf");
+	stableLeaf.setTestCallback(stableLeafTestCallback);
 }
 
 function declareStableReplaySuite(_context: SuiteContext): void {
-  const stableParent = currentNode.createChild(NodeKind.Test, "stable parent");
-  stableParent.setTestCallback(stableParentTestCallback);
+	const stableParent = currentNode.createChild(NodeKind.Test, "stable parent");
+	stableParent.setTestCallback(stableParentTestCallback);
 }
 
 function declareStableSiblingReplaySuite(_context: SuiteContext): void {
-  const first = currentNode.createChild(NodeKind.Test, "first stable child");
-  first.setTestCallback(plainTestCallback);
-  const second = currentNode.createChild(NodeKind.Test, "second stable child");
-  second.setTestCallback(nestedTestCallback);
+	const first = currentNode.createChild(NodeKind.Test, "first stable child");
+	first.setTestCallback(plainTestCallback);
+	const second = currentNode.createChild(NodeKind.Test, "second stable child");
+	second.setTestCallback(nestedTestCallback);
 }
 
 let replayTrapAttemptCount = 0;
 
 function declareTrapThenRecoverSuite(_context: SuiteContext): void {
-  replayTrapAttemptCount++;
-  currentNode.registerHook(HookKind.BeforeEach, plainTestCallback);
-  const nested = currentNode.createChild(NodeKind.Test, "nested");
-  nested.setTestCallback(nestedTestCallback);
-  if (replayTrapAttemptCount == 1) {
-    unreachable();
-  }
+	replayTrapAttemptCount++;
+	currentNode.registerHook(HookKind.BeforeEach, plainTestCallback);
+	const nested = currentNode.createChild(NodeKind.Test, "nested");
+	nested.setTestCallback(nestedTestCallback);
+	if (replayTrapAttemptCount == 1) {
+		unreachable();
+	}
 }
 
 function testFindNodeByIndexFromDiscoversNestedChildren(): void {
-  const localRoot = new Node(NodeKind.Root, "local root");
-  const plain = localRoot.createChild(NodeKind.Test, "plain");
-  plain.setTestCallback(plainTestCallback);
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const plain = localRoot.createChild(NodeKind.Test, "plain");
+	plain.setTestCallback(plainTestCallback);
 
-  const suite = localRoot.createChild(NodeKind.Describe, "suite");
-  suite.setSuiteCallback(declareNestedSuite);
+	const suite = localRoot.createChild(NodeKind.Describe, "suite");
+	suite.setSuiteCallback(declareNestedSuite);
 
-  const found = findNodeByIndexFrom(localRoot, [1, 0] as StaticArray<u32>);
-  assert(found !== null);
-  if (found !== null) {
-    assert(found.name == "nested");
-  }
+	const found = findNodeByIndexFrom(localRoot, [1, 0] as StaticArray<u32>);
+	assert(found !== null);
+	if (found !== null) {
+		assert(found.name == "nested");
+	}
 }
 
 function testFindNodeByIndexFromRejectsMissingOrdinals(): void {
-  const localRoot = new Node(NodeKind.Root, "local root");
-  localRoot.createChild(NodeKind.Test, "plain");
+	const localRoot = new Node(NodeKind.Root, "local root");
+	localRoot.createChild(NodeKind.Test, "plain");
 
-  const found = findNodeByIndexFrom(localRoot, [1] as StaticArray<u32>);
-  assert(found === null);
+	const found = findNodeByIndexFrom(localRoot, [1] as StaticArray<u32>);
+	assert(found === null);
 }
 
 function testFindNodeByIndexFromEmptyIndexReturnsParent(): void {
-  const localRoot = new Node(NodeKind.Root, "local root");
-  localRoot.createChild(NodeKind.Test, "plain");
+	const localRoot = new Node(NodeKind.Root, "local root");
+	localRoot.createChild(NodeKind.Test, "plain");
 
-  const found = findNodeByIndexFrom(localRoot, [] as StaticArray<u32>);
-  assert(found === localRoot);
+	const found = findNodeByIndexFrom(localRoot, [] as StaticArray<u32>);
+	assert(found === localRoot);
 }
 
 function testRunNodeByIndexFromExecutesResolvedNode(): void {
-  resetExecutionTrace();
+	resetExecutionTrace();
 
-  const localRoot = new Node(NodeKind.Root, "local root");
-  const plain = localRoot.createChild(NodeKind.Test, "plain");
-  plain.setTestCallback(plainTestCallback);
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const plain = localRoot.createChild(NodeKind.Test, "plain");
+	plain.setTestCallback(plainTestCallback);
 
-  assert(runNodeByIndexFrom(localRoot, [0] as StaticArray<u32>));
-  assert(executionTrace.length == 1);
-  assert(executionTrace[0] == "plain test");
+	assert(runNodeByIndexFrom(localRoot, [0] as StaticArray<u32>));
+	assert(executionTrace.length == 1);
+	assert(executionTrace[0] == "plain test");
 }
 
 function testRunNodeByIndexFromEmptyIndexExecutesParent(): void {
-  resetExecutionTrace();
+	resetExecutionTrace();
 
-  const localRoot = new Node(NodeKind.Root, "local root", DeclarationMode.Normal, (): void => {
-    pushTrace("root callback");
-  });
-  localRoot.createChild(NodeKind.Test, "plain");
+	const localRoot = new Node(
+		NodeKind.Root,
+		"local root",
+		DeclarationMode.Normal,
+		(): void => {
+			pushTrace("root callback");
+		},
+	);
+	localRoot.createChild(NodeKind.Test, "plain");
 
-  assert(runNodeByIndexFrom(localRoot, [] as StaticArray<u32>));
-  assert(executionTrace.length == 1);
-  assert(executionTrace[0] == "root callback");
+	assert(runNodeByIndexFrom(localRoot, [] as StaticArray<u32>));
+	assert(executionTrace.length == 1);
+	assert(executionTrace[0] == "root callback");
 }
 
 function testDiscoverImmediateChildrenOfCountsTopLevelNodes(): void {
-  const localRoot = new Node(NodeKind.Root, "local root");
-  localRoot.createChild(NodeKind.Test, "plain");
-  localRoot.createChild(NodeKind.Describe, "suite");
+	const localRoot = new Node(NodeKind.Root, "local root");
+	localRoot.createChild(NodeKind.Test, "plain");
+	localRoot.createChild(NodeKind.Describe, "suite");
 
-  assert(discoverImmediateChildrenOf(localRoot) == 2);
+	assert(discoverImmediateChildrenOf(localRoot) == 2);
 }
 
 function testDiscoverChildrenByIndexFromEmptyIndexTargetsParent(): void {
-  const localRoot = new Node(NodeKind.Root, "local root");
-  localRoot.createChild(NodeKind.Test, "plain");
-  localRoot.createChild(NodeKind.Describe, "suite");
+	const localRoot = new Node(NodeKind.Root, "local root");
+	localRoot.createChild(NodeKind.Test, "plain");
+	localRoot.createChild(NodeKind.Describe, "suite");
 
-  assert(discoverChildrenByIndexFrom(localRoot, [] as StaticArray<u32>) == 2);
+	assert(discoverChildrenByIndexFrom(localRoot, [] as StaticArray<u32>) == 2);
 }
 
 function testDiscoverChildrenByIndexFromCountsNestedChildren(): void {
-  const localRoot = new Node(NodeKind.Root, "local root");
-  const suite = localRoot.createChild(NodeKind.Describe, "suite");
-  suite.setSuiteCallback(declareNestedSuite);
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const suite = localRoot.createChild(NodeKind.Describe, "suite");
+	suite.setSuiteCallback(declareNestedSuite);
 
-  assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
+	assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
 }
 
 function testDiscoverChildrenByIndexFromRejectsMissingNodes(): void {
-  const localRoot = new Node(NodeKind.Root, "local root");
-  localRoot.createChild(NodeKind.Test, "plain");
+	const localRoot = new Node(NodeKind.Root, "local root");
+	localRoot.createChild(NodeKind.Test, "plain");
 
-  assert(discoverChildrenByIndexFrom(localRoot, [1] as StaticArray<u32>) == -1);
+	assert(discoverChildrenByIndexFrom(localRoot, [1] as StaticArray<u32>) == -1);
 }
 
 function testDiscoverImmediateChildrenOfSkipsSkippedParents(): void {
-  const localRoot = new Node(NodeKind.Root, "local root");
-  const skipped = localRoot.createChild(
-    NodeKind.Test,
-    "skipped",
-    DeclarationMode.Skip,
-  );
-  skipped.setTestCallback(plainTestCallback);
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const skipped = localRoot.createChild(
+		NodeKind.Test,
+		"skipped",
+		DeclarationMode.Skip,
+	);
+	skipped.setTestCallback(plainTestCallback);
 
-  assert(discoverImmediateChildrenOf(skipped) == 0);
+	assert(discoverImmediateChildrenOf(skipped) == 0);
 }
 
 function testFindNodeByIndexFromPrunesSkippedBranches(): void {
-  const localRoot = new Node(NodeKind.Root, "local root");
-  const skipped = localRoot.createChild(
-    NodeKind.Describe,
-    "skipped",
-    DeclarationMode.Skip,
-  );
-  skipped.setSuiteCallback(declareNestedSuite);
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const skipped = localRoot.createChild(
+		NodeKind.Describe,
+		"skipped",
+		DeclarationMode.Skip,
+	);
+	skipped.setSuiteCallback(declareNestedSuite);
 
-  const found = findNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>);
-  assert(found === null);
+	const found = findNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>);
+	assert(found === null);
 }
 
 function testDiscoverChildrenByIndexFromAllowsTodoBranches(): void {
-  const localRoot = new Node(NodeKind.Root, "local root");
-  const todoParent = localRoot.createChild(
-    NodeKind.Describe,
-    "todo parent",
-    DeclarationMode.Todo,
-  );
-  todoParent.setSuiteCallback(declareNestedSuite);
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const todoParent = localRoot.createChild(
+		NodeKind.Describe,
+		"todo parent",
+		DeclarationMode.Todo,
+	);
+	todoParent.setSuiteCallback(declareNestedSuite);
 
-  assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
+	assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
 }
 
 function testRunNodeByIndexFromExecutesTodoDescendantsNormally(): void {
-  resetExecutionTrace();
+	resetExecutionTrace();
 
-  const localRoot = new Node(NodeKind.Root, "local root");
-  const todoParent = localRoot.createChild(
-    NodeKind.Describe,
-    "todo parent",
-    DeclarationMode.Todo,
-  );
-  todoParent.setSuiteCallback(declareNestedSuite);
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const todoParent = localRoot.createChild(
+		NodeKind.Describe,
+		"todo parent",
+		DeclarationMode.Todo,
+	);
+	todoParent.setSuiteCallback(declareNestedSuite);
 
-  assert(runNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>));
-  assert(executionTrace.length == 1);
-  assert(executionTrace[0] == "nested test");
+	assert(runNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>));
+	assert(executionTrace.length == 1);
+	assert(executionTrace[0] == "nested test");
 }
 
 function testFindNodeByIndexFromRediscoversAncestorsOnEveryAttempt(): void {
-  replayedChildDiscoveryCount = 0;
+	replayedChildDiscoveryCount = 0;
 
-  const localRoot = new Node(NodeKind.Root, "local root");
-  const suite = localRoot.createChild(NodeKind.Describe, "suite");
-  suite.setSuiteCallback(declareReplaySensitiveSuite);
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const suite = localRoot.createChild(NodeKind.Describe, "suite");
+	suite.setSuiteCallback(declareReplaySensitiveSuite);
 
-  const firstFound = findNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>);
-  assert(firstFound !== null);
+	const firstFound = findNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>);
+	assert(firstFound !== null);
 
-  const secondFound = findNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>);
-  assert(secondFound === null);
+	const secondFound = findNodeByIndexFrom(localRoot, [
+		0, 0,
+	] as StaticArray<u32>);
+	assert(secondFound === null);
 }
 
 function testDiscoverImmediateChildrenOfFiltersOnlyChildren(): void {
-  const localRoot = new Node(NodeKind.Root, "local root");
-  localRoot.createChild(NodeKind.Test, "plain before");
-  localRoot.createChild(
-    NodeKind.Test,
-    "only child",
-    DeclarationMode.Normal,
-    null,
-    createOnlyOptions(),
-  );
-  localRoot.createChild(NodeKind.Test, "plain after");
+	const localRoot = new Node(NodeKind.Root, "local root");
+	localRoot.createChild(NodeKind.Test, "plain before");
+	localRoot.createChild(
+		NodeKind.Test,
+		"only child",
+		DeclarationMode.Normal,
+		null,
+		createOnlyOptions(),
+	);
+	localRoot.createChild(NodeKind.Test, "plain after");
 
-  assert(discoverImmediateChildrenOf(localRoot) == 1);
+	assert(discoverImmediateChildrenOf(localRoot) == 1);
 }
 
 function testRunNodeByIndexFromRejectsNonOnlyTargets(): void {
-  resetExecutionTrace();
+	resetExecutionTrace();
 
-  const localRoot = new Node(NodeKind.Root, "local root");
-  const plain = localRoot.createChild(NodeKind.Test, "plain");
-  plain.setTestCallback(plainTestCallback);
-  const onlyChild = localRoot.createChild(
-    NodeKind.Test,
-    "only child",
-    DeclarationMode.Normal,
-    null,
-    createOnlyOptions(),
-  );
-  onlyChild.setTestCallback(nestedTestCallback);
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const plain = localRoot.createChild(NodeKind.Test, "plain");
+	plain.setTestCallback(plainTestCallback);
+	const onlyChild = localRoot.createChild(
+		NodeKind.Test,
+		"only child",
+		DeclarationMode.Normal,
+		null,
+		createOnlyOptions(),
+	);
+	onlyChild.setTestCallback(nestedTestCallback);
 
-  assert(!runNodeByIndexFrom(localRoot, [0] as StaticArray<u32>));
-  assert(runNodeByIndexFrom(localRoot, [1] as StaticArray<u32>));
-  assert(executionTrace.length == 1);
-  assert(executionTrace[0] == "nested test");
+	assert(!runNodeByIndexFrom(localRoot, [0] as StaticArray<u32>));
+	assert(runNodeByIndexFrom(localRoot, [1] as StaticArray<u32>));
+	assert(executionTrace.length == 1);
+	assert(executionTrace[0] == "nested test");
 }
 
 function testDiscoverAndRunNestedOnlyChildren(): void {
-  resetExecutionTrace();
+	resetExecutionTrace();
 
-  const localRoot = new Node(NodeKind.Root, "local root");
-  const suite = localRoot.createChild(NodeKind.Describe, "suite");
-  suite.setSuiteCallback(declareOnlyNestedSuite);
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const suite = localRoot.createChild(NodeKind.Describe, "suite");
+	suite.setSuiteCallback(declareOnlyNestedSuite);
 
-  assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
-  assert(runNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>));
-  assert(!runNodeByIndexFrom(localRoot, [0, 1] as StaticArray<u32>));
-  assert(executionTrace.length == 1);
-  assert(executionTrace[0] == "nested test");
+	assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
+	assert(runNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>));
+	assert(!runNodeByIndexFrom(localRoot, [0, 1] as StaticArray<u32>));
+	assert(executionTrace.length == 1);
+	assert(executionTrace[0] == "nested test");
 }
 
 function testReplayDeterministicallyRediscoversNestedDescribeAndTestTrees(): void {
-  resetExecutionTrace();
+	resetExecutionTrace();
 
-  const localRoot = new Node(NodeKind.Root, "local root");
-  const suite = localRoot.createChild(NodeKind.Describe, "stable suite");
-  suite.setSuiteCallback(declareStableReplaySuite);
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const suite = localRoot.createChild(NodeKind.Describe, "stable suite");
+	suite.setSuiteCallback(declareStableReplaySuite);
 
-  assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
-  assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
-  assert(discoverChildrenByIndexFrom(localRoot, [0, 0] as StaticArray<u32>) == 1);
-  assert(discoverChildrenByIndexFrom(localRoot, [0, 0] as StaticArray<u32>) == 1);
+	assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
+	assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
+	assert(
+		discoverChildrenByIndexFrom(localRoot, [0, 0] as StaticArray<u32>) == 1,
+	);
+	assert(
+		discoverChildrenByIndexFrom(localRoot, [0, 0] as StaticArray<u32>) == 1,
+	);
 
-  const firstLeaf = findNodeByIndexFrom(localRoot, [0, 0, 0] as StaticArray<u32>);
-  assert(firstLeaf !== null);
-  if (firstLeaf !== null) {
-    assert(firstLeaf.name == "stable leaf");
-  }
+	const firstLeaf = findNodeByIndexFrom(localRoot, [
+		0, 0, 0,
+	] as StaticArray<u32>);
+	assert(firstLeaf !== null);
+	if (firstLeaf !== null) {
+		assert(firstLeaf.name == "stable leaf");
+	}
 
-  const secondLeaf = findNodeByIndexFrom(localRoot, [0, 0, 0] as StaticArray<u32>);
-  assert(secondLeaf !== null);
-  if (secondLeaf !== null) {
-    assert(secondLeaf.name == "stable leaf");
-  }
+	const secondLeaf = findNodeByIndexFrom(localRoot, [
+		0, 0, 0,
+	] as StaticArray<u32>);
+	assert(secondLeaf !== null);
+	if (secondLeaf !== null) {
+		assert(secondLeaf.name == "stable leaf");
+	}
 
-  assert(runNodeByIndexFrom(localRoot, [0, 0, 0] as StaticArray<u32>));
-  assert(runNodeByIndexFrom(localRoot, [0, 0, 0] as StaticArray<u32>));
-  assert(executionTrace.length == 2);
-  assert(executionTrace[0] == "stable leaf");
-  assert(executionTrace[1] == "stable leaf");
+	assert(runNodeByIndexFrom(localRoot, [0, 0, 0] as StaticArray<u32>));
+	assert(runNodeByIndexFrom(localRoot, [0, 0, 0] as StaticArray<u32>));
+	assert(executionTrace.length == 2);
+	assert(executionTrace[0] == "stable leaf");
+	assert(executionTrace[1] == "stable leaf");
 }
 
 function testReplayKeepsStableNodeIdsAcrossRepeatedLookup(): void {
-  const localRoot = new Node(NodeKind.Root, "local root");
-  const suite = localRoot.createChild(NodeKind.Describe, "stable suite");
-  suite.setSuiteCallback(declareStableReplaySuite);
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const suite = localRoot.createChild(NodeKind.Describe, "stable suite");
+	suite.setSuiteCallback(declareStableReplaySuite);
 
-  const firstLeaf = findNodeByIndexFrom(localRoot, [0, 0, 0] as StaticArray<u32>);
-  assert(firstLeaf !== null);
+	const firstLeaf = findNodeByIndexFrom(localRoot, [
+		0, 0, 0,
+	] as StaticArray<u32>);
+	assert(firstLeaf !== null);
 
-  const secondLeaf = findNodeByIndexFrom(localRoot, [0, 0, 0] as StaticArray<u32>);
-  assert(secondLeaf !== null);
+	const secondLeaf = findNodeByIndexFrom(localRoot, [
+		0, 0, 0,
+	] as StaticArray<u32>);
+	assert(secondLeaf !== null);
 
-  if (firstLeaf !== null && secondLeaf !== null) {
-    assert(firstLeaf !== secondLeaf);
-    assert(firstLeaf.nodeId == secondLeaf.nodeId);
-    assert(firstLeaf.declarationOrder == secondLeaf.declarationOrder);
-  }
+	if (firstLeaf !== null && secondLeaf !== null) {
+		assert(firstLeaf !== secondLeaf);
+		assert(firstLeaf.nodeId == secondLeaf.nodeId);
+		assert(firstLeaf.declarationOrder == secondLeaf.declarationOrder);
+	}
 }
 
 function testReplayKeepsSiblingDeclarationOrderStable(): void {
-  const localRoot = new Node(NodeKind.Root, "local root");
-  const suite = localRoot.createChild(NodeKind.Describe, "stable suite");
-  suite.setSuiteCallback(declareStableSiblingReplaySuite);
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const suite = localRoot.createChild(NodeKind.Describe, "stable suite");
+	suite.setSuiteCallback(declareStableSiblingReplaySuite);
 
-  const firstChild = findNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>);
-  const secondChild = findNodeByIndexFrom(localRoot, [0, 1] as StaticArray<u32>);
-  assert(firstChild !== null);
-  assert(secondChild !== null);
+	const firstChild = findNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>);
+	const secondChild = findNodeByIndexFrom(localRoot, [
+		0, 1,
+	] as StaticArray<u32>);
+	assert(firstChild !== null);
+	assert(secondChild !== null);
 
-  const repeatedFirstChild = findNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>);
-  const repeatedSecondChild = findNodeByIndexFrom(localRoot, [0, 1] as StaticArray<u32>);
-  assert(repeatedFirstChild !== null);
-  assert(repeatedSecondChild !== null);
+	const repeatedFirstChild = findNodeByIndexFrom(localRoot, [
+		0, 0,
+	] as StaticArray<u32>);
+	const repeatedSecondChild = findNodeByIndexFrom(localRoot, [
+		0, 1,
+	] as StaticArray<u32>);
+	assert(repeatedFirstChild !== null);
+	assert(repeatedSecondChild !== null);
 
-  if (
-    firstChild !== null &&
-    secondChild !== null &&
-    repeatedFirstChild !== null &&
-    repeatedSecondChild !== null
-  ) {
-    assert(firstChild.nodeId == repeatedFirstChild.nodeId);
-    assert(secondChild.nodeId == repeatedSecondChild.nodeId);
-    assert(firstChild.declarationOrder < secondChild.declarationOrder);
-    assert(repeatedFirstChild.declarationOrder < repeatedSecondChild.declarationOrder);
-  }
+	if (
+		firstChild !== null &&
+		secondChild !== null &&
+		repeatedFirstChild !== null &&
+		repeatedSecondChild !== null
+	) {
+		assert(firstChild.nodeId == repeatedFirstChild.nodeId);
+		assert(secondChild.nodeId == repeatedSecondChild.nodeId);
+		assert(firstChild.declarationOrder < secondChild.declarationOrder);
+		assert(
+			repeatedFirstChild.declarationOrder <
+				repeatedSecondChild.declarationOrder,
+		);
+	}
 }
 
 function testTraversalReplayStateResetsAfterTrapAndSuccess(): void {
-  replayTrapAttemptCount = 0;
+	replayTrapAttemptCount = 0;
 
-  const localRoot = new Node(NodeKind.Root, "local root");
-  const suite = localRoot.createChild(NodeKind.Describe, "suite");
-  suite.setSuiteCallback(declareTrapThenRecoverSuite);
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const suite = localRoot.createChild(NodeKind.Describe, "suite");
+	suite.setSuiteCallback(declareTrapThenRecoverSuite);
 
-  assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == -1);
-  assert(!suite.hasActiveReplayState());
-  assert(suite.getReplayChildBufferLength() == 0);
-  assert(suite.getHooks(HookKind.BeforeEach).length == 0);
+	assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == -1);
+	assert(!suite.hasActiveReplayState());
+	assert(suite.getReplayChildBufferLength() == 0);
+	assert(suite.getHooks(HookKind.BeforeEach).length == 0);
 
-  assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
-  assert(!suite.hasActiveReplayState());
-  assert(suite.getReplayChildBufferLength() == 0);
+	assert(discoverChildrenByIndexFrom(localRoot, [0] as StaticArray<u32>) == 1);
+	assert(!suite.hasActiveReplayState());
+	assert(suite.getReplayChildBufferLength() == 0);
 
-  assert(runNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>));
-  assert(!suite.hasActiveReplayState());
-  assert(suite.getReplayChildBufferLength() == 0);
+	assert(runNodeByIndexFrom(localRoot, [0, 0] as StaticArray<u32>));
+	assert(!suite.hasActiveReplayState());
+	assert(suite.getReplayChildBufferLength() == 0);
 }
 
 testFindNodeByIndexFromDiscoversNestedChildren();

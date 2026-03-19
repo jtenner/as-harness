@@ -103,7 +103,10 @@ function decodeNodeEvent(bytes) {
 
 function decodeNodeFoundEvent(bytes) {
 	const decodedNodeIndex = decodeNodeIndex(bytes, 0);
-	if (decodedNodeIndex === null || decodedNodeIndex.offset + 24 > bytes.byteLength) {
+	if (
+		decodedNodeIndex === null ||
+		decodedNodeIndex.offset + 24 > bytes.byteLength
+	) {
 		return null;
 	}
 
@@ -118,7 +121,10 @@ function decodeNodeFoundEvent(bytes) {
 	}
 
 	const declarationOrder = decodeUint32(bytes, parentNodeId.offset);
-	if (declarationOrder === null || declarationOrder.offset + 12 > bytes.byteLength) {
+	if (
+		declarationOrder === null ||
+		declarationOrder.offset + 12 > bytes.byteLength
+	) {
 		return null;
 	}
 
@@ -128,7 +134,10 @@ function decodeNodeFoundEvent(bytes) {
 	}
 	const dependencyNodeIdsByteLength =
 		dependencyCount.value * UINT32_BYTE_LENGTH;
-	if (dependencyCount.offset + dependencyNodeIdsByteLength + 4 > bytes.byteLength) {
+	if (
+		dependencyCount.offset + dependencyNodeIdsByteLength + 4 >
+		bytes.byteLength
+	) {
 		return null;
 	}
 
@@ -136,10 +145,7 @@ function decodeNodeFoundEvent(bytes) {
 	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 	for (let index = 0; index < dependencyCount.value; index += 1) {
 		dependencyNodeIds.push(
-			view.getUint32(
-				dependencyCount.offset + index * UINT32_BYTE_LENGTH,
-				true,
-			),
+			view.getUint32(dependencyCount.offset + index * UINT32_BYTE_LENGTH, true),
 		);
 	}
 

@@ -5,9 +5,18 @@ const DECLARATION_MODE_NORMAL = 1;
 const FAILURE_KIND_ASSERTION = 1;
 const NODE_METADATA_BY_INDEX = new Map([
 	["0", { nodeId: 1, parentNodeId: 0, declarationOrder: 0 }],
-	["1", { nodeId: 2, parentNodeId: 0, declarationOrder: 1, dependencyNodeIds: [1] }],
-	["2", { nodeId: 3, parentNodeId: 0, declarationOrder: 2, expectFailure: true }],
-	["3", { nodeId: 4, parentNodeId: 0, declarationOrder: 3, dependencyNodeIds: [3] }],
+	[
+		"1",
+		{ nodeId: 2, parentNodeId: 0, declarationOrder: 1, dependencyNodeIds: [1] },
+	],
+	[
+		"2",
+		{ nodeId: 3, parentNodeId: 0, declarationOrder: 2, expectFailure: true },
+	],
+	[
+		"3",
+		{ nodeId: 4, parentNodeId: 0, declarationOrder: 3, dependencyNodeIds: [3] },
+	],
 ]);
 
 class FakeHarness {
@@ -91,7 +100,9 @@ class FakeHarness {
 	}
 
 	run(nodeIndex) {
-		const normalizedNodeIndex = Array.isArray(nodeIndex) ? nodeIndex.slice() : [];
+		const normalizedNodeIndex = Array.isArray(nodeIndex)
+			? nodeIndex.slice()
+			: [];
 		this.#emit("nodeStart", { nodeIndex: normalizedNodeIndex });
 
 		switch (normalizedNodeIndex.join(".")) {
@@ -103,7 +114,9 @@ class FakeHarness {
 				});
 				return false;
 			case "2":
-				this.#emit("failMessage", { message: "expected failure prereq failed" });
+				this.#emit("failMessage", {
+					message: "expected failure prereq failed",
+				});
 				this.#emit("nodeFail", {
 					nodeIndex: normalizedNodeIndex,
 					failureKind: FAILURE_KIND_ASSERTION,
@@ -116,14 +129,13 @@ class FakeHarness {
 	}
 
 	#emitNode(nodeIndex, kind, name) {
-		const metadata =
-			NODE_METADATA_BY_INDEX.get(nodeIndex.join(".")) ?? {
-				nodeId: 0,
-				parentNodeId: 0,
-				declarationOrder: 0,
-				dependencyNodeIds: [],
-				expectFailure: false,
-			};
+		const metadata = NODE_METADATA_BY_INDEX.get(nodeIndex.join(".")) ?? {
+			nodeId: 0,
+			parentNodeId: 0,
+			declarationOrder: 0,
+			dependencyNodeIds: [],
+			expectFailure: false,
+		};
 		this.#emit("nodeFound", {
 			nodeIndex,
 			nodeId: metadata.nodeId,

@@ -100,7 +100,10 @@ function parseArguments(argv: string[]): ParsedArguments {
 	return { reportDir, target };
 }
 
-async function runCommand(command: string[], cwd: string): Promise<CommandResult> {
+async function runCommand(
+	command: string[],
+	cwd: string,
+): Promise<CommandResult> {
 	const processHandle = Bun.spawn(command, {
 		cwd,
 		stdout: "pipe",
@@ -166,7 +169,9 @@ function renderMarkdownSummary(
 }
 
 async function main() {
-	const { reportDir, target: targetLabel } = parseArguments(process.argv.slice(2));
+	const { reportDir, target: targetLabel } = parseArguments(
+		process.argv.slice(2),
+	);
 	const target = hostValidationTargetForLabel(targetLabel);
 	if (target === null) {
 		throw new Error(`Unknown source-host validation target: ${targetLabel}`);

@@ -526,8 +526,14 @@ test("classifyDependencyOutcome treats expected failures as satisfied only when 
 		node: { expectFailure: true },
 	};
 
-	assert.equal(classifyDependencyOutcome(plainTarget, { ok: true }), "satisfied");
-	assert.equal(classifyDependencyOutcome(plainTarget, { ok: false }), "unsatisfied");
+	assert.equal(
+		classifyDependencyOutcome(plainTarget, { ok: true }),
+		"satisfied",
+	);
+	assert.equal(
+		classifyDependencyOutcome(plainTarget, { ok: false }),
+		"unsatisfied",
+	);
 	assert.equal(
 		classifyDependencyOutcome(expectedFailureTarget, { ok: false }),
 		"satisfied",
@@ -622,7 +628,10 @@ test("evaluatePlannedExecution keeps unrelated work satisfied while blocking onl
 		]),
 	);
 
-	assert.equal(evaluated.outcomesByIdentity.get("id:120/id:121"), "unsatisfied");
+	assert.equal(
+		evaluated.outcomesByIdentity.get("id:120/id:121"),
+		"unsatisfied",
+	);
 	assert.equal(evaluated.outcomesByIdentity.get("id:120/id:122"), "blocked");
 	assert.equal(evaluated.outcomesByIdentity.get("id:120/id:123"), "satisfied");
 	assert.equal(evaluated.outcomesByIdentity.get("id:120/id:124"), "satisfied");
@@ -837,8 +846,12 @@ test("decorateHarness can execute start() in-band and merge coverage snapshots",
 			},
 			run(nodeIndex) {
 				runHarnessIds.push(harnessId);
-				emit("nodeStart", { nodeIndex: Array.isArray(nodeIndex) ? nodeIndex : [] });
-				emit("nodePass", { nodeIndex: Array.isArray(nodeIndex) ? nodeIndex : [] });
+				emit("nodeStart", {
+					nodeIndex: Array.isArray(nodeIndex) ? nodeIndex : [],
+				});
+				emit("nodePass", {
+					nodeIndex: Array.isArray(nodeIndex) ? nodeIndex : [],
+				});
 				return true;
 			},
 			getCoverageSnapshot() {
@@ -866,14 +879,11 @@ test("decorateHarness can execute start() in-band and merge coverage snapshots",
 	assert.equal(result.planningOk, true);
 	assert.equal(result.workerCount, 1);
 	assert.deepEqual(runHarnessIds, [2]);
-	assert.deepEqual(
-		result.coverage,
-		{
-			points: [
-				{ id: 1, file: "instance-1.ts", line: 1, column: 1, coverType: 1 },
-				{ id: 2, file: "instance-2.ts", line: 1, column: 1, coverType: 1 },
-			],
-			coveredIds: [1, 2],
-		},
-	);
+	assert.deepEqual(result.coverage, {
+		points: [
+			{ id: 1, file: "instance-1.ts", line: 1, column: 1, coverType: 1 },
+			{ id: 2, file: "instance-2.ts", line: 1, column: 1, coverType: 1 },
+		],
+		coveredIds: [1, 2],
+	});
 });

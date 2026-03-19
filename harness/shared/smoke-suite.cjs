@@ -10,7 +10,10 @@ const NODE_METADATA_BY_INDEX = new Map([
 	["2", { nodeId: 3, parentNodeId: 0, declarationOrder: 2 }],
 	["3", { nodeId: 4, parentNodeId: 0, declarationOrder: 3 }],
 	["4", { nodeId: 5, parentNodeId: 0, declarationOrder: 4 }],
-	["5", { nodeId: 6, parentNodeId: 0, declarationOrder: 5, expectFailure: true }],
+	[
+		"5",
+		{ nodeId: 6, parentNodeId: 0, declarationOrder: 5, expectFailure: true },
+	],
 	["6", { nodeId: 7, parentNodeId: 0, declarationOrder: 6 }],
 	["7", { nodeId: 8, parentNodeId: 0, declarationOrder: 7 }],
 	["8", { nodeId: 9, parentNodeId: 0, declarationOrder: 8 }],
@@ -18,24 +21,87 @@ const NODE_METADATA_BY_INDEX = new Map([
 	["10", { nodeId: 11, parentNodeId: 0, declarationOrder: 10 }],
 	["11", { nodeId: 12, parentNodeId: 0, declarationOrder: 11 }],
 	["12", { nodeId: 13, parentNodeId: 0, declarationOrder: 12 }],
-	["13", { nodeId: 14, parentNodeId: 0, declarationOrder: 13, dependencyNodeIds: [13] }],
+	[
+		"13",
+		{
+			nodeId: 14,
+			parentNodeId: 0,
+			declarationOrder: 13,
+			dependencyNodeIds: [13],
+		},
+	],
 	["14", { nodeId: 15, parentNodeId: 0, declarationOrder: 14 }],
-	["15", { nodeId: 16, parentNodeId: 0, declarationOrder: 15, dependencyNodeIds: [15] }],
-	["16", { nodeId: 17, parentNodeId: 0, declarationOrder: 16, expectFailure: true }],
-	["17", { nodeId: 18, parentNodeId: 0, declarationOrder: 17, dependencyNodeIds: [17] }],
+	[
+		"15",
+		{
+			nodeId: 16,
+			parentNodeId: 0,
+			declarationOrder: 15,
+			dependencyNodeIds: [15],
+		},
+	],
+	[
+		"16",
+		{ nodeId: 17, parentNodeId: 0, declarationOrder: 16, expectFailure: true },
+	],
+	[
+		"17",
+		{
+			nodeId: 18,
+			parentNodeId: 0,
+			declarationOrder: 17,
+			dependencyNodeIds: [17],
+		},
+	],
 	["18", { nodeId: 19, parentNodeId: 0, declarationOrder: 18 }],
-	["19", { nodeId: 20, parentNodeId: 0, declarationOrder: 19, dependencyNodeIds: [19] }],
+	[
+		"19",
+		{
+			nodeId: 20,
+			parentNodeId: 0,
+			declarationOrder: 19,
+			dependencyNodeIds: [19],
+		},
+	],
 	["20", { nodeId: 21, parentNodeId: 0, declarationOrder: 20 }],
-	["21", { nodeId: 22, parentNodeId: 0, declarationOrder: 21, dependencyNodeIds: [21] }],
-	["22", { nodeId: 23, parentNodeId: 0, declarationOrder: 22, expectFailure: true }],
-	["23", { nodeId: 24, parentNodeId: 0, declarationOrder: 23, dependencyNodeIds: [23] }],
+	[
+		"21",
+		{
+			nodeId: 22,
+			parentNodeId: 0,
+			declarationOrder: 21,
+			dependencyNodeIds: [21],
+		},
+	],
+	[
+		"22",
+		{ nodeId: 23, parentNodeId: 0, declarationOrder: 22, expectFailure: true },
+	],
+	[
+		"23",
+		{
+			nodeId: 24,
+			parentNodeId: 0,
+			declarationOrder: 23,
+			dependencyNodeIds: [23],
+		},
+	],
 	["24", { nodeId: 25, parentNodeId: 0, declarationOrder: 24 }],
 	["3.0", { nodeId: 26, parentNodeId: 4, declarationOrder: 25 }],
 	["4.0", { nodeId: 26, parentNodeId: 5, declarationOrder: 25, only: true }],
 	["7.0", { nodeId: 26, parentNodeId: 8, declarationOrder: 25 }],
 	["9.0", { nodeId: 26, parentNodeId: 10, declarationOrder: 25 }],
 	["10.0", { nodeId: 26, parentNodeId: 11, declarationOrder: 25 }],
-	["24.1", { nodeId: 27, parentNodeId: 25, declarationOrder: 26, only: true, dependencyNodeIds: [26] }],
+	[
+		"24.1",
+		{
+			nodeId: 27,
+			parentNodeId: 25,
+			declarationOrder: 26,
+			only: true,
+			dependencyNodeIds: [26],
+		},
+	],
 ]);
 
 function annotateNode(node) {
@@ -1156,13 +1222,22 @@ function registerHarnessSmokeSuite(options) {
 			(trapPhase ? trappedEvents : recoveryEvents).push(["nodeFail", event]);
 		});
 		harness.onCallbackStart((event) => {
-			(trapPhase ? trappedEvents : recoveryEvents).push(["callbackStart", event]);
+			(trapPhase ? trappedEvents : recoveryEvents).push([
+				"callbackStart",
+				event,
+			]);
 		});
 		harness.onCallbackPass((event) => {
-			(trapPhase ? trappedEvents : recoveryEvents).push(["callbackPass", event]);
+			(trapPhase ? trappedEvents : recoveryEvents).push([
+				"callbackPass",
+				event,
+			]);
 		});
 		harness.onCallbackFail((event) => {
-			(trapPhase ? trappedEvents : recoveryEvents).push(["callbackFail", event]);
+			(trapPhase ? trappedEvents : recoveryEvents).push([
+				"callbackFail",
+				event,
+			]);
 		});
 		harness.onDiagnostic((event) => {
 			(trapPhase ? trappedEvents : recoveryEvents).push(["diagnostic", event]);
@@ -1269,15 +1344,15 @@ function registerHarnessSmokeSuite(options) {
 		assert.deepEqual(
 			result.topLevelNodes.map((node) => node.nodeId),
 			[
-				1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-				20, 21, 22, 23, 24, 25,
+				1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+				21, 22, 23, 24, 25,
 			],
 		);
 		assert.deepEqual(
 			result.topLevelNodes.map((node) => node.declarationOrder),
 			[
-				0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
-				19, 20, 21, 22, 23, 24,
+				0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+				20, 21, 22, 23, 24,
 			],
 		);
 		assert.equal(result.workerCount, 1);
@@ -1288,7 +1363,9 @@ function registerHarnessSmokeSuite(options) {
 			[[3], [3, 0]],
 		);
 		assert.deepEqual(
-			branchesByName.get("run-only parent").discovery.nodes.map((node) => node.name),
+			branchesByName
+				.get("run-only parent")
+				.discovery.nodes.map((node) => node.name),
 			["run-only parent", "run-only nested child"],
 		);
 		assert.deepEqual(
@@ -1305,25 +1382,27 @@ function registerHarnessSmokeSuite(options) {
 		);
 		assert.deepEqual(branchesByName.get("top-level todo leaf").executions, []);
 		assert.deepEqual(
-			branchesByName
-				.get("dependency dependent")
-				.discovery.nodes[0].dependencyNodeIds,
+			branchesByName.get("dependency dependent").discovery.nodes[0]
+				.dependencyNodeIds,
 			[13],
 		);
 		assert.equal(
-			branchesByName.get("expected failure test").discovery.nodes[0].expectFailure,
+			branchesByName.get("expected failure test").discovery.nodes[0]
+				.expectFailure,
 			true,
 		);
 		assert.equal(
-			branchesByName
-				.get("dependency expected failure prereq")
-				.discovery.nodes[0].expectFailure,
+			branchesByName.get("dependency expected failure prereq").discovery
+				.nodes[0].expectFailure,
 			true,
 		);
 		assert.deepEqual(
 			branchesByName
 				.get("hook failure parent")
-				.executions.map((execution) => [execution.node.nodeIndex, execution.ok]),
+				.executions.map((execution) => [
+					execution.node.nodeIndex,
+					execution.ok,
+				]),
 			[
 				[[9], true],
 				[[9, 0], false],
@@ -1332,7 +1411,10 @@ function registerHarnessSmokeSuite(options) {
 		assert.deepEqual(
 			branchesByName
 				.get("trap parent")
-				.executions.map((execution) => [execution.node.nodeIndex, execution.ok]),
+				.executions.map((execution) => [
+					execution.node.nodeIndex,
+					execution.ok,
+				]),
 			[
 				[[10], true],
 				[[10, 0], false],
@@ -1352,10 +1434,11 @@ function registerHarnessSmokeSuite(options) {
 		assert.deepEqual(
 			branchesByName
 				.get("discovery trap parent")
-				.executions.map((execution) => [execution.node.nodeIndex, execution.ok]),
-			[
-				[[11], false],
-			],
+				.executions.map((execution) => [
+					execution.node.nodeIndex,
+					execution.ok,
+				]),
+			[[[11], false]],
 		);
 		assert.deepEqual(
 			branchesByName
@@ -1438,10 +1521,11 @@ function registerHarnessSmokeSuite(options) {
 		assert.deepEqual(
 			branchesByName
 				.get("dependency only parent")
-				.executions.map((execution) => [execution.node.nodeIndex, execution.ok]),
-			[
-				[[24], true],
-			],
+				.executions.map((execution) => [
+					execution.node.nodeIndex,
+					execution.ok,
+				]),
+			[[[24], true]],
 		);
 		assert.deepEqual(
 			branchesByName.get("discovery trap parent").executions[0].events,
@@ -1470,7 +1554,11 @@ function registerHarnessSmokeSuite(options) {
 		assert.deepEqual(result.planIssues, []);
 		assert.deepEqual(result.blocked, []);
 		assert.deepEqual(
-			result.topLevelNodes.map((node) => [node.name, node.sequenceMode, node.kind]),
+			result.topLevelNodes.map((node) => [
+				node.name,
+				node.sequenceMode,
+				node.kind,
+			]),
 			[["vitest adapter", 0, 2]],
 		);
 		assert.deepEqual(

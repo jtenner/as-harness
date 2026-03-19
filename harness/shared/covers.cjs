@@ -76,7 +76,10 @@ function createCoverageCollector() {
 		declare(point) {
 			const normalizedPoint = cloneCoveragePoint(point);
 			const existingPoint = points.get(normalizedPoint.id);
-			if (existingPoint && compareCoveragePoints(existingPoint, normalizedPoint)) {
+			if (
+				existingPoint &&
+				compareCoveragePoints(existingPoint, normalizedPoint)
+			) {
 				return;
 			}
 
@@ -89,7 +92,9 @@ function createCoverageCollector() {
 		},
 		snapshot() {
 			return {
-				points: sortCoveragePoints([...points.values()].map(cloneCoveragePoint)),
+				points: sortCoveragePoints(
+					[...points.values()].map(cloneCoveragePoint),
+				),
 				coveredIds: [...coveredIds].sort((left, right) => left - right),
 			};
 		},
@@ -183,15 +188,19 @@ function createCoverageJSONReport(snapshot) {
 	}
 
 	const report = {};
-	for (const [fileName, fileEntry] of [...files.entries()].sort(([left], [right]) =>
-		left.localeCompare(right),
+	for (const [fileName, fileEntry] of [...files.entries()].sort(
+		([left], [right]) => left.localeCompare(right),
 	)) {
 		const points = fileEntry.points;
 		const total = points.length;
 		const coveredCount = points.filter((point) => point.covered).length;
 		const typeTotals = {
-			function: points.filter((point) => point.coverType === COVER_POINT_TYPE_FUNCTION),
-			block: points.filter((point) => point.coverType === COVER_POINT_TYPE_BLOCK),
+			function: points.filter(
+				(point) => point.coverType === COVER_POINT_TYPE_FUNCTION,
+			),
+			block: points.filter(
+				(point) => point.coverType === COVER_POINT_TYPE_BLOCK,
+			),
 			expression: points.filter(
 				(point) => point.coverType === COVER_POINT_TYPE_EXPRESSION,
 			),
@@ -391,9 +400,7 @@ function stringifyCoverageLCOV(snapshot) {
 			lines.push(`DA:${line.line},${line.hits}`);
 		}
 		lines.push(`LF:${lineCoverage.length}`);
-		lines.push(
-			`LH:${lineCoverage.filter((entry) => entry.covered).length}`,
-		);
+		lines.push(`LH:${lineCoverage.filter((entry) => entry.covered).length}`);
 		lines.push("end_of_record");
 	}
 
@@ -479,7 +486,7 @@ function stringifyCoverageCobertura(snapshot) {
 		"    <source>.</source>",
 		"  </sources>",
 		[
-			'  <packages>',
+			"  <packages>",
 			`    <package name="as-harness" line-rate="${formatRatio(totalLinesCovered, totalLinesValid)}" branch-rate="1.0000" complexity="0">`,
 			"      <classes>",
 		].join("\n"),

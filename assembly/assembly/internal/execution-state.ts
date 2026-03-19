@@ -16,203 +16,203 @@ let activeNodeIndex: NodeIndex | null = null;
 let activeTraversalTarget: NodeIndex | null = null;
 
 function cloneNodeIndex(nodeIndex: NodeIndex | null): NodeIndex | null {
-  if (nodeIndex === null) {
-    return null;
-  }
+	if (nodeIndex === null) {
+		return null;
+	}
 
-  const copy = new StaticArray<u32>(nodeIndex.length);
-  for (let index = 0, length = nodeIndex.length; index < length; index++) {
-    unchecked((copy[index] = unchecked(nodeIndex[index])));
-  }
+	const copy = new StaticArray<u32>(nodeIndex.length);
+	for (let index = 0, length = nodeIndex.length; index < length; index++) {
+		unchecked((copy[index] = unchecked(nodeIndex[index])));
+	}
 
-  return copy;
+	return copy;
 }
 
 function resetAssertionScopeState(): void {
-  assertionScopeActive = false;
-  plannedAssertionCount = -1;
-  observedAssertionCount = 0;
-  activeNodeName = "";
-  activeAttempt = 0;
-  activeNodePassed = false;
-  activeRunOnly = false;
-  clearActiveErrorMessage();
+	assertionScopeActive = false;
+	plannedAssertionCount = -1;
+	observedAssertionCount = 0;
+	activeNodeName = "";
+	activeAttempt = 0;
+	activeNodePassed = false;
+	activeRunOnly = false;
+	clearActiveErrorMessage();
 }
 
 function planMismatchMessage(): string {
-  return (
-    'node:test plan mismatch in "' +
-    activeNodeName +
-    '": expected ' +
-    plannedAssertionCount.toString() +
-    " assertion(s), saw " +
-    observedAssertionCount.toString()
-  );
+	return (
+		'node:test plan mismatch in "' +
+		activeNodeName +
+		'": expected ' +
+		plannedAssertionCount.toString() +
+		" assertion(s), saw " +
+		observedAssertionCount.toString()
+	);
 }
 
 export function beginAssertionScope(
-  nodeName: string,
-  initialPlannedAssertionCount: i32 = -1,
+	nodeName: string,
+	initialPlannedAssertionCount: i32 = -1,
 ): void {
-  assertionScopeActive = true;
-  plannedAssertionCount = initialPlannedAssertionCount;
-  observedAssertionCount = 0;
-  activeNodeName = nodeName;
-  activeAttempt = 1;
-  activeNodePassed = false;
-  activeRunOnly = false;
-  clearActiveErrorMessage();
+	assertionScopeActive = true;
+	plannedAssertionCount = initialPlannedAssertionCount;
+	observedAssertionCount = 0;
+	activeNodeName = nodeName;
+	activeAttempt = 1;
+	activeNodePassed = false;
+	activeRunOnly = false;
+	clearActiveErrorMessage();
 }
 
 export function endAssertionScope(): void {
-  if (!assertionScopeActive) {
-    return;
-  }
+	if (!assertionScopeActive) {
+		return;
+	}
 
-  if (
-    plannedAssertionCount >= 0 &&
-    observedAssertionCount != plannedAssertionCount
-  ) {
-    failAssertion(planMismatchMessage());
-  }
+	if (
+		plannedAssertionCount >= 0 &&
+		observedAssertionCount != plannedAssertionCount
+	) {
+		failAssertion(planMismatchMessage());
+	}
 
-  resetAssertionScopeState();
+	resetAssertionScopeState();
 }
 
 export function abandonAssertionScope(): void {
-  resetAssertionScopeState();
+	resetAssertionScopeState();
 }
 
 export function recordAssertionCall(): void {
-  if (!assertionScopeActive) {
-    return;
-  }
+	if (!assertionScopeActive) {
+		return;
+	}
 
-  observedAssertionCount++;
+	observedAssertionCount++;
 
-  if (
-    plannedAssertionCount >= 0 &&
-    observedAssertionCount > plannedAssertionCount
-  ) {
-    failAssertion(planMismatchMessage());
-  }
+	if (
+		plannedAssertionCount >= 0 &&
+		observedAssertionCount > plannedAssertionCount
+	) {
+		failAssertion(planMismatchMessage());
+	}
 }
 
 export function setPlannedAssertionCount(count: i32): void {
-  if (!assertionScopeActive) {
-    return;
-  }
+	if (!assertionScopeActive) {
+		return;
+	}
 
-  plannedAssertionCount = count;
+	plannedAssertionCount = count;
 
-  if (
-    plannedAssertionCount >= 0 &&
-    observedAssertionCount > plannedAssertionCount
-  ) {
-    failAssertion(planMismatchMessage());
-  }
+	if (
+		plannedAssertionCount >= 0 &&
+		observedAssertionCount > plannedAssertionCount
+	) {
+		failAssertion(planMismatchMessage());
+	}
 }
 
 export function markActiveNodeCallbackPassed(): void {
-  if (!assertionScopeActive) {
-    return;
-  }
+	if (!assertionScopeActive) {
+		return;
+	}
 
-  activeNodePassed = true;
+	activeNodePassed = true;
 }
 
 export function getPlannedAssertionCount(): i32 {
-  return plannedAssertionCount;
+	return plannedAssertionCount;
 }
 
 export function getObservedAssertionCount(): i32 {
-  return observedAssertionCount;
+	return observedAssertionCount;
 }
 
 export function getActiveAttempt(): i32 {
-  return activeAttempt;
+	return activeAttempt;
 }
 
 export function getActiveNodePassed(): bool {
-  return activeNodePassed;
+	return activeNodePassed;
 }
 
 export function setActiveHookPhase(kind: HookKind): void {
-  activeHookKind = <u32>kind;
+	activeHookKind = <u32>kind;
 }
 
 export function clearActiveHookPhase(): void {
-  activeHookKind = 0;
+	activeHookKind = 0;
 }
 
 export function getActiveHookPhase(): u32 {
-  return activeHookKind;
+	return activeHookKind;
 }
 
 export function setActiveNodeIndex(nodeIndex: NodeIndex | null): void {
-  activeNodeIndex = cloneNodeIndex(nodeIndex);
+	activeNodeIndex = cloneNodeIndex(nodeIndex);
 }
 
 export function clearActiveNodeIndex(): void {
-  activeNodeIndex = null;
+	activeNodeIndex = null;
 }
 
 export function hasActiveNodeIndex(): bool {
-  return activeNodeIndex !== null;
+	return activeNodeIndex !== null;
 }
 
 export function getActiveNodeIndexLength(): i32 {
-  const nodeIndex = activeNodeIndex;
-  if (nodeIndex === null) {
-    return -1;
-  }
+	const nodeIndex = activeNodeIndex;
+	if (nodeIndex === null) {
+		return -1;
+	}
 
-  return nodeIndex.length;
+	return nodeIndex.length;
 }
 
 export function getActiveNodeIndexElement(index: i32): u32 {
-  const nodeIndex = activeNodeIndex;
-  if (nodeIndex === null) {
-    return 0;
-  }
+	const nodeIndex = activeNodeIndex;
+	if (nodeIndex === null) {
+		return 0;
+	}
 
-  return unchecked(nodeIndex[index]);
+	return unchecked(nodeIndex[index]);
 }
 
 export function setActiveTraversalTarget(nodeIndex: NodeIndex | null): void {
-  activeTraversalTarget = cloneNodeIndex(nodeIndex);
+	activeTraversalTarget = cloneNodeIndex(nodeIndex);
 }
 
 export function clearActiveTraversalTarget(): void {
-  activeTraversalTarget = null;
+	activeTraversalTarget = null;
 }
 
 export function hasActiveTraversalTarget(): bool {
-  return activeTraversalTarget !== null;
+	return activeTraversalTarget !== null;
 }
 
 export function getActiveTraversalTargetLength(): i32 {
-  const nodeIndex = activeTraversalTarget;
-  if (nodeIndex === null) {
-    return -1;
-  }
+	const nodeIndex = activeTraversalTarget;
+	if (nodeIndex === null) {
+		return -1;
+	}
 
-  return nodeIndex.length;
+	return nodeIndex.length;
 }
 
 export function getActiveTraversalTargetElement(index: i32): u32 {
-  const nodeIndex = activeTraversalTarget;
-  if (nodeIndex === null) {
-    return 0;
-  }
+	const nodeIndex = activeTraversalTarget;
+	if (nodeIndex === null) {
+		return 0;
+	}
 
-  return unchecked(nodeIndex[index]);
+	return unchecked(nodeIndex[index]);
 }
 
 export function setActiveRunOnly(shouldRunOnlyTests: bool): void {
-  activeRunOnly = shouldRunOnlyTests;
+	activeRunOnly = shouldRunOnlyTests;
 }
 
 export function getActiveRunOnly(): bool {
-  return activeRunOnly;
+	return activeRunOnly;
 }

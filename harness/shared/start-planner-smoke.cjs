@@ -38,16 +38,13 @@ function registerSharedStartPlannerSmokeSuite(options) {
 		assert.equal(result.ok, false);
 		assert.equal(result.planningOk, false);
 		assert.equal(result.workerCount, 1);
-		assert.deepEqual(
-			result.planIssues,
-			[
-				{
-					type: "missing-dependency",
-					targetIdentityKey: "id:2/id:11",
-					dependencyIdentityKey: "nodeId:999",
-				},
-			],
-		);
+		assert.deepEqual(result.planIssues, [
+			{
+				type: "missing-dependency",
+				targetIdentityKey: "id:2/id:11",
+				dependencyIdentityKey: "nodeId:999",
+			},
+		]);
 		assert.deepEqual(
 			result.blocked.map((blocked) => ({
 				name: blocked.node.name,
@@ -65,7 +62,9 @@ function registerSharedStartPlannerSmokeSuite(options) {
 			],
 		);
 		assert.deepEqual(
-			result.branches.map((branch) => branch.executions.map((execution) => execution.node.name)),
+			result.branches.map((branch) =>
+				branch.executions.map((execution) => execution.node.name),
+			),
 			[["prereq"], [], ["plain ready"]],
 		);
 
@@ -86,16 +85,13 @@ function registerSharedStartPlannerSmokeSuite(options) {
 		assert.equal(result.ok, false);
 		assert.equal(result.planningOk, false);
 		assert.equal(result.workerCount, 1);
-		assert.deepEqual(
-			result.planIssues,
-			[
-				{
-					type: "blocked-dependency",
-					targetIdentityKey: "id:2",
-					dependencyIdentityKey: "id:1",
-				},
-			],
-		);
+		assert.deepEqual(result.planIssues, [
+			{
+				type: "blocked-dependency",
+				targetIdentityKey: "id:2",
+				dependencyIdentityKey: "id:1",
+			},
+		]);
 		assert.deepEqual(
 			result.blocked.map((blocked) => ({
 				name: blocked.node.name,
@@ -114,7 +110,10 @@ function registerSharedStartPlannerSmokeSuite(options) {
 		);
 		assert.deepEqual(
 			result.branches.map((branch) =>
-				branch.executions.map((execution) => [execution.node.name, execution.ok]),
+				branch.executions.map((execution) => [
+					execution.node.name,
+					execution.ok,
+				]),
 			),
 			[
 				[["failing prereq", false]],

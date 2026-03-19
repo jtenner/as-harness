@@ -4,8 +4,12 @@
 
 ## Main Scripts
 
+- `format.ts`
+  Formats the repo's JS/TS/JSON source files with Biome, Go source files with
+  `gofmt`, and the Rust host crate with `cargo fmt`.
 - `validate.ts`
-  Runs Biome format and lint checks for `cli/`.
+  Checks repo-wide formatting through `format.ts --check` and runs the CLI
+  Biome lint pass.
 - `test.ts`
   Runs the repo-level AssemblyScript-focused test flow, assertion bridge smoke
   coverage, and the package host smoke suites for `js`, `wazero`, and
@@ -31,7 +35,8 @@
 
 ## What These Scripts Prove
 
-- the CLI formatting and lint baseline
+- the repo-wide JS/TS/JSON, Go, and Rust source-format baseline
+- the CLI lint baseline
 - the guest runtime still compiles
 - the assertion bridge still works
 - the package host smoke suites still pass through the root test entrypoint
@@ -55,6 +60,7 @@ Those are still release-proof tasks above the local helper layer.
 ## Useful Commands
 
 ```bash
+bun format
 bun validate
 bun test
 bun run host:matrix

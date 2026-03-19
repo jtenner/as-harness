@@ -10,18 +10,22 @@
 
 - Keep this file compact.
 - Look in `docs/` first for prior architecture, ABI, release, planning, and research context.
-- Validation deliverables: run `bun validate`, confirm zero diagnostics, run all primary test suites.
-- Every commit needs a title and detailed body with changed files and reasons.
-- Every commit must update `CHANGELOG.md`.
-- Before commit, investigate `agent-todo.md` and update the tasks with new blockers, risks, and removing completed items.
 - `agent-todo.md` must contain only actual remaining todo items for unreleased work; do not keep released-version notes, shipped scope summaries, or other retrospective content there.
 - Organize `agent-todo.md` by upcoming version first, then within each version by `Blockers`, then `Risks`, then feature sections in implementation priority order, with each feature section listing only remaining work.
 - Gitignore newly discovered build/cache directories when they are not meant to be tracked.
 - Update relevant `README.md` files when surface API or user-facing project info changes.
-- Write commit text to a temp file, commit with `git commit -F`, then delete the temp file.
-- Changelog entries must include: date, bold title, short description, emphasized GitHub username of the changer.
 
-## Research
+## Commit Process
+
+- Run `bun format`.
+- Run `bun validate`, confirm zero diagnostics, and run all primary test suites.
+- Before commit, investigate `agent-todo.md` and update the tasks with new blockers, risks, and remove completed items.
+- Update `CHANGELOG.md`.
+- Every commit needs a title and detailed body with changed files and reasons.
+- Changelog entries must include: date, bold title, short description, emphasized GitHub username of the changer.
+- Write commit text to a temp file, commit with `git commit -F`, then delete the temp file.
+
+## Research Process
 
 - Research must be detailed, directly relevant to current or planned `as-harness` work, and grounded in the current repo state.
 - Place research in `docs/[serial]-[YYYY-MM-DD]-[kebab-case-title].md`; do not add ad hoc research files elsewhere.

@@ -66,11 +66,7 @@ function decodeUint32(bytes, offset) {
 		return null;
 	}
 
-	const view = new DataView(
-		bytes.buffer,
-		bytes.byteOffset,
-		bytes.byteLength,
-	);
+	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 	return {
 		value: view.getUint32(offset, true),
 		offset: offset + UINT32_BYTE_LENGTH,
@@ -89,17 +85,10 @@ function decodeNodeIndex(bytes, offset) {
 	}
 
 	const nodeIndex = [];
-	const view = new DataView(
-		bytes.buffer,
-		bytes.byteOffset,
-		bytes.byteLength,
-	);
+	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 	for (let index = 0; index < header.value; index += 1) {
 		nodeIndex.push(
-			view.getUint32(
-				header.offset + index * UINT32_BYTE_LENGTH,
-				true,
-			),
+			view.getUint32(header.offset + index * UINT32_BYTE_LENGTH, true),
 		);
 	}
 
@@ -120,7 +109,10 @@ function decodeNodeEvent(bytes) {
 
 function decodeNodeFoundEvent(bytes) {
 	const decodedNodeIndex = decodeNodeIndex(bytes, 0);
-	if (decodedNodeIndex === null || decodedNodeIndex.offset + 24 > bytes.byteLength) {
+	if (
+		decodedNodeIndex === null ||
+		decodedNodeIndex.offset + 24 > bytes.byteLength
+	) {
 		return null;
 	}
 
@@ -135,7 +127,10 @@ function decodeNodeFoundEvent(bytes) {
 	}
 
 	const declarationOrder = decodeUint32(bytes, parentNodeId.offset);
-	if (declarationOrder === null || declarationOrder.offset + 12 > bytes.byteLength) {
+	if (
+		declarationOrder === null ||
+		declarationOrder.offset + 12 > bytes.byteLength
+	) {
 		return null;
 	}
 
@@ -145,7 +140,10 @@ function decodeNodeFoundEvent(bytes) {
 	}
 	const dependencyNodeIdsByteLength =
 		dependencyCount.value * UINT32_BYTE_LENGTH;
-	if (dependencyCount.offset + dependencyNodeIdsByteLength + 4 > bytes.byteLength) {
+	if (
+		dependencyCount.offset + dependencyNodeIdsByteLength + 4 >
+		bytes.byteLength
+	) {
 		return null;
 	}
 
@@ -153,10 +151,7 @@ function decodeNodeFoundEvent(bytes) {
 	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 	for (let index = 0; index < dependencyCount.value; index += 1) {
 		dependencyNodeIds.push(
-			view.getUint32(
-				dependencyCount.offset + index * UINT32_BYTE_LENGTH,
-				true,
-			),
+			view.getUint32(dependencyCount.offset + index * UINT32_BYTE_LENGTH, true),
 		);
 	}
 
@@ -570,7 +565,10 @@ class Harness {
 					}
 				},
 				invoke_staged: () => {
-					if (exports === null || typeof exports[INVOKE_EXPORT] !== "function") {
+					if (
+						exports === null ||
+						typeof exports[INVOKE_EXPORT] !== "function"
+					) {
 						return 0;
 					}
 
@@ -631,10 +629,7 @@ class Harness {
 					callback({
 						message: readAssemblyString(exports, messagePtr >>> 0),
 						source: "trace",
-						values: [a0, a1, a2, a3, a4].slice(
-							0,
-							clampTraceValueCount(n),
-						),
+						values: [a0, a1, a2, a3, a4].slice(0, clampTraceValueCount(n)),
 					});
 				},
 			},

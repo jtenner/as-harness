@@ -1,71 +1,71 @@
 import {
-  assertIfError,
-  assertTruthy,
-  isDeepStrictlyEqual,
-  isLooselyEqual,
-  isStrictlyEqual,
+	assertIfError,
+	assertTruthy,
+	isDeepStrictlyEqual,
+	isLooselyEqual,
+	isStrictlyEqual,
 } from "../../internal/assert-bridge";
 import {
-  getActiveStrictEqualityReferencePairCount,
-  getProvenStrictEqualityReferencePairCount,
+	getActiveStrictEqualityReferencePairCount,
+	getProvenStrictEqualityReferencePairCount,
 } from "../../internal/strict-equality";
 
 function testIsDeepStrictlyEqualMatchesEqualValues(): void {
-  assert(isDeepStrictlyEqual(7, 7));
-  assert(isDeepStrictlyEqual("alpha", "alpha"));
+	assert(isDeepStrictlyEqual(7, 7));
+	assert(isDeepStrictlyEqual("alpha", "alpha"));
 }
 
 function testIsDeepStrictlyEqualRejectsDifferentValues(): void {
-  assert(!isDeepStrictlyEqual(7, 8));
-  assert(!isDeepStrictlyEqual("alpha", "beta"));
+	assert(!isDeepStrictlyEqual(7, 8));
+	assert(!isDeepStrictlyEqual("alpha", "beta"));
 }
 
 function testIsDeepStrictlyEqualResetsStrictEqualityTracking(): void {
-  const left = [1, 2, 3];
-  const right = [1, 2, 3];
-  const mismatch = [1, 2, 4];
+	const left = [1, 2, 3];
+	const right = [1, 2, 3];
+	const mismatch = [1, 2, 4];
 
-  assert(isDeepStrictlyEqual(left, right));
-  assert(!isDeepStrictlyEqual(left, mismatch));
-  assert(getActiveStrictEqualityReferencePairCount() == 0);
-  assert(getProvenStrictEqualityReferencePairCount() == 0);
+	assert(isDeepStrictlyEqual(left, right));
+	assert(!isDeepStrictlyEqual(left, mismatch));
+	assert(getActiveStrictEqualityReferencePairCount() == 0);
+	assert(getProvenStrictEqualityReferencePairCount() == 0);
 }
 
 function testIsStrictlyEqualMatchesPrimitiveObjectIsSemantics(): void {
-  assert(isStrictlyEqual(7, 7));
-  assert(!isStrictlyEqual(7, 8));
-  assert(isStrictlyEqual<f64>(NaN, NaN));
+	assert(isStrictlyEqual(7, 7));
+	assert(!isStrictlyEqual(7, 8));
+	assert(isStrictlyEqual<f64>(NaN, NaN));
 }
 
 function testIsStrictlyEqualUsesValueSemanticsForStringsAndIdentityForReferences(): void {
-  const leftText = "alpha";
-  const rightText = "alpha";
-  const sharedNumbers = [1, 2, 3];
-  const otherNumbers = [1, 2, 3];
+	const leftText = "alpha";
+	const rightText = "alpha";
+	const sharedNumbers = [1, 2, 3];
+	const otherNumbers = [1, 2, 3];
 
-  assert(isStrictlyEqual(leftText, rightText));
-  assert(isStrictlyEqual(sharedNumbers, sharedNumbers));
-  assert(!isStrictlyEqual(sharedNumbers, otherNumbers));
+	assert(isStrictlyEqual(leftText, rightText));
+	assert(isStrictlyEqual(sharedNumbers, sharedNumbers));
+	assert(!isStrictlyEqual(sharedNumbers, otherNumbers));
 }
 
 function testAssertTruthyAcceptsCommonTruthyValues(): void {
-  assertTruthy(true);
-  assertTruthy(1);
-  assertTruthy("alpha");
-  assertTruthy([1, 2, 3]);
+	assertTruthy(true);
+	assertTruthy(1);
+	assertTruthy("alpha");
+	assertTruthy([1, 2, 3]);
 }
 
 function testAssertIfErrorAcceptsNullReferences(): void {
-  assertIfError<string | null>(null);
+	assertIfError<string | null>(null);
 }
 
 function testIsLooselyEqualCoversLegacyCoerciveCases(): void {
-  assert(isLooselyEqual<i32, string>(1, "1"));
-  assert(isLooselyEqual<bool, string>(true, "1"));
-  assert(isLooselyEqual<f64, f64>(NaN, NaN));
-  assert(!isLooselyEqual<string, string>("1", "01"));
-  assert(!isLooselyEqual<string, f64>("NaN", NaN));
-  assert(!isLooselyEqual<i32, string>(1, "2"));
+	assert(isLooselyEqual<i32, string>(1, "1"));
+	assert(isLooselyEqual<bool, string>(true, "1"));
+	assert(isLooselyEqual<f64, f64>(NaN, NaN));
+	assert(!isLooselyEqual<string, string>("1", "01"));
+	assert(!isLooselyEqual<string, f64>("NaN", NaN));
+	assert(!isLooselyEqual<i32, string>(1, "2"));
 }
 
 testIsDeepStrictlyEqualMatchesEqualValues();

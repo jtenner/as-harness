@@ -16,14 +16,20 @@ mkdirSync(distDir, { recursive: true });
 const includeDir = await resolveNodeIncludeDir();
 const env = {
 	...process.env,
-	CGO_CFLAGS: [process.env.CGO_CFLAGS, `-I${includeDir}`].filter(Boolean).join(" "),
+	CGO_CFLAGS: [process.env.CGO_CFLAGS, `-I${includeDir}`]
+		.filter(Boolean)
+		.join(" "),
 	GOCACHE: process.env.GOCACHE || path.join(cacheDir, "go-build"),
 };
 
 if (process.platform === "linux") {
-	env.CGO_LDFLAGS = [process.env.CGO_LDFLAGS, "-Wl,--allow-shlib-undefined"].filter(Boolean).join(" ");
+	env.CGO_LDFLAGS = [process.env.CGO_LDFLAGS, "-Wl,--allow-shlib-undefined"]
+		.filter(Boolean)
+		.join(" ");
 } else if (process.platform === "darwin") {
-	env.CGO_LDFLAGS = [process.env.CGO_LDFLAGS, "-Wl,-undefined,dynamic_lookup"].filter(Boolean).join(" ");
+	env.CGO_LDFLAGS = [process.env.CGO_LDFLAGS, "-Wl,-undefined,dynamic_lookup"]
+		.filter(Boolean)
+		.join(" ");
 } else if (process.platform === "win32") {
 	const nodeLibrary = await resolveWindowsNodeLibrary();
 	const nodeLibraryDirectory = toCgoPath(path.dirname(nodeLibrary));
@@ -36,7 +42,9 @@ if (process.platform === "linux") {
 		.filter(Boolean)
 		.join(" ");
 } else {
-	throw new Error(`Unsupported platform for Go N-API build: ${process.platform}`);
+	throw new Error(
+		`Unsupported platform for Go N-API build: ${process.platform}`,
+	);
 }
 
 execFileSync(
@@ -52,7 +60,9 @@ execFileSync(
 async function resolveNodeIncludeDir() {
 	const candidates = [
 		process.env.NODE_API_INCLUDE_DIR,
-		process.env.npm_config_nodedir ? path.join(process.env.npm_config_nodedir, "include", "node") : null,
+		process.env.npm_config_nodedir
+			? path.join(process.env.npm_config_nodedir, "include", "node")
+			: null,
 		process.env.npm_config_nodedir,
 		path.join(nodeRoot, "include", "node"),
 	].filter(Boolean);
@@ -103,7 +113,10 @@ async function resolveDownloadedNodeIncludeDir() {
 
 	mkdirSync(downloadDir, { recursive: true });
 
-	const archivePath = path.join(downloadDir, path.basename(new URL(headersUrl).pathname));
+	const archivePath = path.join(
+		downloadDir,
+		path.basename(new URL(headersUrl).pathname),
+	);
 	if (!existsSync(archivePath)) {
 		const response = await fetch(headersUrl);
 		if (!response.ok) {
@@ -132,14 +145,27 @@ async function resolveDownloadedNodeIncludeDir() {
 }
 
 async function resolveWindowsNodeLibrary() {
-	if (process.env.NODE_API_LIB_FILE && existsSync(process.env.NODE_API_LIB_FILE)) {
+	if (
+		process.env.NODE_API_LIB_FILE &&
+		existsSync(process.env.NODE_API_LIB_FILE)
+	) {
 		return cacheWindowsNodeLibrary(process.env.NODE_API_LIB_FILE);
 	}
 
 	const candidates = [
-		process.env.npm_config_nodedir ? path.join(process.env.npm_config_nodedir, "node.lib") : null,
-		process.env.npm_config_nodedir ? path.join(process.env.npm_config_nodedir, process.arch, "node.lib") : null,
-		process.env.npm_config_nodedir ? path.join(process.env.npm_config_nodedir, windowsReleaseArch(), "node.lib") : null,
+		process.env.npm_config_nodedir
+			? path.join(process.env.npm_config_nodedir, "node.lib")
+			: null,
+		process.env.npm_config_nodedir
+			? path.join(process.env.npm_config_nodedir, process.arch, "node.lib")
+			: null,
+		process.env.npm_config_nodedir
+			? path.join(
+					process.env.npm_config_nodedir,
+					windowsReleaseArch(),
+					"node.lib",
+				)
+			: null,
 		path.join(nodeRoot, "node.lib"),
 	];
 
@@ -149,7 +175,12 @@ async function resolveWindowsNodeLibrary() {
 		}
 	}
 
-	const downloadDir = path.join(cacheDir, "node", `v${process.versions.node}`, windowsReleaseArch());
+	const downloadDir = path.join(
+		cacheDir,
+		"node",
+		`v${process.versions.node}`,
+		windowsReleaseArch(),
+	);
 	const downloadPath = path.join(downloadDir, "node.lib");
 
 	if (existsSync(downloadPath)) {
@@ -170,7 +201,9 @@ async function resolveWindowsNodeLibrary() {
 	const url = `https://nodejs.org/download/release/v${process.versions.node}/${windowsReleaseArch()}/node.lib`;
 	const response = await fetch(url);
 	if (!response.ok) {
-		throw new Error(`Failed to download ${url}: ${response.status} ${response.statusText}`);
+		throw new Error(
+			`Failed to download ${url}: ${response.status} ${response.statusText}`,
+		);
 	}
 
 	writeFileSync(downloadPath, Buffer.from(await response.arrayBuffer()));
@@ -178,7 +211,12 @@ async function resolveWindowsNodeLibrary() {
 }
 
 function cacheWindowsNodeLibrary(sourcePath) {
-	const cacheDirectory = path.join(cacheDir, "node", `v${process.versions.node}`, windowsReleaseArch());
+	const cacheDirectory = path.join(
+		cacheDir,
+		"node",
+		`v${process.versions.node}`,
+		windowsReleaseArch(),
+	);
 	const cachedPath = path.join(cacheDirectory, "node.lib");
 	mkdirSync(cacheDirectory, { recursive: true });
 	if (path.resolve(sourcePath) !== path.resolve(cachedPath)) {
@@ -201,6 +239,8 @@ function windowsReleaseArch() {
 		case "ia32":
 			return "win-x86";
 		default:
-			throw new Error(`Unsupported Windows architecture for Node-API build: ${process.arch}`);
+			throw new Error(
+				`Unsupported Windows architecture for Node-API build: ${process.arch}`,
+			);
 	}
 }

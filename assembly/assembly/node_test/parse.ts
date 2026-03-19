@@ -1,69 +1,74 @@
-import { NodeDeclarationOptions, declareSuiteNode, declareTestNode, registerHook } from "../internal/api";
+import {
+	NodeDeclarationOptions,
+	declareSuiteNode,
+	declareTestNode,
+	registerHook,
+} from "../internal/api";
 import { Node } from "../internal/node";
 import { DeclarationMode, HookKind, SequenceMode } from "../internal/imports";
 import { HookFn, SuiteFn, TestFn } from "./types";
 
 function createDeclarationOptions(
-  mode: DeclarationMode = DeclarationMode.Normal,
-  only: bool = false,
-  expectFailure: bool = false,
-  sequenceMode: SequenceMode = SequenceMode.Inherit,
+	mode: DeclarationMode = DeclarationMode.Normal,
+	only: bool = false,
+	expectFailure: bool = false,
+	sequenceMode: SequenceMode = SequenceMode.Inherit,
 ): NodeDeclarationOptions {
-  const options = new NodeDeclarationOptions();
-  options.mode = mode;
-  options.only = only;
-  options.expectFailure = expectFailure;
-  options.sequenceMode = sequenceMode;
-  return options;
+	const options = new NodeDeclarationOptions();
+	options.mode = mode;
+	options.only = only;
+	options.expectFailure = expectFailure;
+	options.sequenceMode = sequenceMode;
+	return options;
 }
 
 export function declareTest(
-  name: string = "",
-  callback: TestFn | null = null,
+	name: string = "",
+	callback: TestFn | null = null,
 ): Node {
-  return declareTestNode(name, callback);
+	return declareTestNode(name, callback);
 }
 
 export function declareModifiedTest(
-  name: string = "",
-  callback: TestFn | null = null,
-  mode: DeclarationMode = DeclarationMode.Normal,
-  only: bool = false,
-  expectFailure: bool = false,
-  sequenceMode: SequenceMode = SequenceMode.Inherit,
+	name: string = "",
+	callback: TestFn | null = null,
+	mode: DeclarationMode = DeclarationMode.Normal,
+	only: bool = false,
+	expectFailure: bool = false,
+	sequenceMode: SequenceMode = SequenceMode.Inherit,
 ): Node {
-  return declareTestNode(
-    name,
-    callback,
-    createDeclarationOptions(mode, only, expectFailure, sequenceMode),
-  );
+	return declareTestNode(
+		name,
+		callback,
+		createDeclarationOptions(mode, only, expectFailure, sequenceMode),
+	);
 }
 
 export function declareSuite(
-  name: string = "",
-  callback: SuiteFn | null = null,
+	name: string = "",
+	callback: SuiteFn | null = null,
 ): Node {
-  return declareSuiteNode(name, callback);
+	return declareSuiteNode(name, callback);
 }
 
 export function declareModifiedSuite(
-  name: string = "",
-  callback: SuiteFn | null = null,
-  mode: DeclarationMode = DeclarationMode.Normal,
-  only: bool = false,
-  expectFailure: bool = false,
-  sequenceMode: SequenceMode = SequenceMode.Inherit,
+	name: string = "",
+	callback: SuiteFn | null = null,
+	mode: DeclarationMode = DeclarationMode.Normal,
+	only: bool = false,
+	expectFailure: bool = false,
+	sequenceMode: SequenceMode = SequenceMode.Inherit,
 ): Node {
-  return declareSuiteNode(
-    name,
-    callback,
-    createDeclarationOptions(mode, only, expectFailure, sequenceMode),
-  );
+	return declareSuiteNode(
+		name,
+		callback,
+		createDeclarationOptions(mode, only, expectFailure, sequenceMode),
+	);
 }
 
 export function declareHook(
-  kind: HookKind,
-  callback: HookFn | null = null,
+	kind: HookKind,
+	callback: HookFn | null = null,
 ): void {
-  registerHook(kind, callback);
+	registerHook(kind, callback);
 }

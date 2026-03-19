@@ -15,7 +15,7 @@ const vitestSmokeFile = "build/vitest-smoke.wasm";
 console.log("Compiling assembly test entrypoint...");
 
 await $`npx asc assembly/test/index.ts --bindings esm --debug --sourceMap --exportStart __start --outFile ${outputFile}`.cwd(
-  assemblyDir,
+	assemblyDir,
 );
 
 console.log("Running assembly test bootstrap...");
@@ -27,19 +27,19 @@ console.log("Assembly test bootstrap completed.");
 console.log("Compiling node:assert bridge smoke fixture...");
 
 await $`npx asc assembly/test/node-assert-smoke.ts --debug --exportStart __start --outFile ${legacyAssertSmokeFile}`.cwd(
-  assemblyDir,
+	assemblyDir,
 );
 
 console.log("Compiling node:assert/strict bridge smoke fixture...");
 
 await $`npx asc assembly/test/node-assert-strict-smoke.ts --debug --exportStart __start --outFile ${strictAssertSmokeFile}`.cwd(
-  assemblyDir,
+	assemblyDir,
 );
 
 console.log("Compiling vitest adapter smoke fixture...");
 
 await $`npx asc assembly/test/vitest-smoke.ts --debug --exportStart __start --outFile ${vitestSmokeFile}`.cwd(
-  assemblyDir,
+	assemblyDir,
 );
 
 console.log("Running node:assert bridge smoke checks...");

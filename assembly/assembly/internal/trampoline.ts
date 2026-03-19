@@ -11,10 +11,10 @@ const stagedTrapCallbacks = new Array<TrapCallback>();
  * `throws(...)` can be used from within already-running test callbacks.
  */
 export function didCallbackTrap(callback: TrapCallback): bool {
-  stagedTrapCallbacks.push(callback);
-  const status = invokeStaged();
-  stagedTrapCallbacks.pop();
-  return status == 0;
+	stagedTrapCallbacks.push(callback);
+	const status = invokeStaged();
+	stagedTrapCallbacks.pop();
+	return status == 0;
 }
 
 /**
@@ -22,11 +22,11 @@ export function didCallbackTrap(callback: TrapCallback): bool {
  * callback. The host owns trap observation around this call.
  */
 export function invoke(): void {
-  const depth = stagedTrapCallbacks.length;
-  if (depth == 0) {
-    unreachable();
-  }
+	const depth = stagedTrapCallbacks.length;
+	if (depth == 0) {
+		unreachable();
+	}
 
-  const callback = unchecked(stagedTrapCallbacks[depth - 1]);
-  callback();
+	const callback = unchecked(stagedTrapCallbacks[depth - 1]);
+	callback();
 }

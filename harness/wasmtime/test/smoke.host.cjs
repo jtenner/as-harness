@@ -34,7 +34,9 @@ registerSharedStartPlannerSmokeSuite({
 });
 
 test("cli run executes tests through the wasmtime harness", () => {
-	const tempDirectory = mkdtempSync(path.join(tmpdir(), "as-harness-wasmtime-cli-"));
+	const tempDirectory = mkdtempSync(
+		path.join(tmpdir(), "as-harness-wasmtime-cli-"),
+	);
 
 	try {
 		const entryFile = path.join(tempDirectory, "suite.test.ts");
@@ -70,7 +72,9 @@ test("cli run executes tests through the wasmtime harness", () => {
 });
 
 test("cli run emits coverage through the wasmtime harness", () => {
-	const tempDirectory = mkdtempSync(path.join(tmpdir(), "as-harness-wasmtime-cover-"));
+	const tempDirectory = mkdtempSync(
+		path.join(tmpdir(), "as-harness-wasmtime-cover-"),
+	);
 
 	try {
 		const entryFile = path.join(tempDirectory, "suite.test.ts");
@@ -121,8 +125,10 @@ test("cli run emits coverage through the wasmtime harness", () => {
 	}
 });
 
-test('cli run executes a thin vitest adapter entry through the wasmtime harness', () => {
-	const tempDirectory = mkdtempSync(path.join(tmpdir(), "as-harness-wasmtime-vitest-"));
+test("cli run executes a thin vitest adapter entry through the wasmtime harness", () => {
+	const tempDirectory = mkdtempSync(
+		path.join(tmpdir(), "as-harness-wasmtime-vitest-"),
+	);
 
 	try {
 		const entryFile = path.join(tempDirectory, "suite.test.ts");

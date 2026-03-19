@@ -57,15 +57,14 @@ function runBranch(branch) {
 
 function runTask(message) {
 	switch (message.type) {
-		case "discoverBranch":
-			{
-				const harness = harnessModule.createHarness(wasmBytes);
-				try {
-					return discoverBranch(harness, message.task.root);
-				} finally {
-					closeHarness(harness);
-				}
+		case "discoverBranch": {
+			const harness = harnessModule.createHarness(wasmBytes);
+			try {
+				return discoverBranch(harness, message.task.root);
+			} finally {
+				closeHarness(harness);
 			}
+		}
 		case "runBranch":
 			return runBranch(message.task);
 		default:
