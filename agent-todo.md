@@ -95,10 +95,6 @@ Remaining work:
 
 Remaining work:
 
-- add host-level scheduler tests for broader topological ordering,
-  declaration-order tie-breaking, blocked propagation, and prerequisite-outcome
-  handling now that missing dependencies, cycle detection, and prerequisite
-  satisfaction have pure proof
 - extend CLI-facing and true guest-declared cross-host proof from dependency
   metadata visibility into planner usage so stable IDs, declaration order,
   dependency node IDs, and the new planning/blocked result fields are

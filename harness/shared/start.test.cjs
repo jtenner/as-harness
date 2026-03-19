@@ -262,6 +262,109 @@ test("planExecutionStages resolves dependencyNodeIds onto discovered targets", (
 	assert.deepEqual(plan.issues, []);
 });
 
+test("planExecutionStages applies global topological ordering with declaration-order tie-breaks", () => {
+	const firstRoot = createPlannerNode({
+		identityKey: "id:80",
+		nodeId: 80,
+		declarationOrder: 0,
+		kind: 2,
+		name: "first root",
+	});
+	const lateIndependent = createPlannerNode({
+		identityKey: "id:80/id:84",
+		parentIdentityKey: "id:80",
+		nodeId: 84,
+		parentNodeId: 80,
+		declarationOrder: 4,
+		name: "late independent",
+	});
+	const crossBranchDependent = createPlannerNode({
+		identityKey: "id:80/id:86",
+		parentIdentityKey: "id:80",
+		nodeId: 86,
+		parentNodeId: 80,
+		declarationOrder: 6,
+		dependencyKeys: ["id:81/id:82"],
+		name: "cross-branch dependent",
+	});
+
+	const secondRoot = createPlannerNode({
+		identityKey: "id:81",
+		nodeId: 81,
+		declarationOrder: 10,
+		kind: 2,
+		name: "second root",
+	});
+	const earlyIndependent = createPlannerNode({
+		identityKey: "id:81/id:81a",
+		parentIdentityKey: "id:81",
+		nodeId: 811,
+		parentNodeId: 81,
+		declarationOrder: 1,
+		name: "early independent",
+	});
+	const sharedPrereq = createPlannerNode({
+		identityKey: "id:81/id:82",
+		parentIdentityKey: "id:81",
+		nodeId: 82,
+		parentNodeId: 81,
+		declarationOrder: 2,
+		name: "shared prereq",
+	});
+	const sameBranchDependent = createPlannerNode({
+		identityKey: "id:81/id:85",
+		parentIdentityKey: "id:81",
+		nodeId: 85,
+		parentNodeId: 81,
+		declarationOrder: 5,
+		dependencyKeys: ["id:81/id:82"],
+		name: "same-branch dependent",
+	});
+
+	const thirdRoot = createPlannerNode({
+		identityKey: "id:83",
+		nodeId: 83,
+		declarationOrder: 20,
+		kind: 2,
+		name: "third root",
+	});
+	const middleIndependent = createPlannerNode({
+		identityKey: "id:83/id:83a",
+		parentIdentityKey: "id:83",
+		nodeId: 831,
+		parentNodeId: 83,
+		declarationOrder: 3,
+		name: "middle independent",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [firstRoot, lateIndependent, crossBranchDependent]),
+		createPlannerBranch(1, [
+			secondRoot,
+			earlyIndependent,
+			sharedPrereq,
+			sameBranchDependent,
+		]),
+		createPlannerBranch(2, [thirdRoot, middleIndependent]),
+	]);
+
+	assert.equal(plan.complete, true);
+	assert.deepEqual(
+		plan.stages.map((stage) => stage.map((target) => target.node.name)),
+		[
+			[
+				"early independent",
+				"shared prereq",
+				"middle independent",
+				"late independent",
+			],
+			["same-branch dependent", "cross-branch dependent"],
+		],
+	);
+	assert.deepEqual(plan.blockedTargets, []);
+	assert.deepEqual(plan.issues, []);
+});
+
 test("planExecutionStages does not resolve repeated local nodeIds across unrelated scopes", () => {
 	const otherRoot = createPlannerNode({
 		identityKey: "id:28",
@@ -432,6 +535,117 @@ test("classifyDependencyOutcome treats expected failures as satisfied only when 
 	assert.equal(
 		classifyDependencyOutcome(expectedFailureTarget, { ok: true }),
 		"unsatisfied",
+	);
+});
+
+test("evaluatePlannedExecution keeps unrelated work satisfied while blocking only downstream dependents", () => {
+	const root = createPlannerNode({
+		identityKey: "id:120",
+		nodeId: 120,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const failingPrereq = createPlannerNode({
+		identityKey: "id:120/id:121",
+		parentIdentityKey: "id:120",
+		nodeId: 121,
+		parentNodeId: 120,
+		declarationOrder: 1,
+		name: "failing prereq",
+	});
+	const blockedDependent = createPlannerNode({
+		identityKey: "id:120/id:122",
+		parentIdentityKey: "id:120",
+		nodeId: 122,
+		parentNodeId: 120,
+		declarationOrder: 2,
+		dependencyKeys: ["id:120/id:121"],
+		name: "blocked dependent",
+	});
+	const unrelatedReady = createPlannerNode({
+		identityKey: "id:120/id:123",
+		parentIdentityKey: "id:120",
+		nodeId: 123,
+		parentNodeId: 120,
+		declarationOrder: 3,
+		name: "unrelated ready",
+	});
+	const expectedFailurePrereq = createPlannerNode({
+		identityKey: "id:120/id:124",
+		parentIdentityKey: "id:120",
+		nodeId: 124,
+		parentNodeId: 120,
+		declarationOrder: 4,
+		expectFailure: true,
+		name: "expected failure prereq",
+	});
+	const satisfiedDependent = createPlannerNode({
+		identityKey: "id:120/id:125",
+		parentIdentityKey: "id:120",
+		nodeId: 125,
+		parentNodeId: 120,
+		declarationOrder: 5,
+		dependencyKeys: ["id:120/id:124"],
+		name: "satisfied dependent",
+	});
+	const downstreamBlocked = createPlannerNode({
+		identityKey: "id:120/id:126",
+		parentIdentityKey: "id:120",
+		nodeId: 126,
+		parentNodeId: 120,
+		declarationOrder: 6,
+		dependencyKeys: ["id:120/id:122"],
+		name: "downstream blocked",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [
+			root,
+			failingPrereq,
+			blockedDependent,
+			unrelatedReady,
+			expectedFailurePrereq,
+			satisfiedDependent,
+			downstreamBlocked,
+		]),
+	]);
+	const evaluated = evaluatePlannedExecution(
+		plan,
+		new Map([
+			["id:120/id:121", { ok: false }],
+			["id:120/id:122", { ok: true }],
+			["id:120/id:123", { ok: true }],
+			["id:120/id:124", { ok: false }],
+			["id:120/id:125", { ok: true }],
+			["id:120/id:126", { ok: true }],
+		]),
+	);
+
+	assert.equal(evaluated.outcomesByIdentity.get("id:120/id:121"), "unsatisfied");
+	assert.equal(evaluated.outcomesByIdentity.get("id:120/id:122"), "blocked");
+	assert.equal(evaluated.outcomesByIdentity.get("id:120/id:123"), "satisfied");
+	assert.equal(evaluated.outcomesByIdentity.get("id:120/id:124"), "satisfied");
+	assert.equal(evaluated.outcomesByIdentity.get("id:120/id:125"), "satisfied");
+	assert.equal(evaluated.outcomesByIdentity.get("id:120/id:126"), "blocked");
+	assert.deepEqual(
+		evaluated.blockedTargets.map((target) => target.node.name),
+		["blocked dependent", "downstream blocked"],
+	);
+	assert.deepEqual(
+		evaluated.issues.filter((issue) => issue.type === "blocked-dependency"),
+		[
+			{
+				type: "blocked-dependency",
+				targetIdentityKey: "id:120/id:122",
+				dependencyIdentityKey: "id:120/id:121",
+			},
+			{
+				type: "blocked-dependency",
+				targetIdentityKey: "id:120/id:126",
+				dependencyIdentityKey: "id:120/id:121",
+			},
+		],
 	);
 });
 
