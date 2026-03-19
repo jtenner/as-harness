@@ -57,6 +57,8 @@ function cloneNode(node) {
 				: 0,
 		sequenceMode:
 			typeof node.sequenceMode === "number" ? node.sequenceMode >>> 0 : 0,
+		only: node?.only === true,
+		expectFailure: node?.expectFailure === true,
 		kind: typeof node.kind === "number" ? node.kind >>> 0 : 0,
 		declarationMode:
 			typeof node.declarationMode === "number" ? node.declarationMode >>> 0 : 0,

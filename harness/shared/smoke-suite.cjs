@@ -10,17 +10,18 @@ const NODE_METADATA_BY_INDEX = new Map([
 	["2", { nodeId: 3, parentNodeId: 0, declarationOrder: 2 }],
 	["3", { nodeId: 4, parentNodeId: 0, declarationOrder: 3 }],
 	["4", { nodeId: 5, parentNodeId: 0, declarationOrder: 4 }],
-	["5", { nodeId: 6, parentNodeId: 0, declarationOrder: 5 }],
+	["5", { nodeId: 6, parentNodeId: 0, declarationOrder: 5, expectFailure: true }],
 	["6", { nodeId: 7, parentNodeId: 0, declarationOrder: 6 }],
 	["7", { nodeId: 8, parentNodeId: 0, declarationOrder: 7 }],
 	["8", { nodeId: 9, parentNodeId: 0, declarationOrder: 8 }],
 	["9", { nodeId: 10, parentNodeId: 0, declarationOrder: 9 }],
 	["10", { nodeId: 11, parentNodeId: 0, declarationOrder: 10 }],
-	["3.0", { nodeId: 12, parentNodeId: 4, declarationOrder: 11 }],
-	["4.0", { nodeId: 12, parentNodeId: 5, declarationOrder: 11 }],
-	["6.0", { nodeId: 12, parentNodeId: 7, declarationOrder: 11 }],
-	["8.0", { nodeId: 12, parentNodeId: 9, declarationOrder: 11 }],
-	["9.0", { nodeId: 12, parentNodeId: 10, declarationOrder: 11 }],
+	["11", { nodeId: 12, parentNodeId: 0, declarationOrder: 11 }],
+	["3.0", { nodeId: 13, parentNodeId: 4, declarationOrder: 12 }],
+	["4.0", { nodeId: 13, parentNodeId: 5, declarationOrder: 12, only: true }],
+	["7.0", { nodeId: 13, parentNodeId: 8, declarationOrder: 12 }],
+	["9.0", { nodeId: 13, parentNodeId: 10, declarationOrder: 12 }],
+	["10.0", { nodeId: 13, parentNodeId: 11, declarationOrder: 12 }],
 ]);
 
 function annotateNode(node) {
@@ -32,6 +33,8 @@ function annotateNode(node) {
 			parentNodeId: 0,
 			declarationOrder: 0,
 			sequenceMode: 0,
+			only: false,
+			expectFailure: false,
 		};
 	}
 
@@ -41,6 +44,8 @@ function annotateNode(node) {
 		parentNodeId: metadata.parentNodeId,
 		declarationOrder: metadata.declarationOrder,
 		sequenceMode: 0,
+		only: metadata.only ?? false,
+		expectFailure: metadata.expectFailure ?? false,
 	};
 }
 
@@ -108,27 +113,27 @@ const PLANNED_MISMATCH_EVENTS = [
 ];
 
 const HOOK_FAILURE_EVENTS = [
-	["nodeStart", { nodeIndex: [8, 0] }],
-	["callbackStart", { hook: 1, nodeIndex: [] }],
-	["callbackPass", { hook: 1, nodeIndex: [] }],
-	["callbackStart", { hook: 2, nodeIndex: [] }],
-	["callbackPass", { hook: 2, nodeIndex: [] }],
-	["callbackStart", { hook: 2, nodeIndex: [8] }],
-	["failMessage", { message: "hook beforeEach mismatch" }],
-	["callbackFail", { hook: 2, nodeIndex: [8], failureKind: 1 }],
-];
-
-const TRAP_EVENTS = [
 	["nodeStart", { nodeIndex: [9, 0] }],
 	["callbackStart", { hook: 1, nodeIndex: [] }],
 	["callbackPass", { hook: 1, nodeIndex: [] }],
 	["callbackStart", { hook: 2, nodeIndex: [] }],
 	["callbackPass", { hook: 2, nodeIndex: [] }],
-	["nodeFail", { nodeIndex: [9, 0], failureKind: 2 }],
+	["callbackStart", { hook: 2, nodeIndex: [9] }],
+	["failMessage", { message: "hook beforeEach mismatch" }],
+	["callbackFail", { hook: 2, nodeIndex: [9], failureKind: 1 }],
+];
+
+const TRAP_EVENTS = [
+	["nodeStart", { nodeIndex: [10, 0] }],
+	["callbackStart", { hook: 1, nodeIndex: [] }],
+	["callbackPass", { hook: 1, nodeIndex: [] }],
+	["callbackStart", { hook: 2, nodeIndex: [] }],
+	["callbackPass", { hook: 2, nodeIndex: [] }],
+	["nodeFail", { nodeIndex: [10, 0], failureKind: 2 }],
 ];
 
 const TODO_NESTED_CHILD_EVENTS = [
-	["nodeStart", { nodeIndex: [6, 0] }],
+	["nodeStart", { nodeIndex: [7, 0] }],
 	["callbackStart", { hook: 1, nodeIndex: [] }],
 	["callbackPass", { hook: 1, nodeIndex: [] }],
 	["callbackStart", { hook: 2, nodeIndex: [] }],
@@ -137,16 +142,16 @@ const TODO_NESTED_CHILD_EVENTS = [
 	["callbackPass", { hook: 3, nodeIndex: [] }],
 	["callbackStart", { hook: 4, nodeIndex: [] }],
 	["callbackPass", { hook: 4, nodeIndex: [] }],
-	["nodePass", { nodeIndex: [6, 0] }],
+	["nodePass", { nodeIndex: [7, 0] }],
 ];
 
 const DISCOVERY_TRAP_ROOT_EVENTS = [
-	["nodeStart", { nodeIndex: [10] }],
+	["nodeStart", { nodeIndex: [11] }],
 	["callbackStart", { hook: 1, nodeIndex: [] }],
 	["callbackPass", { hook: 1, nodeIndex: [] }],
 	["callbackStart", { hook: 2, nodeIndex: [] }],
 	["callbackPass", { hook: 2, nodeIndex: [] }],
-	["nodeFail", { nodeIndex: [10], failureKind: 2 }],
+	["nodeFail", { nodeIndex: [11], failureKind: 2 }],
 ];
 
 const DISCOVERED_NODES = annotateNodes([
@@ -183,35 +188,41 @@ const DISCOVERED_NODES = annotateNodes([
 	{
 		nodeIndex: [5],
 		kind: 1,
-		declarationMode: 2,
-		name: "skipped parent",
+		declarationMode: 1,
+		name: "expected failure test",
 	},
 	{
 		nodeIndex: [6],
 		kind: 1,
-		declarationMode: 3,
-		name: "todo parent",
+		declarationMode: 2,
+		name: "skipped parent",
 	},
 	{
 		nodeIndex: [7],
 		kind: 1,
 		declarationMode: 3,
-		name: "top-level todo leaf",
+		name: "todo parent",
 	},
 	{
 		nodeIndex: [8],
 		kind: 1,
-		declarationMode: 1,
-		name: "hook failure parent",
+		declarationMode: 3,
+		name: "top-level todo leaf",
 	},
 	{
 		nodeIndex: [9],
 		kind: 1,
 		declarationMode: 1,
-		name: "trap parent",
+		name: "hook failure parent",
 	},
 	{
 		nodeIndex: [10],
+		kind: 1,
+		declarationMode: 1,
+		name: "trap parent",
+	},
+	{
+		nodeIndex: [11],
 		kind: 1,
 		declarationMode: 1,
 		name: "discovery trap parent",
@@ -229,19 +240,19 @@ const DISCOVERED_NODES = annotateNodes([
 		name: "run-only nested child",
 	},
 	{
-		nodeIndex: [6, 0],
+		nodeIndex: [7, 0],
 		kind: 1,
 		declarationMode: 1,
 		name: "todo nested child",
 	},
 	{
-		nodeIndex: [8, 0],
+		nodeIndex: [9, 0],
 		kind: 1,
 		declarationMode: 1,
 		name: "hook failure child",
 	},
 	{
-		nodeIndex: [9, 0],
+		nodeIndex: [10, 0],
 		kind: 1,
 		declarationMode: 1,
 		name: "trapping child",
@@ -278,9 +289,18 @@ const TARGETED_ONLY_DISCOVERY = annotateNodes([
 	},
 ]);
 
-const TARGETED_SKIP_DISCOVERY = annotateNodes([
+const TARGETED_EXPECT_FAILURE_DISCOVERY = annotateNodes([
 	{
 		nodeIndex: [5],
+		kind: 1,
+		declarationMode: 1,
+		name: "expected failure test",
+	},
+]);
+
+const TARGETED_SKIP_DISCOVERY = annotateNodes([
+	{
+		nodeIndex: [6],
 		kind: 1,
 		declarationMode: 2,
 		name: "skipped parent",
@@ -289,13 +309,13 @@ const TARGETED_SKIP_DISCOVERY = annotateNodes([
 
 const TARGETED_TODO_DISCOVERY = annotateNodes([
 	{
-		nodeIndex: [6],
+		nodeIndex: [7],
 		kind: 1,
 		declarationMode: 3,
 		name: "todo parent",
 	},
 	{
-		nodeIndex: [6, 0],
+		nodeIndex: [7, 0],
 		kind: 1,
 		declarationMode: 1,
 		name: "todo nested child",
@@ -304,7 +324,7 @@ const TARGETED_TODO_DISCOVERY = annotateNodes([
 
 const TARGETED_TODO_LEAF_DISCOVERY = annotateNodes([
 	{
-		nodeIndex: [7],
+		nodeIndex: [8],
 		kind: 1,
 		declarationMode: 3,
 		name: "top-level todo leaf",
@@ -313,13 +333,13 @@ const TARGETED_TODO_LEAF_DISCOVERY = annotateNodes([
 
 const TARGETED_HOOK_FAILURE_DISCOVERY = annotateNodes([
 	{
-		nodeIndex: [8],
+		nodeIndex: [9],
 		kind: 1,
 		declarationMode: 1,
 		name: "hook failure parent",
 	},
 	{
-		nodeIndex: [8, 0],
+		nodeIndex: [9, 0],
 		kind: 1,
 		declarationMode: 1,
 		name: "hook failure child",
@@ -328,13 +348,13 @@ const TARGETED_HOOK_FAILURE_DISCOVERY = annotateNodes([
 
 const TARGETED_TRAP_DISCOVERY = annotateNodes([
 	{
-		nodeIndex: [9],
+		nodeIndex: [10],
 		kind: 1,
 		declarationMode: 1,
 		name: "trap parent",
 	},
 	{
-		nodeIndex: [9, 0],
+		nodeIndex: [10, 0],
 		kind: 1,
 		declarationMode: 1,
 		name: "trapping child",
@@ -501,7 +521,7 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.discover([]), true);
 		assert.equal(harness.run([0]), true);
 		assert.deepEqual(staleFound, []);
-		assert.deepEqual(activeFound, DISCOVERED_NODES.slice(0, 11));
+		assert.deepEqual(activeFound, DISCOVERED_NODES.slice(0, 12));
 		assert.deepEqual(staleStarts, []);
 		assert.deepEqual(activeStarts, [{ nodeIndex: [0] }]);
 		closeHarness(harness);
@@ -532,13 +552,13 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.run([4]), true);
 		assert.equal(harness.run([5]), true);
 		assert.equal(harness.run([6]), true);
-		assert.equal(harness.run([6, 0]), true);
 		assert.equal(harness.run([7]), true);
+		assert.equal(harness.run([7, 0]), true);
+		assert.equal(harness.run([8]), true);
 		assert.equal(harness.run([4, 0]), true);
 		assert.equal(harness.run([4, 1]), false);
-		assert.equal(harness.run([8, 0]), false);
 		assert.equal(harness.run([9, 0]), false);
-		assert.equal(harness.run([10]), false);
+		assert.equal(harness.run([10, 0]), false);
 		assert.equal(harness.run([11]), false);
 		closeHarness(harness);
 	});
@@ -667,7 +687,7 @@ function registerHarnessSmokeSuite(options) {
 		});
 
 		assert.equal(harness.discover([]), true);
-		assert.deepEqual(found, DISCOVERED_NODES.slice(0, 11));
+		assert.deepEqual(found, DISCOVERED_NODES.slice(0, 12));
 
 		found.length = 0;
 		assert.equal(harness.discover([3]), true);
@@ -679,26 +699,30 @@ function registerHarnessSmokeSuite(options) {
 
 		found.length = 0;
 		assert.equal(harness.discover([5]), true);
-		assert.deepEqual(found, TARGETED_SKIP_DISCOVERY);
+		assert.deepEqual(found, TARGETED_EXPECT_FAILURE_DISCOVERY);
 
 		found.length = 0;
 		assert.equal(harness.discover([6]), true);
-		assert.deepEqual(found, TARGETED_TODO_DISCOVERY);
+		assert.deepEqual(found, TARGETED_SKIP_DISCOVERY);
 
 		found.length = 0;
 		assert.equal(harness.discover([7]), true);
-		assert.deepEqual(found, TARGETED_TODO_LEAF_DISCOVERY);
+		assert.deepEqual(found, TARGETED_TODO_DISCOVERY);
 
 		found.length = 0;
 		assert.equal(harness.discover([8]), true);
-		assert.deepEqual(found, TARGETED_HOOK_FAILURE_DISCOVERY);
+		assert.deepEqual(found, TARGETED_TODO_LEAF_DISCOVERY);
 
 		found.length = 0;
 		assert.equal(harness.discover([9]), true);
+		assert.deepEqual(found, TARGETED_HOOK_FAILURE_DISCOVERY);
+
+		found.length = 0;
+		assert.equal(harness.discover([10]), true);
 		assert.deepEqual(found, TARGETED_TRAP_DISCOVERY);
 
 		found.length = 0;
-		assert.equal(harness.discover([10]), false);
+		assert.equal(harness.discover([11]), false);
 		assert.deepEqual(found, []);
 
 		found.length = 0;
@@ -715,11 +739,11 @@ function registerHarnessSmokeSuite(options) {
 			found.push(event);
 		});
 
-		assert.equal(harness.discover([5]), true);
+		assert.equal(harness.discover([6]), true);
 		assert.deepEqual(found, TARGETED_SKIP_DISCOVERY);
 
 		found.length = 0;
-		assert.equal(harness.discover([6]), true);
+		assert.equal(harness.discover([7]), true);
 		assert.deepEqual(found, TARGETED_TODO_DISCOVERY);
 		closeHarness(harness);
 	});
@@ -738,8 +762,8 @@ function registerHarnessSmokeSuite(options) {
 			events.push(["failMessage", event]);
 		});
 
-		assert.equal(harness.run([6]), true);
 		assert.equal(harness.run([7]), true);
+		assert.equal(harness.run([8]), true);
 		assert.deepEqual(events, []);
 		closeHarness(harness);
 	});
@@ -761,7 +785,7 @@ function registerHarnessSmokeSuite(options) {
 			events.push(["callbackPass", event]);
 		});
 
-		assert.equal(harness.run([6, 0]), true);
+		assert.equal(harness.run([7, 0]), true);
 		assert.deepEqual(events, TODO_NESTED_CHILD_EVENTS);
 		closeHarness(harness);
 	});
@@ -774,7 +798,7 @@ function registerHarnessSmokeSuite(options) {
 			found.push(event);
 		});
 
-		assert.equal(harness.discover([10]), false);
+		assert.equal(harness.discover([11]), false);
 		assert.deepEqual(found, []);
 
 		found.length = 0;
@@ -806,7 +830,7 @@ function registerHarnessSmokeSuite(options) {
 			events.push(["failMessage", event]);
 		});
 
-		assert.equal(harness.run([8, 0]), false);
+		assert.equal(harness.run([9, 0]), false);
 		assert.deepEqual(events, HOOK_FAILURE_EVENTS);
 		closeHarness(harness);
 	});
@@ -845,7 +869,7 @@ function registerHarnessSmokeSuite(options) {
 			(trapPhase ? trappedEvents : recoveryEvents).push(["failMessage", event]);
 		});
 
-		assert.equal(harness.run([9, 0]), false);
+		assert.equal(harness.run([10, 0]), false);
 		trapPhase = false;
 		assert.equal(harness.run([0]), true);
 
@@ -867,15 +891,15 @@ function registerHarnessSmokeSuite(options) {
 
 		assert.equal(result.discoveryOk, true);
 		assert.equal(result.ok, false);
-		assert.equal(result.discoveredTestCount, 16);
-		assert.equal(result.topLevelNodes.length, 11);
+		assert.equal(result.discoveredTestCount, 17);
+		assert.equal(result.topLevelNodes.length, 12);
 		assert.deepEqual(
 			result.topLevelNodes.map((node) => node.nodeId),
-			[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
 		);
 		assert.deepEqual(
 			result.topLevelNodes.map((node) => node.declarationOrder),
-			[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+			[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
 		);
 		assert.equal(result.workerCount, 1);
 		assert.deepEqual(
@@ -892,27 +916,22 @@ function registerHarnessSmokeSuite(options) {
 			branchesByName
 				.get("todo parent")
 				.executions.map((execution) => execution.node.nodeIndex),
-			[[6, 0]],
+			[[7, 0]],
 		);
 		assert.deepEqual(
 			branchesByName
 				.get("todo parent")
 				.executions.map((execution) => execution.node.nodeId),
-			[12],
+			[13],
 		);
 		assert.deepEqual(branchesByName.get("top-level todo leaf").executions, []);
+		assert.equal(
+			branchesByName.get("expected failure test").discovery.nodes[0].expectFailure,
+			true,
+		);
 		assert.deepEqual(
 			branchesByName
 				.get("hook failure parent")
-				.executions.map((execution) => [execution.node.nodeIndex, execution.ok]),
-			[
-				[[8], true],
-				[[8, 0], false],
-			],
-		);
-		assert.deepEqual(
-			branchesByName
-				.get("trap parent")
 				.executions.map((execution) => [execution.node.nodeIndex, execution.ok]),
 			[
 				[[9], true],
@@ -920,10 +939,19 @@ function registerHarnessSmokeSuite(options) {
 			],
 		);
 		assert.deepEqual(
+			branchesByName
+				.get("trap parent")
+				.executions.map((execution) => [execution.node.nodeIndex, execution.ok]),
+			[
+				[[10], true],
+				[[10, 0], false],
+			],
+		);
+		assert.deepEqual(
 			branchesByName.get("discovery trap parent").discovery.nodes,
 			annotateNodes([
 				{
-					nodeIndex: [10],
+					nodeIndex: [11],
 					kind: 1,
 					declarationMode: 1,
 					name: "discovery trap parent",
@@ -935,7 +963,7 @@ function registerHarnessSmokeSuite(options) {
 				.get("discovery trap parent")
 				.executions.map((execution) => [execution.node.nodeIndex, execution.ok]),
 			[
-				[[10], false],
+				[[11], false],
 			],
 		);
 		assert.deepEqual(
@@ -944,7 +972,7 @@ function registerHarnessSmokeSuite(options) {
 				.discovery.nodes.map((node) => [node.nodeId, node.parentNodeId]),
 			[
 				[4, 0],
-				[12, 4],
+				[13, 4],
 			],
 		);
 		assert.deepEqual(

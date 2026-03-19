@@ -103,7 +103,7 @@ function decodeNodeEvent(bytes) {
 
 function decodeNodeFoundEvent(bytes) {
 	const decodedNodeIndex = decodeNodeIndex(bytes, 0);
-	if (decodedNodeIndex === null || decodedNodeIndex.offset + 20 > bytes.byteLength) {
+	if (decodedNodeIndex === null || decodedNodeIndex.offset + 24 > bytes.byteLength) {
 		return null;
 	}
 
@@ -118,11 +118,11 @@ function decodeNodeFoundEvent(bytes) {
 	}
 
 	const declarationOrder = decodeUint32(bytes, parentNodeId.offset);
-	if (declarationOrder === null || declarationOrder.offset + 8 > bytes.byteLength) {
+	if (declarationOrder === null || declarationOrder.offset + 12 > bytes.byteLength) {
 		return null;
 	}
 
-	const nameLength = decodeUint32(bytes, declarationOrder.offset + 4);
+	const nameLength = decodeUint32(bytes, declarationOrder.offset + 8);
 	if (nameLength === null) {
 		return null;
 	}
@@ -138,6 +138,8 @@ function decodeNodeFoundEvent(bytes) {
 		kind: bytes[declarationOrder.offset],
 		declarationMode: bytes[declarationOrder.offset + 1],
 		sequenceMode: bytes[declarationOrder.offset + 2],
+		only: bytes[declarationOrder.offset + 3] !== 0,
+		expectFailure: bytes[declarationOrder.offset + 4] !== 0,
 		name: readUtf8(bytes, nameLength.offset, nameLength.value),
 	};
 }

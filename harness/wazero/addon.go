@@ -126,6 +126,8 @@ type nodeSnapshot struct {
 	ParentNodeID     uint32
 	DeclarationOrder uint32
 	SequenceMode     uint32
+	Only             bool
+	ExpectFailure    bool
 	Kind             uint32
 	DeclarationMode  uint32
 	Name             string
@@ -149,6 +151,8 @@ type eventSnapshot struct {
 	ParentNodeID     uint32
 	DeclarationOrder uint32
 	SequenceMode     uint32
+	Only             bool
+	ExpectFailure    bool
 	Kind             uint32
 	DeclarationMode  uint32
 	Name             string
@@ -726,7 +730,7 @@ func createNodeEventObject(env C.napi_env, nodeIndex []uint32) (C.napi_value, bo
 
 func decodeNodeFoundSnapshot(payload []byte) (nodeSnapshot, bool) {
 	nodeIndex, offset, ok := decodeNodeIndex(payload, 0)
-	if !ok || offset+20 > len(payload) {
+	if !ok || offset+24 > len(payload) {
 		return nodeSnapshot{}, false
 	}
 
@@ -739,14 +743,16 @@ func decodeNodeFoundSnapshot(payload []byte) (nodeSnapshot, bool) {
 		return nodeSnapshot{}, false
 	}
 	declarationOrder, nextOffset, ok := decodeUint32(payload, nextOffset)
-	if !ok || nextOffset+8 > len(payload) {
+	if !ok || nextOffset+12 > len(payload) {
 		return nodeSnapshot{}, false
 	}
 
 	kind := uint32(payload[nextOffset])
 	mode := uint32(payload[nextOffset+1])
 	sequenceMode := uint32(payload[nextOffset+2])
-	nameLength, nextOffset, ok := decodeUint32(payload, nextOffset+4)
+	only := payload[nextOffset+3] != 0
+	expectFailure := payload[nextOffset+4] != 0
+	nameLength, nextOffset, ok := decodeUint32(payload, nextOffset+8)
 	if !ok {
 		return nodeSnapshot{}, false
 	}
@@ -760,6 +766,8 @@ func decodeNodeFoundSnapshot(payload []byte) (nodeSnapshot, bool) {
 		ParentNodeID:     parentNodeID,
 		DeclarationOrder: declarationOrder,
 		SequenceMode:     sequenceMode,
+		Only:             only,
+		ExpectFailure:    expectFailure,
 		Kind:             kind,
 		DeclarationMode:  mode,
 		Name:             string(payload[nextOffset : nextOffset+int(nameLength)]),
@@ -790,6 +798,12 @@ func createNodeFoundEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
 		return nil, false
 	}
 	if !setNamedProperty(env, result, "sequenceMode", createUint32(env, node.SequenceMode)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "only", createBool(env, node.Only)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "expectFailure", createBool(env, node.ExpectFailure)) {
 		return nil, false
 	}
 	if !setNamedProperty(env, result, "declarationMode", createUint32(env, node.DeclarationMode)) {
@@ -1036,6 +1050,8 @@ func decodeEventSnapshot(kind uint32, payload []byte) (eventSnapshot, bool) {
 			ParentNodeID:     node.ParentNodeID,
 			DeclarationOrder: node.DeclarationOrder,
 			SequenceMode:     node.SequenceMode,
+			Only:             node.Only,
+			ExpectFailure:    node.ExpectFailure,
 			Kind:             node.Kind,
 			DeclarationMode:  node.DeclarationMode,
 			Name:             node.Name,
@@ -1847,6 +1863,12 @@ func createNodeSnapshotValue(env C.napi_env, node nodeSnapshot) (C.napi_value, b
 	if !setNamedProperty(env, result, "sequenceMode", createUint32(env, node.SequenceMode)) {
 		return nil, false
 	}
+	if !setNamedProperty(env, result, "only", createBool(env, node.Only)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "expectFailure", createBool(env, node.ExpectFailure)) {
+		return nil, false
+	}
 	if !setNamedProperty(env, result, "kind", createUint32(env, node.Kind)) {
 		return nil, false
 	}
@@ -1880,6 +1902,8 @@ func createEventSnapshotValue(env C.napi_env, event eventSnapshot) (C.napi_value
 			ParentNodeID:     event.ParentNodeID,
 			DeclarationOrder: event.DeclarationOrder,
 			SequenceMode:     event.SequenceMode,
+			Only:             event.Only,
+			ExpectFailure:    event.ExpectFailure,
 			Kind:             event.Kind,
 			DeclarationMode:  event.DeclarationMode,
 			Name:             event.Name,

@@ -42,6 +42,8 @@ test("run-only parent", (context: TestContext): void => {
   context.test("plain nested child", (_nestedContext: TestContext): void => {});
 });
 
+test.expectFailure("expected failure test", (_context: TestContext): void => {});
+
 test.skip("skipped parent", (context: TestContext): void => {
   context.test("skipped nested child", (_nestedContext: TestContext): void => {});
 });

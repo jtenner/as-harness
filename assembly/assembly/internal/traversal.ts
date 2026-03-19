@@ -159,6 +159,8 @@ function emitDiscoveredNode(node: Node): void {
     node.kind,
     node.declarationMode,
     node.sequenceMode,
+    node.only,
+    node.expectFailure,
     node.name,
   );
 }

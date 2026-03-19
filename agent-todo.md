@@ -20,8 +20,9 @@
   scheduler/executor design once dependency and blocked-outcome semantics are
   pinned down
 - `sequenceMode` now lowers onto runnable-test ordering rather than top-level
-  branch barriers, and the shared planner now has direct proof coverage, but
-  the scheduler still lacks explicit dependency-edge semantics plus CLI and
+  branch barriers, and the shared planner now has direct proof coverage while
+  `only` and expected-failure intent cross discovery cleanly, but the
+  scheduler still lacks explicit dependency-edge semantics plus CLI and
   non-JS end-to-end graph proof
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
@@ -35,13 +36,14 @@
 Remaining work:
 
 - extend shared declaration metadata to capture declaration order, parent
-  identity, `only`, expected-failure intent, and future dependency metadata
-  without making adapter code own scheduler logic
+  identity, future dependency metadata, and any blocked-outcome fields without
+  making adapter code own scheduler logic
 - make host planning and reporter-facing lookups prefer discovered declaration
   identity while keeping `nodeIndex` only as the traversal target
 - decide which remaining graph fields beyond the now-exposed stable IDs,
-  declaration order, and sequence mode must cross the Wasm ABI, host-runner
-  types, CLI JSON output, and reporter surfaces
+  declaration order, sequence mode, `only`, and expected-failure intent must
+  cross the Wasm ABI, host-runner types, CLI JSON output, and reporter
+  surfaces
 
 ### Graph-Aware Scheduling Semantics
 
@@ -70,7 +72,8 @@ Remaining work:
   leak back into adapters
 - extend the harness host types and decoded event objects with any remaining
   graph metadata required by reporters or external hosts beyond the now-exposed
-  stable IDs, declaration order, and sequence mode
+  stable IDs, declaration order, sequence mode, `only`, and expected-failure
+  intent
 - document the updated host-runner and ABI contracts once the stable-ID and
   graph-metadata shapes are chosen
 - decide whether targeted replay stays as the execution primitive for `v0.3.0`

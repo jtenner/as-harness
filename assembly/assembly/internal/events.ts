@@ -43,7 +43,7 @@ function copyUtf8Bytes(destination: usize, value: string): void {
  * `[node_index_length: u32] [node_index: ...bytes]
  * [node_id: u32] [parent_node_id: u32] [declaration_order: u32]
  * [node_kind: u8] [declaration_mode: u8] [sequence_mode: u8]
- * [1 byte empty for alignment]
+ * [only: u8] [expect_failure: u8] [3 bytes empty for alignment]
  * [name_byte_length: u32] [name: ...bytes]`
  */
 export function serializeNodeFound(
@@ -54,6 +54,8 @@ export function serializeNodeFound(
   kind: NodeKind,
   mode: DeclarationMode,
   sequenceMode: SequenceMode,
+  only: bool,
+  expectFailure: bool,
   name: string,
 ): StaticArray<u8> {
   const nodeIndexLength = <u32>nodeIndex.length;
@@ -65,6 +67,10 @@ export function serializeNodeFound(
     U32_BYTE_LENGTH +
     U32_BYTE_LENGTH +
     U32_BYTE_LENGTH +
+    U8_BYTE_LENGTH +
+    U8_BYTE_LENGTH +
+    U8_BYTE_LENGTH +
+    U8_BYTE_LENGTH +
     U8_BYTE_LENGTH +
     U8_BYTE_LENGTH +
     U8_BYTE_LENGTH +
@@ -97,6 +103,18 @@ export function serializeNodeFound(
   offset += <usize>U8_BYTE_LENGTH;
 
   store<u8>(payloadStart + offset, <u8>sequenceMode);
+  offset += <usize>U8_BYTE_LENGTH;
+
+  store<u8>(payloadStart + offset, only ? 1 : 0);
+  offset += <usize>U8_BYTE_LENGTH;
+
+  store<u8>(payloadStart + offset, expectFailure ? 1 : 0);
+  offset += <usize>U8_BYTE_LENGTH;
+
+  store<u8>(payloadStart + offset, 0);
+  offset += <usize>U8_BYTE_LENGTH;
+
+  store<u8>(payloadStart + offset, 0);
   offset += <usize>U8_BYTE_LENGTH;
 
   store<u8>(payloadStart + offset, 0);
@@ -375,6 +393,8 @@ export function nodeFound(
   kind: NodeKind,
   mode: DeclarationMode,
   sequenceMode: SequenceMode,
+  only: bool,
+  expectFailure: bool,
   name: string,
 ): void {
   sendEvent(
@@ -387,6 +407,8 @@ export function nodeFound(
       kind,
       mode,
       sequenceMode,
+      only,
+      expectFailure,
       name,
     ),
   );
