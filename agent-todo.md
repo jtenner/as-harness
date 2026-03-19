@@ -25,7 +25,9 @@
   cleanly, and the shared executor now suppresses blocked dependents before
   they run, and `wazero` now uses the shared `start()` contract in-band with
   working coverage snapshots, but the repo still lacks a public dependency
-  declaration surface and non-JS end-to-end blocked/planning proof
+  declaration surface, non-JS end-to-end blocked/planning proof, and a clean
+  story for the lingering `wazero` timeout-sensitive paths in hosted/package
+  smoke coverage
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
 - a native dependency API will be unstable if it lands before shared identity
@@ -73,6 +75,10 @@ Remaining work:
 - decide whether any host besides `js` should use the worker-thread execution
   path, or whether in-band shared execution is the honest cross-host contract
   for `v0.3.0`
+- isolate the remaining packaged-CI shutdown hang after the packaged `wazero`
+  runtime was restored to the shared decorated `start()` path; the unresolved
+  report is the Windows packaged `js` smoke that prints `PASS` but does not
+  exit before the verifier timeout
 - decide whether targeted replay stays as the execution primitive for `v0.3.0`
   or whether scheduler-step entrypoints need to return earlier than previously
   planned
@@ -110,6 +116,9 @@ Remaining work:
 - keep the root `bun run test` and source-host verification scripts aligned
   with the actual per-host smoke commands so host regressions cannot hide
   behind wrapper scripts
+- add bounded regression coverage around the remaining packaged shutdown issues
+  so hosted/package failures identify whether the fault is the packaged CLI,
+  Bun subprocess supervision, or a host-runtime leak instead of hanging
 - prove that `only`, `skip`, `todo`, and expected-failure semantics interact
   with dependency planning exactly as documented
 - add regression coverage that shows graph-aware scheduling does not duplicate

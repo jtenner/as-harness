@@ -5,6 +5,7 @@ const test = require("node:test");
 
 const {
 	classifyDependencyOutcome,
+	decorateHarness,
 	evaluatePlannedExecution,
 	planExecutionStages,
 	setNodeIdentity,
@@ -452,5 +453,157 @@ test("evaluatePlannedExecution blocks downstream dependents after an unsatisfied
 				dependencyIdentityKey: "id:40/id:41",
 			},
 		],
+	);
+});
+
+test("decorateHarness can execute start() in-band and merge coverage snapshots", async () => {
+	let nextHarnessId = 1;
+	const runHarnessIds = [];
+
+	function createCoverageSnapshot(id) {
+		return {
+			points: [
+				{
+					id,
+					file: `instance-${id}.ts`,
+					line: 1,
+					column: 1,
+					coverType: 1,
+				},
+			],
+			coveredIds: [id],
+		};
+	}
+
+	function createLocalHarness() {
+		const harnessId = nextHarnessId++;
+		const callbacks = {
+			nodeFound: null,
+			nodeStart: null,
+			nodePass: null,
+			nodeFail: null,
+			failMessage: null,
+			callbackStart: null,
+			callbackPass: null,
+			callbackFail: null,
+			diagnostic: null,
+			log: null,
+		};
+
+		function emit(type, event) {
+			if (typeof callbacks[type] === "function") {
+				callbacks[type](event);
+			}
+		}
+
+		return {
+			onNodeFound(callback) {
+				callbacks.nodeFound = callback;
+			},
+			onNodeStart(callback) {
+				callbacks.nodeStart = callback;
+			},
+			onNodePass(callback) {
+				callbacks.nodePass = callback;
+			},
+			onNodeFail(callback) {
+				callbacks.nodeFail = callback;
+			},
+			onFailMessage(callback) {
+				callbacks.failMessage = callback;
+			},
+			onCallbackStart(callback) {
+				callbacks.callbackStart = callback;
+			},
+			onCallbackPass(callback) {
+				callbacks.callbackPass = callback;
+			},
+			onCallbackFail(callback) {
+				callbacks.callbackFail = callback;
+			},
+			onDiagnostic(callback) {
+				callbacks.diagnostic = callback;
+			},
+			onLog(callback) {
+				callbacks.log = callback;
+			},
+			discover(nodeIndex) {
+				switch (Array.isArray(nodeIndex) ? nodeIndex.join(".") : "<invalid>") {
+					case "":
+						emit("nodeFound", {
+							nodeIndex: [0],
+							nodeId: 1,
+							parentNodeId: 0,
+							declarationOrder: 0,
+							sequenceMode: 0,
+							dependencyNodeIds: [],
+							only: false,
+							expectFailure: false,
+							kind: 2,
+							declarationMode: 1,
+							name: "root suite",
+						});
+						return true;
+					case "0":
+						emit("nodeFound", {
+							nodeIndex: [0, 0],
+							nodeId: 2,
+							parentNodeId: 1,
+							declarationOrder: 1,
+							sequenceMode: 0,
+							dependencyNodeIds: [],
+							only: false,
+							expectFailure: false,
+							kind: 1,
+							declarationMode: 1,
+							name: "leaf test",
+						});
+						return true;
+					case "0.0":
+						return false;
+					default:
+						return true;
+				}
+			},
+			run(nodeIndex) {
+				runHarnessIds.push(harnessId);
+				emit("nodeStart", { nodeIndex: Array.isArray(nodeIndex) ? nodeIndex : [] });
+				emit("nodePass", { nodeIndex: Array.isArray(nodeIndex) ? nodeIndex : [] });
+				return true;
+			},
+			getCoverageSnapshot() {
+				return createCoverageSnapshot(harnessId);
+			},
+			resetCoverage() {},
+			close() {},
+		};
+	}
+
+	const harness = decorateHarness(
+		{},
+		{
+			bytes: Buffer.alloc(0),
+			createLocalHarness,
+			runInBand: true,
+			workerModulePath: __filename,
+		},
+	);
+
+	const result = await harness.start();
+
+	assert.equal(result.ok, true);
+	assert.equal(result.discoveryOk, true);
+	assert.equal(result.planningOk, true);
+	assert.equal(result.workerCount, 1);
+	assert.deepEqual(runHarnessIds, [2]);
+	assert.deepEqual(
+		result.coverage,
+		{
+			points: [
+				{ id: 1, file: "instance-1.ts", line: 1, column: 1, coverType: 1 },
+				{ id: 2, file: "instance-2.ts", line: 1, column: 1, coverType: 1 },
+			],
+			coveredIds: [1, 2],
+		},
 	);
 });

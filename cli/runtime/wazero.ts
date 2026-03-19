@@ -1,4 +1,6 @@
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+import sharedStartModule from "../../harness/shared/start.cjs";
 import type { Harness } from "../../harness/shared/harness-types";
 import { setCompilerOptionValue, type Runtime } from "./types";
 
@@ -9,7 +11,18 @@ type WazeroHarnessModule = {
 	createHarness(bytes: Uint8Array): Harness;
 };
 
+type DecorateHarnessOptions = {
+	bytes: Uint8Array;
+	createLocalHarness(bytes: Uint8Array): Harness;
+	runInBand: boolean;
+	workerModulePath: string;
+};
+
 const sourceRequire = createRequire(import.meta.url);
+const { decorateHarness } = sharedStartModule as {
+	decorateHarness(harness: Harness, options: DecorateHarnessOptions): Harness;
+};
+const runtimeModulePath = fileURLToPath(import.meta.url);
 let cachedHarnessModule: WazeroHarnessModule | null = null;
 
 function loadSourceWazeroHarnessModule(): WazeroHarnessModule {
@@ -44,12 +57,30 @@ function resolveWazeroHarnessModule() {
 	return cachedHarnessModule;
 }
 
+function createBundledWazeroHarness(wasmBytes: Uint8Array) {
+	const nativeHarnessModule = resolveWazeroHarnessModule();
+	const bundledBytes = Buffer.from(wasmBytes);
+
+	return decorateHarness(nativeHarnessModule.createHarness(bundledBytes), {
+		bytes: bundledBytes,
+		createLocalHarness(localBytes) {
+			return nativeHarnessModule.createHarness(Buffer.from(localBytes));
+		},
+		runInBand: true,
+		workerModulePath: runtimeModulePath,
+	});
+}
+
 export const wazeroRuntime: Runtime = {
 	name: "wazero",
 	mutateCompilerArguments(compilerArguments) {
 		setCompilerOptionValue(compilerArguments, "--exportStart", "__start");
 	},
 	createHarness(wasmBytes) {
-		return resolveWazeroHarnessModule().createHarness(wasmBytes);
+		if (typeof WAZERO_TARGET === "undefined") {
+			return resolveWazeroHarnessModule().createHarness(wasmBytes);
+		}
+
+		return createBundledWazeroHarness(wasmBytes);
 	},
 };
