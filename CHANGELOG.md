@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-03-19
+
+- **docs: define the recommended `vitest` adapter surface and limits** Add `docs/Vitest.md` as a detailed implementation research guide for the next guest test adapter, choose `vitest` as the best post-`node:test` / post-`jest` target, map the upstream API into `Ship now` / `Later` / `Skip` buckets against the current shared Wasm runtime, and record exactly which pieces should be deferred or rejected because they depend on closures, Promises, dynamic mocks, fixtures, or other AssemblyScript-misaligned features. GitHub: *@jtenner*
+
 ## 2026-03-17
 
 - **ci: stop the root Bun test job from assuming a prebuilt `wasmtime` addon** Gate the CLI `wasmtime` coverage smoke in `cli/run.test.ts` on the presence of `harness/wasmtime/dist/wasmtime.node` so the clean-runner `validate-and-test` job no longer fails before the dedicated source-host matrix has a chance to build and prove the Rust-backed host, then reissue the `v0.2.0` tag from that fix. GitHub: *@jtenner*
