@@ -66,6 +66,38 @@ function testManualAddChild(): void {
   assert(child.ordinal == 0);
 }
 
+function testRegisterDependencyTracksStableIdsAndDedupes(): void {
+  const root = new Node(NodeKind.Describe, "root");
+  const first = root.createChild(NodeKind.Test, "first");
+  const second = root.createChild(NodeKind.Test, "second");
+
+  second.registerDependency(first);
+  second.registerDependency(first);
+
+  const dependencyNodeIds = second.getDependencyNodeIds();
+  assert(dependencyNodeIds.length == 1);
+  assert(unchecked(dependencyNodeIds[0]) == first.nodeId);
+}
+
+function testReplayChildrenReuseDependencyMetadata(): void {
+  const root = new Node(NodeKind.Describe, "root");
+  const first = root.createChild(NodeKind.Test, "first");
+  const second = root.createChild(NodeKind.Test, "second");
+  second.registerDependency(first);
+
+  const replayChildren = root.rediscoverChildren();
+  assert(replayChildren.length == 2);
+
+  const replaySecond = unchecked(replayChildren[1]);
+  const dependencyNodeIds = replaySecond.getDependencyNodeIds();
+  assert(dependencyNodeIds.length == 1);
+  assert(unchecked(dependencyNodeIds[0]) == first.nodeId);
+
+  root.clearReplayState();
+}
+
 testRootNodeDefaults();
 testNodeMetadataAndLazyChildren();
 testManualAddChild();
+testRegisterDependencyTracksStableIdsAndDedupes();
+testReplayChildrenReuseDependencyMetadata();

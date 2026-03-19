@@ -20,6 +20,10 @@ function nodeIndexByteLength(nodeIndex: NodeIndex): u32 {
   return <u32>nodeIndex.length * U32_BYTE_LENGTH;
 }
 
+function dependencyNodeIdsByteLength(dependencyNodeIds: Array<u32>): u32 {
+  return <u32>dependencyNodeIds.length * U32_BYTE_LENGTH;
+}
+
 function utf8ByteLength(value: string): u32 {
   return <u32>String.UTF8.byteLength(value);
 }
@@ -36,6 +40,22 @@ function copyUtf8Bytes(destination: usize, value: string): void {
   );
 }
 
+function copyDependencyNodeIdsBytes(
+  destination: usize,
+  dependencyNodeIds: Array<u32>,
+): void {
+  for (
+    let index: i32 = 0, length = dependencyNodeIds.length;
+    index < length;
+    index++
+  ) {
+    store<u32>(
+      destination + <usize>(<u32>index * U32_BYTE_LENGTH),
+      unchecked(dependencyNodeIds[index]),
+    );
+  }
+}
+
 /**
  * Serializes a `NodeFound` payload into the wire-format byte buffer.
  *
@@ -44,6 +64,7 @@ function copyUtf8Bytes(destination: usize, value: string): void {
  * [node_id: u32] [parent_node_id: u32] [declaration_order: u32]
  * [node_kind: u8] [declaration_mode: u8] [sequence_mode: u8]
  * [only: u8] [expect_failure: u8] [3 bytes empty for alignment]
+ * [dependency_count: u32] [dependency_node_ids: ...bytes]
  * [name_byte_length: u32] [name: ...bytes]`
  */
 export function serializeNodeFound(
@@ -56,10 +77,13 @@ export function serializeNodeFound(
   sequenceMode: SequenceMode,
   only: bool,
   expectFailure: bool,
+  dependencyNodeIds: Array<u32>,
   name: string,
 ): StaticArray<u8> {
   const nodeIndexLength = <u32>nodeIndex.length;
   const nodeIndexBytes = nodeIndexByteLength(nodeIndex);
+  const dependencyCount = <u32>dependencyNodeIds.length;
+  const dependencyNodeIdsBytes = dependencyNodeIdsByteLength(dependencyNodeIds);
   const nameBytes = utf8ByteLength(name);
   const totalByteLength =
     U32_BYTE_LENGTH +
@@ -75,6 +99,8 @@ export function serializeNodeFound(
     U8_BYTE_LENGTH +
     U8_BYTE_LENGTH +
     U8_BYTE_LENGTH +
+    U32_BYTE_LENGTH +
+    dependencyNodeIdsBytes +
     U32_BYTE_LENGTH +
     nameBytes;
   const payload = new StaticArray<u8>(totalByteLength);
@@ -119,6 +145,12 @@ export function serializeNodeFound(
 
   store<u8>(payloadStart + offset, 0);
   offset += <usize>U8_BYTE_LENGTH;
+
+  store<u32>(payloadStart + offset, dependencyCount);
+  offset += <usize>U32_BYTE_LENGTH;
+
+  copyDependencyNodeIdsBytes(payloadStart + offset, dependencyNodeIds);
+  offset += <usize>dependencyNodeIdsBytes;
 
   store<u32>(payloadStart + offset, nameBytes);
   offset += <usize>U32_BYTE_LENGTH;
@@ -395,6 +427,7 @@ export function nodeFound(
   sequenceMode: SequenceMode,
   only: bool,
   expectFailure: bool,
+  dependencyNodeIds: Array<u32>,
   name: string,
 ): void {
   sendEvent(
@@ -409,6 +442,7 @@ export function nodeFound(
       sequenceMode,
       only,
       expectFailure,
+      dependencyNodeIds,
       name,
     ),
   );

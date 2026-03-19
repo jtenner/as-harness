@@ -57,6 +57,11 @@ function cloneNode(node) {
 				: 0,
 		sequenceMode:
 			typeof node.sequenceMode === "number" ? node.sequenceMode >>> 0 : 0,
+		dependencyNodeIds: Array.isArray(node?.dependencyNodeIds)
+			? node.dependencyNodeIds
+					.filter((dependencyNodeId) => typeof dependencyNodeId === "number")
+					.map((dependencyNodeId) => dependencyNodeId >>> 0)
+			: [],
 		only: node?.only === true,
 		expectFailure: node?.expectFailure === true,
 		kind: typeof node.kind === "number" ? node.kind >>> 0 : 0,
@@ -384,23 +389,41 @@ function createExecutionTarget(branchIndex, executionIndex, node) {
 	};
 }
 
-function listDependencyKeys(node) {
-	if (!Array.isArray(node?.dependencyKeys)) {
-		return [];
-	}
-
+function listDependencyKeys(node, targetsByNodeId = new Map()) {
 	const dependencyKeys = [];
 	const seen = new Set();
-	for (const dependencyKey of node.dependencyKeys) {
-		if (typeof dependencyKey !== "string" || dependencyKey.length === 0) {
-			continue;
-		}
-		if (seen.has(dependencyKey)) {
-			continue;
-		}
+	if (Array.isArray(node?.dependencyKeys)) {
+		for (const dependencyKey of node.dependencyKeys) {
+			if (typeof dependencyKey !== "string" || dependencyKey.length === 0) {
+				continue;
+			}
+			if (seen.has(dependencyKey)) {
+				continue;
+			}
 
-		seen.add(dependencyKey);
-		dependencyKeys.push(dependencyKey);
+			seen.add(dependencyKey);
+			dependencyKeys.push(dependencyKey);
+		}
+	}
+
+	if (Array.isArray(node?.dependencyNodeIds)) {
+		for (const dependencyNodeId of node.dependencyNodeIds) {
+			if (typeof dependencyNodeId !== "number" || dependencyNodeId <= 0) {
+				continue;
+			}
+
+			const normalizedDependencyNodeId = dependencyNodeId >>> 0;
+			const dependencyTarget =
+				targetsByNodeId.get(normalizedDependencyNodeId) || null;
+			const dependencyKey =
+				dependencyTarget?.identityKey || `nodeId:${normalizedDependencyNodeId}`;
+			if (seen.has(dependencyKey)) {
+				continue;
+			}
+
+			seen.add(dependencyKey);
+			dependencyKeys.push(dependencyKey);
+		}
 	}
 
 	return dependencyKeys;
@@ -409,6 +432,7 @@ function listDependencyKeys(node) {
 function createExecutionTargetMap(branches) {
 	const targets = [];
 	const targetsByIdentity = new Map();
+	const targetsByNodeId = new Map();
 	const targetsByBranchIndex = new Map();
 
 	for (const branch of branches) {
@@ -421,6 +445,13 @@ function createExecutionTargetMap(branches) {
 			const target = createExecutionTarget(branch.index, index, node);
 			targets.push(target);
 			targetsByIdentity.set(target.identityKey, target);
+			if (
+				typeof node?.nodeId === "number" &&
+				node.nodeId > 0 &&
+				!targetsByNodeId.has(node.nodeId >>> 0)
+			) {
+				targetsByNodeId.set(node.nodeId >>> 0, target);
+			}
 			branchTargets.push(target);
 		}
 
@@ -430,6 +461,7 @@ function createExecutionTargetMap(branches) {
 	return {
 		targets,
 		targetsByIdentity,
+		targetsByNodeId,
 		targetsByBranchIndex,
 	};
 }
@@ -548,7 +580,12 @@ function propagateBlockedTargets(initialBlockedKeys, adjacency) {
 	return blockedKeys;
 }
 
-function buildExecutionDependencies(branches, targetsByIdentity, targetsByBranchIndex) {
+function buildExecutionDependencies(
+	branches,
+	targetsByIdentity,
+	targetsByNodeId,
+	targetsByBranchIndex,
+) {
 	const adjacency = new Map();
 	const prereqCounts = new Map();
 	const blockedKeys = new Set();
@@ -582,7 +619,10 @@ function buildExecutionDependencies(branches, targetsByIdentity, targetsByBranch
 	}
 
 	for (const target of targetsByIdentity.values()) {
-		for (const dependencyKey of listDependencyKeys(target.node)) {
+		for (const dependencyKey of listDependencyKeys(
+			target.node,
+			targetsByNodeId,
+		)) {
 			const dependencyTarget = targetsByIdentity.get(dependencyKey) || null;
 			if (dependencyTarget === null) {
 				blockedKeys.add(target.identityKey);
@@ -631,11 +671,12 @@ function createPlanSuccessorMap(adjacency, blockedTargets) {
 }
 
 function planExecutionStages(branches) {
-	const { targets, targetsByIdentity, targetsByBranchIndex } =
+	const { targets, targetsByIdentity, targetsByNodeId, targetsByBranchIndex } =
 		createExecutionTargetMap(branches);
 	const { adjacency, blockedKeys, issues, prereqCounts } = buildExecutionDependencies(
 		branches,
 		targetsByIdentity,
+		targetsByNodeId,
 		targetsByBranchIndex,
 	);
 	const runnableTargets = targets.filter((target) => !blockedKeys.has(target.identityKey));

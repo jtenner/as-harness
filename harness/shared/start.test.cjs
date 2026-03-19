@@ -18,6 +18,7 @@ function createPlannerNode(options) {
 			parentNodeId: options.parentNodeId ?? 0,
 			declarationOrder: options.declarationOrder ?? 0,
 			sequenceMode: options.sequenceMode ?? 0,
+			dependencyNodeIds: options.dependencyNodeIds ?? [],
 			dependencyKeys: options.dependencyKeys ?? [],
 			expectFailure: options.expectFailure ?? false,
 			kind: options.kind ?? 1,
@@ -218,6 +219,79 @@ test("planExecutionStages blocks dependents when a dependency target is missing"
 			type: "missing-dependency",
 			targetIdentityKey: "id:20/id:22",
 			dependencyIdentityKey: "id:missing",
+		},
+	]);
+});
+
+test("planExecutionStages resolves dependencyNodeIds onto discovered targets", () => {
+	const root = createPlannerNode({
+		identityKey: "id:25",
+		nodeId: 25,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const prereq = createPlannerNode({
+		identityKey: "id:25/id:26",
+		parentIdentityKey: "id:25",
+		nodeId: 26,
+		parentNodeId: 25,
+		declarationOrder: 1,
+		name: "prereq",
+	});
+	const dependent = createPlannerNode({
+		identityKey: "id:25/id:27",
+		parentIdentityKey: "id:25",
+		nodeId: 27,
+		parentNodeId: 25,
+		declarationOrder: 2,
+		dependencyNodeIds: [26, 26],
+		name: "dependent",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [root, prereq, dependent]),
+	]);
+
+	assert.equal(plan.complete, true);
+	assert.deepEqual(
+		plan.stages.map((stage) => stage.map((target) => target.node.name)),
+		[["prereq"], ["dependent"]],
+	);
+	assert.deepEqual(plan.issues, []);
+});
+
+test("planExecutionStages reports missing dependencyNodeIds with blocked dependents", () => {
+	const root = createPlannerNode({
+		identityKey: "id:28",
+		nodeId: 28,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const dependent = createPlannerNode({
+		identityKey: "id:28/id:29",
+		parentIdentityKey: "id:28",
+		nodeId: 29,
+		parentNodeId: 28,
+		declarationOrder: 1,
+		dependencyNodeIds: [999],
+		name: "dependent",
+	});
+
+	const plan = planExecutionStages([createPlannerBranch(0, [root, dependent])]);
+
+	assert.equal(plan.complete, false);
+	assert.deepEqual(plan.stages, []);
+	assert.deepEqual(
+		plan.blockedTargets.map((target) => target.node.name),
+		["dependent"],
+	);
+	assert.deepEqual(plan.issues, [
+		{
+			type: "missing-dependency",
+			targetIdentityKey: "id:28/id:29",
+			dependencyIdentityKey: "nodeId:999",
 		},
 	]);
 });

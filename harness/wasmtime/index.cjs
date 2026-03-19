@@ -122,7 +122,31 @@ function decodeNodeFoundEvent(bytes) {
 		return null;
 	}
 
-	const nameLength = decodeUint32(bytes, declarationOrder.offset + 8);
+	const dependencyCount = decodeUint32(bytes, declarationOrder.offset + 8);
+	if (dependencyCount === null) {
+		return null;
+	}
+	const dependencyNodeIdsByteLength =
+		dependencyCount.value * UINT32_BYTE_LENGTH;
+	if (dependencyCount.offset + dependencyNodeIdsByteLength + 4 > bytes.byteLength) {
+		return null;
+	}
+
+	const dependencyNodeIds = [];
+	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+	for (let index = 0; index < dependencyCount.value; index += 1) {
+		dependencyNodeIds.push(
+			view.getUint32(
+				dependencyCount.offset + index * UINT32_BYTE_LENGTH,
+				true,
+			),
+		);
+	}
+
+	const nameLength = decodeUint32(
+		bytes,
+		dependencyCount.offset + dependencyNodeIdsByteLength,
+	);
 	if (nameLength === null) {
 		return null;
 	}
@@ -138,6 +162,7 @@ function decodeNodeFoundEvent(bytes) {
 		kind: bytes[declarationOrder.offset],
 		declarationMode: bytes[declarationOrder.offset + 1],
 		sequenceMode: bytes[declarationOrder.offset + 2],
+		dependencyNodeIds,
 		only: bytes[declarationOrder.offset + 3] !== 0,
 		expectFailure: bytes[declarationOrder.offset + 4] !== 0,
 		name: readUtf8(bytes, nameLength.offset, nameLength.value),

@@ -49,10 +49,11 @@ function testSerializeNodeFound(): void {
     SequenceMode.Sequential,
     true,
     false,
+    [34, 55],
     "alpha",
   );
 
-  assert(payload.length == 45);
+  assert(payload.length == 57);
   assertU32(payload, 0, 3);
   assertU32(payload, 4, 3);
   assertU32(payload, 8, 5);
@@ -68,8 +69,11 @@ function testSerializeNodeFound(): void {
   assertByte(payload, 33, 0);
   assertByte(payload, 34, 0);
   assertByte(payload, 35, 0);
-  assertU32(payload, 36, 5);
-  assertUtf8Bytes(payload, 40, "alpha");
+  assertU32(payload, 36, 2);
+  assertU32(payload, 40, 34);
+  assertU32(payload, 44, 55);
+  assertU32(payload, 48, 5);
+  assertUtf8Bytes(payload, 52, "alpha");
 }
 
 function testSerializeNodeStart(): void {

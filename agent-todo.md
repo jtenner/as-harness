@@ -21,10 +21,9 @@
   pinned down
 - `sequenceMode` now lowers onto runnable-test ordering rather than top-level
   branch barriers, and the shared planner now has direct proof coverage while
-  `only` and expected-failure intent cross discovery cleanly, but the
-  scheduler still lacks ABI-emitted dependency metadata and non-JS end-to-end
-  graph proof; blocked/planning result plumbing now exists in the host and CLI
-  reporter but is still dormant until the guest emits real dependencies
+  `only`, expected-failure intent, and dependency node IDs now cross discovery
+  cleanly, but the repo still lacks a public dependency declaration surface and
+  non-JS end-to-end blocked/planning proof
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
 - a native dependency API will be unstable if it lands before shared identity
@@ -36,32 +35,25 @@
 
 Remaining work:
 
-- extend shared declaration metadata to capture declaration order, parent
-  identity, future dependency metadata, and any blocked-outcome fields without
-  making adapter code own scheduler logic
 - make host planning and reporter-facing lookups prefer discovered declaration
   identity while keeping `nodeIndex` only as the traversal target
 - decide which remaining graph fields beyond the now-exposed stable IDs,
-  declaration order, sequence mode, `only`, and expected-failure intent must
-  cross the Wasm ABI, host-runner types, CLI JSON output, and reporter
-  surfaces
+  declaration order, sequence mode, `only`, expected-failure intent, and
+  dependency node IDs must cross the Wasm ABI, host-runner types, CLI JSON
+  output, and reporter surfaces
 
 ### Graph-Aware Scheduling Semantics
 
 Remaining work:
 
-- decide the guest-to-host dependency metadata shape now that the shared
-  planner can already model missing dependencies, cycles, prerequisite
-  satisfaction, and blocked propagation in pure tests
-- wire the current blocked/planning host result plumbing to real dependency
-  metadata and execution-time prerequisite outcomes instead of leaving it
-  synthetic-only
 - decide the exact meaning of `dependsOn(...)` outcomes: pass-through on
   success, blocked-on-failure behavior, and transitive handling for blocked
   prerequisites
 - decide how `skip`, `todo`, `only`, and expected-failure nodes affect
   dependents and whether blocked tests need a first-class outcome distinct from
   skipped tests
+- expose an actual guest declaration API that lowers onto the now-wired stable
+  dependency metadata without making thin adapters own scheduler logic
 - define cycle detection, missing-dependency handling, duplicate-edge collapse,
   and deterministic tie-breaking between otherwise ready nodes
 
@@ -72,12 +64,10 @@ Remaining work:
 - keep the new module-global `start()` scheduler aligned with future explicit
   dependency edges and blocked outcomes instead of letting executor details
   leak back into adapters
-- extend the harness host types and decoded event objects with any remaining
-  graph metadata required by reporters or external hosts beyond the now-exposed
-  stable IDs, declaration order, sequence mode, `only`, and expected-failure
-  intent
 - document the updated host-runner and ABI contracts once the stable-ID and
   graph-metadata shapes are chosen
+- prove the now-updated host contract through non-JS hosts and CLI-facing
+  blocked/planning paths
 - decide whether targeted replay stays as the execution primitive for `v0.3.0`
   or whether scheduler-step entrypoints need to return earlier than previously
   planned
@@ -105,8 +95,8 @@ Remaining work:
   handling now that missing dependencies, cycle detection, and prerequisite
   satisfaction have pure proof
 - extend CLI and cross-host proof from discovery visibility into planner usage
-  so stable IDs, declaration order, and the new planning/blocked result fields
-  are exercised by scheduler-facing paths
+  so stable IDs, declaration order, dependency node IDs, and the new
+  planning/blocked result fields are exercised by scheduler-facing paths
 - add CLI and end-to-end smoke coverage for sequential groups and explicit
   dependencies across `js`, `wazero`, and `wasmtime`
 - prove that `only`, `skip`, `todo`, and expected-failure semantics interact

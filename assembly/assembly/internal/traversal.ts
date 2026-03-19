@@ -161,6 +161,7 @@ function emitDiscoveredNode(node: Node): void {
     node.sequenceMode,
     node.only,
     node.expectFailure,
+    node.getDependencyNodeIds(),
     node.name,
   );
 }

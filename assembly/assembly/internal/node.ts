@@ -32,6 +32,7 @@ function createExecutionOptionsFromNode(source: Node): NodeExecutionOptions {
   options.concurrency = source.concurrency;
   options.plan = source.plan;
   options.sequenceMode = source.sequenceMode;
+  options.dependencyNodeIds = source.getDependencyNodeIds();
   return options;
 }
 
@@ -52,6 +53,7 @@ export class NodeExecutionOptions {
   concurrency: i32 = 0;
   plan: i32 = -1;
   sequenceMode: SequenceMode = SequenceMode.Inherit;
+  dependencyNodeIds: Array<u32> = new Array<u32>();
 }
 
 /**
@@ -70,6 +72,7 @@ export class Node {
   readonly concurrency: i32;
   readonly plan: i32;
   readonly sequenceMode: SequenceMode;
+  private readonly dependencyNodeIdsValue: Array<u32>;
 
   private readonly baseDeclarationModeValue: DeclarationMode;
   private declarationModeValue: DeclarationMode;
@@ -130,6 +133,16 @@ export class Node {
     this.plan = options !== null ? options.plan : -1;
     this.sequenceMode =
       options !== null ? options.sequenceMode : SequenceMode.Inherit;
+    this.dependencyNodeIdsValue = new Array<u32>();
+    if (options !== null) {
+      for (
+        let index: i32 = 0, length = options.dependencyNodeIds.length;
+        index < length;
+        index++
+      ) {
+        this.appendDependencyNodeId(unchecked(options.dependencyNodeIds[index]));
+      }
+    }
   }
 
   get parent(): Node | null {
@@ -156,6 +169,19 @@ export class Node {
 
   get ordinal(): u32 {
     return this.ordinalValue;
+  }
+
+  getDependencyNodeIds(): Array<u32> {
+    const dependencyNodeIds = new Array<u32>();
+    for (
+      let index: i32 = 0, length = this.dependencyNodeIdsValue.length;
+      index < length;
+      index++
+    ) {
+      dependencyNodeIds.push(unchecked(this.dependencyNodeIdsValue[index]));
+    }
+
+    return dependencyNodeIds;
   }
 
   /**
@@ -373,6 +399,18 @@ export class Node {
     afterAllHooks.push(registration);
   }
 
+  registerDependency(node: Node): void {
+    const dependencyNodeId = node.getDeclarationSlotSource().nodeId;
+    if (dependencyNodeId == 0) {
+      return;
+    }
+
+    this.appendDependencyNodeId(dependencyNodeId);
+    if (this.slotSourceValue !== null) {
+      changetype<Node>(this.slotSourceValue).appendDependencyNodeId(dependencyNodeId);
+    }
+  }
+
   getHooks(kind: HookKind): Array<HookRegistration> {
     const beforeAllHooks = this.replayStateActive
       ? this.replayBeforeAllHooks
@@ -408,6 +446,25 @@ export class Node {
     declarationMode: DeclarationMode,
     options: NodeExecutionOptions | null,
   ): bool {
+    const dependencyNodeIds =
+      options !== null ? options.dependencyNodeIds : new Array<u32>();
+    if (this.dependencyNodeIdsValue.length != dependencyNodeIds.length) {
+      return false;
+    }
+
+    for (
+      let index: i32 = 0, length = this.dependencyNodeIdsValue.length;
+      index < length;
+      index++
+    ) {
+      if (
+        unchecked(this.dependencyNodeIdsValue[index]) !=
+        unchecked(dependencyNodeIds[index])
+      ) {
+        return false;
+      }
+    }
+
     return (
       this.kind == kind &&
       this.name == name &&
@@ -416,7 +473,9 @@ export class Node {
       this.expectFailure == (options !== null ? options.expectFailure : false) &&
       this.timeout == (options !== null ? options.timeout : -1) &&
       this.concurrency == (options !== null ? options.concurrency : 0) &&
-      this.plan == (options !== null ? options.plan : -1)
+      this.plan == (options !== null ? options.plan : -1) &&
+      this.sequenceMode ==
+        (options !== null ? options.sequenceMode : SequenceMode.Inherit)
     );
   }
 
@@ -487,6 +546,20 @@ export class Node {
     const replayChild = this.createReplayChildFromSlotSource(slotChild);
     this.replayChildrenValue.push(replayChild);
     return replayChild;
+  }
+
+  private appendDependencyNodeId(nodeId: u32): void {
+    for (
+      let index: i32 = 0, length = this.dependencyNodeIdsValue.length;
+      index < length;
+      index++
+    ) {
+      if (unchecked(this.dependencyNodeIdsValue[index]) == nodeId) {
+        return;
+      }
+    }
+
+    this.dependencyNodeIdsValue.push(nodeId);
   }
 }
 

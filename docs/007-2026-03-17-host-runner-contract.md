@@ -88,20 +88,31 @@ The current shipped orchestration contract is:
 1. discover the root node's immediate children
 2. treat those nodes as top-level branches
 3. rediscover each branch to collect its structurally visible nodes
-4. run each runnable normal test node in that branch
-5. aggregate the raw branch data into `HarnessStartResult`
+4. build a module-global execution plan from the discovered runnable tests
+5. execute planned runnable tests through one shared worker
+6. aggregate the raw branch data into `HarnessStartResult`
 
 Field-level contract:
 
 - `discoveryOk` is `true` only when top-level discovery and each required branch
   discovery succeeded
+- `planningOk` is `true` only when planning produced no issues and no tests were
+  blocked by invalid or unsatisfied prerequisites
 - `topLevelNodes` is the ordered root discovery result
+- discovered nodes preserve stable declaration metadata including `nodeId`,
+  `parentNodeId`, `declarationOrder`, `sequenceMode`, `only`,
+  `expectFailure`, and `dependencyNodeIds`
 - `discoveredTestCount` is the total count of discovered test nodes across all
   branches
 - `branches[*].discovery.nodes` contains the branch root plus every
   structurally visible node discovered under it
 - `branches[*].executions` contains one entry per runnable normal test node in
   discovery order
+- `planIssues` contains ordered planning or blocked-dependency diagnostics
+- `blocked` contains planner-blocked tests together with their primary issue
+  and dependency identity
+- `workerCount` reports the number of worker threads actually used by the
+  shared executor for the run
 - `coverage` is either the merged snapshot for the run or `null` when coverage
   was not requested
 

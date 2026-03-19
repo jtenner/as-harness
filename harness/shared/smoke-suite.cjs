@@ -33,6 +33,7 @@ function annotateNode(node) {
 			parentNodeId: 0,
 			declarationOrder: 0,
 			sequenceMode: 0,
+			dependencyNodeIds: [],
 			only: false,
 			expectFailure: false,
 		};
@@ -44,6 +45,7 @@ function annotateNode(node) {
 		parentNodeId: metadata.parentNodeId,
 		declarationOrder: metadata.declarationOrder,
 		sequenceMode: 0,
+		dependencyNodeIds: [],
 		only: metadata.only ?? false,
 		expectFailure: metadata.expectFailure ?? false,
 	};

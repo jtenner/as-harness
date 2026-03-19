@@ -17,6 +17,9 @@ const {
 const {
 	createHarness: createSequentialStartHarness,
 } = require("./fixtures/sequential-start-harness.cjs");
+const {
+	createHarness: createDependencyStartHarness,
+} = require("./fixtures/dependency-start-harness.cjs");
 
 const repoDir = path.resolve(__dirname, "..", "..", "..");
 const parallelStartHarnessModulePath = path.join(
@@ -33,6 +36,11 @@ const sequentialStartHarnessModulePath = path.join(
 	__dirname,
 	"fixtures",
 	"sequential-start-harness.cjs",
+);
+const dependencyStartHarnessModulePath = path.join(
+	__dirname,
+	"fixtures",
+	"dependency-start-harness.cjs",
 );
 
 const fixtures = compileSmokeFixtures({
@@ -151,6 +159,53 @@ test("start() executes sequential-scope branches without forcing root barriers",
 			["branch-d-child"],
 			["branch-e-child"],
 		],
+	);
+
+	harness.close();
+});
+
+test("start() surfaces missing dependencyNodeIds as blocked planning results", async () => {
+	const harness = decorateHarness(createDependencyStartHarness(), {
+		bytes: Buffer.alloc(0),
+		createLocalHarness: createDependencyStartHarness,
+		workerModulePath: dependencyStartHarnessModulePath,
+	});
+
+	const result = await harness.start();
+
+	assert.equal(result.discoveryOk, true);
+	assert.equal(result.ok, false);
+	assert.equal(result.planningOk, false);
+	assert.equal(result.workerCount, 1);
+	assert.deepEqual(
+		result.planIssues,
+		[
+			{
+				type: "missing-dependency",
+				targetIdentityKey: "id:2/id:11",
+				dependencyIdentityKey: "nodeId:999",
+			},
+		],
+	);
+	assert.deepEqual(
+		result.blocked.map((blocked) => ({
+			name: blocked.node.name,
+			dependencyNodeIds: blocked.node.dependencyNodeIds,
+			issueType: blocked.issueType,
+			dependencyIdentityKey: blocked.dependencyIdentityKey,
+		})),
+		[
+			{
+				name: "blocked missing",
+				dependencyNodeIds: [999],
+				issueType: "missing-dependency",
+				dependencyIdentityKey: "nodeId:999",
+			},
+		],
+	);
+	assert.deepEqual(
+		result.branches.map((branch) => branch.executions.map((execution) => execution.node.name)),
+		[["prereq"], [], ["plain ready"]],
 	);
 
 	harness.close();
