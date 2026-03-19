@@ -612,6 +612,24 @@ function compareExecutionTargets(left, right) {
 	return compareNodeDeclarationOrder(left?.node, right?.node);
 }
 
+function createPlanSuccessorMap(adjacency, blockedTargets) {
+	const blockedKeys = new Set(
+		Array.isArray(blockedTargets)
+			? blockedTargets.map((target) => target?.identityKey || "")
+			: [],
+	);
+	const successorsByIdentity = new Map();
+
+	for (const [fromIdentityKey, successorKeys] of adjacency.entries()) {
+		const filteredSuccessors = [...successorKeys]
+			.filter((successorKey) => !blockedKeys.has(successorKey))
+			.sort((left, right) => left.localeCompare(right));
+		successorsByIdentity.set(fromIdentityKey, filteredSuccessors);
+	}
+
+	return successorsByIdentity;
+}
+
 function planExecutionStages(branches) {
 	const { targets, targetsByIdentity, targetsByBranchIndex } =
 		createExecutionTargetMap(branches);
@@ -666,13 +684,99 @@ function planExecutionStages(branches) {
 	}
 
 	return {
+		adjacency,
 		blockedTargets: targets
 			.filter((target) => blockedKeys.has(target.identityKey))
 			.sort(compareExecutionTargets),
 		complete: completedTargetCount === targets.length,
 		issues: issues.sort(comparePlanIssues),
 		stages: plannedStages,
+		successorsByIdentity: createPlanSuccessorMap(
+			adjacency,
+			targets.filter((target) => blockedKeys.has(target.identityKey)),
+		),
+		targetsByIdentity,
 		targetCount: targets.length,
+	};
+}
+
+function classifyDependencyOutcome(target, execution) {
+	if (!target || !execution) {
+		return "blocked";
+	}
+
+	const passed = execution.ok === true;
+	if (target.node?.expectFailure === true) {
+		return passed ? "unsatisfied" : "satisfied";
+	}
+
+	return passed ? "satisfied" : "unsatisfied";
+}
+
+function evaluatePlannedExecution(plan, executionsByIdentity = new Map()) {
+	const blockedTargets = Array.isArray(plan?.blockedTargets)
+		? plan.blockedTargets.slice().sort(compareExecutionTargets)
+		: [];
+	const blockedKeys = new Set(blockedTargets.map((target) => target.identityKey));
+	const issues = Array.isArray(plan?.issues) ? plan.issues.slice() : [];
+	const outcomesByIdentity = new Map();
+
+	for (const blockedTarget of blockedTargets) {
+		outcomesByIdentity.set(blockedTarget.identityKey, "blocked");
+	}
+
+	const stages = Array.isArray(plan?.stages) ? plan.stages : [];
+	const successorsByIdentity =
+		plan?.successorsByIdentity instanceof Map ? plan.successorsByIdentity : new Map();
+
+	for (const stage of stages) {
+		for (const target of stage) {
+			if (blockedKeys.has(target.identityKey)) {
+				continue;
+			}
+
+			const execution = executionsByIdentity.get(target.identityKey) || null;
+			const outcome = classifyDependencyOutcome(target, execution);
+			outcomesByIdentity.set(target.identityKey, outcome);
+			if (outcome === "satisfied") {
+				continue;
+			}
+
+			const queue = [...(successorsByIdentity.get(target.identityKey) || [])];
+			while (queue.length > 0) {
+				const successorIdentityKey = queue.shift();
+				if (!successorIdentityKey || blockedKeys.has(successorIdentityKey)) {
+					continue;
+				}
+
+				const successorTarget =
+					plan?.targetsByIdentity instanceof Map
+						? plan.targetsByIdentity.get(successorIdentityKey) || null
+						: null;
+				if (successorTarget !== null) {
+					blockedTargets.push(successorTarget);
+				}
+				blockedKeys.add(successorIdentityKey);
+				outcomesByIdentity.set(successorIdentityKey, "blocked");
+				issues.push(
+					createPlanIssue(
+						"blocked-dependency",
+						successorIdentityKey,
+						target.identityKey,
+					),
+				);
+				queue.push(...(successorsByIdentity.get(successorIdentityKey) || []));
+			}
+		}
+	}
+
+	blockedTargets.sort(compareExecutionTargets);
+	issues.sort(comparePlanIssues);
+
+	return {
+		blockedTargets,
+		issues,
+		outcomesByIdentity,
 	};
 }
 
@@ -809,11 +913,13 @@ function decorateHarness(harness, options) {
 }
 
 module.exports = {
+	classifyDependencyOutcome,
 	cloneEvent,
 	closeHarness,
 	discoverBranch,
 	decorateHarness,
 	EVENT_TYPES,
+	evaluatePlannedExecution,
 	planExecutionStages,
 	readCoverageSnapshot,
 	setNodeIdentity,

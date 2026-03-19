@@ -50,7 +50,8 @@ Remaining work:
 Remaining work:
 
 - decide the guest-to-host dependency metadata shape now that the shared
-  planner can already model missing dependencies and cycles in pure tests
+  planner can already model missing dependencies, cycles, prerequisite
+  satisfaction, and blocked propagation in pure tests
 - extend the current sequential-scope lowering and dependency-ready planner so
   blocked outcomes and prerequisite result handling compose cleanly
 - decide the exact meaning of `dependsOn(...)` outcomes: pass-through on
@@ -99,7 +100,8 @@ Remaining work:
 
 - add host-level scheduler tests for broader topological ordering,
   declaration-order tie-breaking, blocked propagation, and prerequisite-outcome
-  handling now that missing dependencies and cycle detection have pure proof
+  handling now that missing dependencies, cycle detection, and prerequisite
+  satisfaction have pure proof
 - extend CLI and cross-host proof from discovery visibility into planner usage
   so stable IDs and declaration order are exercised by scheduler-facing paths
 - add CLI and end-to-end smoke coverage for sequential groups and explicit

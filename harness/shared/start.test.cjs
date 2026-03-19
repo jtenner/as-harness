@@ -3,7 +3,12 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { planExecutionStages, setNodeIdentity } = require("./start.cjs");
+const {
+	classifyDependencyOutcome,
+	evaluatePlannedExecution,
+	planExecutionStages,
+	setNodeIdentity,
+} = require("./start.cjs");
 
 function createPlannerNode(options) {
 	return setNodeIdentity(
@@ -14,6 +19,7 @@ function createPlannerNode(options) {
 			declarationOrder: options.declarationOrder ?? 0,
 			sequenceMode: options.sequenceMode ?? 0,
 			dependencyKeys: options.dependencyKeys ?? [],
+			expectFailure: options.expectFailure ?? false,
 			kind: options.kind ?? 1,
 			declarationMode: options.declarationMode ?? 1,
 			name: options.name ?? "",
@@ -276,4 +282,101 @@ test("planExecutionStages reports dependency cycles after planning ready nodes",
 			dependencyIdentityKey: "",
 		},
 	]);
+});
+
+test("classifyDependencyOutcome treats expected failures as satisfied only when they fail", () => {
+	const plainTarget = {
+		node: { expectFailure: false },
+	};
+	const expectedFailureTarget = {
+		node: { expectFailure: true },
+	};
+
+	assert.equal(classifyDependencyOutcome(plainTarget, { ok: true }), "satisfied");
+	assert.equal(classifyDependencyOutcome(plainTarget, { ok: false }), "unsatisfied");
+	assert.equal(
+		classifyDependencyOutcome(expectedFailureTarget, { ok: false }),
+		"satisfied",
+	);
+	assert.equal(
+		classifyDependencyOutcome(expectedFailureTarget, { ok: true }),
+		"unsatisfied",
+	);
+});
+
+test("evaluatePlannedExecution blocks downstream dependents after an unsatisfied prerequisite", () => {
+	const root = createPlannerNode({
+		identityKey: "id:40",
+		nodeId: 40,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const expectedFailurePrereq = createPlannerNode({
+		identityKey: "id:40/id:41",
+		parentIdentityKey: "id:40",
+		nodeId: 41,
+		parentNodeId: 40,
+		declarationOrder: 1,
+		expectFailure: true,
+		name: "expected failure prereq",
+	});
+	const directDependent = createPlannerNode({
+		identityKey: "id:40/id:42",
+		parentIdentityKey: "id:40",
+		nodeId: 42,
+		parentNodeId: 40,
+		declarationOrder: 2,
+		dependencyKeys: ["id:40/id:41"],
+		name: "direct dependent",
+	});
+	const downstreamDependent = createPlannerNode({
+		identityKey: "id:40/id:43",
+		parentIdentityKey: "id:40",
+		nodeId: 43,
+		parentNodeId: 40,
+		declarationOrder: 3,
+		dependencyKeys: ["id:40/id:42"],
+		name: "downstream dependent",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [
+			root,
+			expectedFailurePrereq,
+			directDependent,
+			downstreamDependent,
+		]),
+	]);
+	const evaluated = evaluatePlannedExecution(
+		plan,
+		new Map([
+			["id:40/id:41", { ok: true }],
+			["id:40/id:42", { ok: true }],
+			["id:40/id:43", { ok: true }],
+		]),
+	);
+
+	assert.equal(evaluated.outcomesByIdentity.get("id:40/id:41"), "unsatisfied");
+	assert.equal(evaluated.outcomesByIdentity.get("id:40/id:42"), "blocked");
+	assert.equal(evaluated.outcomesByIdentity.get("id:40/id:43"), "blocked");
+	assert.deepEqual(
+		evaluated.blockedTargets.map((target) => target.node.name),
+		["direct dependent", "downstream dependent"],
+	);
+	assert.deepEqual(
+		evaluated.issues.filter((issue) => issue.type === "blocked-dependency"),
+		[
+			{
+				type: "blocked-dependency",
+				targetIdentityKey: "id:40/id:42",
+				dependencyIdentityKey: "id:40/id:41",
+			},
+			{
+				type: "blocked-dependency",
+				targetIdentityKey: "id:40/id:43",
+				dependencyIdentityKey: "id:40/id:41",
+			},
+		],
+	);
 });
