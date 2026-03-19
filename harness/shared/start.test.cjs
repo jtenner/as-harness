@@ -13,6 +13,7 @@ function createPlannerNode(options) {
 			parentNodeId: options.parentNodeId ?? 0,
 			declarationOrder: options.declarationOrder ?? 0,
 			sequenceMode: options.sequenceMode ?? 0,
+			dependencyKeys: options.dependencyKeys ?? [],
 			kind: options.kind ?? 1,
 			declarationMode: options.declarationMode ?? 1,
 			name: options.name ?? "",
@@ -142,4 +143,137 @@ test("planExecutionStages keeps runnable ancestors ahead of nested descendants",
 		plan.stages.map((stage) => stage.map((target) => target.node.name)),
 		[["parent test"], ["child test"]],
 	);
+});
+
+test("planExecutionStages blocks dependents when a dependency target is missing", () => {
+	const root = createPlannerNode({
+		identityKey: "id:20",
+		nodeId: 20,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const passingPrereq = createPlannerNode({
+		identityKey: "id:20/id:21",
+		parentIdentityKey: "id:20",
+		nodeId: 21,
+		parentNodeId: 20,
+		declarationOrder: 1,
+		name: "passing prereq",
+	});
+	const blockedMissing = createPlannerNode({
+		identityKey: "id:20/id:22",
+		parentIdentityKey: "id:20",
+		nodeId: 22,
+		parentNodeId: 20,
+		declarationOrder: 2,
+		dependencyKeys: ["id:missing"],
+		name: "blocked missing",
+	});
+	const transitivelyBlocked = createPlannerNode({
+		identityKey: "id:20/id:23",
+		parentIdentityKey: "id:20",
+		nodeId: 23,
+		parentNodeId: 20,
+		declarationOrder: 3,
+		dependencyKeys: ["id:20/id:22"],
+		name: "transitively blocked",
+	});
+	const plainReady = createPlannerNode({
+		identityKey: "id:20/id:24",
+		parentIdentityKey: "id:20",
+		nodeId: 24,
+		parentNodeId: 20,
+		declarationOrder: 4,
+		name: "plain ready",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [
+			root,
+			passingPrereq,
+			blockedMissing,
+			transitivelyBlocked,
+			plainReady,
+		]),
+	]);
+
+	assert.equal(plan.complete, false);
+	assert.deepEqual(
+		plan.stages.map((stage) => stage.map((target) => target.node.name)),
+		[["passing prereq", "plain ready"]],
+	);
+	assert.deepEqual(
+		plan.blockedTargets.map((target) => target.node.name),
+		["blocked missing", "transitively blocked"],
+	);
+	assert.deepEqual(plan.issues, [
+		{
+			type: "missing-dependency",
+			targetIdentityKey: "id:20/id:22",
+			dependencyIdentityKey: "id:missing",
+		},
+	]);
+});
+
+test("planExecutionStages reports dependency cycles after planning ready nodes", () => {
+	const root = createPlannerNode({
+		identityKey: "id:30",
+		nodeId: 30,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const cycleA = createPlannerNode({
+		identityKey: "id:30/id:31",
+		parentIdentityKey: "id:30",
+		nodeId: 31,
+		parentNodeId: 30,
+		declarationOrder: 1,
+		dependencyKeys: ["id:30/id:32"],
+		name: "cycle a",
+	});
+	const cycleB = createPlannerNode({
+		identityKey: "id:30/id:32",
+		parentIdentityKey: "id:30",
+		nodeId: 32,
+		parentNodeId: 30,
+		declarationOrder: 2,
+		dependencyKeys: ["id:30/id:31"],
+		name: "cycle b",
+	});
+	const plainReady = createPlannerNode({
+		identityKey: "id:30/id:33",
+		parentIdentityKey: "id:30",
+		nodeId: 33,
+		parentNodeId: 30,
+		declarationOrder: 3,
+		name: "plain ready",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [root, cycleA, cycleB, plainReady]),
+	]);
+
+	assert.equal(plan.complete, false);
+	assert.deepEqual(
+		plan.stages.map((stage) => stage.map((target) => target.node.name)),
+		[["plain ready"]],
+	);
+	assert.deepEqual(
+		plan.blockedTargets.map((target) => target.node.name),
+		["cycle a", "cycle b"],
+	);
+	assert.deepEqual(plan.issues, [
+		{
+			type: "dependency-cycle",
+			targetIdentityKey: "id:30/id:31",
+			dependencyIdentityKey: "",
+		},
+		{
+			type: "dependency-cycle",
+			targetIdentityKey: "id:30/id:32",
+			dependencyIdentityKey: "",
+		},
+	]);
 });

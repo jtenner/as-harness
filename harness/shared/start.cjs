@@ -384,6 +384,28 @@ function createExecutionTarget(branchIndex, executionIndex, node) {
 	};
 }
 
+function listDependencyKeys(node) {
+	if (!Array.isArray(node?.dependencyKeys)) {
+		return [];
+	}
+
+	const dependencyKeys = [];
+	const seen = new Set();
+	for (const dependencyKey of node.dependencyKeys) {
+		if (typeof dependencyKey !== "string" || dependencyKey.length === 0) {
+			continue;
+		}
+		if (seen.has(dependencyKey)) {
+			continue;
+		}
+
+		seen.add(dependencyKey);
+		dependencyKeys.push(dependencyKey);
+	}
+
+	return dependencyKeys;
+}
+
 function createExecutionTargetMap(branches) {
 	const targets = [];
 	const targetsByIdentity = new Map();
@@ -478,9 +500,59 @@ function addExecutionDependency(adjacency, prereqCounts, fromTarget, toTarget) {
 	);
 }
 
+function comparePlanIssues(left, right) {
+	const leftTarget = left?.targetIdentityKey || "";
+	const rightTarget = right?.targetIdentityKey || "";
+	if (leftTarget !== rightTarget) {
+		return leftTarget.localeCompare(rightTarget);
+	}
+
+	const leftDependency = left?.dependencyIdentityKey || "";
+	const rightDependency = right?.dependencyIdentityKey || "";
+	if (leftDependency !== rightDependency) {
+		return leftDependency.localeCompare(rightDependency);
+	}
+
+	return (left?.type || "").localeCompare(right?.type || "");
+}
+
+function createPlanIssue(type, targetIdentityKey, dependencyIdentityKey = "") {
+	return {
+		type,
+		targetIdentityKey,
+		dependencyIdentityKey,
+	};
+}
+
+function propagateBlockedTargets(initialBlockedKeys, adjacency) {
+	const blockedKeys = new Set(initialBlockedKeys);
+	const queue = [...blockedKeys];
+
+	while (queue.length > 0) {
+		const blockedKey = queue.shift();
+		const successors = adjacency.get(blockedKey);
+		if (!successors) {
+			continue;
+		}
+
+		for (const successorKey of successors) {
+			if (blockedKeys.has(successorKey)) {
+				continue;
+			}
+
+			blockedKeys.add(successorKey);
+			queue.push(successorKey);
+		}
+	}
+
+	return blockedKeys;
+}
+
 function buildExecutionDependencies(branches, targetsByIdentity, targetsByBranchIndex) {
 	const adjacency = new Map();
 	const prereqCounts = new Map();
+	const blockedKeys = new Set();
+	const issues = [];
 
 	for (const target of targetsByIdentity.values()) {
 		prereqCounts.set(target.identityKey, 0);
@@ -509,8 +581,29 @@ function buildExecutionDependencies(branches, targetsByIdentity, targetsByBranch
 		}
 	}
 
+	for (const target of targetsByIdentity.values()) {
+		for (const dependencyKey of listDependencyKeys(target.node)) {
+			const dependencyTarget = targetsByIdentity.get(dependencyKey) || null;
+			if (dependencyTarget === null) {
+				blockedKeys.add(target.identityKey);
+				issues.push(
+					createPlanIssue(
+						"missing-dependency",
+						target.identityKey,
+						dependencyKey,
+					),
+				);
+				continue;
+			}
+
+			addExecutionDependency(adjacency, prereqCounts, dependencyTarget, target);
+		}
+	}
+
 	return {
 		adjacency,
+		blockedKeys: propagateBlockedTargets(blockedKeys, adjacency),
+		issues: issues.sort(comparePlanIssues),
 		prereqCounts,
 	};
 }
@@ -522,12 +615,13 @@ function compareExecutionTargets(left, right) {
 function planExecutionStages(branches) {
 	const { targets, targetsByIdentity, targetsByBranchIndex } =
 		createExecutionTargetMap(branches);
-	const { adjacency, prereqCounts } = buildExecutionDependencies(
+	const { adjacency, blockedKeys, issues, prereqCounts } = buildExecutionDependencies(
 		branches,
 		targetsByIdentity,
 		targetsByBranchIndex,
 	);
-	const readyTargets = targets
+	const runnableTargets = targets.filter((target) => !blockedKeys.has(target.identityKey));
+	const readyTargets = runnableTargets
 		.filter((target) => (prereqCounts.get(target.identityKey) || 0) === 0)
 		.sort(compareExecutionTargets);
 	const plannedStages = [];
@@ -559,8 +653,24 @@ function planExecutionStages(branches) {
 		readyTargets.sort(compareExecutionTargets);
 	}
 
+	const cycleTargets = runnableTargets
+		.filter(
+			(target) =>
+				(prereqCounts.get(target.identityKey) || 0) > 0 &&
+				!blockedKeys.has(target.identityKey),
+		)
+		.sort(compareExecutionTargets);
+	for (const cycleTarget of cycleTargets) {
+		blockedKeys.add(cycleTarget.identityKey);
+		issues.push(createPlanIssue("dependency-cycle", cycleTarget.identityKey));
+	}
+
 	return {
+		blockedTargets: targets
+			.filter((target) => blockedKeys.has(target.identityKey))
+			.sort(compareExecutionTargets),
 		complete: completedTargetCount === targets.length,
+		issues: issues.sort(comparePlanIssues),
 		stages: plannedStages,
 		targetCount: targets.length,
 	};

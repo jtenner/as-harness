@@ -22,8 +22,8 @@
 - `sequenceMode` now lowers onto runnable-test ordering rather than top-level
   branch barriers, and the shared planner now has direct proof coverage while
   `only` and expected-failure intent cross discovery cleanly, but the
-  scheduler still lacks explicit dependency-edge semantics plus CLI and
-  non-JS end-to-end graph proof
+  scheduler still lacks ABI-emitted dependency metadata, blocked reporting,
+  and CLI/non-JS end-to-end graph proof
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
 - a native dependency API will be unstable if it lands before shared identity
@@ -49,11 +49,10 @@ Remaining work:
 
 Remaining work:
 
-- define the first shared ordering model for plain declaration order,
-  sequential groups, and explicit dependency edges
-- extend the current sequential-scope lowering beyond the first runnable-test
-  edge set so it can compose cleanly with future dependency edges and broader
-  planner diagnostics
+- decide the guest-to-host dependency metadata shape now that the shared
+  planner can already model missing dependencies and cycles in pure tests
+- extend the current sequential-scope lowering and dependency-ready planner so
+  blocked outcomes and prerequisite result handling compose cleanly
 - decide the exact meaning of `dependsOn(...)` outcomes: pass-through on
   success, blocked-on-failure behavior, and transitive handling for blocked
   prerequisites
@@ -99,8 +98,8 @@ Remaining work:
 Remaining work:
 
 - add host-level scheduler tests for broader topological ordering,
-  declaration-order tie-breaking, cycle detection, missing dependencies, and
-  blocked propagation
+  declaration-order tie-breaking, blocked propagation, and prerequisite-outcome
+  handling now that missing dependencies and cycle detection have pure proof
 - extend CLI and cross-host proof from discovery visibility into planner usage
   so stable IDs and declaration order are exercised by scheduler-facing paths
 - add CLI and end-to-end smoke coverage for sequential groups and explicit
