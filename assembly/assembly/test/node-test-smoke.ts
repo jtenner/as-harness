@@ -109,3 +109,33 @@ test(
   "dependency satisfied dependent",
   (_context: TestContext): void => {},
 ).dependsOn(dependencyExpectedFailurePrereq);
+
+const dependencySkippedPrereq = test.skip(
+  "dependency skipped prereq",
+  (_context: TestContext): void => {},
+);
+
+test(
+  "dependency skipped dependent",
+  (_context: TestContext): void => {},
+).dependsOn(dependencySkippedPrereq);
+
+const dependencyTodoPrereq = test.todo(
+  "dependency todo prereq",
+  (_context: TestContext): void => {},
+);
+
+test(
+  "dependency todo dependent",
+  (_context: TestContext): void => {},
+).dependsOn(dependencyTodoPrereq);
+
+const dependencyUnexpectedPassPrereq = test.expectFailure(
+  "dependency unexpected pass prereq",
+  (_context: TestContext): void => {},
+);
+
+test(
+  "dependency unexpected pass dependent",
+  (_context: TestContext): void => {},
+).dependsOn(dependencyUnexpectedPassPrereq);

@@ -231,6 +231,93 @@ test("dependency blocked dependent", (_context: TestContext): void => {}).depend
 	);
 });
 
+test("cli run reports skipped and todo prerequisites as missing dependencies through the js host", async () => {
+	await withTempEntryFile(
+		`
+import { test, TestContext } from "node:test";
+
+const skippedPrereq = test.skip(
+  "dependency skipped prereq",
+  (_context: TestContext): void => {},
+);
+
+test("dependency skipped dependent", (_context: TestContext): void => {}).dependsOn(
+  skippedPrereq,
+);
+
+const todoPrereq = test.todo(
+  "dependency todo prereq",
+  (_context: TestContext): void => {},
+);
+
+test("dependency todo dependent", (_context: TestContext): void => {}).dependsOn(
+  todoPrereq,
+);
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(1);
+			expect(result.stdout).toBe("");
+			expect(result.stderr).toContain(
+				"FAIL 0 passed, 0 failed, 2 blocked, 4 discovered with js.",
+			);
+			expect(result.stderr).toContain("- dependency skipped dependent");
+			expect(result.stderr).toContain(
+				"  blocked: missing-dependency (nodeId:1)",
+			);
+			expect(result.stderr).toContain("- dependency todo dependent");
+			expect(result.stderr).toContain(
+				"  blocked: missing-dependency (nodeId:3)",
+			);
+			expect(result.stderr).toContain(
+				"  issue: missing-dependency (id:2 <- nodeId:1)",
+			);
+			expect(result.stderr).toContain(
+				"  issue: missing-dependency (id:4 <- nodeId:3)",
+			);
+		},
+	);
+});
+
+test("cli run reports unexpected-pass expectFailure prerequisites as blocked dependencies through the js host", async () => {
+	await withTempEntryFile(
+		`
+import { test, TestContext } from "node:test";
+
+const prereq = test.expectFailure(
+  "dependency unexpected pass prereq",
+  (_context: TestContext): void => {},
+);
+
+test(
+  "dependency unexpected pass dependent",
+  (_context: TestContext): void => {},
+).dependsOn(prereq);
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(1);
+			expect(result.stdout).toBe("");
+			expect(result.stderr).toContain(
+				"FAIL 1 passed, 0 failed, 1 blocked, 2 discovered with js.",
+			);
+			expect(result.stderr).not.toContain(
+				"- dependency unexpected pass prereq",
+			);
+			expect(result.stderr).toContain("- dependency unexpected pass dependent");
+			expect(result.stderr).toContain("  blocked: blocked-dependency (id:1)");
+		},
+	);
+});
+
 test('cli run executes a thin jest adapter entry from the bundled "jest" guest library', async () => {
 	await withTempEntryFile(
 		`

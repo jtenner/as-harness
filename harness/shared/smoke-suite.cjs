@@ -23,11 +23,17 @@ const NODE_METADATA_BY_INDEX = new Map([
 	["15", { nodeId: 16, parentNodeId: 0, declarationOrder: 15, dependencyNodeIds: [15] }],
 	["16", { nodeId: 17, parentNodeId: 0, declarationOrder: 16, expectFailure: true }],
 	["17", { nodeId: 18, parentNodeId: 0, declarationOrder: 17, dependencyNodeIds: [17] }],
-	["3.0", { nodeId: 19, parentNodeId: 4, declarationOrder: 18 }],
-	["4.0", { nodeId: 19, parentNodeId: 5, declarationOrder: 18, only: true }],
-	["7.0", { nodeId: 19, parentNodeId: 8, declarationOrder: 18 }],
-	["9.0", { nodeId: 19, parentNodeId: 10, declarationOrder: 18 }],
-	["10.0", { nodeId: 19, parentNodeId: 11, declarationOrder: 18 }],
+	["18", { nodeId: 19, parentNodeId: 0, declarationOrder: 18 }],
+	["19", { nodeId: 20, parentNodeId: 0, declarationOrder: 19, dependencyNodeIds: [19] }],
+	["20", { nodeId: 21, parentNodeId: 0, declarationOrder: 20 }],
+	["21", { nodeId: 22, parentNodeId: 0, declarationOrder: 21, dependencyNodeIds: [21] }],
+	["22", { nodeId: 23, parentNodeId: 0, declarationOrder: 22, expectFailure: true }],
+	["23", { nodeId: 24, parentNodeId: 0, declarationOrder: 23, dependencyNodeIds: [23] }],
+	["3.0", { nodeId: 25, parentNodeId: 4, declarationOrder: 24 }],
+	["4.0", { nodeId: 25, parentNodeId: 5, declarationOrder: 24, only: true }],
+	["7.0", { nodeId: 25, parentNodeId: 8, declarationOrder: 24 }],
+	["9.0", { nodeId: 25, parentNodeId: 10, declarationOrder: 24 }],
+	["10.0", { nodeId: 25, parentNodeId: 11, declarationOrder: 24 }],
 ]);
 
 function annotateNode(node) {
@@ -270,6 +276,42 @@ const DISCOVERED_NODES = annotateNodes([
 		kind: 1,
 		declarationMode: 1,
 		name: "dependency satisfied dependent",
+	},
+	{
+		nodeIndex: [18],
+		kind: 1,
+		declarationMode: 2,
+		name: "dependency skipped prereq",
+	},
+	{
+		nodeIndex: [19],
+		kind: 1,
+		declarationMode: 1,
+		name: "dependency skipped dependent",
+	},
+	{
+		nodeIndex: [20],
+		kind: 1,
+		declarationMode: 3,
+		name: "dependency todo prereq",
+	},
+	{
+		nodeIndex: [21],
+		kind: 1,
+		declarationMode: 1,
+		name: "dependency todo dependent",
+	},
+	{
+		nodeIndex: [22],
+		kind: 1,
+		declarationMode: 1,
+		name: "dependency unexpected pass prereq",
+	},
+	{
+		nodeIndex: [23],
+		kind: 1,
+		declarationMode: 1,
+		name: "dependency unexpected pass dependent",
 	},
 	{
 		nodeIndex: [3, 0],
@@ -565,7 +607,7 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.discover([]), true);
 		assert.equal(harness.run([0]), true);
 		assert.deepEqual(staleFound, []);
-		assert.deepEqual(activeFound, DISCOVERED_NODES.slice(0, 18));
+		assert.deepEqual(activeFound, DISCOVERED_NODES.slice(0, 24));
 		assert.deepEqual(staleStarts, []);
 		assert.deepEqual(activeStarts, [{ nodeIndex: [0] }]);
 		closeHarness(harness);
@@ -731,7 +773,7 @@ function registerHarnessSmokeSuite(options) {
 		});
 
 		assert.equal(harness.discover([]), true);
-		assert.deepEqual(found, DISCOVERED_NODES.slice(0, 18));
+		assert.deepEqual(found, DISCOVERED_NODES.slice(0, 24));
 
 		found.length = 0;
 		assert.equal(harness.discover([3]), true);
@@ -936,13 +978,28 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(result.discoveryOk, true);
 		assert.equal(result.planningOk, false);
 		assert.equal(result.ok, false);
-		assert.equal(result.discoveredTestCount, 23);
-		assert.equal(result.topLevelNodes.length, 18);
+		assert.equal(result.discoveredTestCount, 29);
+		assert.equal(result.topLevelNodes.length, 24);
 		assert.deepEqual(result.planIssues, [
 			{
 				type: "blocked-dependency",
 				targetIdentityKey: "id:16",
 				dependencyIdentityKey: "id:15",
+			},
+			{
+				type: "missing-dependency",
+				targetIdentityKey: "id:20",
+				dependencyIdentityKey: "nodeId:19",
+			},
+			{
+				type: "missing-dependency",
+				targetIdentityKey: "id:22",
+				dependencyIdentityKey: "nodeId:21",
+			},
+			{
+				type: "blocked-dependency",
+				targetIdentityKey: "id:24",
+				dependencyIdentityKey: "id:23",
 			},
 		]);
 		assert.deepEqual(
@@ -959,15 +1016,39 @@ function registerHarnessSmokeSuite(options) {
 					issueType: "blocked-dependency",
 					dependencyIdentityKey: "id:15",
 				},
+				{
+					name: "dependency skipped dependent",
+					dependencyNodeIds: [19],
+					issueType: "missing-dependency",
+					dependencyIdentityKey: "nodeId:19",
+				},
+				{
+					name: "dependency todo dependent",
+					dependencyNodeIds: [21],
+					issueType: "missing-dependency",
+					dependencyIdentityKey: "nodeId:21",
+				},
+				{
+					name: "dependency unexpected pass dependent",
+					dependencyNodeIds: [23],
+					issueType: "blocked-dependency",
+					dependencyIdentityKey: "id:23",
+				},
 			],
 		);
 		assert.deepEqual(
 			result.topLevelNodes.map((node) => node.nodeId),
-			[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+			[
+				1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+				20, 21, 22, 23, 24,
+			],
 		);
 		assert.deepEqual(
 			result.topLevelNodes.map((node) => node.declarationOrder),
-			[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
+			[
+				0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+				19, 20, 21, 22, 23,
+			],
 		);
 		assert.equal(result.workerCount, 1);
 		assert.deepEqual(
@@ -990,7 +1071,7 @@ function registerHarnessSmokeSuite(options) {
 			branchesByName
 				.get("todo parent")
 				.executions.map((execution) => execution.node.nodeId),
-			[19],
+			[25],
 		);
 		assert.deepEqual(branchesByName.get("top-level todo leaf").executions, []);
 		assert.deepEqual(
@@ -1052,7 +1133,7 @@ function registerHarnessSmokeSuite(options) {
 				.discovery.nodes.map((node) => [node.nodeId, node.parentNodeId]),
 			[
 				[4, 0],
-				[19, 4],
+				[25, 4],
 			],
 		);
 		assert.equal(
@@ -1078,6 +1159,30 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(
 			branchesByName.get("dependency satisfied dependent").executions[0].ok,
 			true,
+		);
+		assert.deepEqual(
+			branchesByName.get("dependency skipped prereq").executions,
+			[],
+		);
+		assert.deepEqual(
+			branchesByName.get("dependency skipped dependent").executions,
+			[],
+		);
+		assert.deepEqual(
+			branchesByName.get("dependency todo prereq").executions,
+			[],
+		);
+		assert.deepEqual(
+			branchesByName.get("dependency todo dependent").executions,
+			[],
+		);
+		assert.equal(
+			branchesByName.get("dependency unexpected pass prereq").executions[0].ok,
+			true,
+		);
+		assert.deepEqual(
+			branchesByName.get("dependency unexpected pass dependent").executions,
+			[],
 		);
 		assert.deepEqual(
 			branchesByName.get("discovery trap parent").executions[0].events,
