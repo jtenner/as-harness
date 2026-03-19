@@ -25,6 +25,12 @@ const { decorateHarness } = sharedStartModule as {
 const runtimeModulePath = fileURLToPath(import.meta.url);
 let cachedHarnessModule: WazeroHarnessModule | null = null;
 
+function traceWazero(message: string) {
+	if (process.env.AS_HARNESS_TRACE_WAZERO === "1") {
+		console.error(`[wazero-runtime] ${message}`);
+	}
+}
+
 function loadSourceWazeroHarnessModule(): WazeroHarnessModule {
 	const sourceSpecifier = ["..", "..", "harness", "wazero", "index.cjs"].join(
 		"/",
@@ -57,18 +63,53 @@ function resolveWazeroHarnessModule() {
 	return cachedHarnessModule;
 }
 
+function shouldBypassBundledWazeroClose() {
+	return typeof WAZERO_TARGET !== "undefined";
+}
+
+function createBundledNativeHarness(
+	nativeHarnessModule: WazeroHarnessModule,
+	wasmBytes: Uint8Array,
+) {
+	traceWazero("creating bundled native harness");
+	const harness = nativeHarnessModule.createHarness(Buffer.from(wasmBytes));
+	traceWazero("created bundled native harness");
+
+	if (!shouldBypassBundledWazeroClose()) {
+		return harness;
+	}
+
+	const rawClose =
+		typeof harness.close === "function" ? harness.close.bind(harness) : null;
+	if (rawClose === null) {
+		return harness;
+	}
+
+	// Packaged Bun builds on hosted Linux can hang while synchronously closing the
+	// embedded Node-API-backed wazero runtime even though the one-shot CLI process
+	// will exit immediately afterward. Leave bundled close teardown to process exit.
+	harness.close = function bundledWazeroCloseNoop() {
+		traceWazero("skipping bundled native harness close");
+	};
+	return harness;
+}
+
 function createBundledWazeroHarness(wasmBytes: Uint8Array) {
 	const nativeHarnessModule = resolveWazeroHarnessModule();
 	const bundledBytes = Buffer.from(wasmBytes);
 
-	return decorateHarness(nativeHarnessModule.createHarness(bundledBytes), {
-		bytes: bundledBytes,
-		createLocalHarness(localBytes) {
-			return nativeHarnessModule.createHarness(Buffer.from(localBytes));
+	traceWazero("decorating bundled wazero harness");
+	return decorateHarness(
+		createBundledNativeHarness(nativeHarnessModule, bundledBytes),
+		{
+			bytes: bundledBytes,
+			createLocalHarness(localBytes) {
+				return createBundledNativeHarness(nativeHarnessModule, localBytes);
+			},
+			runInBand: true,
+			workerModulePath: runtimeModulePath,
 		},
-		runInBand: true,
-		workerModulePath: runtimeModulePath,
-	});
+	);
 }
 
 export const wazeroRuntime: Runtime = {
@@ -78,9 +119,11 @@ export const wazeroRuntime: Runtime = {
 	},
 	createHarness(wasmBytes) {
 		if (typeof WAZERO_TARGET === "undefined") {
+			traceWazero("resolving source wazero harness module");
 			return resolveWazeroHarnessModule().createHarness(wasmBytes);
 		}
 
+		traceWazero("resolving bundled wazero harness module");
 		return createBundledWazeroHarness(wasmBytes);
 	},
 };

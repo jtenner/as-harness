@@ -117,6 +117,7 @@ function resolveNodeExecutable() {
 async function runCommand(
 	command: string[],
 	cwd: string,
+	extraEnv: Record<string, string> = {},
 ): Promise<CommandResult> {
 	return await new Promise((resolve, reject) => {
 		let stdout = "";
@@ -125,6 +126,7 @@ async function runCommand(
 			cwd,
 			env: {
 				...process.env,
+				...extraEnv,
 				[COMMAND_TIMEOUT_ENV_VAR]: String(COMMAND_TIMEOUT_MS),
 			},
 			stdio: ["ignore", "pipe", "pipe"],
@@ -300,6 +302,20 @@ async function main() {
 			});
 
 			if (runResult.exitCode !== 0) {
+				let diagnosticOutput = "";
+				if (harness === "wazero" && runResult.timedOut) {
+					const diagnosticResult = await runCommand(command, projectDirectory, {
+						AS_HARNESS_TRACE_WAZERO: "1",
+					});
+					diagnosticOutput = [
+						"Diagnostic wazero rerun with AS_HARNESS_TRACE_WAZERO=1:",
+						diagnosticResult.stdout,
+						diagnosticResult.stderr,
+					]
+						.filter(Boolean)
+						.join("\n");
+				}
+
 				throw new Error(
 					[
 						`Packaged ${harness} smoke failed for ${target}.`,
@@ -308,6 +324,7 @@ async function main() {
 							: "",
 						runResult.stdout,
 						runResult.stderr,
+						diagnosticOutput,
 					].join("\n"),
 				);
 			}
