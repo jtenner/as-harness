@@ -328,7 +328,15 @@ describe("vitest adapter", (_context): void => {
 
   test.fails("expected failure metadata", (_context: TestContext): void => {});
   test("implicit todo metadata");
+  test.sequential("sequential pass", (_context: TestContext): void => {});
 
+  it.sequential("sequential it pass", (_context: TestContext): void => {});
+  suite.sequential("sequential suite alias", (_nestedContext): void => {
+    test("nested suite alias child", (_context: TestContext): void => {});
+  });
+  describe.sequential("sequential suite", (_nestedContext): void => {
+    test("nested sequential child", (_context: TestContext): void => {});
+  });
   test.skipIf(false)("conditional pass", (_context: TestContext): void => {});
 
   it("passes through vitest adapter", (context: TestContext): void => {
@@ -355,7 +363,7 @@ describe("vitest adapter", (_context): void => {
 			expect(result.exitCode).toBe(0);
 			expect(result.stderr).toBe("");
 			expect(result.stdout).toContain(
-				"PASS 3 passed, 0 failed, 4 discovered with js.",
+				"PASS 7 passed, 0 failed, 8 discovered with js.",
 			);
 		},
 	);

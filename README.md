@@ -27,7 +27,7 @@ Current limits:
 
 - async or Promise-based test APIs are not part of the current surface
 - the Jest adapter is intentionally small and not full Jest parity
-- the Vitest adapter is intentionally small and not full Vitest parity
+- the Vitest adapter is intentionally small and not full Vitest parity, even though it now includes low-risk `sequential` aliases
 - packaged releases include `js` and target-specific `wazero`; `wasmtime` is source-only
 - official distribution is packaged Bun executables, not `npm`
 

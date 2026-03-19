@@ -288,16 +288,20 @@ The same applies to `it.skipIf` and `it.runIf`.
 
 Recommended status:
 
-- `Later`, but low risk
+- `Ship now`
 
 Reasoning:
 
 - the current runner is already sequential
-- exporting `test.sequential` immediately would mostly be a semantic alias
-- keeping it out of the first slice avoids promising more scheduler semantics
-  than the runtime currently exposes
+- exporting `test.sequential` now is an honest semantic alias of normal test
+  declaration in the current runner
+- it adds useful named surface compatibility without claiming concurrent
+  scheduling support
 
-If added later, it can initially alias normal test declaration.
+Current shipped behavior:
+
+- `test.sequential(...)` aliases `test(...)`
+- `it.sequential(...)` aliases `it(...)`
 
 ### `test.concurrent`
 
@@ -486,13 +490,19 @@ Reasoning:
 
 Recommended status:
 
-- `Later`, but low risk
+- `Ship now`
 
 Reasoning:
 
-- like `test.sequential`, this can become an alias once the project wants the
-  named surface
-- it does not add real value until the runner also has a concurrent mode
+- like `test.sequential`, this is an honest alias in the current always-
+  sequential runner
+- it improves named Vitest surface compatibility without promising any broader
+  scheduler behavior
+
+Current shipped behavior:
+
+- `describe.sequential(...)` aliases `describe(...)`
+- `suite.sequential(...)` aliases `suite(...)`
 
 ### `describe.concurrent`
 
@@ -902,6 +912,7 @@ The recommended first implementation contract for `"vitest"` is:
 - `test.skip(name?: string, callback?: TestFn | null): void`
 - `test.todo(name?: string, callback?: TestFn | null): void`
 - `test.fails(name?: string, callback?: TestFn | null): void`
+- `test.sequential(name?: string, callback?: TestFn | null): void`
 - `test.skipIf(condition: bool): typeof test`
 - `test.runIf(condition: bool): typeof test`
 - `it(...)` with the same family as `test(...)`
@@ -909,6 +920,7 @@ The recommended first implementation contract for `"vitest"` is:
 - `describe.only(name?: string, callback?: SuiteFn | null): void`
 - `describe.skip(name?: string, callback?: SuiteFn | null): void`
 - `describe.todo(name?: string, callback?: SuiteFn | null): void`
+- `describe.sequential(name?: string, callback?: SuiteFn | null): void`
 - `describe.skipIf(condition: bool): typeof describe`
 - `describe.runIf(condition: bool): typeof describe`
 - `suite(...)` with the same family as `describe(...)`

@@ -69,6 +69,13 @@ export namespace test {
     declareModifiedTest(name, callback, DeclarationMode.Normal, false, true);
   }
 
+  export function sequential(
+    name: string = "",
+    callback: TestFn | null = null,
+  ): void {
+    declareBaseTest(name, callback);
+  }
+
   export function skipIf(condition: bool): TestDeclaration {
     return condition ? test.skip : test;
   }
@@ -114,6 +121,13 @@ export namespace it {
     declareModifiedTest(name, callback, DeclarationMode.Normal, false, true);
   }
 
+  export function sequential(
+    name: string = "",
+    callback: TestFn | null = null,
+  ): void {
+    declareBaseTest(name, callback);
+  }
+
   export function skipIf(condition: bool): TestDeclaration {
     return condition ? it.skip : it;
   }
@@ -152,6 +166,13 @@ export namespace describe {
     declareModifiedSuite(name, callback, DeclarationMode.Todo);
   }
 
+  export function sequential(
+    name: string = "",
+    callback: SuiteFn | null = null,
+  ): void {
+    declareBaseSuite(name, callback);
+  }
+
   export function skipIf(condition: bool): SuiteDeclaration {
     return condition ? describe.skip : describe;
   }
@@ -188,6 +209,13 @@ export namespace suite {
     callback: SuiteFn | null = null,
   ): void {
     declareModifiedSuite(name, callback, DeclarationMode.Todo);
+  }
+
+  export function sequential(
+    name: string = "",
+    callback: SuiteFn | null = null,
+  ): void {
+    declareBaseSuite(name, callback);
   }
 
   export function skipIf(condition: bool): SuiteDeclaration {

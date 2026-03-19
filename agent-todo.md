@@ -73,9 +73,10 @@ Current blocker/risk:
 ### Framework Library Entry Points and Declaration Adapters
 
 Current note: thin `jest` and `vitest` adapters now exist for the synchronous
-declaration surface plus a small shared-assertion-backed `expect(...)` subset.
-Broader matcher parity, fixtures, mocking, and async helpers remain deferred.
-The current user-facing adapter surfaces are documented in
+declaration surface, with `vitest` also exposing low-risk `sequential` aliases,
+plus a small shared-assertion-backed `expect(...)` subset. Broader matcher
+parity, fixtures, mocking, and async helpers remain deferred. The current
+user-facing adapter surfaces are documented in
 [docs/Jest.md](./docs/Jest.md) and [docs/Vitest.md](./docs/Vitest.md).
 
 Current blocker/risk:

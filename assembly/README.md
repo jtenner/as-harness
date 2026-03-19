@@ -46,7 +46,7 @@ Implemented today:
 - top-level and immediate-child `discover()` flows
 - a synchronous `node:test` declaration and execution core
 - a thin synchronous `jest` adapter for `test` / `it` / `describe`, core hooks, and a small `expect(...)` surface including containment, length/size, numeric checks, `NaN`, and `toThrow()`
-- a thin synchronous `vitest` adapter for `test` / `it` / `describe` / `suite`, core hooks, `fails`, `skipIf` / `runIf`, `assertType(...)`, and the same small `expect(...)` surface reused from `jest`
+- a thin synchronous `vitest` adapter for `test` / `it` / `describe` / `suite`, low-risk `sequential` aliases, core hooks, `fails`, `skipIf` / `runIf`, `assertType(...)`, and the same small `expect(...)` surface reused from `jest`
 - `node:assert` and `node:assert/strict` bridge work
 - trampoline-backed callback trap observation
 - bundled guest-side coverage declarations used by the CLI `--coverage` flow
@@ -120,8 +120,8 @@ describe("suite", () => {
 });
 ```
 
-That adapter currently covers test/suite declarations, `fails`,
-`skipIf` / `runIf`, core hooks, `assertType(...)`, and the same shared
+That adapter currently covers test/suite declarations, low-risk
+`sequential` aliases, `fails`, `skipIf` / `runIf`, core hooks, `assertType(...)`, and the same shared
 assertion-backed matcher set currently shipped for `jest`. It does not try to
 provide fixtures, `vi`, snapshots, async helpers, or broad upstream Vitest
 parity.

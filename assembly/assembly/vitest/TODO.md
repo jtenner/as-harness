@@ -10,6 +10,7 @@ First implementation slice:
 
 - [x] map `test`, `it`, `describe`, `suite`, `skip`, `todo`, and core lifecycle hooks
 - [x] add `fails`, `skipIf`, `runIf`, and `assertType(...)`
+- [x] add low-risk `sequential` aliases for the current always-sequential runner
 - [x] reuse the shipped Jest matcher subset for `expect(...)`
 - [x] keep Vitest-specific naming in this folder
 - [x] add guest smoke coverage and a bundled CLI smoke path
