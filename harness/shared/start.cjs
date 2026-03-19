@@ -315,16 +315,6 @@ function branchRequiresSequentialExecution(branch) {
 	return false;
 }
 
-function requiresSequentialExecution(branches) {
-	for (const branch of branches) {
-		if (branchRequiresSequentialExecution(branch)) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
 function getWorkerCount(branchCount) {
 	if (branchCount === 0) {
 		return 0;
@@ -438,6 +428,84 @@ async function runTasksInWorkerPool(
 	});
 }
 
+function createParallelBranchStage(branches) {
+	return {
+		type: "parallel",
+		branchIndexes: branches.map((branch) => branch.index),
+	};
+}
+
+function createSequentialBranchStage(branch) {
+	return {
+		type: "sequential",
+		branchIndexes: [branch.index],
+	};
+}
+
+function planBranchExecutionStages(branches) {
+	const stages = [];
+	let pendingParallelBranches = [];
+
+	const flushPendingParallelBranches = () => {
+		if (pendingParallelBranches.length === 0) {
+			return;
+		}
+
+		stages.push(createParallelBranchStage(pendingParallelBranches));
+		pendingParallelBranches = [];
+	};
+
+	for (const branch of branches) {
+		if (branchRequiresSequentialExecution(branch)) {
+			flushPendingParallelBranches();
+			stages.push(createSequentialBranchStage(branch));
+			continue;
+		}
+
+		pendingParallelBranches.push(branch);
+	}
+
+	flushPendingParallelBranches();
+	return stages;
+}
+
+async function executePlannedStages(options, branches, stages) {
+	let maxWorkerCount = 0;
+
+	for (const stage of stages) {
+		const stageBranches = stage.branchIndexes.map((index) => branches[index]);
+		if (stageBranches.length === 0) {
+			continue;
+		}
+
+		const stageWorkerCount =
+			stage.type === "sequential" ? 1 : getWorkerCount(stageBranches.length);
+		if (stageWorkerCount === 0) {
+			continue;
+		}
+
+		maxWorkerCount = Math.max(maxWorkerCount, stageWorkerCount);
+		const executionGroups = await runTasksInWorkerPool(
+			options.workerModulePath,
+			options.bytes,
+			"runBranch",
+			stageBranches.map((branch) => ({
+				runTargets: listRunnableTests(branch.discovery.nodes),
+			})),
+			stageWorkerCount,
+		);
+
+		for (let index = 0; index < stageBranches.length; index += 1) {
+			const branch = stageBranches[index];
+			const executionGroup = executionGroups[index] || null;
+			branch.executions = executionGroup?.executions || [];
+			branch.coverage = executionGroup?.coverage ?? null;
+		}
+	}
+
+	return maxWorkerCount;
+}
+
 async function startHarness(options) {
 	const discoveryHarness = options.createLocalHarness(options.bytes);
 	let topLevelDiscovery;
@@ -450,7 +518,8 @@ async function startHarness(options) {
 		topLevelNodes = uniqueNodesByIdentity(topLevelDiscovery.nodes).sort(
 			compareNodeDeclarationOrder,
 		);
-		branches = topLevelNodes.map((root) => ({
+		branches = topLevelNodes.map((root, index) => ({
+			index,
 			root,
 			discovery: {
 				ok: false,
@@ -478,28 +547,8 @@ async function startHarness(options) {
 
 	let workerCount = 0;
 	if (discoveryOk) {
-		workerCount = getWorkerCount(branches.length);
-		if (requiresSequentialExecution(branches)) {
-			workerCount = workerCount > 0 ? 1 : 0;
-		}
-	}
-
-	if (workerCount > 0) {
-		const executionGroups = await runTasksInWorkerPool(
-			options.workerModulePath,
-			options.bytes,
-			"runBranch",
-			branches.map((branch) => ({
-				runTargets: listRunnableTests(branch.discovery.nodes),
-			})),
-			workerCount,
-		);
-
-		for (let index = 0; index < branches.length; index += 1) {
-			const executionGroup = executionGroups[index] || null;
-			branches[index].executions = executionGroup?.executions || [];
-			branches[index].coverage = executionGroup?.coverage ?? null;
-		}
+		const stages = planBranchExecutionStages(branches);
+		workerCount = await executePlannedStages(options, branches, stages);
 	}
 
 	let ok = discoveryOk;
@@ -516,6 +565,7 @@ async function startHarness(options) {
 			coverageSnapshots.push(branch.coverage);
 		}
 		delete branch.coverage;
+		delete branch.index;
 	}
 
 	return {

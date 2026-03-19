@@ -130,7 +130,7 @@ test("start() keeps deep replayed descendants distinct when local node ids repea
 	harness.close();
 });
 
-test("start() forces single-worker execution when sequential intent is discovered", async () => {
+test("start() keeps parallel branch stages around sequential root barriers", async () => {
 	const harness = decorateHarness(createSequentialStartHarness(), {
 		bytes: Buffer.alloc(0),
 		createLocalHarness: createSequentialStartHarness,
@@ -141,10 +141,16 @@ test("start() forces single-worker execution when sequential intent is discovere
 
 	assert.equal(result.discoveryOk, true);
 	assert.equal(result.ok, true);
-	assert.equal(result.workerCount, 1);
+	assert.equal(result.workerCount, 2);
 	assert.deepEqual(
 		result.branches.map((branch) => branch.executions.map((execution) => execution.node.name)),
-		[["branch-a-child-thread-0"], ["branch-b-child-thread-0"]],
+		[
+			["branch-a-child"],
+			["branch-b-child"],
+			["branch-c-child"],
+			["branch-d-child"],
+			["branch-e-child"],
+		],
 	);
 
 	harness.close();

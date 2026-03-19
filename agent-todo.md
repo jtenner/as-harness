@@ -19,9 +19,10 @@
 - the current branch-worker `start()` orchestration is incompatible with
   cross-branch dependency edges unless scheduling becomes global or graph scope
   is constrained
-- `sequenceMode` now crosses the guest and host boundary and forces a safe
-  single-worker fallback, but the scheduler still serializes too broadly until
-  it can lower sequential intent into minimal ordering constraints
+- `sequenceMode` now crosses the guest and host boundary and top-level
+  sequential branches act as execution barriers, but the scheduler still
+  serializes too broadly inside mixed branches until it lowers sequential
+  intent onto runnable tests instead of branch stages
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
 - a native dependency API will be unstable if it lands before shared identity
@@ -48,8 +49,8 @@ Remaining work:
 
 - define the first shared ordering model for plain declaration order,
   sequential groups, and explicit dependency edges
-- replace the current conservative single-worker fallback for `sequenceMode`
-  with minimal ordering constraints over only the affected runnable nodes
+- replace the current top-level sequential branch barriers with minimal
+  ordering constraints over only the affected runnable nodes
 - decide the exact meaning of `dependsOn(...)` outcomes: pass-through on
   success, blocked-on-failure behavior, and transitive handling for blocked
   prerequisites
