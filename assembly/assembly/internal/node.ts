@@ -1,4 +1,4 @@
-import { DeclarationMode, HookKind, NodeKind } from "./imports";
+import { DeclarationMode, HookKind, NodeKind, SequenceMode } from "./imports";
 import { getActiveRunOnly, setActiveRunOnly } from "./execution-state";
 import { sharedSuiteContext, sharedTestContext, SuiteContext, TestContext } from "./context";
 import { HookCallback, HookRegistration } from "./hooks";
@@ -31,6 +31,7 @@ function createExecutionOptionsFromNode(source: Node): NodeExecutionOptions {
   options.timeout = source.timeout;
   options.concurrency = source.concurrency;
   options.plan = source.plan;
+  options.sequenceMode = source.sequenceMode;
   return options;
 }
 
@@ -50,6 +51,7 @@ export class NodeExecutionOptions {
   timeout: i32 = -1;
   concurrency: i32 = 0;
   plan: i32 = -1;
+  sequenceMode: SequenceMode = SequenceMode.Inherit;
 }
 
 /**
@@ -67,6 +69,7 @@ export class Node {
   readonly timeout: i32;
   readonly concurrency: i32;
   readonly plan: i32;
+  readonly sequenceMode: SequenceMode;
 
   private readonly baseDeclarationModeValue: DeclarationMode;
   private declarationModeValue: DeclarationMode;
@@ -125,6 +128,8 @@ export class Node {
     this.timeout = options !== null ? options.timeout : -1;
     this.concurrency = options !== null ? options.concurrency : 0;
     this.plan = options !== null ? options.plan : -1;
+    this.sequenceMode =
+      options !== null ? options.sequenceMode : SequenceMode.Inherit;
   }
 
   get parent(): Node | null {

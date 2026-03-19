@@ -11,14 +11,11 @@ import {
   DeclarationMode,
   HookKind,
   NodeKind,
+  SequenceMode,
 } from "../../internal/imports";
 
 function assertByte(actual: StaticArray<u8>, offset: usize, expected: u8): void {
   assert(load<u8>(changetype<usize>(actual) + offset) == expected);
-}
-
-function assertU16(actual: StaticArray<u8>, offset: usize, expected: u16): void {
-  assert(load<u16>(changetype<usize>(actual) + offset) == expected);
 }
 
 function assertU32(actual: StaticArray<u8>, offset: usize, expected: u32): void {
@@ -49,6 +46,7 @@ function testSerializeNodeFound(): void {
     8,
     NodeKind.Describe,
     DeclarationMode.Todo,
+    SequenceMode.Sequential,
     "alpha",
   );
 
@@ -62,7 +60,8 @@ function testSerializeNodeFound(): void {
   assertU32(payload, 24, 8);
   assertByte(payload, 28, <u8>NodeKind.Describe);
   assertByte(payload, 29, <u8>DeclarationMode.Todo);
-  assertU16(payload, 30, 0);
+  assertByte(payload, 30, <u8>SequenceMode.Sequential);
+  assertByte(payload, 31, 0);
   assertU32(payload, 32, 5);
   assertUtf8Bytes(payload, 36, "alpha");
 }

@@ -27,6 +27,7 @@ export interface HarnessNode {
 	nodeId: number;
 	parentNodeId: number;
 	declarationOrder: number;
+	sequenceMode: number;
 	kind: number;
 	declarationMode: number;
 	name: string;

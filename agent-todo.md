@@ -13,12 +13,15 @@
 ### Risks
 
 - stable IDs now cross discovery events and host node snapshots, but `start()`
-  planning still treats `NodeIndex` as the practical execution identity, so
-  graph-aware scheduling can still drift until planner state and lookup tables
-  pivot to `nodeId`
+  planning still executes by `NodeIndex`, so graph-aware scheduling can still
+  drift until the host lowers ordering and dependency constraints onto the
+  discovered declaration graph instead of branch-local run lists
 - the current branch-worker `start()` orchestration is incompatible with
   cross-branch dependency edges unless scheduling becomes global or graph scope
   is constrained
+- `sequenceMode` now crosses the guest and host boundary and forces a safe
+  single-worker fallback, but the scheduler still serializes too broadly until
+  it can lower sequential intent into minimal ordering constraints
 - graph scheduling is host-planner work, not just adapter API work, so the ABI,
   host types, and reporting contract will all move together
 - a native dependency API will be unstable if it lands before shared identity
@@ -31,12 +34,12 @@
 Remaining work:
 
 - extend shared declaration metadata to capture declaration order, parent
-  identity, `only`, expected-failure intent, and future ordering or dependency
-  flags without making adapter code own scheduler logic
-- make host planning, dedupe, and reporter-facing lookups prefer `nodeId`
-  while keeping `nodeIndex` only as the traversal target
-- decide which additional identity or graph fields beyond `nodeId`,
-  `parentNodeId`, and declaration order must cross the Wasm ABI, host-runner
+  identity, `only`, expected-failure intent, and future dependency metadata
+  without making adapter code own scheduler logic
+- make host planning and reporter-facing lookups prefer discovered declaration
+  identity while keeping `nodeIndex` only as the traversal target
+- decide which remaining graph fields beyond the now-exposed stable IDs,
+  declaration order, and sequence mode must cross the Wasm ABI, host-runner
   types, CLI JSON output, and reporter surfaces
 
 ### Graph-Aware Scheduling Semantics
@@ -45,6 +48,8 @@ Remaining work:
 
 - define the first shared ordering model for plain declaration order,
   sequential groups, and explicit dependency edges
+- replace the current conservative single-worker fallback for `sequenceMode`
+  with minimal ordering constraints over only the affected runnable nodes
 - decide the exact meaning of `dependsOn(...)` outcomes: pass-through on
   success, blocked-on-failure behavior, and transitive handling for blocked
   prerequisites
@@ -67,7 +72,7 @@ Remaining work:
   branch-local worker scheduling with a module-global scheduler
 - extend the harness host types and decoded event objects with any remaining
   graph metadata required by reporters or external hosts beyond the now-exposed
-  stable IDs and declaration order
+  stable IDs, declaration order, and sequence mode
 - document the updated host-runner and ABI contracts once the stable-ID and
   graph-metadata shapes are chosen
 - decide whether targeted replay stays as the execution primitive for `v0.3.0`

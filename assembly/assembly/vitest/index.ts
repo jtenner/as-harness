@@ -1,4 +1,4 @@
-import { DeclarationMode, HookKind } from "../internal/imports";
+import { DeclarationMode, HookKind, SequenceMode } from "../internal/imports";
 export * from "./expect";
 import {
   declareHook,
@@ -73,7 +73,26 @@ export namespace test {
     name: string = "",
     callback: TestFn | null = null,
   ): void {
-    declareBaseTest(name, callback);
+    if (callback === null) {
+      declareModifiedTest(
+        name,
+        callback,
+        DeclarationMode.Todo,
+        false,
+        false,
+        SequenceMode.Sequential,
+      );
+      return;
+    }
+
+    declareModifiedTest(
+      name,
+      callback,
+      DeclarationMode.Normal,
+      false,
+      false,
+      SequenceMode.Sequential,
+    );
   }
 
   export function skipIf(condition: bool): TestDeclaration {
@@ -125,7 +144,26 @@ export namespace it {
     name: string = "",
     callback: TestFn | null = null,
   ): void {
-    declareBaseTest(name, callback);
+    if (callback === null) {
+      declareModifiedTest(
+        name,
+        callback,
+        DeclarationMode.Todo,
+        false,
+        false,
+        SequenceMode.Sequential,
+      );
+      return;
+    }
+
+    declareModifiedTest(
+      name,
+      callback,
+      DeclarationMode.Normal,
+      false,
+      false,
+      SequenceMode.Sequential,
+    );
   }
 
   export function skipIf(condition: bool): TestDeclaration {
@@ -170,7 +208,14 @@ export namespace describe {
     name: string = "",
     callback: SuiteFn | null = null,
   ): void {
-    declareBaseSuite(name, callback);
+    declareModifiedSuite(
+      name,
+      callback,
+      DeclarationMode.Normal,
+      false,
+      false,
+      SequenceMode.Sequential,
+    );
   }
 
   export function skipIf(condition: bool): SuiteDeclaration {
@@ -215,7 +260,14 @@ export namespace suite {
     name: string = "",
     callback: SuiteFn | null = null,
   ): void {
-    declareBaseSuite(name, callback);
+    declareModifiedSuite(
+      name,
+      callback,
+      DeclarationMode.Normal,
+      false,
+      false,
+      SequenceMode.Sequential,
+    );
   }
 
   export function skipIf(condition: bool): SuiteDeclaration {

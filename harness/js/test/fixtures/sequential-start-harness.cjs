@@ -5,10 +5,19 @@ const { threadId } = require("node:worker_threads");
 const NODE_KIND_TEST = 1;
 const NODE_KIND_SUITE = 2;
 const DECLARATION_MODE_NORMAL = 1;
+const SEQUENCE_MODE_SEQUENTIAL = 1;
 const NODE_METADATA_BY_INDEX = new Map([
 	["0", { nodeId: 1, parentNodeId: 0, declarationOrder: 0 }],
 	["1", { nodeId: 2, parentNodeId: 0, declarationOrder: 1 }],
-	["0.0", { nodeId: 3, parentNodeId: 1, declarationOrder: 2 }],
+	[
+		"0.0",
+		{
+			nodeId: 3,
+			parentNodeId: 1,
+			declarationOrder: 2,
+			sequenceMode: SEQUENCE_MODE_SEQUENTIAL,
+		},
+	],
 	["1.0", { nodeId: 4, parentNodeId: 2, declarationOrder: 3 }],
 ]);
 
@@ -69,10 +78,7 @@ class FakeHarness {
 	close() {}
 
 	getCoverageSnapshot() {
-		return {
-			points: [],
-			coveredIds: [],
-		};
+		return null;
 	}
 
 	resetCoverage() {}
@@ -100,10 +106,6 @@ class FakeHarness {
 	run(nodeIndex) {
 		const normalizedNodeIndex = Array.isArray(nodeIndex) ? nodeIndex.slice() : [];
 		this.#emit("nodeStart", { nodeIndex: normalizedNodeIndex });
-		this.#emit("diagnostic", {
-			nodeIndex: normalizedNodeIndex,
-			message: `run-thread-${threadId}`,
-		});
 		this.#emit("nodePass", { nodeIndex: normalizedNodeIndex });
 		return true;
 	}

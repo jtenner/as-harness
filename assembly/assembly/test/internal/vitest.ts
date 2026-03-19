@@ -2,6 +2,7 @@ import {
   DeclarationMode,
   HookKind,
   NodeKind,
+  SequenceMode,
 } from "../../internal/imports";
 import { Node, resetCurrentNode, setCurrentNode } from "../../internal/node";
 import {
@@ -77,12 +78,16 @@ function testVitestDeclarationRegistration(): void {
   assert(unchecked(children[1]).declarationMode == DeclarationMode.Todo);
   assert(unchecked(children[2]).expectFailure);
   assert(unchecked(children[3]).declarationMode == DeclarationMode.Normal);
+  assert(unchecked(children[3]).sequenceMode == SequenceMode.Sequential);
   assert(unchecked(children[4]).declarationMode == DeclarationMode.Skip);
   assert(unchecked(children[5]).declarationMode == DeclarationMode.Skip);
   assert(unchecked(children[6]).declarationMode == DeclarationMode.Normal);
+  assert(unchecked(children[6]).sequenceMode == SequenceMode.Sequential);
   assert(unchecked(children[7]).only);
   assert(unchecked(children[8]).declarationMode == DeclarationMode.Normal);
+  assert(unchecked(children[8]).sequenceMode == SequenceMode.Sequential);
   assert(unchecked(children[9]).declarationMode == DeclarationMode.Normal);
+  assert(unchecked(children[9]).sequenceMode == SequenceMode.Sequential);
   assert(unchecked(children[10]).declarationMode == DeclarationMode.Skip);
   assert(unchecked(children[11]).declarationMode == DeclarationMode.Skip);
   assert(unchecked(children[12]).declarationMode == DeclarationMode.Todo);

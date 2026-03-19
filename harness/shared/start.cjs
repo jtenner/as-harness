@@ -7,6 +7,9 @@ const { mergeCoverageSnapshots } = require("./covers.cjs");
 
 const NODE_KIND_TEST = 1;
 const DECLARATION_MODE_NORMAL = 1;
+const NODE_IDENTITY_KEY = Symbol("nodeIdentityKey");
+const NODE_PARENT_IDENTITY_KEY = Symbol("nodeParentIdentityKey");
+const SEQUENCE_MODE_SEQUENTIAL = 1;
 const EVENT_TYPES = [
 	["onNodeFound", "nodeFound"],
 	["onNodeStart", "nodeStart"],
@@ -53,11 +56,82 @@ function cloneNode(node) {
 			typeof node.declarationOrder === "number"
 				? node.declarationOrder >>> 0
 				: 0,
+		sequenceMode:
+			typeof node.sequenceMode === "number" ? node.sequenceMode >>> 0 : 0,
 		kind: typeof node.kind === "number" ? node.kind >>> 0 : 0,
 		declarationMode:
 			typeof node.declarationMode === "number" ? node.declarationMode >>> 0 : 0,
 		name: typeof node.name === "string" ? node.name : "",
 	};
+}
+
+function setNodeIdentity(node, identityKey, parentIdentityKey = "") {
+	if (!node || typeof identityKey !== "string" || identityKey.length === 0) {
+		return node;
+	}
+
+	Object.defineProperty(node, NODE_IDENTITY_KEY, {
+		value: identityKey,
+		writable: true,
+		configurable: true,
+		enumerable: false,
+	});
+	Object.defineProperty(node, NODE_PARENT_IDENTITY_KEY, {
+		value:
+			typeof parentIdentityKey === "string" && parentIdentityKey.length > 0
+				? parentIdentityKey
+				: "",
+		writable: true,
+		configurable: true,
+		enumerable: false,
+	});
+	return node;
+}
+
+function createNodeIndexKey(nodeIndex) {
+	if (!Array.isArray(nodeIndex) || nodeIndex.length === 0) {
+		return "";
+	}
+
+	return nodeIndex.map((segment) => segment >>> 0).join(".");
+}
+
+function createNodeIdentityKey(node, parentIdentityKey = "") {
+	if (node && typeof node.nodeId === "number" && node.nodeId > 0) {
+		const localIdentityKey = `id:${node.nodeId >>> 0}`;
+		return parentIdentityKey
+			? `${parentIdentityKey}/${localIdentityKey}`
+			: localIdentityKey;
+	}
+
+	const pathIdentityKey = `path:${createNodeIndexKey(node?.nodeIndex)}`;
+	return parentIdentityKey
+		? `${parentIdentityKey}/${pathIdentityKey}`
+		: pathIdentityKey;
+}
+
+function getNodeIdentityKey(node) {
+	if (
+		node &&
+		typeof node[NODE_IDENTITY_KEY] === "string" &&
+		node[NODE_IDENTITY_KEY].length > 0
+	) {
+		return node[NODE_IDENTITY_KEY];
+	}
+
+	return createNodeIdentityKey(node);
+}
+
+function getNodeParentIdentityKey(node) {
+	if (
+		node &&
+		typeof node[NODE_PARENT_IDENTITY_KEY] === "string" &&
+		node[NODE_PARENT_IDENTITY_KEY].length > 0
+	) {
+		return node[NODE_PARENT_IDENTITY_KEY];
+	}
+
+	return "";
 }
 
 function nodeIndexesEqual(left, right) {
@@ -74,6 +148,43 @@ function nodeIndexesEqual(left, right) {
 	return true;
 }
 
+function compareNodeDeclarationOrder(left, right) {
+	const leftOrder =
+		typeof left?.declarationOrder === "number" ? left.declarationOrder >>> 0 : 0;
+	const rightOrder =
+		typeof right?.declarationOrder === "number" ? right.declarationOrder >>> 0 : 0;
+	if (leftOrder !== rightOrder) {
+		return leftOrder - rightOrder;
+	}
+
+	const leftId = typeof left?.nodeId === "number" ? left.nodeId >>> 0 : 0;
+	const rightId = typeof right?.nodeId === "number" ? right.nodeId >>> 0 : 0;
+	if (leftId !== rightId) {
+		return leftId - rightId;
+	}
+
+	return createNodeIndexKey(left?.nodeIndex).localeCompare(
+		createNodeIndexKey(right?.nodeIndex),
+	);
+}
+
+function uniqueNodesByIdentity(nodes) {
+	const dedupedNodes = [];
+	const seen = new Set();
+
+	for (const node of nodes) {
+		const key = getNodeIdentityKey(node);
+		if (seen.has(key)) {
+			continue;
+		}
+
+		seen.add(key);
+		dedupedNodes.push(node);
+	}
+
+	return dedupedNodes;
+}
+
 function countTestNodes(nodes) {
 	let count = 0;
 	for (const node of nodes) {
@@ -85,17 +196,24 @@ function countTestNodes(nodes) {
 }
 
 function listRunnableTests(nodes) {
-	return nodes.filter(
-		(node) =>
-			node.kind === NODE_KIND_TEST &&
-			node.declarationMode === DECLARATION_MODE_NORMAL,
-	);
+	return uniqueNodesByIdentity(nodes)
+		.filter(
+			(node) =>
+				node.kind === NODE_KIND_TEST &&
+				node.declarationMode === DECLARATION_MODE_NORMAL,
+		)
+		.sort(compareNodeDeclarationOrder);
 }
 
-function discoverImmediateChildren(harness, nodeIndex) {
+function discoverImmediateChildren(harness, nodeIndex, parentIdentityKey = "") {
 	const found = [];
 	harness.onNodeFound((event) => {
 		const node = cloneNode(event);
+		setNodeIdentity(
+			node,
+			createNodeIdentityKey(node, parentIdentityKey),
+			parentIdentityKey,
+		);
 		if (nodeIndexesEqual(node.nodeIndex, nodeIndex)) {
 			return;
 		}
@@ -105,18 +223,28 @@ function discoverImmediateChildren(harness, nodeIndex) {
 
 	return {
 		ok: harness.discover(nodeIndex),
-		nodes: found,
+		nodes: uniqueNodesByIdentity(found).sort(compareNodeDeclarationOrder),
 	};
 }
 
 function discoverBranch(harness, rootNode) {
-	const nodes = [cloneNode(rootNode)];
-	const queue = [cloneNode(rootNode)];
+	const branchRoot = setNodeIdentity(
+		cloneNode(rootNode),
+		getNodeIdentityKey(rootNode),
+		getNodeParentIdentityKey(rootNode),
+	);
+	const nodes = [branchRoot];
+	const queue = [branchRoot];
+	const seenNodeKeys = new Set([getNodeIdentityKey(branchRoot)]);
 	let ok = true;
 
 	while (queue.length > 0) {
 		const parent = queue.shift();
-		const discovered = discoverImmediateChildren(harness, parent.nodeIndex);
+		const discovered = discoverImmediateChildren(
+			harness,
+			parent.nodeIndex,
+			getNodeIdentityKey(parent),
+		);
 		if (!discovered.ok) {
 			if (parent.kind === NODE_KIND_TEST) {
 				continue;
@@ -127,6 +255,12 @@ function discoverBranch(harness, rootNode) {
 		}
 
 		for (const child of discovered.nodes) {
+			const key = getNodeIdentityKey(child);
+			if (seenNodeKeys.has(key)) {
+				continue;
+			}
+
+			seenNodeKeys.add(key);
 			nodes.push(child);
 			queue.push(child);
 		}
@@ -134,9 +268,61 @@ function discoverBranch(harness, rootNode) {
 
 	return {
 		ok,
-		nodes,
+		nodes: nodes.slice().sort(compareNodeDeclarationOrder),
 		testCount: countTestNodes(nodes),
 	};
+}
+
+function createNodeMapByIdentity(nodes) {
+	const nodeMap = new Map();
+	for (const node of nodes) {
+		nodeMap.set(getNodeIdentityKey(node), node);
+	}
+	return nodeMap;
+}
+
+function nodeHasSequentialAncestors(node, nodeMap) {
+	let cursor = node;
+	while (cursor) {
+		if ((cursor.sequenceMode >>> 0) === SEQUENCE_MODE_SEQUENTIAL) {
+			return true;
+		}
+
+		const parentIdentityKey = getNodeParentIdentityKey(cursor);
+		if (!parentIdentityKey) {
+			return false;
+		}
+
+		cursor = nodeMap.get(parentIdentityKey) ?? null;
+	}
+
+	return false;
+}
+
+function branchRequiresSequentialExecution(branch) {
+	const runnableTests = listRunnableTests(branch.discovery.nodes);
+	if (runnableTests.length === 0) {
+		return false;
+	}
+
+	const nodeMap = createNodeMapByIdentity(branch.discovery.nodes);
+	for (const node of runnableTests) {
+		if (nodeHasSequentialAncestors(node, nodeMap)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function requiresSequentialExecution(branches) {
+	for (const branch of branches) {
+		if (branchRequiresSequentialExecution(branch)) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 function getWorkerCount(branchCount) {
@@ -256,38 +442,31 @@ async function startHarness(options) {
 	const discoveryHarness = options.createLocalHarness(options.bytes);
 	let topLevelDiscovery;
 	let initialCoverage = null;
+	let topLevelNodes = [];
+	let branches = [];
 
 	try {
 		topLevelDiscovery = discoverImmediateChildren(discoveryHarness, []);
+		topLevelNodes = uniqueNodesByIdentity(topLevelDiscovery.nodes).sort(
+			compareNodeDeclarationOrder,
+		);
+		branches = topLevelNodes.map((root) => ({
+			root,
+			discovery: {
+				ok: false,
+				nodes: [],
+				testCount: 0,
+			},
+			executions: [],
+			ok: false,
+		}));
+
+		for (const branch of branches) {
+			branch.discovery = discoverBranch(discoveryHarness, branch.root);
+		}
 		initialCoverage = readCoverageSnapshot(discoveryHarness);
 	} finally {
 		closeHarness(discoveryHarness);
-	}
-	const topLevelNodes = topLevelDiscovery.nodes;
-	const branches = topLevelNodes.map((root) => ({
-		root,
-		discovery: {
-			ok: false,
-			nodes: [],
-			testCount: 0,
-		},
-		executions: [],
-		ok: false,
-	}));
-
-	const discoveryWorkers = getWorkerCount(topLevelNodes.length);
-	if (discoveryWorkers > 0) {
-		const discoveryResults = await runTasksInWorkerPool(
-			options.workerModulePath,
-			options.bytes,
-			"discoverBranch",
-			topLevelNodes.map((root) => ({ root })),
-			discoveryWorkers,
-		);
-
-		for (let index = 0; index < branches.length; index += 1) {
-			branches[index].discovery = discoveryResults[index];
-		}
 	}
 
 	let discoveryOk = topLevelDiscovery.ok;
@@ -300,6 +479,9 @@ async function startHarness(options) {
 	let workerCount = 0;
 	if (discoveryOk) {
 		workerCount = getWorkerCount(branches.length);
+		if (requiresSequentialExecution(branches)) {
+			workerCount = workerCount > 0 ? 1 : 0;
+		}
 	}
 
 	if (workerCount > 0) {

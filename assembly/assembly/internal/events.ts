@@ -4,6 +4,7 @@ import {
   FailureKind,
   HookKind,
   NodeKind,
+  SequenceMode,
   writeEvent,
 } from "./imports";
 
@@ -11,7 +12,6 @@ export type NodeIndex = StaticArray<u32>;
 
 const U8_BYTE_LENGTH: u32 = sizeof<u8>();
 const U32_BYTE_LENGTH: u32 = sizeof<u32>();
-const NODE_FOUND_ALIGNMENT_PADDING: u32 = 2;
 const CALLBACK_ALIGNMENT_PADDING: u32 = 3;
 const FAILURE_ALIGNMENT_PADDING: u32 = 3;
 const CALLBACK_FAILURE_ALIGNMENT_PADDING: u32 = 2;
@@ -40,9 +40,10 @@ function copyUtf8Bytes(destination: usize, value: string): void {
  * Serializes a `NodeFound` payload into the wire-format byte buffer.
  *
  * Payload grammar:
- * `[node_index_length: u32] [node_index: ...bytes] [node_kind: u8]
+ * `[node_index_length: u32] [node_index: ...bytes]
  * [node_id: u32] [parent_node_id: u32] [declaration_order: u32]
- * [node_kind: u8] [declaration_mode: u8] [2 bytes empty for alignment]
+ * [node_kind: u8] [declaration_mode: u8] [sequence_mode: u8]
+ * [1 byte empty for alignment]
  * [name_byte_length: u32] [name: ...bytes]`
  */
 export function serializeNodeFound(
@@ -52,6 +53,7 @@ export function serializeNodeFound(
   declarationOrder: u32,
   kind: NodeKind,
   mode: DeclarationMode,
+  sequenceMode: SequenceMode,
   name: string,
 ): StaticArray<u8> {
   const nodeIndexLength = <u32>nodeIndex.length;
@@ -65,7 +67,8 @@ export function serializeNodeFound(
     U32_BYTE_LENGTH +
     U8_BYTE_LENGTH +
     U8_BYTE_LENGTH +
-    NODE_FOUND_ALIGNMENT_PADDING +
+    U8_BYTE_LENGTH +
+    U8_BYTE_LENGTH +
     U32_BYTE_LENGTH +
     nameBytes;
   const payload = new StaticArray<u8>(totalByteLength);
@@ -93,8 +96,11 @@ export function serializeNodeFound(
   store<u8>(payloadStart + offset, <u8>mode);
   offset += <usize>U8_BYTE_LENGTH;
 
-  store<u16>(payloadStart + offset, 0);
-  offset += <usize>NODE_FOUND_ALIGNMENT_PADDING;
+  store<u8>(payloadStart + offset, <u8>sequenceMode);
+  offset += <usize>U8_BYTE_LENGTH;
+
+  store<u8>(payloadStart + offset, 0);
+  offset += <usize>U8_BYTE_LENGTH;
 
   store<u32>(payloadStart + offset, nameBytes);
   offset += <usize>U32_BYTE_LENGTH;
@@ -368,6 +374,7 @@ export function nodeFound(
   declarationOrder: u32,
   kind: NodeKind,
   mode: DeclarationMode,
+  sequenceMode: SequenceMode,
   name: string,
 ): void {
   sendEvent(
@@ -379,6 +386,7 @@ export function nodeFound(
       declarationOrder,
       kind,
       mode,
+      sequenceMode,
       name,
     ),
   );

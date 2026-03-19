@@ -137,6 +137,7 @@ function decodeNodeFoundEvent(bytes) {
 		declarationOrder: declarationOrder.value,
 		kind: bytes[declarationOrder.offset],
 		declarationMode: bytes[declarationOrder.offset + 1],
+		sequenceMode: bytes[declarationOrder.offset + 2],
 		name: readUtf8(bytes, nameLength.offset, nameLength.value),
 	};
 }

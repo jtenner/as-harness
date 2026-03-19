@@ -1,15 +1,16 @@
 "use strict";
 
-const { threadId } = require("node:worker_threads");
-
 const NODE_KIND_TEST = 1;
 const NODE_KIND_SUITE = 2;
 const DECLARATION_MODE_NORMAL = 1;
 const NODE_METADATA_BY_INDEX = new Map([
 	["0", { nodeId: 1, parentNodeId: 0, declarationOrder: 0 }],
-	["1", { nodeId: 2, parentNodeId: 0, declarationOrder: 1 }],
-	["0.0", { nodeId: 3, parentNodeId: 1, declarationOrder: 2 }],
-	["1.0", { nodeId: 4, parentNodeId: 2, declarationOrder: 3 }],
+	["0.0", { nodeId: 2, parentNodeId: 1, declarationOrder: 1 }],
+	["0.1", { nodeId: 3, parentNodeId: 1, declarationOrder: 2 }],
+	["0.0.0", { nodeId: 4, parentNodeId: 2, declarationOrder: 3 }],
+	["0.1.0", { nodeId: 4, parentNodeId: 3, declarationOrder: 3 }],
+	["0.0.0.0", { nodeId: 5, parentNodeId: 4, declarationOrder: 4 }],
+	["0.1.0.0", { nodeId: 5, parentNodeId: 4, declarationOrder: 4 }],
 ]);
 
 class FakeHarness {
@@ -69,10 +70,7 @@ class FakeHarness {
 	close() {}
 
 	getCoverageSnapshot() {
-		return {
-			points: [],
-			coveredIds: [],
-		};
+		return null;
 	}
 
 	resetCoverage() {}
@@ -80,17 +78,26 @@ class FakeHarness {
 	discover(nodeIndex) {
 		switch (Array.isArray(nodeIndex) ? nodeIndex.join(".") : "<invalid>") {
 			case "":
-				this.#emitNode([0], NODE_KIND_SUITE, "branch-a");
-				this.#emitNode([1], NODE_KIND_SUITE, "branch-b");
+				this.#emitNode([0], NODE_KIND_SUITE, "branch");
 				return true;
 			case "0":
-				this.#emitNode([0, 0], NODE_KIND_TEST, `branch-a-child-thread-${threadId}`);
-				return true;
-			case "1":
-				this.#emitNode([1, 0], NODE_KIND_TEST, `branch-b-child-thread-${threadId}`);
+				this.#emitNode([0, 0], NODE_KIND_SUITE, "left suite");
+				this.#emitNode([0, 1], NODE_KIND_SUITE, "right suite");
 				return true;
 			case "0.0":
-			case "1.0":
+				this.#emitNode([0, 0, 0], NODE_KIND_SUITE, "left nested suite");
+				return true;
+			case "0.1":
+				this.#emitNode([0, 1, 0], NODE_KIND_SUITE, "right nested suite");
+				return true;
+			case "0.0.0":
+				this.#emitNode([0, 0, 0, 0], NODE_KIND_TEST, "left leaf");
+				return true;
+			case "0.1.0":
+				this.#emitNode([0, 1, 0, 0], NODE_KIND_TEST, "right leaf");
+				return true;
+			case "0.0.0.0":
+			case "0.1.0.0":
 				return false;
 			default:
 				return true;
@@ -100,10 +107,6 @@ class FakeHarness {
 	run(nodeIndex) {
 		const normalizedNodeIndex = Array.isArray(nodeIndex) ? nodeIndex.slice() : [];
 		this.#emit("nodeStart", { nodeIndex: normalizedNodeIndex });
-		this.#emit("diagnostic", {
-			nodeIndex: normalizedNodeIndex,
-			message: `run-thread-${threadId}`,
-		});
 		this.#emit("nodePass", { nodeIndex: normalizedNodeIndex });
 		return true;
 	}

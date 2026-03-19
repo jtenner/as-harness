@@ -1,16 +1,18 @@
 import { NodeDeclarationOptions, declareSuiteNode, declareTestNode, registerHook } from "../internal/api";
-import { DeclarationMode, HookKind } from "../internal/imports";
+import { DeclarationMode, HookKind, SequenceMode } from "../internal/imports";
 import { HookFn, SuiteFn, TestFn } from "./types";
 
 function createDeclarationOptions(
   mode: DeclarationMode = DeclarationMode.Normal,
   only: bool = false,
   expectFailure: bool = false,
+  sequenceMode: SequenceMode = SequenceMode.Inherit,
 ): NodeDeclarationOptions {
   const options = new NodeDeclarationOptions();
   options.mode = mode;
   options.only = only;
   options.expectFailure = expectFailure;
+  options.sequenceMode = sequenceMode;
   return options;
 }
 
@@ -27,11 +29,12 @@ export function declareModifiedTest(
   mode: DeclarationMode = DeclarationMode.Normal,
   only: bool = false,
   expectFailure: bool = false,
+  sequenceMode: SequenceMode = SequenceMode.Inherit,
 ): void {
   declareTestNode(
     name,
     callback,
-    createDeclarationOptions(mode, only, expectFailure),
+    createDeclarationOptions(mode, only, expectFailure, sequenceMode),
   );
 }
 
@@ -48,11 +51,12 @@ export function declareModifiedSuite(
   mode: DeclarationMode = DeclarationMode.Normal,
   only: bool = false,
   expectFailure: bool = false,
+  sequenceMode: SequenceMode = SequenceMode.Inherit,
 ): void {
   declareSuiteNode(
     name,
     callback,
-    createDeclarationOptions(mode, only, expectFailure),
+    createDeclarationOptions(mode, only, expectFailure, sequenceMode),
   );
 }
 

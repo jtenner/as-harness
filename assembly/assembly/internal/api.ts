@@ -1,4 +1,4 @@
-import { DeclarationMode, HookKind, NodeKind } from "./imports";
+import { DeclarationMode, HookKind, NodeKind, SequenceMode } from "./imports";
 import {
   currentNode,
   Node,
@@ -17,6 +17,7 @@ export class NodeDeclarationOptions {
   timeout: i32 = -1;
   concurrency: i32 = 0;
   plan: i32 = -1;
+  sequenceMode: SequenceMode = SequenceMode.Inherit;
 }
 
 function normalizeNodeName(name: string): string {
@@ -36,6 +37,7 @@ function createExecutionOptions(
   executionOptions.timeout = options.timeout;
   executionOptions.concurrency = options.concurrency;
   executionOptions.plan = options.plan;
+  executionOptions.sequenceMode = options.sequenceMode;
   return executionOptions;
 }
 

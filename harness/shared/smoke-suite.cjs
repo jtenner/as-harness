@@ -17,16 +17,22 @@ const NODE_METADATA_BY_INDEX = new Map([
 	["9", { nodeId: 10, parentNodeId: 0, declarationOrder: 9 }],
 	["10", { nodeId: 11, parentNodeId: 0, declarationOrder: 10 }],
 	["3.0", { nodeId: 12, parentNodeId: 4, declarationOrder: 11 }],
-	["4.0", { nodeId: 13, parentNodeId: 5, declarationOrder: 12 }],
-	["6.0", { nodeId: 15, parentNodeId: 7, declarationOrder: 14 }],
-	["8.0", { nodeId: 16, parentNodeId: 9, declarationOrder: 15 }],
-	["9.0", { nodeId: 17, parentNodeId: 10, declarationOrder: 16 }],
+	["4.0", { nodeId: 12, parentNodeId: 5, declarationOrder: 11 }],
+	["6.0", { nodeId: 12, parentNodeId: 7, declarationOrder: 11 }],
+	["8.0", { nodeId: 12, parentNodeId: 9, declarationOrder: 11 }],
+	["9.0", { nodeId: 12, parentNodeId: 10, declarationOrder: 11 }],
 ]);
 
 function annotateNode(node) {
 	const metadata = NODE_METADATA_BY_INDEX.get(node.nodeIndex.join("."));
 	if (!metadata) {
-		return { ...node, nodeId: 0, parentNodeId: 0, declarationOrder: 0 };
+		return {
+			...node,
+			nodeId: 0,
+			parentNodeId: 0,
+			declarationOrder: 0,
+			sequenceMode: 0,
+		};
 	}
 
 	return {
@@ -34,6 +40,7 @@ function annotateNode(node) {
 		nodeId: metadata.nodeId,
 		parentNodeId: metadata.parentNodeId,
 		declarationOrder: metadata.declarationOrder,
+		sequenceMode: 0,
 	};
 }
 
@@ -862,6 +869,14 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(result.ok, false);
 		assert.equal(result.discoveredTestCount, 16);
 		assert.equal(result.topLevelNodes.length, 11);
+		assert.deepEqual(
+			result.topLevelNodes.map((node) => node.nodeId),
+			[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+		);
+		assert.deepEqual(
+			result.topLevelNodes.map((node) => node.declarationOrder),
+			[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+		);
 		assert.ok(result.workerCount >= 1);
 		assert.ok(result.workerCount <= result.branches.length);
 		assert.deepEqual(
@@ -879,6 +894,12 @@ function registerHarnessSmokeSuite(options) {
 				.get("todo parent")
 				.executions.map((execution) => execution.node.nodeIndex),
 			[[6, 0]],
+		);
+		assert.deepEqual(
+			branchesByName
+				.get("todo parent")
+				.executions.map((execution) => execution.node.nodeId),
+			[12],
 		);
 		assert.deepEqual(branchesByName.get("top-level todo leaf").executions, []);
 		assert.deepEqual(
@@ -916,6 +937,15 @@ function registerHarnessSmokeSuite(options) {
 				.executions.map((execution) => [execution.node.nodeIndex, execution.ok]),
 			[
 				[[10], false],
+			],
+		);
+		assert.deepEqual(
+			branchesByName
+				.get("parent test")
+				.discovery.nodes.map((node) => [node.nodeId, node.parentNodeId]),
+			[
+				[4, 0],
+				[12, 4],
 			],
 		);
 		assert.deepEqual(

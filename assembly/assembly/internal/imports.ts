@@ -14,6 +14,11 @@ export const enum DeclarationMode {
   Todo = 3,
 }
 
+export const enum SequenceMode {
+  Inherit = 0,
+  Sequential = 1,
+}
+
 export const enum HookKind {
   BeforeAll = 1,
   BeforeEach = 2,

@@ -158,6 +158,7 @@ function emitDiscoveredNode(node: Node): void {
     node.declarationOrder,
     node.kind,
     node.declarationMode,
+    node.sequenceMode,
     node.name,
   );
 }
