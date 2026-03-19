@@ -532,6 +532,11 @@ function compileSmokeFixtures(options) {
 			"assembly/test/node-test-smoke.ts",
 			path.join(options.cacheDir, "node-test-smoke.wasm"),
 		),
+		compiledVitestWasm: compileFixture(
+			assemblyDir,
+			"assembly/test/vitest-smoke.ts",
+			path.join(options.cacheDir, "vitest-smoke.wasm"),
+		),
 		compiledTrampolineWasm: compileFixture(
 			assemblyDir,
 			"assembly/test/trampoline-smoke.ts",
@@ -604,6 +609,7 @@ function registerHarnessSmokeSuite(options) {
 		assert,
 		compiledExportsWasm,
 		compiledNodeTestWasm,
+		compiledVitestWasm,
 		compiledTrampolineWasm,
 		test,
 	} = options;
@@ -967,6 +973,128 @@ function registerHarnessSmokeSuite(options) {
 		closeHarness(harness);
 	});
 
+	test("discover(nodeIndex) preserves vitest sequential metadata and nested suite shape", () => {
+		const harness = createHarness(compiledVitestWasm);
+		const found = [];
+
+		harness.onNodeFound((event) => {
+			found.push(event);
+		});
+
+		assert.equal(harness.discover([]), true);
+		assert.deepEqual(found, [
+			{
+				nodeIndex: [0],
+				nodeId: 1,
+				parentNodeId: 0,
+				declarationOrder: 0,
+				kind: 2,
+				declarationMode: 1,
+				sequenceMode: 0,
+				dependencyNodeIds: [],
+				only: false,
+				expectFailure: false,
+				name: "vitest adapter",
+			},
+		]);
+
+		found.length = 0;
+		assert.equal(harness.discover([0]), true);
+		assert.deepEqual(
+			found.map((node) => ({
+				name: node.name,
+				nodeIndex: node.nodeIndex,
+				kind: node.kind,
+				declarationMode: node.declarationMode,
+				sequenceMode: node.sequenceMode,
+				expectFailure: node.expectFailure,
+			})),
+			[
+				{
+					name: "vitest adapter",
+					nodeIndex: [0],
+					kind: 2,
+					declarationMode: 1,
+					sequenceMode: 0,
+					expectFailure: false,
+				},
+				{
+					name: "skipped suite",
+					nodeIndex: [0, 0],
+					kind: 2,
+					declarationMode: 2,
+					sequenceMode: 0,
+					expectFailure: false,
+				},
+				{
+					name: "expected failure metadata",
+					nodeIndex: [0, 1],
+					kind: 1,
+					declarationMode: 1,
+					sequenceMode: 0,
+					expectFailure: true,
+				},
+				{
+					name: "implicit todo metadata",
+					nodeIndex: [0, 2],
+					kind: 1,
+					declarationMode: 3,
+					sequenceMode: 0,
+					expectFailure: false,
+				},
+				{
+					name: "sequential pass",
+					nodeIndex: [0, 3],
+					kind: 1,
+					declarationMode: 1,
+					sequenceMode: 1,
+					expectFailure: false,
+				},
+				{
+					name: "sequential it pass",
+					nodeIndex: [0, 4],
+					kind: 1,
+					declarationMode: 1,
+					sequenceMode: 1,
+					expectFailure: false,
+				},
+				{
+					name: "sequential suite alias",
+					nodeIndex: [0, 5],
+					kind: 2,
+					declarationMode: 1,
+					sequenceMode: 1,
+					expectFailure: false,
+				},
+				{
+					name: "sequential suite",
+					nodeIndex: [0, 6],
+					kind: 2,
+					declarationMode: 1,
+					sequenceMode: 1,
+					expectFailure: false,
+				},
+				{
+					name: "conditional pass",
+					nodeIndex: [0, 7],
+					kind: 1,
+					declarationMode: 1,
+					sequenceMode: 0,
+					expectFailure: false,
+				},
+				{
+					name: "runs hooks and assertions",
+					nodeIndex: [0, 8],
+					kind: 1,
+					declarationMode: 1,
+					sequenceMode: 0,
+					expectFailure: false,
+				},
+			],
+		);
+		closeHarness(harness);
+	});
+
 	test("discover(nodeIndex) prunes a trapping branch and recovers on the same harness", () => {
 		const harness = createHarness(compiledNodeTestWasm);
 		const found = [];
@@ -1325,6 +1453,63 @@ function registerHarnessSmokeSuite(options) {
 			branchesByName.get("passing test").executions[0].events,
 			PASSING_BRANCH_EVENTS,
 		);
+	});
+
+	test("start() preserves vitest sequential declarations through shared graph execution", async () => {
+		const harness = createHarness(compiledVitestWasm);
+
+		const result = await harness.start();
+		const branch = result.branches[0];
+
+		assert.equal(result.discoveryOk, true);
+		assert.equal(result.planningOk, true);
+		assert.equal(result.ok, true);
+		assert.equal(result.discoveredTestCount, 8);
+		assert.equal(result.topLevelNodes.length, 1);
+		assert.equal(result.workerCount, 1);
+		assert.deepEqual(result.planIssues, []);
+		assert.deepEqual(result.blocked, []);
+		assert.deepEqual(
+			result.topLevelNodes.map((node) => [node.name, node.sequenceMode, node.kind]),
+			[["vitest adapter", 0, 2]],
+		);
+		assert.deepEqual(
+			branch.discovery.nodes.map((node) => [
+				node.name,
+				node.sequenceMode,
+				node.declarationMode,
+				node.expectFailure,
+			]),
+			[
+				["vitest adapter", 0, 1, false],
+				["skipped suite", 0, 2, false],
+				["expected failure metadata", 0, 1, true],
+				["implicit todo metadata", 0, 3, false],
+				["sequential pass", 1, 1, false],
+				["sequential it pass", 1, 1, false],
+				["sequential suite alias", 1, 1, false],
+				["sequential suite", 1, 1, false],
+				["conditional pass", 0, 1, false],
+				["runs hooks and assertions", 0, 1, false],
+				["nested suite alias child", 0, 1, false],
+				["nested sequential child", 0, 1, false],
+			],
+		);
+		assert.deepEqual(
+			branch.executions.map((execution) => execution.node.name),
+			[
+				"expected failure metadata",
+				"sequential pass",
+				"sequential it pass",
+				"conditional pass",
+				"runs hooks and assertions",
+				"nested suite alias child",
+				"nested sequential child",
+			],
+		);
+		assert(branch.executions.every((execution) => execution.ok));
+
+		closeHarness(harness);
 	});
 
 	test("start() remains stable across repeated calls on the same harness", async () => {

@@ -96,8 +96,6 @@ Remaining work:
   metadata visibility into planner usage so stable IDs, declaration order,
   dependency node IDs, and the new planning/blocked result fields are
   exercised by real scheduler-facing paths
-- add CLI and end-to-end blocked/planning smoke coverage for sequential groups
-  across `js`, `wazero`, and `wasmtime`
 - keep the root `bun run test` and source-host verification scripts aligned
   with the actual per-host smoke commands so host regressions cannot hide
   behind wrapper scripts

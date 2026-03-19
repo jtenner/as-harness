@@ -120,3 +120,50 @@ test("cli run emits coverage through the wasmtime harness", () => {
 		rmSync(tempDirectory, { force: true, recursive: true });
 	}
 });
+
+test('cli run executes a thin vitest adapter entry through the wasmtime harness', () => {
+	const tempDirectory = mkdtempSync(path.join(tmpdir(), "as-harness-wasmtime-vitest-"));
+
+	try {
+		const entryFile = path.join(tempDirectory, "suite.test.ts");
+		writeFileSync(
+			entryFile,
+			[
+				'import { describe, it, suite, test, TestContext } from "vitest";',
+				"",
+				'describe("vitest adapter", (_context): void => {',
+				'\ttest.sequential("sequential pass", (_context: TestContext): void => {});',
+				'\tit.sequential("sequential it pass", (_context: TestContext): void => {});',
+				'\tsuite.sequential("sequential suite alias", (_nestedContext): void => {',
+				'\t\ttest("nested suite alias child", (_context: TestContext): void => {});',
+				"\t});",
+				'\tdescribe.sequential("sequential suite", (_nestedContext): void => {',
+				'\t\ttest("nested sequential child", (_context: TestContext): void => {});',
+				"\t});",
+				'\ttest.skipIf(false)("conditional pass", (_context: TestContext): void => {});',
+				'\tit("plain pass", (_context: TestContext): void => {});',
+				"});",
+				"",
+			].join("\n"),
+			"utf8",
+		);
+
+		const result = spawnSync(
+			"bun",
+			["run", cliEntrypointPath, "run", "--harness", "wasmtime", entryFile],
+			{
+				cwd: tempDirectory,
+				encoding: "utf8",
+			},
+		);
+
+		assert.equal(result.status, 0);
+		assert.equal(result.stderr, "");
+		assert.match(
+			result.stdout,
+			/PASS 6 passed, 0 failed, 6 discovered with wasmtime\./,
+		);
+	} finally {
+		rmSync(tempDirectory, { force: true, recursive: true });
+	}
+});
