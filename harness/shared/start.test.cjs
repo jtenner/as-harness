@@ -365,6 +365,52 @@ test("planExecutionStages applies global topological ordering with declaration-o
 	assert.deepEqual(plan.issues, []);
 });
 
+test("planExecutionStages keeps declaration-order ties stable using identity keys instead of nodeIndex", () => {
+	const branchOne = createPlannerNode({
+		identityKey: "id:9",
+		nodeId: 9,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root nine",
+	});
+	const branchOneLeaf = createPlannerNode({
+		identityKey: "id:9/id:42",
+		parentIdentityKey: "id:9",
+		nodeId: 42,
+		parentNodeId: 9,
+		declarationOrder: 2,
+		nodeIndex: [10, 0],
+		name: "stable identity before index",
+	});
+	const branchTwo = createPlannerNode({
+		identityKey: "id:10",
+		nodeId: 10,
+		declarationOrder: 1,
+		kind: 2,
+		name: "root ten",
+	});
+	const branchTwoLeaf = createPlannerNode({
+		identityKey: "id:10/id:42",
+		parentIdentityKey: "id:10",
+		nodeId: 42,
+		parentNodeId: 10,
+		declarationOrder: 2,
+		nodeIndex: [9, 0],
+		name: "stable identity after index",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [branchOne, branchOneLeaf]),
+		createPlannerBranch(1, [branchTwo, branchTwoLeaf]),
+	]);
+
+	assert.equal(plan.complete, true);
+	assert.deepEqual(
+		plan.stages.map((stage) => stage.map((target) => target.node.name)),
+		[["stable identity before index", "stable identity after index"]],
+	);
+});
+
 test("planExecutionStages does not resolve repeated local nodeIds across unrelated scopes", () => {
 	const otherRoot = createPlannerNode({
 		identityKey: "id:28",

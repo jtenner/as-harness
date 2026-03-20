@@ -194,9 +194,7 @@ function compareNodeDeclarationOrder(left, right) {
 		return leftId - rightId;
 	}
 
-	return createNodeIndexKey(left?.nodeIndex).localeCompare(
-		createNodeIndexKey(right?.nodeIndex),
-	);
+	return getNodeIdentityKey(left).localeCompare(getNodeIdentityKey(right));
 }
 
 function uniqueNodesByIdentity(nodes) {
