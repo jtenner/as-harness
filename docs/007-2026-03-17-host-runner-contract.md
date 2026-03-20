@@ -1,8 +1,7 @@
 # Host Runner Contract
 
-This document defines the shipped JavaScript-facing host-runner contract used by
-the CLI and proved across `harness/js`, `harness/wazero`, and
-`harness/wasmtime`.
+This defines the shipped JavaScript host-runner contract used by CLI and verified by
+`harness/js`, `harness/wazero`, and `harness/wasmtime`.
 
 Use it with [003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md):
 

@@ -1,64 +1,31 @@
 # Scripts
 
-`scripts/` contains the root helper scripts used for validation, smoke coverage, and release-matrix support.
+`scripts/` contains repo-level helper scripts for validation, smoke proof, and release workflow.
 
-## Main Scripts
+## Script Map
 
-- `format.ts`
-  Formats the repo's JS/TS/JSON source files with Biome, Go source files with
-  `gofmt`, and the Rust host crate with `cargo fmt`.
-- `validate.ts`
-  Checks repo-wide formatting through `format.ts --check` and runs the CLI
-  Biome lint pass.
-- `test.ts`
-  Runs the repo-level AssemblyScript-focused test flow, assertion bridge smoke
-  coverage, and the package host smoke suites for `js`, `wazero`, and
-  `wasmtime`.
-- `test-bootstrap.ts`
-  Loads the compiled AssemblyScript bootstrap fixture under Bun.
-- `assert-bridge-smoke.ts`
-  Verifies host-observed assertion behavior against compiled smoke fixtures.
-- `release-matrix.ts`
-  Emits the release-target matrix consumed by GitHub Actions.
-- `host-validation-matrix.ts`
-  Emits the source-host validation matrix consumed by GitHub Actions.
-- `verify-source-hosts.ts`
-  Runs the expected source-host package build/test commands for one matrix
-  target, verifies that the active `node` on `PATH` matches the target's
-  declared baseline, and writes JSON/Markdown proof reports.
-- `release-manifest.ts`
-  Emits `release-manifest.json`, `SHA256SUMS.txt`, and release-notes text from the shared release-target metadata.
-- `stage-release-legal.ts`
-  Copies `THIRD_PARTY_NOTICES.md` and the tracked third-party license texts into a release asset directory.
-- `verify-packaged-cli.ts`
-  Builds one packaged CLI target, stages the release-named executable into a temporary install directory, runs its smoke path from a separate temporary project directory with a bounded subprocess timeout, distinguishes verifier supervision failures from real packaged-command failures and timeouts, optionally copies the verified asset into a release directory, and can emit JSON/Markdown proof reports.
+- `format.ts` — run Biome, `gofmt`, and `cargo fmt`.
+- `validate.ts` — check format baseline and run CLI lints.
+- `test.ts` — repo test flow including AssemblyScript smoke + host package tests (`js`, `wazero`, `wasmtime`).
+- `test-bootstrap.ts` — run the compiled AssemblyScript bootstrap fixture.
+- `assert-bridge-smoke.ts` — verify assertion bridge behavior through compiled fixtures.
+- `release-matrix.ts` / `host-validation-matrix.ts` — emit release and source-host matrices.
+- `verify-source-hosts.ts` — execute host package tests for a matrix target and emit reports.
+- `release-manifest.ts` — generate `release-manifest.json`, `SHA256SUMS.txt`, and notes.
+- `stage-release-legal.ts` — gather third-party legal files into a release artifact directory.
+- `verify-packaged-cli.ts` — run packaged CLI smoke with timeout-safe supervision and failure separation.
 
 ## What These Scripts Prove
 
-- the repo-wide JS/TS/JSON, Go, and Rust source-format baseline
-- the CLI lint baseline
-- the guest runtime still compiles
-- the assertion bridge still works
-- the package host smoke suites still pass through the root test entrypoint
-- the source-host matrix is explicit rather than hard-coded into one CI job
-- the explicit first supported source-host Node baseline is Node.js 22
-- source-host proof now produces persisted per-target reports instead of relying only on CI step names
-- the packaged CLI path still works locally for a selected release target
-- the packaged CLI path works from a clean staged install-like directory instead of only beside the repo checkout
-- packaged CLI verification now distinguishes verifier-wrapper bugs from real packaged-command failures and timeout-style bundled-host hangs
-- the release workflow can publish explicit artifact metadata instead of relying on inferred platform behavior
-- the published release assets have checksums and tag/version consistency checks
-- the published release assets now include the tracked third-party legal bundle
+- formatting and CLI lint baseline
+- guest compile flow
+- assertion bridge parity
+- shared host smoke suites for all shipped hosts
+- source-host matrix execution with persisted reports
+- packaged CLI smoke from a clean staged install directory
+- release manifest, checksum, and legal-bundle checks
 
-## What They Do Not Prove
-
-- that every hosted runner in GitHub Actions is green
-- that every target-specific wazero build works in the wild
-- that end-user install and troubleshooting flows are polished
-
-Those are still release-proof tasks above the local helper layer.
-
-## Useful Commands
+## Key commands
 
 ```bash
 bun format
@@ -66,17 +33,16 @@ bun validate
 bun test
 bun run host:matrix
 bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-host-reports
-cd harness/js && npm test
-cd harness/wazero && npm test
-cd harness/wasmtime && npm test
 bun run release:matrix
 bun run verify:packaged-cli -- --target bun-linux-x64 --report-dir ./dist/packaged-cli-reports
 bun run release:manifest -- --tag v0.1.0 --asset-dir ./dist/release-assets --notes-file ./dist/release-notes.md
+cd harness/js && npm test
+cd harness/wazero && npm test
+cd harness/wasmtime && npm test
 ```
 
 ## Related Docs
 
-- Repo overview: [README.md](../README.md)
-- CLI docs: [cli/README.md](../cli/README.md)
-- Release process: [docs/004-2026-03-17-release-process.md](../docs/004-2026-03-17-release-process.md)
-- Third-party notices: [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)
+- [README.md](../README.md)
+- [cli/README.md](../cli/README.md)
+- [docs/004-2026-03-17-release-process.md](../docs/004-2026-03-17-release-process.md)

@@ -1,26 +1,21 @@
 # `node:assert` Adapter TODO
 
-Status:
+Status: active, in scope for `v0.1.0`.
 
-- active
-- in scope for `v0.1.0`
+Implemented:
 
-Implemented scope:
-
-- synchronous `node:assert`
-- synchronous `node:assert/strict`
-- strict structural comparison core through the current guest runtime and transform support
-- reuse through `node:test` via `t.assert`
+- sync `node:assert`
+- sync `node:assert/strict`
+- strict structural comparison via shared runtime
+- shared `t.assert` integration through `node:test`
 
 Still deferred:
 
-- Promise-based assertion helpers
+- Promise-based helpers
 - matcher-aware throw APIs
-- legacy loose deep-equality follow-through beyond the current first scope
-- richer object-model classes such as `Assert` and `AssertionError`
+- loose deep equality and `AssertionError` object surface
 
-Next work:
+Next:
 
-- keep the current bridge stable
-- improve reflected diagnostics and fixtures
-- avoid growing a second assertion runtime inside `node:test`
+- strengthen reflected diagnostics and fixtures
+- avoid adding a second assertion runtime under `node:test`

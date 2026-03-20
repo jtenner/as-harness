@@ -1,23 +1,20 @@
 # `vitest` Adapter TODO
 
-Status:
+Status: first implementation slice completed, not in `v0.1.0`.
+Current surface is documented in [docs/008-2026-03-19-vitest-adapter.md](../../../docs/008-2026-03-19-vitest-adapter.md).
 
-- first implementation slice implemented
-- not in `v0.1.0`
-- current supported surface documented in [docs/008-2026-03-19-vitest-adapter.md](../../../docs/008-2026-03-19-vitest-adapter.md)
+First slice (implemented):
 
-First implementation slice:
-
-- [x] map `test`, `it`, `describe`, `suite`, `skip`, `todo`, and core lifecycle hooks
-- [x] add `fails`, `skipIf`, `runIf`, and `assertType(...)`
-- [x] add low-risk `sequential` aliases for the current always-sequential runner
-- [x] reuse the shipped Jest matcher subset for `expect(...)`
-- [x] keep Vitest-specific naming in this folder
-- [x] add guest smoke coverage and a bundled CLI smoke path
+- `test`, `it`, `describe`, `suite`
+- `skip`, `todo`, `only`, `fails`
+- low-risk `sequential`
+- `skipIf` / `runIf`
+- `assertType(...)`
+- shared `jest` matcher surface
 
 Current non-goals:
 
-- mocks, spies, and call-tracking matchers
-- fixture extension and `vi`
-- Promise-based matchers such as `.resolves` and `.rejects`
-- snapshots, `expectTypeOf`, `bench`, and async helpers
+- `vi` and spy/mocking
+- promise-based helpers
+- snapshots
+- async helpers and broad upstream parity

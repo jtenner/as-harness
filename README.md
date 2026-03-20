@@ -1,149 +1,62 @@
 # as-harness
 
-`as-harness` compiles AssemblyScript tests to Wasm and runs them through a stable host contract.
-
-The repo ships:
-
-- `assembly/`: guest runtime, adapters, and fixtures
-- `cli/`: Bun CLI for discovery, compilation, execution, and packaging
-- `harness/js/`, `harness/wazero/`, `harness/wasmtime/`: host runtimes
-- `docs/`: ABI, runtime, and release docs
+`as-harness` compiles AssemblyScript tests to Wasm and runs them through a shared harness contract.
 
 ## Current Scope
 
-What works today:
+Implemented:
 
-- `as-harness list` discovers test entry files
-- `as-harness run` compiles and executes them
-- guest authoring through synchronous `node:test`, including chainable
-  declaration handles for explicit dependencies
-- guest assertions through `node:assert` and `node:assert/strict`
-- built-in source harnesses: `js`, `wazero`, `wasmtime`
-- merged coverage output in `text`, `json`, `yaml`, `csv`, `lcov`, or `cobertura`
-- coverage filtering with `--coverage-include`, `--coverage-exclude`, and repeated `--coverage-point-type`
-- a bundled thin Jest-shaped guest adapter available through `import ... from "jest"`
-- a bundled thin Vitest-shaped guest adapter available through `import ... from "vitest"`
+- `as-harness list` for discovering test entry files.
+- `as-harness run` for compile + execute.
+- Synchronous `node:test` declarations with `dependsOn(...)` chains.
+- `node:assert` / `node:assert/strict` bridge support.
+- Built-in thin adapters for `jest` and `vitest`.
+- Stable start-reporting pipeline with branch, execution, planning, and blocked-dependency details.
+- `js`, `wazero`, `wasmtime` source-host runtime support.
+- Coverage output in `text`, `json`, `yaml`, `csv`, `lcov`, `cobertura`.
 
-Current limits:
+Limits:
 
-- async or Promise-based test APIs are not part of the current surface
-- the Jest adapter is intentionally small and not full Jest parity
-- the Vitest adapter is intentionally small and not full Vitest parity, even though it now includes low-risk `sequential` aliases
-- packaged releases include `js` and target-specific `wazero`; `wasmtime` is source-only
-- official distribution is packaged Bun executables, not `npm`
+- async/Promise-based APIs are intentionally unsupported.
+- thin adapters are intentionally narrow.
+- `wasmtime` is source-only; packaged releases stay `js` + `wazero` only.
 
 ## Quick Start
-
-In-repo examples use `bun run ./cli/index.ts`. Packaged releases use the same arguments through the `as-harness` executable.
-
-Write a test:
-
-```ts
-import { test } from "node:test";
-
-test("adds numbers", (t) => {
-	t.assert.strictEqual<i32>(1 + 1, 2);
-});
-
-const first = test("runs first", (_t) => {});
-test("runs after first", (_t) => {}).dependsOn(first);
-```
-
-Dependency notes:
-
-- prerequisites must stay runnable in the discovered graph
-- duplicate dependency edges collapse during planning
-- `skip`, `todo`, or `only`-filtered prerequisites block their dependents
-- `expectFailure` prerequisites satisfy dependents only when they actually fail
-- an `expectFailure` prerequisite that passes unexpectedly is reported as a
-  failing prerequisite and can block its dependents
-- dependency cycles block each participating test instead of running either side
-
-Run it:
 
 ```bash
 bun run ./cli/index.ts list
 bun run ./cli/index.ts run ./example.test.ts
-```
-
-Switch harnesses when needed:
-
-```bash
-bun run ./cli/index.ts run --harness js ./example.test.ts
 bun run ./cli/index.ts run --harness wazero ./example.test.ts
-bun run ./cli/index.ts run --harness wasmtime ./example.test.ts
+bun run ./cli/index.ts run --harness js --coverage ./example.test.ts
 ```
 
-## Examples
+## Dependency Notes
 
-Coverage:
+The runtime enforces scheduler semantics from discovered metadata:
 
-```bash
-bun run ./cli/index.ts run --coverage ./example.test.ts
-bun run ./cli/index.ts run --harness js --coverage --coverage-format lcov ./example.test.ts
-bun run ./cli/index.ts run --coverage --coverage-include "src/**/*.ts" --coverage-exclude "**/*.generated.ts" --coverage-point-type function ./example.test.ts
-```
+- chainable declaration handles are honored.
+- duplicate dependency edges collapse.
+- `skip`, `todo`, `only`-filtered, and failing prerequisites block dependents.
+- `expectFailure` satisfies dependents only when it fails as intended.
+- dependency cycles block all cycle members.
 
-Glob-based discovery:
+## API Surface
 
-```bash
-bun run ./cli/index.ts list --glob "assembly/**/*.test.ts"
-bun run ./cli/index.ts run --glob "test/**/*.ts" --ignore "**/fixtures/**"
-```
+- `node:test`: core declarations, hooks, sync contexts, and assertion binding.
+- `node:assert`, `node:assert/strict`: synchronous assertions and strict-bridge tests.
+- `jest`: sync declarations, core hooks, matcher slice.
+- `vitest`: sync declarations, low-risk `sequential` aliases, and the same matcher slice.
 
-Thin Jest-shaped guest API:
+See:
 
-```ts
-import { describe, expect, test } from "jest";
-
-describe("math", () => {
-	test("adds numbers", () => {
-		expect<i32>(1 + 1).toBe(2);
-	});
-});
-```
-
-```bash
-bun run ./cli/index.ts run ./example-jest.test.ts
-```
-
-For the exact supported Jest surface, see [docs/005-2026-03-17-jest-adapter.md](./docs/005-2026-03-17-jest-adapter.md).
-
-Thin Vitest-shaped guest API:
-
-```ts
-import { describe, expect, test } from "vitest";
-
-describe("math", () => {
-	test("adds numbers", () => {
-		expect<i32>(1 + 1).toBe(2);
-	});
-});
-```
-
-```bash
-bun run ./cli/index.ts run ./example-vitest.test.ts
-```
-
-For the exact supported Vitest surface, see [docs/008-2026-03-19-vitest-adapter.md](./docs/008-2026-03-19-vitest-adapter.md).
-
-## Release Targets
-
-Source execution supports `js`, `wazero`, and `wasmtime` on the current Node.js 22 validation matrix.
-
-Packaged release artifacts currently ship as:
-
-- `bun-darwin-arm64`: `js`, `wazero`
-- `bun-darwin-x64`: `js`, `wazero`
-- `bun-linux-arm64`: `js`
-- `bun-linux-x64`: `js`, `wazero`
-- `bun-windows-x64`: `js`
-
-`wasmtime` remains source-only and is not bundled into packaged artifacts.
+- [assembly/README.md](./assembly/README.md)
+- [docs/003-2026-03-17-harness-abi.md](./docs/003-2026-03-17-harness-abi.md)
+- [docs/006-2026-03-17-guest-runtime-contracts.md](./docs/006-2026-03-17-guest-runtime-contracts.md)
+- [docs/007-2026-03-17-host-runner-contract.md](./docs/007-2026-03-17-host-runner-contract.md)
+- [docs/008-2026-03-19-vitest-adapter.md](./docs/008-2026-03-19-vitest-adapter.md)
+- [docs/009-2026-03-19-vitest-scheduling-and-test-graph-strategy.md](./docs/009-2026-03-19-vitest-scheduling-and-test-graph-strategy.md)
 
 ## Validation
-
-Primary repo validation from the root:
 
 ```bash
 bun format
@@ -154,7 +67,7 @@ cd harness/wazero && npm test
 cd harness/wasmtime && npm test
 ```
 
-Useful additional checks:
+Helpful checks:
 
 ```bash
 bun run host:matrix
@@ -164,21 +77,19 @@ cd cli && bun run build:release
 bun run verify:packaged-cli -- --target bun-linux-x64 --report-dir ./dist/packaged-cli-reports
 ```
 
-`bun test` and `bun run verify:source-hosts` now reuse the same package-local
-host smoke commands for `js`, `wazero`, and `wasmtime`, so CI host-proof runs
-and local host smoke stay on the same execution path.
+## Release Packaging
 
-## Docs
+Current packaged artifacts:
 
-- CLI details: [cli/README.md](./cli/README.md)
-- Guest runtime details: [assembly/README.md](./assembly/README.md)
-- Harness ABI: [docs/003-2026-03-17-harness-abi.md](./docs/003-2026-03-17-harness-abi.md)
-- Host runner contract: [docs/007-2026-03-17-host-runner-contract.md](./docs/007-2026-03-17-host-runner-contract.md)
-- Guest runtime contracts: [docs/006-2026-03-17-guest-runtime-contracts.md](./docs/006-2026-03-17-guest-runtime-contracts.md)
-- Release process: [docs/004-2026-03-17-release-process.md](./docs/004-2026-03-17-release-process.md)
-- Host-specific notes: [harness/js/README.md](./harness/js/README.md), [harness/wazero/README.md](./harness/wazero/README.md), [harness/wasmtime/README.md](./harness/wasmtime/README.md)
-- Current backlog: [agent-todo.md](./agent-todo.md)
+- `bun-darwin-arm64`: `js`, `wazero`
+- `bun-darwin-x64`: `js`, `wazero`
+- `bun-linux-arm64`: `js`
+- `bun-linux-x64`: `js`, `wazero`
+- `bun-windows-x64`: `js`
 
-## License
+`npm` publication is not the current distribution channel.
 
-MIT. See [LICENSE](./LICENSE), [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md), and [licenses/](./licenses).
+## License and Legal
+
+- MIT project license: [LICENSE](./LICENSE)
+- Third-party notices: [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)

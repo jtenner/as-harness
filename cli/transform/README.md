@@ -1,41 +1,27 @@
-# `cli/transform`
+# cli/transform
 
-`cli/transform` contains the AssemblyScript AST transform support used by the CLI compiler wrapper.
+AssemblyScript AST transforms used by the CLI compiler wrapper.
 
-## Current Purpose
+## Purpose
 
-Today this folder exists to support:
+The transform phase generates helper code for:
 
-- strict structural comparison hooks
-- reflected-diagnostics hooks
+- strict structural equality
+- reflected diagnostics for assertion failures
 
-That work is primarily consumed by the `node:assert` and `node:assert/strict` guest libraries.
+This supports `node:assert` and `node:assert/strict`.
 
-## What The Transform Does
+## What it does
 
-The current transform pass:
-
-- walks non-library parser sources after parse
-- recurses into namespaces
+- walks parsed sources after non-library modules
 - finds eligible managed classes
-- injects generated instance methods for strict equality and reflected diagnostics
+- injects generated `strictEqual` and reflected-value methods
 - preserves generic context and inheritance behavior
-- delegates actual comparison and reflected-value logic back into the shared guest runtime
+- delegates heavy comparison work to shared runtime helpers
 
-## Boundaries
+## Boundary
 
-The transform owns compile-time class-shape knowledge.
+- **Transform owns**: class-shape inspection and code generation.
+- **Guest runtime owns**: recursive comparison policy, collection handling, cycle tracking, and reflected value construction.
 
-The guest runtime owns:
-
-- recursive comparison semantics
-- collection semantics
-- cycle handling
-- reflected-value construction
-
-That split is documented in [docs/002-2026-03-13-strict-equality-machinery.md](../../docs/002-2026-03-13-strict-equality-machinery.md).
-
-## Related Docs
-
-- Strict equality design: [docs/002-2026-03-13-strict-equality-machinery.md](../../docs/002-2026-03-13-strict-equality-machinery.md)
-- CLI overview: [cli/README.md](../README.md)
+See [docs/002-2026-03-13-strict-equality-machinery.md](../../docs/002-2026-03-13-strict-equality-machinery.md).

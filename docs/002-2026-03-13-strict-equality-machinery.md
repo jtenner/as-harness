@@ -1,83 +1,61 @@
 # Strict Equality Machinery
 
-This document describes the current design for structural equality and reflected diagnostics in the guest runtime.
+This document defines how `node:assert` gets structural comparison without overreaching AssemblyScript reflection.
 
 ## Goal
 
-Support `node:assert` and `node:assert/strict` features that need:
+Support strict-style assertion APIs with:
 
 - structural comparison
-- reflected value extraction
+- reflected values in failures
 - guest-owned failure context
 
-without depending on unsupported runtime reflection in AssemblyScript.
+without full runtime reflection.
 
 ## Split
 
-There are two cooperating layers.
+### CLI Transform
 
-### CLI Transform Layer
+- scans classes
+- generates strict-equality + reflected-value hooks
+- preserves generic/inheritance context
 
-Location:
+### Guest Runtime
 
-- `cli/transform/`
-
-Responsibilities:
-
-- inspect class declarations
-- generate strict-equality hooks
-- generate reflected-diagnostics hooks
-- preserve generic context and inheritance shape
-
-### Guest Runtime Layer
-
-Location:
-
-- `assembly/assembly/internal/`
-
-Responsibilities:
-
-- recursive comparison
-- cycle tracking
+- recursive comparison and cycle handling
 - collection-aware comparison
 - reflected-value construction
-- delegation into generated class hooks
+- delegates into generated hooks
 
-## Why The Split Exists
+## Why split
 
 The transform knows class shape.
+The runtime owns comparison policy and recursion behavior.
 
-The guest runtime knows comparison policy.
+## State
 
-Without the transform, class fields and getters cannot be enumerated reliably.
+Implemented:
 
-Without the runtime, every class would need to duplicate collection and recursion policy.
+- first class transform pass
+- generated strict-equality + reflected diagnostics methods
+- helper support for primitives, strings, buffers/arrays, `Set`/`Map`, and class recursion
+- reflected failure stack-trace direction
 
-## Current State
+Open:
 
-Implemented today:
+- fuller fixture coverage
+- richer protocol notes for stack-trace/reflection boundaries
+- deeper assertion-level integration
 
-- a first transform pass for managed classes
-- generated strict-equality and reflected-diagnostics methods
-- inheritance-aware generated bodies
-- guest runtime helpers for primitives, strings, buffers, arrays, typed arrays, `Set`, `Map`, and managed-class recursion
-- guest-owned stack-trace direction for reflected diagnostics
+## Current policy
 
-Still open:
+- strict semantics for shared comparison core
+- stable, minimal failure message surface
+- assertions own message text
+- stack traces remain guest-constructed; hosts do not infer guest structure
 
-- fuller fixture coverage across value categories
-- more protocol notes for how stack traces and reflected values move across the host boundary
-- deeper assertion-level integration beyond the current first scope
+## Related
 
-## Current Policy Decisions
-
-- the first shared structural-comparison core targets strict semantics
-- test authors own deep-equality failure message text
-- default reporting stays minimal and reports shape mismatch rather than synthesizing richer host text
-- guest code owns stack-trace construction; hosts should not infer guest frame structure
-
-## Related Docs
-
-- Transform overview: [cli/transform/README.md](../cli/transform/README.md)
-- Guest architecture: [docs/001-2026-03-13-primary-buildout.md](./001-2026-03-13-primary-buildout.md)
-- Host ABI: [docs/003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md)
+- [cli/transform/README.md](../cli/transform/README.md)
+- [docs/001-2026-03-13-primary-buildout.md](./001-2026-03-13-primary-buildout.md)
+- [docs/003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md)

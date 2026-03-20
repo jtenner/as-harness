@@ -1,16 +1,11 @@
 # `tape` Adapter TODO
 
-Status:
+Status: planned, not in `v0.1.0`.
 
-- planned
-- not in `v0.1.0`
+First slice:
 
-First implementation slice:
+- minimum `tape` declaration surface
+- map declarations to shared runtime
+- add one traversal fixture
 
-- define the minimum `tape` declaration surface
-- map it onto the shared runtime
-- add one minimal traversal fixture
-
-Constraints:
-
-- keep adapter-specific naming in this folder and host behavior in the shared runtime
+Constraint: keep adapter-only naming here, shared host behavior in shared runtime.

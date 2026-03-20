@@ -1,16 +1,12 @@
 # `mocha` Adapter TODO
 
-Status:
+Status: planned, not in `v0.1.0`.
 
-- planned
-- not in `v0.1.0`
+First slice:
 
-First implementation slice:
+- `describe` / `it` declarations
+- skip/todo variants
+- lifecycle hooks
+- one traversal fixture
 
-- map `describe`, `it`, skip/todo variants, and lifecycle hooks
-- keep Mocha-specific surface details in this folder
-- add one minimal traversal fixture
-
-Constraints:
-
-- the adapter still needs to lower into the shared runtime and shared harness ABI
+Constraint: keep lowering into shared runtime and ABI.

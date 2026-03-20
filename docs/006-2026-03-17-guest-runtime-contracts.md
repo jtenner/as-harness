@@ -1,7 +1,7 @@
 # Guest Runtime Contracts
 
-This document describes the internal guest-runtime module contracts that sit
-behind the public harness ABI. Use it together with
+This document maps the internal guest modules behind the public harness ABI. Use
+it with
 [003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md) and
 [007-2026-03-17-host-runner-contract.md](./007-2026-03-17-host-runner-contract.md):
 

@@ -1,17 +1,15 @@
 # `jasmine` Adapter TODO
 
-Status:
+Status: planned, not in `v0.1.0`.
 
-- planned
-- not in `v0.1.0`
+First slice:
 
-First implementation slice:
-
-- map `describe`, `it`, skip/pending variants, and core lifecycle hooks
-- keep Jasmine-specific naming inside this folder
-- add one minimal traversal fixture
+- `describe` and `it` family
+- skip/pending variants
+- core hooks
+- one traversal fixture
 
 Current non-goals:
 
-- spies and call-tracking matchers
-- Promise-based completion and async expectations
+- spies and call-tracking assertions
+- async/Promise completion helpers

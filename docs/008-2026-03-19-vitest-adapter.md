@@ -1,7 +1,6 @@
 # Vitest Adapter
 
-This document records the recommended shape for a future `"vitest"` guest
-library in `as-harness`.
+Recommended shape for a future thin sync `"vitest"` guest library in `as-harness`.
 
 Research basis:
 
@@ -13,7 +12,7 @@ Research basis:
   [`assembly/assembly/internal/`](../assembly/assembly/internal/)
 - the shipped thin Jest adapter in [005-2026-03-17-jest-adapter.md](./005-2026-03-17-jest-adapter.md)
 
-The short conclusion is:
+Short conclusion:
 
 - `vitest` is the best next adapter to implement after `node:test` and `jest`
 - the right target is a thin, synchronous, Jest-shaped subset of Vitest

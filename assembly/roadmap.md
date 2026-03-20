@@ -1,49 +1,34 @@
 # Assembly Roadmap
 
-This roadmap tracks adapter-level intent for the guest package.
+Adapter-level intent for guest runtime work.
 
-## Current Priorities
+## Current priorities
 
-- keep the synchronous `node:test` core stable
-- keep `node:assert` and `node:assert/strict` aligned with the current release scope
-- keep the shipped host-runner contract explicit as host behavior changes
-- document the ABI clearly enough that additional host implementations can target it beyond the current `js`, `wazero`, and `wasmtime` source hosts
+- keep `node:test` and assertion core stable
+- keep host contracts explicit as they evolve
+- keep ABI documentation current for additional host implementations
+- keep runtime capabilities aligned with language limits
 
-## Current Scope Limits
+## Current scope limits
 
-The project still treats these as out of scope until AssemblyScript gains better language support:
+- mock/spy APIs relying on closures or call tracking
+- Promise-based helpers and async assertion APIs
+- matcher-heavy assertion surfaces requiring richer runtime object modeling
 
-- mock and spy APIs that rely on closures or call recording
-- Promise-based test helpers and async assertion helpers
-- matcher-heavy assertion surfaces that need richer runtime object modeling
+## Adapter set
 
-## Adapter Intent
+Tracked adapters: `node:test`, `node:assert`, `jest`, `vitest`, `mocha`, `ava`, `tap`, `tape`, `uvu`, `jasmine`, `qunit`.
 
-Tracked adapters:
+Active surface today: `node:test`, `jest`, `vitest`.
 
-- `node:test`
-- `node:assert`
-- `jest`
-- `vitest`
-- `mocha`
-- `ava`
-- `tap`
-- `tape`
-- `uvu`
-- `jasmine`
-- `qunit`
+For each adapter workstream, start from the doc + TODO pair:
 
-The active adapter work today is the shipped Node-shaped surface plus thin
-Jest- and Vitest-shaped adapters. The current supported guest APIs are
-described in [docs/005-2026-03-17-jest-adapter.md](../docs/005-2026-03-17-jest-adapter.md) and
-[docs/008-2026-03-19-vitest-adapter.md](../docs/008-2026-03-19-vitest-adapter.md).
+- declaration behavior
+- non-goals
+- minimal fixture path
 
-## How To Read The Adapter TODO Pages
+## Reference
 
-Each adapter TODO page should answer:
-
-- what part of the public declaration surface matters
-- what current non-goals apply
-- what the first minimal fixture should prove
-
-All adapter work still has to lower into the same guest runtime and the same host ABI described in [docs/003-2026-03-17-harness-abi.md](../docs/003-2026-03-17-harness-abi.md).
+- [docs/005-2026-03-17-jest-adapter.md](../docs/005-2026-03-17-jest-adapter.md)
+- [docs/008-2026-03-19-vitest-adapter.md](../docs/008-2026-03-19-vitest-adapter.md)
+- [docs/003-2026-03-17-harness-abi.md](../docs/003-2026-03-17-harness-abi.md)

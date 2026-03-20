@@ -1,54 +1,31 @@
-# `harness/wazero`
+# harness/wazero
 
-`harness/wazero` is the Go-based native host implementation. It exposes the shared harness contract through a `Node-API` addon.
+Go host implementation via Node-API addon.
 
-The current source-host proof contract validates this package on the explicit
-Node.js 22 baseline across the supported hosted runner matrix.
+## Purpose
 
-## Why It Exists
-
-This host proves that the harness ABI is not tied to one implementation language. The guest protocol is the same as `harness/js` and `harness/wasmtime`; only the runtime strategy differs.
+Proves the ABI is not tied to one runtime language by implementing the same shared contract with a native addon.
 
 ## Artifact
 
-The package builds:
-
-- `dist/wazero.node`
-
-That file is a target-specific `Node-API` addon.
+- `dist/wazero.node` (target-specific native addon)
 
 ## Responsibilities
 
-This host:
-
-- validates and compiles Wasm through wazero
-- decodes the same event protocol as `harness/js`
-- intercepts AssemblyScript `trace(...)` calls and surfaces them as `log` events
-- implements native `callI32`, `discover`, and `run`
-- relies on the shared `start()` planner in `harness/shared/start.cjs` through an
-  in-band execution mode rather than a worker-thread scheduler
-- implements the conditional `__asCovers` imports and now exposes persistent
-  `getCoverageSnapshot()` / `resetCoverage()` methods so shared `start()` and
-  CLI coverage reporting can merge native coverage state
-- now requires explicit `close()` to release the native runtime promptly instead of waiting for GC finalization
+- compile and instantiate Wasm via wazero
+- mirror JS host wire decoding and callback registration
+- expose `callI32`, `discover`, `run`
+- run shared `start()` in-band through `harness/shared/start.cjs`
+- provide persistent coverage snapshots (`getCoverageSnapshot` / `resetCoverage`)
+- explicit `close()` to release native resources promptly
 
 ## Build Requirements
 
 - Go toolchain
 - Node headers
-- on Windows, a usable `node.lib` import library
+- Windows `node.lib` (auto-download path supported)
 
-The build script supports:
-
-- `NODE_API_INCLUDE_DIR`
-- `NODE_API_LIB_FILE`
-- `npm_config_nodedir`
-
-On Windows, the build script can also download a matching `node.lib` into `.cache/` when one is not already available, and it stages the import library under `.cache/` before passing `-L... -l:node.lib` into cgo so hosted builds do not depend on raw absolute library paths.
-
-## Install And Packaging Story
-
-For local development:
+## Build / Install
 
 ```bash
 cd harness/wazero
@@ -56,35 +33,14 @@ npm run build
 npm test
 ```
 
-For packaged CLI builds:
+## Packaging Notes
 
-- the addon must be built once per supported target
-- the packaged Bun executable must stage the matching `.node` file
-- Linux `glibc` is in scope for `v0.1.0`; `musl` is not
-
-Current packaged-platform note:
-
-- source-based Windows addon builds are supported
-- source-based Linux arm64 addon builds are supported
-- packaged Windows CLI artifacts currently fall back to `js` instead of bundling
-  `wazero`, because Bun's standalone Windows executable is still crashing while
-  loading the native `.node` addon
-- packaged Linux arm64 CLI artifacts currently fall back to `js` because the
-  hosted packaged `wazero` smoke is still timing out on Bun's standalone
-  executable path
-
-The hosted release matrix now builds and verifies the packaged targets in CI. The remaining release proof is clean-environment download-and-run validation for end users on each shipped platform.
-
-## Testing
-
-This package shares the main host-parity smoke suite with `harness/js` and `harness/wasmtime`, and the root `bun run test` flow now invokes those package smoke commands directly instead of delegating through wrapper scripts.
-
-Package-local extra coverage still exists for:
-
-- running the CLI through `--harness wazero`
+- Linux glibc is in scope for `v0.1.0`; musl is not.
+- source Linux arm64 and Windows builds can be produced locally.
+- packaged release matrix currently falls back to `js` on known problem targets while collecting verification.
 
 ## Related Docs
 
-- Repo overview: [README.md](../../README.md)
-- Harness ABI: [docs/003-2026-03-17-harness-abi.md](../../docs/003-2026-03-17-harness-abi.md)
-- CLI native addon staging: [cli/n-api/README.md](../../cli/n-api/README.md)
+- [cli/n-api/README.md](../../cli/n-api/README.md)
+- [docs/003-2026-03-17-harness-abi.md](../../docs/003-2026-03-17-harness-abi.md)
+- [docs/007-2026-03-17-host-runner-contract.md](../../docs/007-2026-03-17-host-runner-contract.md)

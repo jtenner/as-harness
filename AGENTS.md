@@ -9,11 +9,11 @@
 ## Rules
 
 - Keep this file compact.
-- Look in `docs/` first for prior architecture, ABI, release, planning, and research context.
-- `agent-todo.md` must contain only actual remaining todo items for unreleased work; do not keep released-version notes, shipped scope summaries, or other retrospective content there.
-- Organize `agent-todo.md` by upcoming version first, then within each version by `Blockers`, then `Risks`, then feature sections in implementation priority order, with each feature section listing only remaining work.
+- Read `docs/` first for architecture, ABI, release, planning, and research context.
+- `agent-todo.md` only tracks unreleased remaining work; remove shipped/retrospective items.
+- Organize `agent-todo.md` by upcoming version, then `Blockers`, `Risks`, then feature sections in implementation priority order.
 - Gitignore newly discovered build/cache directories when they are not meant to be tracked.
-- Update relevant `README.md` files when surface API or user-facing project info changes.
+- Update relevant `README.md` files whenever user-facing/project-facing information changes.
 
 ## Commit Process
 

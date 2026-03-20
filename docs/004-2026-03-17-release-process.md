@@ -1,53 +1,27 @@
 # Release Process
 
-This document is the operational guide for shipping current `as-harness`
-releases through the GitHub workflow.
+Operational flow for shipping `as-harness` through GitHub:
 
-## Release Contract
-
-The current release channel is:
-
-1. validate locally
+1. run local validation
 2. push to GitHub
-3. let CI finish on the intended matrix
+3. let CI run source-host checks
 4. tag `vX.Y.Z`
-5. let the release workflow build, verify, and publish the packaged executables
+5. let release workflow build, verify, and publish artifacts
 
-This is separate from the source-host validation matrix in normal CI. Packaged
-release verification and source-host verification are intentionally not the same
-matrix.
+## Current policy
 
-The current release policy is:
+- official distribution: packaged Bun executables
+- no current `npm` publication
+- packaged targets include `js` and `wazero` (release matrix varies by platform)
+- `wasmtime` is source-only
+- explicit Node.js 22 baseline
 
-- downloadable Bun-compiled executables are the official release channel
-- `npm` publication is not a current release goal
-- packaged releases include `js` and `wazero` only
-- `wasmtime` remains source-only
-- the current CI source-host matrix plus packaged clean-environment verification are treated as sufficient release proof
+## Targets
 
-The explicit first supported source-host Node baseline is Node.js 22.
+- `bun-darwin-arm64`, `bun-darwin-x64`, `bun-linux-arm64`, `bun-linux-x64`, `bun-windows-x64`
+- Linux x64 and macOS x64 carry `wazero`; Linux arm64 and Windows do not
 
-The packaged targets currently intended for release are:
-
-- `bun-darwin-arm64`
-- `bun-darwin-x64`
-- `bun-linux-arm64`
-- `bun-linux-x64`
-- `bun-windows-x64`
-
-Packaged harness support is:
-
-- macOS: `js`, `wazero`
-- Linux x64: `js`, `wazero`
-- Linux arm64: `js` only
-- Windows: `js` only
-
-Source-only harness support also includes `wasmtime`, but it is intentionally
-not part of the packaged release artifact matrix.
-
-## Local Preflight
-
-Run the release baseline from the repo root:
+## Preflight
 
 ```bash
 bun validate
@@ -55,147 +29,51 @@ bun test
 cd harness/js && npm test
 cd harness/wazero && npm test
 cd harness/wasmtime && npm test
-cd /path/to/as-harness
 bun run release:matrix
 bun run verify:packaged-cli -- --target bun-linux-x64 --report-dir ./dist/packaged-cli-reports
 ```
 
-If you want to inspect the exact packaged release target list locally:
+Inspect lists locally:
 
 ```bash
 cd cli
 bun run build:list-release-targets
-```
-
-If you want to inspect the source-host validation matrix locally:
-
-```bash
 bun run host:matrix
-```
-
-If you want to run one source-host proof target locally and emit the same
-report shape CI uploads:
-
-```bash
 bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-host-reports
 ```
 
-That helper now fails fast if the active `node` on `PATH` does not match the
-target's declared Node baseline.
-It also reuses the same package-local `npm test` host smoke commands that
-`bun test` runs for `js`, `wazero`, and `wasmtime`, so local and CI source-host
-proof stay aligned.
-
-## CI Expectations
-
-The main workflow should be green before tagging:
+## CI expectations
 
 - repo validation
 - root Bun tests
-- source-host smoke coverage across the explicit CI matrix runners
-- packaged CLI verification on the release matrix
-
-The current source-host proof contract is:
-
-- `js`, `wazero`, and `wasmtime`
-- `linux-x64`, `linux-arm64`, `macos-arm64`, `macos-x64`, and `windows-x64`
-- Node.js 22
-
-The shipped JavaScript-facing host-runner contract exercised by that matrix is
-documented in [007-2026-03-17-host-runner-contract.md](./007-2026-03-17-host-runner-contract.md).
-
-The packaged verification path is owned by [verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts).
-The source-host matrix is emitted by [host-validation-matrix.ts](../scripts/host-validation-matrix.ts).
-The per-target source-host verification reports are emitted by [verify-source-hosts.ts](../scripts/verify-source-hosts.ts).
-The per-target packaged clean-environment reports are emitted by [verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts).
-
-No extra manual `npm`-distribution proof is required because `npm` publication
-is not part of the current release policy.
+- full source-host matrix
+- packaged CLI verification on release matrix
 
 ## Tagging
 
-The release workflow triggers on tags matching `v*`.
+Release workflows trigger on `v*` tags.
+Tag must match `cli/package.json` version.
 
-The tag must match the CLI package version in [package.json](../cli/package.json). For example:
+## Failure triage
 
-- CLI version `0.2.0`
-- release tag `v0.2.0`
+- release build failure: inspect target packaged smoke step
+- verifier-wrapper failure: check wrapper logs first
+- packaged timeout: treat as likely host hang before blaming the package itself
+- non-matching tag/version: align `cli/package.json` and tag
 
-The release-manifest generator will fail if those drift.
+## Non-goals
 
-## Published Assets
+- no `npm` publishing
+- no packaged `wasmtime`
+- no scope change without explicit matrix/provenance updates
 
-The release workflow publishes:
+## Related files
 
-- one packaged executable per release target
-- `LICENSE`
-- `THIRD_PARTY_NOTICES.md`
-- tracked third-party license texts copied from `licenses/`
-- `release-manifest.json`
-- `SHA256SUMS.txt`
-
-`release-manifest.json` records:
-
-- release tag
-- CLI version
-- target metadata
-- packaged harness support
-- runner provenance
-- SHA-256 checksum per packaged executable
-
-`SHA256SUMS.txt` contains the binary checksums in a standard two-column format.
-
-The legal bundle is staged by [stage-release-legal.ts](../scripts/stage-release-legal.ts).
-
-## Clean-Environment Smoke Expectation
-
-For each supported platform, the clean-environment expectation is:
-
-1. download the packaged executable for that platform
-2. run a minimal `node:test` smoke file through the default `js` harness
-3. run the same smoke file through `--harness wazero` when that packaged target declares `wazero`
-4. confirm the reported harness matches the target contract
-
-Windows packaged artifacts are expected to stop at step 2 because they are intentionally `js`-only right now.
-
-The current packaged verification helper models this by:
-
-1. building the selected packaged target
-2. copying the release-named executable into a temporary install directory
-3. creating a separate temporary project directory with a minimal smoke file
-4. running the staged executable from that separate project directory
-5. optionally writing JSON and Markdown proof reports for the target
-
-The helper now also distinguishes:
-
-- verifier supervision failures, where the Node wrapper fails before returning
-  a normal command result
-- real packaged command failures, where the staged executable exits non-zero
-- packaged command timeouts, which are treated as likely bundled-host hangs or
-  otherwise stuck packaged commands instead of verifier-wrapper bugs
-
-## If A Release Fails
-
-- packaged build failure: inspect the target-specific packaged smoke step first
-- verifier supervision failure: inspect the packaged verification wrapper logs
-  before attributing the issue to the bundled executable itself
-- packaged smoke timeout: treat it as a bundled-host hang or stuck packaged
-  command first, especially on `wazero`
-- `wazero` build failure: inspect the Node headers, Go toolchain, or addon staging path on that runner
-- tag/version mismatch: update [package.json](../cli/package.json) or retag to match
-- manifest/checksum failure: confirm the release asset directory contains the expected packaged executables before publish
-
-## Explicit Non-Goals
-
-- `npm` publication
-- packaged `wasmtime` artifacts
-- extending the release contract beyond the current packaged target matrix and Node 22 source-host baseline without updating the shared target metadata first
-
-## Related Files
-
-- Workflow: [.github/workflows/release.yml](../.github/workflows/release.yml)
-- Release metadata: [scripts/release-manifest.ts](../scripts/release-manifest.ts)
-- Legal staging: [scripts/stage-release-legal.ts](../scripts/stage-release-legal.ts)
-- Packaged smoke verification: [scripts/verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts)
-- Release target map: [cli/build-targets.ts](../cli/build-targets.ts)
-- Host runner contract: [docs/007-2026-03-17-host-runner-contract.md](./007-2026-03-17-host-runner-contract.md)
+- `.github/workflows/release.yml`
+- `scripts/release-manifest.ts`
+- `scripts/verify-packaged-cli.ts`
+- `scripts/release-matrix.ts`
+- `scripts/stage-release-legal.ts`
+- `scripts/host-validation-matrix.ts`
+- `cli/build-targets.ts`
+- `docs/007-2026-03-17-host-runner-contract.md`

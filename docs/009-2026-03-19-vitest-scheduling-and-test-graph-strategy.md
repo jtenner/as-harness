@@ -1,8 +1,7 @@
 # Vitest Scheduling and Test Graph Strategy
 
-This document plans the next honest scheduling step for the thin `"vitest"`
-guest adapter and the shared harness work that a future native `"as-harness"`
-adapter will need.
+This document plans the next scheduling step for a thin `"vitest"` adapter and
+shared host work for a future native `"as-harness"` adapter.
 
 The short version is:
 

@@ -1,16 +1,11 @@
 # `tap` Adapter TODO
 
-Status:
+Status: planned, not in `v0.1.0`.
 
-- planned
-- not in `v0.1.0`
+First slice:
 
-First implementation slice:
+- smallest useful declaration surface
+- map into shared runtime
+- add one traversal fixture
 
-- define the smallest useful `tap` declaration surface
-- map it onto the shared runtime
-- add one minimal traversal fixture
-
-Constraints:
-
-- do not fork host protocol behavior at the adapter level
+Constraint: no host protocol divergence in adapter layer.

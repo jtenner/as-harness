@@ -1,16 +1,11 @@
 # `uvu` Adapter TODO
 
-Status:
+Status: planned, not in `v0.1.0`.
 
-- planned
-- not in `v0.1.0`
+First slice:
 
-First implementation slice:
+- minimum declaration surface
+- map to shared runtime
+- add one traversal fixture
 
-- define the minimum `uvu` declaration surface
-- map it onto the shared runtime
-- add one minimal traversal fixture
-
-Constraints:
-
-- keep the adapter thin over the shared guest runtime
+Constraint: keep logic in shared runtime, no runtime-policy duplication in adapter.

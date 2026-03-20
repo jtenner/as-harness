@@ -1,91 +1,46 @@
 # Primary Buildout
 
-This document explains the intended split between guest runtime work and host harness work.
-
-For the concrete host boundary, use [docs/003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md). This document is the architectural view above that ABI.
-For the internal guest-runtime ownership boundaries, use
-[docs/006-2026-03-17-guest-runtime-contracts.md](./006-2026-03-17-guest-runtime-contracts.md).
+This is the guest/runtime versus host split for `as-harness`.
 
 ## Core Principle
 
-The guest emits execution facts.
+- guest: declare, traverse, execute callbacks, emit normalized events
+- host: instantiate, schedule, aggregate, report
 
-The host owns orchestration.
-
-That means:
-
-- guest code declares tests, traverses nodes, executes callbacks, and emits normalized events
-- host code instantiates Wasm, stages `NodeIndex` values, decodes events, schedules work, and reports outcomes
-
-## System Split
+## Split
 
 ### Guest Runtime
 
-Location:
-
 - `assembly/assembly/internal/`
 - `assembly/assembly/exports.ts`
-- guest adapter folders such as `node:test` and `node:assert`
+- `assembly/assembly/{node:test,jest,vitest,node_assert}/`
 
-Responsibilities:
-
-- internal declaration primitives
-- node registration
-- deterministic `NodeIndex` derivation
-- traversal and rediscovery
-- callback and lifecycle execution
-- event encoding
-- the flat Wasm import/export boundary
+Owns declaration registration, deterministic `NodeIndex` derivation, traversal/replay, callback execution, event encoding.
 
 ### Host Harness
 
-Location:
+- `harness/js`, `harness/wazero`, `harness/wasmtime`
+- future third-party hosts implementing the same ABI
 
-- `harness/js`
-- `harness/wazero`
-- `harness/wasmtime`
-- future third-party hosts that implement the same ABI
+Owns compilation, imports/exports, staged `NodeIndex` handling, trap observation, decoding, scheduling, and reporting.
 
-Responsibilities:
+## Areas to know
 
-- compile or instantiate the module
-- call `__start`
-- stage `NodeIndex` values
-- implement trap observation
-- decode events
-- maintain execution aggregates
-- expose the host API expected by the CLI
-
-## Guest Runtime Areas
-
-The guest buildout still groups naturally into these areas:
-
+### Guest
 - declaration APIs and adapter entry points
-- node registration and structural discovery
-- targeted traversal and replay
-- execution and lifecycle ordering
-- assertion bridge integration
-- event encoding
-- flat imported/exported ABI
-- attempt-local execution state
+- registration and structural discovery
+- targeted replay
+- execution + lifecycle
+- assertion bridge and ABI surface
 
-The current module-by-module ownership contract for those areas now lives in
-[docs/006-2026-03-17-guest-runtime-contracts.md](./006-2026-03-17-guest-runtime-contracts.md).
-
-## Host Buildout Areas
-
-The host side still needs to stay aligned on:
-
+### Host
 - event decoding
 - `callI32(exportName)`
-- `discover(nodeIndex)`
-- `run(nodeIndex)`
-- `start()` aggregation
-- trap observation through the trampoline path
+- `discover(nodeIndex)` / `run(nodeIndex)`
+- `start()` orchestration
+- trap observation
 
-The repo now has shared smoke coverage for those parity areas, but the host boundary still needs clearer standalone implementer guidance and broader release proof.
-
-## Recommended Reading Order
+## Recommended reading order
 
 1. [README.md](../README.md)
 2. [docs/003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md)
