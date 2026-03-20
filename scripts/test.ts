@@ -1,16 +1,37 @@
 #!/usr/bin/env bun
 
 import { $ } from "bun";
+import type { SourceHarness } from "../cli/build-targets";
+import { sourceHarnessSmokeCommands } from "./source-host-smoke";
 
 const rootDir = import.meta.dir + "/..";
 const assemblyDir = `${rootDir}/assembly`;
-const jsHarnessDir = `${rootDir}/harness/js`;
-const wazeroHarnessDir = `${rootDir}/harness/wazero`;
-const wasmtimeHarnessDir = `${rootDir}/harness/wasmtime`;
 const outputFile = "build/test-debug.wasm";
 const legacyAssertSmokeFile = "build/assert-bridge-node-assert.wasm";
 const strictAssertSmokeFile = "build/assert-bridge-node-assert-strict.wasm";
 const vitestSmokeFile = "build/vitest-smoke.wasm";
+
+async function runCommand(command: string[], cwd: string) {
+	const processHandle = Bun.spawn(command, {
+		cwd,
+		stderr: "inherit",
+		stdout: "inherit",
+	});
+	const exitCode = await processHandle.exited;
+	if (exitCode !== 0) {
+		throw new Error(
+			`Command ${command.join(" ")} failed in ${cwd} with exit code ${exitCode}.`,
+		);
+	}
+}
+
+async function runSourceHarnessSmoke(harness: SourceHarness) {
+	console.log(`Running ${harness} host smoke checks...`);
+	for (const { command, cwd } of sourceHarnessSmokeCommands(harness)) {
+		await runCommand(command, cwd);
+	}
+	console.log(`${harness} host smoke checks completed.`);
+}
 
 console.log("Compiling assembly test entrypoint...");
 
@@ -48,22 +69,6 @@ await $`bun run ${rootDir}/scripts/assert-bridge-smoke.ts`;
 
 console.log("node:assert bridge smoke checks completed.");
 
-console.log("Running js host smoke checks...");
-
-await $`node --test ./test/smoke.host.cjs`.cwd(jsHarnessDir);
-
-console.log("js host smoke checks completed.");
-
-console.log("Running wazero host smoke checks...");
-
-await $`node ./scripts/build.mjs`.cwd(wazeroHarnessDir);
-await $`node --test ./test/smoke.host.cjs`.cwd(wazeroHarnessDir);
-
-console.log("wazero host smoke checks completed.");
-
-console.log("Running wasmtime host smoke checks...");
-
-await $`node ./scripts/build.mjs`.cwd(wasmtimeHarnessDir);
-await $`node --test ./test/smoke.host.cjs`.cwd(wasmtimeHarnessDir);
-
-console.log("wasmtime host smoke checks completed.");
+await runSourceHarnessSmoke("js");
+await runSourceHarnessSmoke("wazero");
+await runSourceHarnessSmoke("wasmtime");

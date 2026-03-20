@@ -14,6 +14,7 @@
 - the release workflows use the same build metadata and packaged smoke scripts as local development
 - CI also drives a separate source-host validation matrix so `wasmtime` can be proven without being added to packaged artifacts yet
 - the source-host validation path now emits per-target JSON and Markdown reports for CI artifacts and summaries
+- the root `bun test` flow and the source-host validation helper now reuse the same package-local host smoke commands, so local and CI host proof stay aligned
 - `run` now builds a deterministic result tree and feeds it through a reporter contract instead of formatting directly from live callbacks
 
 ## What It Does Not Do Yet

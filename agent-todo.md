@@ -94,9 +94,6 @@ Remaining work:
 
 Remaining work:
 
-- keep the root `bun run test` and source-host verification scripts aligned
-  with the actual per-host smoke commands so host regressions cannot hide
-  behind wrapper scripts
 - keep bounded regression coverage and failure diagnostics around packaged CLI
   verification so hosted/package failures distinguish verifier supervision bugs
   from real bundled-host hangs

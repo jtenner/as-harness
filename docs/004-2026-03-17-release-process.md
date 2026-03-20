@@ -82,6 +82,9 @@ bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-hos
 
 That helper now fails fast if the active `node` on `PATH` does not match the
 target's declared Node baseline.
+It also reuses the same package-local `npm test` host smoke commands that
+`bun test` runs for `js`, `wazero`, and `wasmtime`, so local and CI source-host
+proof stay aligned.
 
 ## CI Expectations
 

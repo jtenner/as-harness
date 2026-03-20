@@ -6,6 +6,7 @@ import {
 	hostValidationTargetForLabel,
 	type SourceHarness,
 } from "../cli/build-targets";
+import { sourceHarnessSmokeCommands } from "./source-host-smoke";
 
 const REPO_DIR = join(import.meta.dir, "..");
 
@@ -27,44 +28,6 @@ type CommandResult = {
 	exitCode: number;
 	stderr: string;
 	stdout: string;
-};
-
-const HARNESS_COMMANDS: Record<
-	SourceHarness,
-	{ commands: { command: string[]; cwd: string }[] }
-> = {
-	js: {
-		commands: [
-			{
-				command: ["node", "--test", "./test/smoke.host.cjs"],
-				cwd: join(REPO_DIR, "harness", "js"),
-			},
-		],
-	},
-	wazero: {
-		commands: [
-			{
-				command: ["node", "./scripts/build.mjs"],
-				cwd: join(REPO_DIR, "harness", "wazero"),
-			},
-			{
-				command: ["node", "--test", "./test/smoke.host.cjs"],
-				cwd: join(REPO_DIR, "harness", "wazero"),
-			},
-		],
-	},
-	wasmtime: {
-		commands: [
-			{
-				command: ["node", "./scripts/build.mjs"],
-				cwd: join(REPO_DIR, "harness", "wasmtime"),
-			},
-			{
-				command: ["node", "--test", "./test/smoke.host.cjs"],
-				cwd: join(REPO_DIR, "harness", "wasmtime"),
-			},
-		],
-	},
 };
 
 function parseArguments(argv: string[]): ParsedArguments {
@@ -183,7 +146,7 @@ async function main() {
 	let hasFailure = false;
 
 	for (const harness of target.sourceHarnesses) {
-		const { commands } = HARNESS_COMMANDS[harness];
+		const commands = sourceHarnessSmokeCommands(harness);
 		const startedAt = performance.now();
 		console.log(`Running ${harness} host verification for ${target.label}...`);
 		let stdout = "";

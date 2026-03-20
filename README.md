@@ -162,6 +162,10 @@ cd cli && bun run build:release
 bun run verify:packaged-cli -- --target bun-linux-x64 --report-dir ./dist/packaged-cli-reports
 ```
 
+`bun test` and `bun run verify:source-hosts` now reuse the same package-local
+host smoke commands for `js`, `wazero`, and `wasmtime`, so CI host-proof runs
+and local host smoke stay on the same execution path.
+
 ## Docs
 
 - CLI details: [cli/README.md](./cli/README.md)
