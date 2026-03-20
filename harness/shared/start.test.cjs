@@ -771,16 +771,7 @@ test("evaluatePlannedExecution blocks execution targets with missing execution r
 
 	assert.equal(evaluated.outcomesByIdentity.get("id:50/id:51"), "satisfied");
 	assert.equal(evaluated.outcomesByIdentity.get("id:50/id:52"), "blocked");
-	assert.deepEqual(
-		evaluated.issues.filter((issue) => issue.type === "blocked-dependency"),
-		[
-			{
-				type: "blocked-dependency",
-				targetIdentityKey: "id:50/id:52",
-				dependencyIdentityKey: "id:50/id:51",
-			},
-		],
-	);
+	assert.deepEqual(evaluated.issues, []);
 });
 
 test("planExecutionStages treats skipped dependency declarations as missing dependency targets", () => {
@@ -837,6 +828,104 @@ test("planExecutionStages treats skipped dependency declarations as missing depe
 			dependencyIdentityKey: "nodeId:62",
 		},
 	]);
+});
+
+test("planExecutionStages ignores malformed dependency metadata", () => {
+	const root = createPlannerNode({
+		identityKey: "id:70",
+		nodeId: 70,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const ready = createPlannerNode({
+		identityKey: "id:70/id:71",
+		parentIdentityKey: "id:70",
+		nodeId: 71,
+		parentNodeId: 70,
+		declarationOrder: 1,
+		name: "ready test",
+	});
+	const malformed = createPlannerNode({
+		identityKey: "id:70/id:72",
+		parentIdentityKey: "id:70",
+		nodeId: 72,
+		parentNodeId: 70,
+		declarationOrder: 2,
+		dependencyKeys: [123, "", null],
+		dependencyNodeIds: [-1, 0, "x"],
+		name: "malformed dependent",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [root, ready, malformed]),
+	]);
+
+	assert.equal(plan.complete, true);
+	assert.deepEqual(
+		plan.stages.map((stage) => stage.map((target) => target.node.name)),
+		[["ready test", "malformed dependent"]],
+	);
+	assert.deepEqual(plan.blockedTargets, []);
+	assert.deepEqual(plan.issues, []);
+});
+
+test("evaluatePlannedExecution keeps pre-blocked targets blocked even with execution results", () => {
+	const root = createPlannerNode({
+		identityKey: "id:80",
+		nodeId: 80,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const blockedTarget = createPlannerNode({
+		identityKey: "id:80/id:81",
+		parentIdentityKey: "id:80",
+		nodeId: 81,
+		parentNodeId: 80,
+		declarationOrder: 1,
+		dependencyKeys: ["id:missing"],
+		name: "pre-blocked target",
+	});
+	const sibling = createPlannerNode({
+		identityKey: "id:80/id:82",
+		parentIdentityKey: "id:80",
+		nodeId: 82,
+		parentNodeId: 80,
+		declarationOrder: 2,
+		name: "sibling",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [root, blockedTarget, sibling]),
+	]);
+	const evaluated = evaluatePlannedExecution(
+		plan,
+		new Map([
+			["id:80/id:81", { ok: true }],
+			["id:80/id:82", { ok: true }],
+			["id:80/id:999", { ok: false }],
+		]),
+	);
+
+	assert.equal(plan.complete, false);
+	assert.deepEqual(evaluated.issues, [
+		{
+			type: "missing-dependency",
+			targetIdentityKey: "id:80/id:81",
+			dependencyIdentityKey: "id:missing",
+		},
+	]);
+	assert.equal(
+		evaluated.outcomesByIdentity.get("id:80/id:81"),
+		"blocked",
+	);
+	assert.equal(evaluated.outcomesByIdentity.get("id:80/id:82"), "satisfied");
+	assert.deepEqual(
+		evaluated.blockedTargets.map((target) => target.node.name),
+		["pre-blocked target"],
+	);
+	assert.equal(evaluated.blockedTargets.length, 1);
 });
 
 test("decorateHarness can execute start() in-band and merge coverage snapshots", async () => {
