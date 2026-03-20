@@ -404,6 +404,63 @@ test("dependency only parent", (context: TestContext): void => {
 		);
 	});
 
+	test(`cli run collapses duplicate dependency edges through the ${harnessName} host`, async () => {
+		await withTempEntryFile(
+			`
+import { test, TestContext } from "node:test";
+
+const prereq = test("duplicate-edge prereq", (_context: TestContext): void => {});
+const dependent = test("duplicate-edge dependent", (_context: TestContext): void => {});
+
+dependent.dependsOn(prereq).dependsOn(prereq);
+`,
+			async (entryFile, cwd) => {
+				const result = await runCliWithArguments(
+					["run", "--harness", harnessName, entryFile],
+					cwd,
+				);
+
+				expect(result.exitCode).toBe(0);
+				expect(result.stderr).toBe("");
+				expect(result.stdout).toContain(
+					`PASS 2 passed, 0 failed, 2 discovered with ${harnessName}.`,
+				);
+			},
+		);
+	});
+
+	test(`cli run reports dependency cycles distinctly through the ${harnessName} host`, async () => {
+		await withTempEntryFile(
+			`
+import { test, TestContext } from "node:test";
+
+const first = test("cycle a", (_context: TestContext): void => {});
+const second = test("cycle b", (_context: TestContext): void => {}).dependsOn(first);
+
+first.dependsOn(second);
+`,
+			async (entryFile, cwd) => {
+				const result = await runCliWithArguments(
+					["run", "--harness", harnessName, entryFile],
+					cwd,
+				);
+
+				expect(result.exitCode).toBe(1);
+				expect(result.stdout).toBe("");
+				expect(result.stderr).toContain(
+					`FAIL 0 passed, 0 failed, 2 blocked, 2 discovered with ${harnessName}.`,
+				);
+				expect(result.stderr).toContain("- cycle a");
+				expect(result.stderr).toContain("  blocked: dependency-cycle");
+				expect(result.stderr).toContain("- cycle b");
+				expect(result.stderr).toContain("  issue: dependency-cycle (id:1)");
+				expect(result.stderr).toContain("  issue: dependency-cycle (id:2)");
+				expect(result.stderr).not.toContain("missing-dependency");
+				expect(result.stderr).not.toContain("blocked-dependency");
+			},
+		);
+	});
+
 	test(`cli run proves the documented dependency-policy matrix through the ${harnessName} host`, async () => {
 		await withTempEntryFile(
 			`

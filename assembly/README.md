@@ -91,11 +91,13 @@ test("runs after first", (_t) => {}).dependsOn(first);
 Current dependency policy for that surface:
 
 - prerequisites must remain runnable in the discovered test graph
+- duplicate dependency edges collapse during planning
 - `skip`, `todo`, or `only`-filtered prerequisites block their dependents
 - `expectFailure` prerequisites satisfy dependents only when they fail
   as expected
 - an `expectFailure` prerequisite that passes unexpectedly is treated as a
   failing prerequisite and can block its dependents
+- dependency cycles block each participating test instead of running either side
 
 That source is compiled into Wasm by the CLI, then executed by a harness.
 

@@ -58,8 +58,6 @@ Remaining work:
 - decide the exact meaning of `dependsOn(...)` outcomes: pass-through on
   success, blocked-on-failure behavior, transitive handling for blocked
   prerequisites, and whether any future soft-prerequisite mode is desirable
-- define cycle detection, missing-dependency handling, duplicate-edge collapse,
-  and deterministic tie-breaking between otherwise ready nodes
 
 ### Host Contract and Runner Reshape
 

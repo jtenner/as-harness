@@ -52,10 +52,12 @@ test("runs after first", (_t) => {}).dependsOn(first);
 Dependency notes:
 
 - prerequisites must stay runnable in the discovered graph
+- duplicate dependency edges collapse during planning
 - `skip`, `todo`, or `only`-filtered prerequisites block their dependents
 - `expectFailure` prerequisites satisfy dependents only when they actually fail
 - an `expectFailure` prerequisite that passes unexpectedly is reported as a
   failing prerequisite and can block its dependents
+- dependency cycles block each participating test instead of running either side
 
 Run it:
 

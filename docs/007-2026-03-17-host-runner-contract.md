@@ -121,6 +121,7 @@ Dependency policy:
 
 - `dependencyNodeIds` resolve through the dependent node's parent-identity
   chain, not through a single module-global `nodeId` map
+- duplicate dependency edges collapse during planning
 - a prerequisite satisfies a dependent when it passes normally
 - an `expectFailure` prerequisite satisfies a dependent only when it fails
   as expected
@@ -132,6 +133,9 @@ Dependency policy:
   `blocked-dependency`
 - a skipped, todo, filtered-out, or otherwise undiscovered prerequisite blocks
   its dependents with `missing-dependency`
+- dependency cycles block each participating node with `dependency-cycle`
+- when multiple runnable nodes are otherwise ready at the same time, the lowest
+  declaration order runs first
 - blocked tests are distinct from skipped tests in reporting because the user
   declared a runnable node, but the graph made execution impossible
 
@@ -186,12 +190,15 @@ The current parity proof for this contract is:
   [harness/shared/smoke-suite.cjs](../harness/shared/smoke-suite.cjs)
 - shared planner-focused smoke coverage in
   [harness/shared/start-planner-smoke.cjs](../harness/shared/start-planner-smoke.cjs)
+  and [harness/shared/start.test.cjs](../harness/shared/start.test.cjs),
+  including declaration-order tie-breaking, duplicate-edge collapse, and cycle
+  detection
 - CLI run coverage in
   [cli/run.test.ts](../cli/run.test.ts), including guest-declared dependency
   success, blocked, and missing-dependency reporting through the shipped
   `js`, `wazero`, and source-built `wasmtime` hosts, plus the documented
-  `skip`, `todo`, `only`-filtered, and expected-failure dependency-policy
-  matrix
+  `skip`, `todo`, `only`-filtered, expected-failure, duplicate-edge, and
+  dependency-cycle matrix
 - package-local host tests in `harness/js`, `harness/wazero`, and
   `harness/wasmtime`
 - the CI source-host matrix and packaged verification flow described in

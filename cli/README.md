@@ -42,6 +42,7 @@ The default reporter currently:
   filtered out of the discovered runnable set
 - reports `blocked-dependency` when a discovered prerequisite runs but does not
   satisfy its dependents
+- reports `dependency-cycle` when user-declared dependency edges form a cycle
 - prints `diagnostic` and `trace` logs only for failed executions
 - prints coverage after the test summary when `--coverage` is enabled
 
