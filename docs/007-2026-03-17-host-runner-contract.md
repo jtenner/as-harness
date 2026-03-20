@@ -189,7 +189,9 @@ The current parity proof for this contract is:
 - CLI run coverage in
   [cli/run.test.ts](../cli/run.test.ts), including guest-declared dependency
   success, blocked, and missing-dependency reporting through the shipped
-  `js`, `wazero`, and source-built `wasmtime` hosts
+  `js`, `wazero`, and source-built `wasmtime` hosts, plus the documented
+  `skip`, `todo`, `only`-filtered, and expected-failure dependency-policy
+  matrix
 - package-local host tests in `harness/js`, `harness/wazero`, and
   `harness/wasmtime`
 - the CI source-host matrix and packaged verification flow described in

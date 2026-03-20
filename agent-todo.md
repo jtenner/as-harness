@@ -97,5 +97,3 @@ Remaining work:
 - keep bounded regression coverage and failure diagnostics around packaged CLI
   verification so hosted/package failures distinguish verifier supervision bugs
   from real bundled-host hangs
-- prove that `only`, `skip`, `todo`, and expected-failure semantics interact
-  with dependency planning exactly as documented

@@ -1539,6 +1539,114 @@ function registerHarnessSmokeSuite(options) {
 		);
 	});
 
+	test("start() proves documented dependency planning semantics for skip, todo, only-filtered, and expected-failure prerequisites", async () => {
+		const harness = createHarness(compiledNodeTestWasm);
+
+		const result = await harness.start();
+		const branchesByName = new Map(
+			result.branches.map((branch) => [branch.root.name, branch]),
+		);
+		const focusedTargetIdentityKeys = new Set([
+			"id:20",
+			"id:22",
+			"id:24",
+			"id:25/id:27",
+		]);
+		const focusedBlockedNames = new Set([
+			"dependency skipped dependent",
+			"dependency todo dependent",
+			"dependency unexpected pass dependent",
+			"dependency only included dependent",
+		]);
+		const focusedPlanIssues = result.planIssues.filter((issue) =>
+			focusedTargetIdentityKeys.has(issue.targetIdentityKey),
+		);
+		const focusedBlocked = result.blocked
+			.filter((blocked) => focusedBlockedNames.has(blocked.node.name))
+			.map((blocked) => ({
+				name: blocked.node.name,
+				issueType: blocked.issueType,
+				dependencyIdentityKey: blocked.dependencyIdentityKey,
+			}));
+
+		assert.deepEqual(focusedPlanIssues, [
+			{
+				type: "missing-dependency",
+				targetIdentityKey: "id:20",
+				dependencyIdentityKey: "nodeId:19",
+			},
+			{
+				type: "missing-dependency",
+				targetIdentityKey: "id:22",
+				dependencyIdentityKey: "nodeId:21",
+			},
+			{
+				type: "blocked-dependency",
+				targetIdentityKey: "id:24",
+				dependencyIdentityKey: "id:23",
+			},
+			{
+				type: "missing-dependency",
+				targetIdentityKey: "id:25/id:27",
+				dependencyIdentityKey: "nodeId:26",
+			},
+		]);
+		assert.deepEqual(focusedBlocked, [
+			{
+				name: "dependency skipped dependent",
+				issueType: "missing-dependency",
+				dependencyIdentityKey: "nodeId:19",
+			},
+			{
+				name: "dependency todo dependent",
+				issueType: "missing-dependency",
+				dependencyIdentityKey: "nodeId:21",
+			},
+			{
+				name: "dependency unexpected pass dependent",
+				issueType: "blocked-dependency",
+				dependencyIdentityKey: "id:23",
+			},
+			{
+				name: "dependency only included dependent",
+				issueType: "missing-dependency",
+				dependencyIdentityKey: "nodeId:26",
+			},
+		]);
+		assert.equal(
+			branchesByName.get("dependency expected failure prereq").executions[0].ok,
+			true,
+		);
+		assert.equal(
+			branchesByName.get("dependency satisfied dependent").executions[0].ok,
+			true,
+		);
+		assert.equal(
+			branchesByName.get("dependency unexpected pass prereq").executions[0].ok,
+			false,
+		);
+		assert.deepEqual(
+			branchesByName.get("dependency skipped dependent").executions,
+			[],
+		);
+		assert.deepEqual(
+			branchesByName.get("dependency todo dependent").executions,
+			[],
+		);
+		assert.deepEqual(
+			branchesByName.get("dependency unexpected pass dependent").executions,
+			[],
+		);
+		assert.deepEqual(
+			branchesByName
+				.get("dependency only parent")
+				.discovery.nodes.map((node) => node.name),
+			["dependency only parent", "dependency only included dependent"],
+		);
+
+		closeHarness(harness);
+	});
+
 	test("start() preserves vitest sequential declarations through shared graph execution", async () => {
 		const harness = createHarness(compiledVitestWasm);
 

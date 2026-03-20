@@ -403,6 +403,116 @@ test("dependency only parent", (context: TestContext): void => {
 			},
 		);
 	});
+
+	test(`cli run proves the documented dependency-policy matrix through the ${harnessName} host`, async () => {
+		await withTempEntryFile(
+			`
+import { test, TestContext } from "node:test";
+
+const expectedFailurePrereq = test.expectFailure(
+  "dependency expected failure prereq",
+  (context: TestContext): void => {
+    context.assert.strictEqual<i32>(81, 82, "dependency expected failure prereq mismatch");
+  },
+);
+
+test("dependency satisfied dependent", (_context: TestContext): void => {}).dependsOn(
+  expectedFailurePrereq,
+);
+
+const unexpectedPassPrereq = test.expectFailure(
+  "dependency unexpected pass prereq",
+  (_context: TestContext): void => {},
+);
+
+test(
+  "dependency unexpected pass dependent",
+  (_context: TestContext): void => {},
+).dependsOn(unexpectedPassPrereq);
+
+const skippedPrereq = test.skip(
+  "dependency skipped prereq",
+  (_context: TestContext): void => {},
+);
+
+test("dependency skipped dependent", (_context: TestContext): void => {}).dependsOn(
+  skippedPrereq,
+);
+
+const todoPrereq = test.todo(
+  "dependency todo prereq",
+  (_context: TestContext): void => {},
+);
+
+test("dependency todo dependent", (_context: TestContext): void => {}).dependsOn(
+  todoPrereq,
+);
+
+test("dependency only parent", (context: TestContext): void => {
+  const prereq = context.test(
+    "dependency only filtered prereq",
+    (_nestedContext: TestContext): void => {},
+  );
+
+  context.runOnly(true);
+  context
+    .test(
+      "dependency only included dependent",
+      (_nestedContext: TestContext): void => {},
+    )
+    .dependsOn(prereq);
+});
+`,
+			async (entryFile, cwd) => {
+				const result = await runCliWithArguments(
+					["run", "--harness", harnessName, entryFile],
+					cwd,
+				);
+
+				expect(result.exitCode).toBe(1);
+				expect(result.stdout).toBe("");
+				expect(result.stderr).toContain(
+					`FAIL 3 passed, 1 failed, 4 blocked, 10 discovered with ${harnessName}.`,
+				);
+				expect(result.stderr).not.toContain(
+					"- dependency expected failure prereq",
+				);
+				expect(result.stderr).not.toContain("- dependency satisfied dependent");
+				expect(result.stderr).toContain("- dependency unexpected pass prereq");
+				expect(result.stderr).toContain(
+					"  fail: expected failure passed unexpectedly",
+				);
+				expect(result.stderr).toContain(
+					"- dependency unexpected pass dependent",
+				);
+				expect(result.stderr).toContain("  blocked: blocked-dependency (id:3)");
+				expect(result.stderr).toContain("- dependency skipped dependent");
+				expect(result.stderr).toContain(
+					"  blocked: missing-dependency (nodeId:5)",
+				);
+				expect(result.stderr).toContain("- dependency todo dependent");
+				expect(result.stderr).toContain(
+					"  blocked: missing-dependency (nodeId:7)",
+				);
+				expect(result.stderr).toContain("- dependency only included dependent");
+				expect(result.stderr).toContain(
+					"  blocked: missing-dependency (nodeId:10)",
+				);
+				expect(result.stderr).not.toContain(
+					"  issue: blocked-dependency (id:4 <- id:3)",
+				);
+				expect(result.stderr).toContain(
+					"  issue: missing-dependency (id:6 <- nodeId:5)",
+				);
+				expect(result.stderr).toContain(
+					"  issue: missing-dependency (id:8 <- nodeId:7)",
+				);
+				expect(result.stderr).toContain(
+					"  issue: missing-dependency (id:9/id:11 <- nodeId:10)",
+				);
+			},
+		);
+	});
 }
 
 test('cli run executes a thin jest adapter entry from the bundled "jest" guest library', async () => {
