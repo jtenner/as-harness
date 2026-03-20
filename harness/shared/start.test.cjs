@@ -735,6 +735,110 @@ test("evaluatePlannedExecution blocks downstream dependents after an unsatisfied
 	);
 });
 
+test("evaluatePlannedExecution blocks execution targets with missing execution results", () => {
+	const root = createPlannerNode({
+		identityKey: "id:50",
+		nodeId: 50,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const passingPrereq = createPlannerNode({
+		identityKey: "id:50/id:51",
+		parentIdentityKey: "id:50",
+		nodeId: 51,
+		parentNodeId: 50,
+		declarationOrder: 1,
+		name: "passing prereq",
+	});
+	const dependent = createPlannerNode({
+		identityKey: "id:50/id:52",
+		parentIdentityKey: "id:50",
+		nodeId: 52,
+		parentNodeId: 50,
+		declarationOrder: 2,
+		dependencyNodeIds: [51],
+		name: "dependent",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [root, passingPrereq, dependent]),
+	]);
+	const evaluated = evaluatePlannedExecution(
+		plan,
+		new Map([["id:50/id:51", { ok: true }]]),
+	);
+
+	assert.equal(evaluated.outcomesByIdentity.get("id:50/id:51"), "satisfied");
+	assert.equal(evaluated.outcomesByIdentity.get("id:50/id:52"), "blocked");
+	assert.deepEqual(
+		evaluated.issues.filter((issue) => issue.type === "blocked-dependency"),
+		[
+			{
+				type: "blocked-dependency",
+				targetIdentityKey: "id:50/id:52",
+				dependencyIdentityKey: "id:50/id:51",
+			},
+		],
+	);
+});
+
+test("planExecutionStages treats skipped dependency declarations as missing dependency targets", () => {
+	const root = createPlannerNode({
+		identityKey: "id:60",
+		nodeId: 60,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const ready = createPlannerNode({
+		identityKey: "id:60/id:61",
+		parentIdentityKey: "id:60",
+		nodeId: 61,
+		parentNodeId: 60,
+		declarationOrder: 1,
+		name: "ready test",
+	});
+	const skippedPrereq = createPlannerNode({
+		identityKey: "id:60/id:62",
+		parentIdentityKey: "id:60",
+		nodeId: 62,
+		parentNodeId: 60,
+		declarationOrder: 2,
+		declarationMode: 2,
+		name: "skipped prereq",
+	});
+	const blockedDependent = createPlannerNode({
+		identityKey: "id:60/id:63",
+		parentIdentityKey: "id:60",
+		nodeId: 63,
+		parentNodeId: 60,
+		declarationOrder: 3,
+		dependencyNodeIds: [62],
+		name: "blocked dependent",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [root, ready, skippedPrereq, blockedDependent]),
+	]);
+
+	assert.equal(plan.complete, false);
+	assert.deepEqual(
+		plan.stages.map((stage) => stage.map((target) => target.node.name)),
+		[["ready test"]],
+	);
+	assert.deepEqual(plan.blockedTargets.map((target) => target.node.name), [
+		"blocked dependent",
+	]);
+	assert.deepEqual(plan.issues, [
+		{
+			type: "missing-dependency",
+			targetIdentityKey: "id:60/id:63",
+			dependencyIdentityKey: "nodeId:62",
+		},
+	]);
+});
+
 test("decorateHarness can execute start() in-band and merge coverage snapshots", async () => {
 	let nextHarnessId = 1;
 	const runHarnessIds = [];
