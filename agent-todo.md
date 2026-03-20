@@ -31,19 +31,23 @@ Remaining:
 
 Remaining:
 
-- finalize `dependsOn(...)` outcome rules for failures, transitive blocking, and any soft-prerequisite mode
+- [ ] finalize `dependsOn(...)` outcome rules for failures, transitive blocking, and skip/todo/filtered prerequisites
+- [ ] define planner tie-breakers for ready-queue ordering (`declarationOrder` vs branch order)
+- [ ] codify cycle behavior and one explicit blocked diagnostic shape for cycle participants
 
 ### Host Contract and Runner Reshape
 
 Remaining:
 
-- keep module-global scheduling aligned with future explicit dependencies
-- keep host-runner contract and READMEs aligned as policies evolve
+- [ ] decide module-global scheduling contract shape now (same-machine parallelism vs fully deterministic baseline)
+- [ ] update `harness/shared/harness-types.d.ts`-backed host contract text with any scheduling-policy deltas
+- [ ] align `cli`, `harness/*`, and reporter outputs with planner fields before the next commit
+- [ ] keep `CHANGELOG.md`/release notes ready for API-visible contract changes
 
 ### Native `as-harness` Adapter Surface
 
 Remaining:
 
-- design a native sequential-group declaration surface that maps cleanly to shared metadata
-- carry chainable `dependsOn(...)` behavior into `as-harness` without duplicating scheduler logic in adapters
-- define reporter wording for invalid graph constraints
+- [ ] design native sequential-group declaration surface that maps to shared metadata only
+- [ ] carry chainable `dependsOn(...)` declarations into shared scheduler inputs, no adapter-local logic
+- [ ] define concise reporter copy for blocked/cycle/missing-dependency outcomes
