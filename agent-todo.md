@@ -20,8 +20,6 @@
 
 ### Stable Test Identity and Declaration Metadata
 
-Remaining:
-
 - Add stable declaration IDs in the guest emission path and expose them through the ABI/events/report schema.
 - Keep `NodeIndex` as traversal-only (`discover`/`run`) and route planning/execution decisions through stable IDs.
 - Decide which metadata must be module-global and which remains structural-only, then update host, runner, and report models consistently.
@@ -29,15 +27,11 @@ Remaining:
 
 ### Graph-Aware Scheduling Semantics
 
-Remaining:
-
 - Finalize `dependsOn(...)` outcome rules for failures, transitive blocking, and skip/todo/filtered prerequisites
 - Define planner tie-breakers for ready-queue ordering (`declarationOrder` vs branch order)
 - Codify cycle behavior and one explicit blocked diagnostic shape for cycle participants
 
 ### Host Contract and Runner Reshape
-
-Remaining:
 
 - Decide module-global scheduling contract shape now (same-machine parallelism vs fully deterministic baseline)
 - Update `harness/shared/harness-types.d.ts`-backed host contract text with any scheduling-policy deltas
@@ -45,8 +39,6 @@ Remaining:
 - Keep `CHANGELOG.md`/release notes ready for API-visible contract changes
 
 ### Native `as-harness` Adapter Surface
-
-Remaining:
 
 - Design native sequential-group declaration surface that maps to shared metadata only
 - Carry chainable `dependsOn(...)` declarations into shared scheduler inputs, no adapter-local logic
