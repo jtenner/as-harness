@@ -116,6 +116,9 @@ Field-level contract:
   in-band without a dedicated worker thread
 - `coverage` is either the merged snapshot for the run or `null` when coverage
   was not requested
+- module-global orchestration metadata is also available as
+  `start().then(result => result.metadata)` and contains the same values as the
+  top-level run summary fields
 - scheduler-step entrypoints are not part of the current shipped contract; the
   `v0.3.0` direction keeps targeted replay as the execution primitive while the
   host-owned scheduler settles

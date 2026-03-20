@@ -4,7 +4,6 @@
 
 ### Blockers
 
-- Stable Test Identity and Declaration Metadata
 - Graph-aware scheduling semantics
 - Host contract and runner reshape
 - Native `as-harness` adapter surface
@@ -16,11 +15,6 @@
 - `sequenceMode`, dependency metadata, and failed outcomes now have shared coverage and docs updates, but host planner behavior still needs full coverage for all edge cases.
 - native dependency APIs are risky before stable IDs and blocked semantics are finalized.
 - remaining regressions are mostly semantic/order-related, so proof density is important.
-
-### Stable Test Identity and Declaration Metadata
-
-- Decide which metadata must be module-global and which remains structural-only, then update host, runner, and report models consistently.
-- Add a regression matrix for `only`/filtered shape drift to prove stable IDs remain resilient under replay.
 
 ### Graph-Aware Scheduling Semantics
 

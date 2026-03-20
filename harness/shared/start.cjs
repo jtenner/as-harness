@@ -188,13 +188,14 @@ function compareNodeDeclarationOrder(left, right) {
 		return leftOrder - rightOrder;
 	}
 
-	const leftId = typeof left?.nodeId === "number" ? left.nodeId >>> 0 : 0;
-	const rightId = typeof right?.nodeId === "number" ? right.nodeId >>> 0 : 0;
-	if (leftId !== rightId) {
-		return leftId - rightId;
-	}
-
-	return getNodeIdentityKey(left).localeCompare(getNodeIdentityKey(right));
+	return getNodeIdentityKey(left).localeCompare(
+		getNodeIdentityKey(right),
+		undefined,
+		{
+			numeric: true,
+			sensitivity: "base",
+		},
+	);
 }
 
 function uniqueNodesByIdentity(nodes) {
@@ -1197,21 +1198,26 @@ async function startHarness(options) {
 		delete branch.coverageSnapshots;
 		delete branch.index;
 	}
-
-	return {
+	const coverage =
+		coverageSnapshots.length > 0
+			? mergeCoverageSnapshots(coverageSnapshots)
+			: null;
+	const metadata = {
 		ok,
 		discoveryOk,
 		planningOk,
 		discoveredTestCount,
 		topLevelNodes,
 		workerCount,
-		branches,
 		planIssues: toPlanIssues(evaluatedExecution.issues),
 		blocked,
-		coverage:
-			coverageSnapshots.length > 0
-				? mergeCoverageSnapshots(coverageSnapshots)
-				: null,
+		coverage,
+	};
+
+	return {
+		...metadata,
+		metadata,
+		branches,
 	};
 }
 

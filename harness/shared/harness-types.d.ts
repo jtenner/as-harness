@@ -36,6 +36,18 @@ export interface HarnessNode {
 	name: string;
 }
 
+export interface HarnessRunMetadata {
+	ok: boolean;
+	discoveryOk: boolean;
+	planningOk: boolean;
+	discoveredTestCount: number;
+	topLevelNodes: Array<HarnessNode>;
+	workerCount: number;
+	planIssues: Array<HarnessPlanIssue>;
+	blocked: Array<HarnessBlockedNode>;
+	coverage: HarnessCoverageSnapshot | null;
+}
+
 export type HarnessNodeFoundEvent = HarnessNode;
 
 export interface HarnessNodeEvent {
@@ -133,6 +145,7 @@ export interface HarnessBranch {
 }
 
 export interface HarnessStartResult {
+	metadata?: HarnessRunMetadata;
 	ok: boolean;
 	discoveryOk: boolean;
 	planningOk: boolean;

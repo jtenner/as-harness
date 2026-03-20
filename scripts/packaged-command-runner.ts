@@ -9,6 +9,7 @@ const {
 	mkdtempSync,
 	openSync,
 	readFileSync,
+	writeFileSync,
 	rmSync,
 } = require("node:fs");
 const { tmpdir } = require("node:os");
@@ -62,6 +63,7 @@ async function main() {
 	let timedOut = false;
 	let exitCode = 1;
 	let errorMessage = "";
+	const resultPath = process.env.AS_HARNESS_RESULT_PATH;
 	let payload = null;
 
 	try {
@@ -122,6 +124,11 @@ async function main() {
 				timedOut,
 				errorMessage: timedOut ? "" : errorMessage,
 			};
+			if (typeof resultPath === "string" && resultPath.length > 0) {
+				try {
+					writeFileSync(resultPath, JSON.stringify(payload), { flag: "w" });
+				} catch {}
+			}
 		} finally {
 			if (stdoutFd !== -1) {
 				closeSync(stdoutFd);
@@ -135,13 +142,13 @@ async function main() {
 			rmSync(tempDirectory, { force: true, recursive: true });
 		}
 
-		process.stdout.write(JSON.stringify(payload));
-		process.exit(errorMessage.length > 0 && !timedOut ? 1 : 0);
+			process.exitCode = errorMessage.length > 0 && !timedOut ? 1 : 0;
+			process.stdout.write(JSON.stringify(payload));
 	}
 
 main().catch((error) => {
 	process.stderr.write(String(error && (error.stack || error.message || error)));
-	process.exit(1);
+	process.exitCode = 1;
 });
 `;
 }

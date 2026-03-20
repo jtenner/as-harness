@@ -7,6 +7,7 @@ import type {
 	HarnessFailMessageEvent,
 	HarnessLogEvent,
 	HarnessNode,
+	HarnessRunMetadata,
 	HarnessPlanIssue,
 	HarnessStartResult,
 } from "../harness/shared/harness-types";
@@ -45,6 +46,7 @@ export type HarnessBranchReport = {
 };
 
 export type HarnessRunReport = {
+	metadata: HarnessRunMetadata;
 	branches: HarnessBranchReport[];
 	blocked: HarnessBlockedNode[];
 	blockedTestCount: number;
@@ -154,6 +156,17 @@ function toExecutionReport(
 export function createHarnessRunReport(
 	result: HarnessStartResult,
 ): HarnessRunReport {
+	const metadata: HarnessRunMetadata = result.metadata ?? {
+		ok: result.ok,
+		discoveryOk: result.discoveryOk,
+		planningOk: result.planningOk,
+		discoveredTestCount: result.discoveredTestCount,
+		topLevelNodes: result.topLevelNodes.slice(),
+		workerCount: result.workerCount,
+		planIssues: result.planIssues.slice(),
+		blocked: result.blocked.slice(),
+		coverage: result.coverage,
+	};
 	const branches = result.branches.map((branch) => ({
 		discovery: branch.discovery,
 		executions: branch.executions.map(toExecutionReport),
@@ -178,19 +191,20 @@ export function createHarnessRunReport(
 	}
 
 	return {
+		metadata,
 		branches,
-		blocked: result.blocked.slice(),
-		blockedTestCount: result.blocked.length,
-		discoveredTestCount: result.discoveredTestCount,
+		blocked: metadata.blocked,
+		blockedTestCount: metadata.blocked.length,
+		discoveredTestCount: metadata.discoveredTestCount,
 		discoveryFailures,
-		discoveryOk: result.discoveryOk,
+		discoveryOk: metadata.discoveryOk,
 		failedTestCount,
-		ok: result.ok,
+		ok: metadata.ok,
 		passedTestCount,
-		planIssues: result.planIssues.slice(),
-		planningOk: result.planningOk,
-		topLevelNodes: result.topLevelNodes.slice(),
-		workerCount: result.workerCount,
+		planIssues: metadata.planIssues.slice(),
+		planningOk: metadata.planningOk,
+		topLevelNodes: metadata.topLevelNodes.slice(),
+		workerCount: metadata.workerCount,
 	};
 }
 

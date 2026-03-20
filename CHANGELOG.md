@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-03-20
+
+- **reporter: surface shared run metadata and packaged command results** Add a module-global `metadata` snapshot to the shared start result, thread that metadata through the CLI run report, teach the packaged command runner to persist its JSON payload to a caller-provided result path, and refresh the smoke coverage and host contract notes to match the new orchestration surface. GitHub: *@jtenner*
+
 ## 2026-03-19
 
 - **docs: keep targeted replay as the current `v0.3.0` execution primitive** Update the ABI, guest-runtime, host-runner, and AssemblyScript package docs to state that scheduler-step entrypoints remain deferred for the current `v0.3.0` direction while host-owned scheduling still executes planned tests through targeted `run(nodeIndex)` replay, extend shared `start()` proof to assert the executor actually calls the planned node-index handle, and remove the completed backlog decision item. GitHub: *@jtenner*

@@ -864,9 +864,10 @@ test("planExecutionStages treats skipped dependency declarations as missing depe
 		plan.stages.map((stage) => stage.map((target) => target.node.name)),
 		[["ready test"]],
 	);
-	assert.deepEqual(plan.blockedTargets.map((target) => target.node.name), [
-		"blocked dependent",
-	]);
+	assert.deepEqual(
+		plan.blockedTargets.map((target) => target.node.name),
+		["blocked dependent"],
+	);
 	assert.deepEqual(plan.issues, [
 		{
 			type: "missing-dependency",
@@ -962,10 +963,7 @@ test("evaluatePlannedExecution keeps pre-blocked targets blocked even with execu
 			dependencyIdentityKey: "id:missing",
 		},
 	]);
-	assert.equal(
-		evaluated.outcomesByIdentity.get("id:80/id:81"),
-		"blocked",
-	);
+	assert.equal(evaluated.outcomesByIdentity.get("id:80/id:81"), "blocked");
 	assert.equal(evaluated.outcomesByIdentity.get("id:80/id:82"), "satisfied");
 	assert.deepEqual(
 		evaluated.blockedTargets.map((target) => target.node.name),

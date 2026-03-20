@@ -292,9 +292,7 @@ test("defaultRunReporter prioritizes discovery failures over execution and block
 		"Discovery failed while traversing the test tree with js.",
 	);
 	expect(messages.error).toContain("- root");
-	expect(messages.error).not.toContain(
-		"should never print",
-);
+	expect(messages.error).not.toContain("should never print");
 	expect(messages.error).not.toContain("FAIL");
 });
 

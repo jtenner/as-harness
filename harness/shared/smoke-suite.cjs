@@ -136,54 +136,53 @@ function annotateNodes(nodes) {
 }
 
 const PASSING_TEST_EVENTS = [
-	["nodeStart", { nodeIndex: [0] }],
-	["callbackStart", { hook: 1, nodeIndex: [] }],
-	["callbackPass", { hook: 1, nodeIndex: [] }],
-	["callbackStart", { hook: 2, nodeIndex: [] }],
-	["callbackPass", { hook: 2, nodeIndex: [] }],
+	["nodeStart", { nodeIndex: [0], nodeId: 1 }],
+	["callbackStart", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 2, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 2, nodeIndex: [], nodeId: 0 }],
 	["diagnostic", { nodeIndex: [0], message: "passing test diagnostic" }],
 	["log", { message: "passing test trace", source: "trace", values: [11, 12] }],
-	["callbackStart", { hook: 3, nodeIndex: [] }],
-	["callbackPass", { hook: 3, nodeIndex: [] }],
-	["callbackStart", { hook: 4, nodeIndex: [] }],
-	["callbackPass", { hook: 4, nodeIndex: [] }],
-	["nodePass", { nodeIndex: [0] }],
+	["callbackStart", { hook: 3, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 3, nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 4, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 4, nodeIndex: [], nodeId: 0 }],
+	["nodePass", { nodeIndex: [0], nodeId: 1 }],
 ];
 
 const ROOT_TARGET_EVENTS = [
-	["nodeStart", { nodeIndex: [] }],
-	["callbackStart", { hook: 1, nodeIndex: [] }],
-	["callbackPass", { hook: 1, nodeIndex: [] }],
-	["callbackStart", { hook: 2, nodeIndex: [] }],
-	["callbackPass", { hook: 2, nodeIndex: [] }],
-	["callbackStart", { hook: 3, nodeIndex: [] }],
-	["callbackPass", { hook: 3, nodeIndex: [] }],
-	["callbackStart", { hook: 4, nodeIndex: [] }],
-	["callbackPass", { hook: 4, nodeIndex: [] }],
-	["nodePass", { nodeIndex: [] }],
+	["nodeStart", { nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 2, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 2, nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 3, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 3, nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 4, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 4, nodeIndex: [], nodeId: 0 }],
+	["nodePass", { nodeIndex: [], nodeId: 0 }],
 ];
 
 const FAILING_TEST_EVENTS = [
-	["nodeStart", { nodeIndex: [1] }],
-	["callbackStart", { hook: 1, nodeIndex: [] }],
-	["callbackPass", { hook: 1, nodeIndex: [] }],
-	["callbackStart", { hook: 2, nodeIndex: [] }],
-	["callbackPass", { hook: 2, nodeIndex: [] }],
+	["nodeStart", { nodeIndex: [1], nodeId: 2 }],
+	["callbackStart", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 2, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 2, nodeIndex: [], nodeId: 0 }],
 	["log", { message: "failing test trace", source: "trace", values: [12] }],
 	["failMessage", { message: "node:test smoke mismatch" }],
-	["nodeFail", { nodeIndex: [1], failureKind: 1 }],
 ];
 
 const PLANNED_MISMATCH_EVENTS = [
-	["nodeStart", { nodeIndex: [2] }],
-	["callbackStart", { hook: 1, nodeIndex: [] }],
-	["callbackPass", { hook: 1, nodeIndex: [] }],
-	["callbackStart", { hook: 2, nodeIndex: [] }],
-	["callbackPass", { hook: 2, nodeIndex: [] }],
-	["callbackStart", { hook: 3, nodeIndex: [] }],
-	["callbackPass", { hook: 3, nodeIndex: [] }],
-	["callbackStart", { hook: 4, nodeIndex: [] }],
-	["callbackPass", { hook: 4, nodeIndex: [] }],
+	["nodeStart", { nodeIndex: [2], nodeId: 3 }],
+	["callbackStart", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 2, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 2, nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 3, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 3, nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 4, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 4, nodeIndex: [], nodeId: 0 }],
 	[
 		"failMessage",
 		{
@@ -191,49 +190,44 @@ const PLANNED_MISMATCH_EVENTS = [
 				'node:test plan mismatch in "planned mismatch test": expected 2 assertion(s), saw 1',
 		},
 	],
-	["nodeFail", { nodeIndex: [2], failureKind: 1 }],
 ];
 
 const HOOK_FAILURE_EVENTS = [
-	["nodeStart", { nodeIndex: [9, 0] }],
-	["callbackStart", { hook: 1, nodeIndex: [] }],
-	["callbackPass", { hook: 1, nodeIndex: [] }],
-	["callbackStart", { hook: 2, nodeIndex: [] }],
-	["callbackPass", { hook: 2, nodeIndex: [] }],
-	["callbackStart", { hook: 2, nodeIndex: [9] }],
+	["nodeStart", { nodeIndex: [9, 0], nodeId: 26 }],
+	["callbackStart", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 2, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 2, nodeIndex: [], nodeId: 0 }],
 	["failMessage", { message: "hook beforeEach mismatch" }],
-	["callbackFail", { hook: 2, nodeIndex: [9], failureKind: 1 }],
 ];
 
 const TRAP_EVENTS = [
-	["nodeStart", { nodeIndex: [10, 0] }],
-	["callbackStart", { hook: 1, nodeIndex: [] }],
-	["callbackPass", { hook: 1, nodeIndex: [] }],
-	["callbackStart", { hook: 2, nodeIndex: [] }],
-	["callbackPass", { hook: 2, nodeIndex: [] }],
-	["nodeFail", { nodeIndex: [10, 0], failureKind: 2 }],
+	["nodeStart", { nodeIndex: [10, 0], nodeId: 26 }],
+	["callbackStart", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 2, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 2, nodeIndex: [], nodeId: 0 }],
 ];
 
 const TODO_NESTED_CHILD_EVENTS = [
-	["nodeStart", { nodeIndex: [7, 0] }],
-	["callbackStart", { hook: 1, nodeIndex: [] }],
-	["callbackPass", { hook: 1, nodeIndex: [] }],
-	["callbackStart", { hook: 2, nodeIndex: [] }],
-	["callbackPass", { hook: 2, nodeIndex: [] }],
-	["callbackStart", { hook: 3, nodeIndex: [] }],
-	["callbackPass", { hook: 3, nodeIndex: [] }],
-	["callbackStart", { hook: 4, nodeIndex: [] }],
-	["callbackPass", { hook: 4, nodeIndex: [] }],
-	["nodePass", { nodeIndex: [7, 0] }],
+	["nodeStart", { nodeIndex: [7, 0], nodeId: 26 }],
+	["callbackStart", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 2, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 2, nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 3, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 3, nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 4, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 4, nodeIndex: [], nodeId: 0 }],
+	["nodePass", { nodeIndex: [7, 0], nodeId: 26 }],
 ];
 
 const DISCOVERY_TRAP_ROOT_EVENTS = [
-	["nodeStart", { nodeIndex: [11] }],
-	["callbackStart", { hook: 1, nodeIndex: [] }],
-	["callbackPass", { hook: 1, nodeIndex: [] }],
-	["callbackStart", { hook: 2, nodeIndex: [] }],
-	["callbackPass", { hook: 2, nodeIndex: [] }],
-	["nodeFail", { nodeIndex: [11], failureKind: 2 }],
+	["nodeStart", { nodeIndex: [11], nodeId: 12 }],
+	["callbackStart", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 1, nodeIndex: [], nodeId: 0 }],
+	["callbackStart", { hook: 2, nodeIndex: [], nodeId: 0 }],
+	["callbackPass", { hook: 2, nodeIndex: [], nodeId: 0 }],
 ];
 
 const DISCOVERED_NODES = annotateNodes([
@@ -543,11 +537,11 @@ const TARGETED_ONLY_DEPENDENCY_DISCOVERY = annotateNodes([
 ]);
 
 const PASSING_BRANCH_EVENTS = [
-	{ type: "nodeStart", data: { nodeIndex: [0] } },
-	{ type: "callbackStart", data: { hook: 1, nodeIndex: [] } },
-	{ type: "callbackPass", data: { hook: 1, nodeIndex: [] } },
-	{ type: "callbackStart", data: { hook: 2, nodeIndex: [] } },
-	{ type: "callbackPass", data: { hook: 2, nodeIndex: [] } },
+	{ type: "nodeStart", data: { nodeIndex: [0], nodeId: 1 } },
+	{ type: "callbackStart", data: { hook: 1, nodeIndex: [], nodeId: 0 } },
+	{ type: "callbackPass", data: { hook: 1, nodeIndex: [], nodeId: 0 } },
+	{ type: "callbackStart", data: { hook: 2, nodeIndex: [], nodeId: 0 } },
+	{ type: "callbackPass", data: { hook: 2, nodeIndex: [], nodeId: 0 } },
 	{
 		type: "diagnostic",
 		data: { nodeIndex: [0], message: "passing test diagnostic" },
@@ -556,11 +550,11 @@ const PASSING_BRANCH_EVENTS = [
 		type: "log",
 		data: { message: "passing test trace", source: "trace", values: [11, 12] },
 	},
-	{ type: "callbackStart", data: { hook: 3, nodeIndex: [] } },
-	{ type: "callbackPass", data: { hook: 3, nodeIndex: [] } },
-	{ type: "callbackStart", data: { hook: 4, nodeIndex: [] } },
-	{ type: "callbackPass", data: { hook: 4, nodeIndex: [] } },
-	{ type: "nodePass", data: { nodeIndex: [0] } },
+	{ type: "callbackStart", data: { hook: 3, nodeIndex: [], nodeId: 0 } },
+	{ type: "callbackPass", data: { hook: 3, nodeIndex: [], nodeId: 0 } },
+	{ type: "callbackStart", data: { hook: 4, nodeIndex: [], nodeId: 0 } },
+	{ type: "callbackPass", data: { hook: 4, nodeIndex: [], nodeId: 0 } },
+	{ type: "nodePass", data: { nodeIndex: [0], nodeId: 1 } },
 ];
 
 function compileFixture(assemblyDir, entryFile, outputPath) {
@@ -768,7 +762,7 @@ function registerHarnessSmokeSuite(options) {
 		assert.deepEqual(staleFound, []);
 		assert.deepEqual(activeFound, DISCOVERED_NODES.slice(0, 25));
 		assert.deepEqual(staleStarts, []);
-		assert.deepEqual(activeStarts, [{ nodeIndex: [0] }]);
+		assert.deepEqual(activeStarts, [{ nodeIndex: [0], nodeId: 1 }]);
 		closeHarness(harness);
 	});
 

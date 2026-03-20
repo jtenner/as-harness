@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "bun:test";
@@ -14,6 +14,11 @@ test.if(Boolean(nodeExecutable))(
 	async () => {
 		const tempDirectory = await mkdtemp(
 			join(tmpdir(), "as-harness-packaged-command-test-"),
+		);
+		const resultPath = join(
+			tempDirectory,
+			"..",
+			`${String(Math.random()).slice(2)}-runner-result.json`,
 		);
 
 		try {
@@ -53,6 +58,7 @@ test.if(Boolean(nodeExecutable))(
 					env: {
 						...process.env,
 						[COMMAND_TIMEOUT_ENV_VAR]: "2000",
+						AS_HARNESS_RESULT_PATH: resultPath,
 					},
 					stderr: "pipe",
 					stdout: "pipe",
@@ -64,13 +70,14 @@ test.if(Boolean(nodeExecutable))(
 				new Response(processHandle.stdout).text(),
 				new Response(processHandle.stderr).text(),
 			]);
+			const resultPayload = await readFile(resultPath, "utf8");
 			const durationMs = performance.now() - startedAt;
 
 			expect(exitCode).toBe(0);
 			expect(stderr).toBe("");
 			expect(durationMs).toBeLessThan(2000);
 
-			const result = JSON.parse(stdout) as {
+			const result = JSON.parse(resultPayload) as {
 				exitCode: number;
 				stdout: string;
 				stderr: string;
@@ -84,6 +91,7 @@ test.if(Boolean(nodeExecutable))(
 			);
 		} finally {
 			await rm(tempDirectory, { force: true, recursive: true });
+			await rm(resultPath, { force: true });
 		}
 	},
 );

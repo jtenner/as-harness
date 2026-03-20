@@ -172,10 +172,7 @@ export function serializeNodeStart(
 ): StaticArray<u8> {
 	const nodeIndexLength = <u32>nodeIndex.length;
 	const nodeIndexBytes = nodeIndexByteLength(nodeIndex);
-	const totalByteLength =
-		U32_BYTE_LENGTH +
-		nodeIndexBytes +
-		U32_BYTE_LENGTH;
+	const totalByteLength = U32_BYTE_LENGTH + nodeIndexBytes + U32_BYTE_LENGTH;
 	const payload = new StaticArray<u8>(totalByteLength);
 	const payloadStart = changetype<usize>(payload);
 	let offset: usize = 0;
@@ -203,10 +200,7 @@ export function serializeNodePass(
 ): StaticArray<u8> {
 	const nodeIndexLength = <u32>nodeIndex.length;
 	const nodeIndexBytes = nodeIndexByteLength(nodeIndex);
-	const totalByteLength =
-		U32_BYTE_LENGTH +
-		nodeIndexBytes +
-		U32_BYTE_LENGTH;
+	const totalByteLength = U32_BYTE_LENGTH + nodeIndexBytes + U32_BYTE_LENGTH;
 	const payload = new StaticArray<u8>(totalByteLength);
 	const payloadStart = changetype<usize>(payload);
 	let offset: usize = 0;
@@ -524,8 +518,15 @@ export function callbackStart(
 /**
  * Emits a `CallbackPass` event.
  */
-export function callbackPass(hook: HookKind, nodeIndex: NodeIndex, nodeId: u32): void {
-	sendEvent(EventKind.CallbackPass, serializeCallbackPass(hook, nodeIndex, nodeId));
+export function callbackPass(
+	hook: HookKind,
+	nodeIndex: NodeIndex,
+	nodeId: u32,
+): void {
+	sendEvent(
+		EventKind.CallbackPass,
+		serializeCallbackPass(hook, nodeIndex, nodeId),
+	);
 }
 
 export function nodeFail(
@@ -533,7 +534,10 @@ export function nodeFail(
 	nodeId: u32,
 	failureKind: FailureKind,
 ): void {
-	sendEvent(EventKind.NodeFail, serializeNodeFail(nodeIndex, nodeId, failureKind));
+	sendEvent(
+		EventKind.NodeFail,
+		serializeNodeFail(nodeIndex, nodeId, failureKind),
+	);
 }
 
 export function callbackFail(
