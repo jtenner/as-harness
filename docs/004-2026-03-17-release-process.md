@@ -166,9 +166,21 @@ The current packaged verification helper models this by:
 4. running the staged executable from that separate project directory
 5. optionally writing JSON and Markdown proof reports for the target
 
+The helper now also distinguishes:
+
+- verifier supervision failures, where the Node wrapper fails before returning
+  a normal command result
+- real packaged command failures, where the staged executable exits non-zero
+- packaged command timeouts, which are treated as likely bundled-host hangs or
+  otherwise stuck packaged commands instead of verifier-wrapper bugs
+
 ## If A Release Fails
 
 - packaged build failure: inspect the target-specific packaged smoke step first
+- verifier supervision failure: inspect the packaged verification wrapper logs
+  before attributing the issue to the bundled executable itself
+- packaged smoke timeout: treat it as a bundled-host hang or stuck packaged
+  command first, especially on `wazero`
 - `wazero` build failure: inspect the Node headers, Go toolchain, or addon staging path on that runner
 - tag/version mismatch: update [package.json](../cli/package.json) or retag to match
 - manifest/checksum failure: confirm the release asset directory contains the expected packaged executables before publish

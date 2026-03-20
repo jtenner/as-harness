@@ -8,7 +8,6 @@
 - Graph-Aware Scheduling Semantics
 - Host Contract and Runner Reshape
 - Native `as-harness` Adapter Surface
-- Proof and Verification Matrix
 
 ### Risks
 
@@ -89,11 +88,3 @@ Remaining work:
   adapter-specific code
 - define the minimum reporter and diagnostic wording needed when user-declared
   graph constraints are invalid
-
-### Proof and Verification Matrix
-
-Remaining work:
-
-- keep bounded regression coverage and failure diagnostics around packaged CLI
-  verification so hosted/package failures distinguish verifier supervision bugs
-  from real bundled-host hangs

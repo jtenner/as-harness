@@ -31,7 +31,7 @@
 - `stage-release-legal.ts`
   Copies `THIRD_PARTY_NOTICES.md` and the tracked third-party license texts into a release asset directory.
 - `verify-packaged-cli.ts`
-  Builds one packaged CLI target, stages the release-named executable into a temporary install directory, runs its smoke path from a separate temporary project directory with a bounded subprocess timeout, optionally copies the verified asset into a release directory, and can emit JSON/Markdown proof reports.
+  Builds one packaged CLI target, stages the release-named executable into a temporary install directory, runs its smoke path from a separate temporary project directory with a bounded subprocess timeout, distinguishes verifier supervision failures from real packaged-command failures and timeouts, optionally copies the verified asset into a release directory, and can emit JSON/Markdown proof reports.
 
 ## What These Scripts Prove
 
@@ -45,6 +45,7 @@
 - source-host proof now produces persisted per-target reports instead of relying only on CI step names
 - the packaged CLI path still works locally for a selected release target
 - the packaged CLI path works from a clean staged install-like directory instead of only beside the repo checkout
+- packaged CLI verification now distinguishes verifier-wrapper bugs from real packaged-command failures and timeout-style bundled-host hangs
 - the release workflow can publish explicit artifact metadata instead of relying on inferred platform behavior
 - the published release assets have checksums and tag/version consistency checks
 - the published release assets now include the tracked third-party legal bundle

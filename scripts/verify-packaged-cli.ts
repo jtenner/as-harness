@@ -32,7 +32,7 @@ type ParsedArguments = {
 	target: string;
 };
 
-type CommandResult = {
+export type CommandResult = {
 	command: string[];
 	cwd: string;
 	exitCode: number;
@@ -41,7 +41,7 @@ type CommandResult = {
 	timedOut: boolean;
 };
 
-type HarnessRunReport = {
+export type HarnessRunReport = {
 	command: string[];
 	cwd: string;
 	durationMs: number;
@@ -54,7 +54,7 @@ type HarnessRunReport = {
 
 const COMMAND_TIMEOUT_MS = DEFAULT_COMMAND_TIMEOUT_MS;
 
-function parseArguments(argv: string[]): ParsedArguments {
+export function parseArguments(argv: string[]): ParsedArguments {
 	let assetDir: string | undefined;
 	let reportDir: string | undefined;
 	let target: string | undefined;
@@ -200,7 +200,90 @@ function assertSmokePass(
 	);
 }
 
-function renderMarkdownSummary(
+function formatCommandOutputBlocks(result: {
+	stdout: string;
+	stderr: string;
+}): string[] {
+	return [
+		result.stdout ? `stdout:\n${result.stdout}` : "",
+		result.stderr ? `stderr:\n${result.stderr}` : "",
+	].filter(Boolean);
+}
+
+export function formatBuildFailure(
+	target: string,
+	result: CommandResult,
+	timeoutMs: number = COMMAND_TIMEOUT_MS,
+) {
+	return [
+		`Packaged CLI build failed for ${target}.`,
+		result.timedOut
+			? `The build command timed out after ${timeoutMs}ms.`
+			: `The build command exited with code ${result.exitCode}.`,
+		"This is a real build-step failure, not verifier supervision.",
+		...formatCommandOutputBlocks(result),
+	].join("\n");
+}
+
+export function formatPackagedSmokeFailure(options: {
+	diagnosticOutput?: string;
+	harness: string;
+	result: CommandResult;
+	target: string;
+	timeoutMs?: number;
+}) {
+	const {
+		diagnosticOutput = "",
+		harness,
+		result,
+		target,
+		timeoutMs = COMMAND_TIMEOUT_MS,
+	} = options;
+	return [
+		`Packaged ${harness} smoke failed for ${target}.`,
+		result.timedOut
+			? `The packaged command timed out after ${timeoutMs}ms. This points at a bundled-host hang or stuck packaged command, not verifier supervision.`
+			: `The packaged command exited with code ${result.exitCode}. This points at a real packaged command failure, not verifier supervision.`,
+		...formatCommandOutputBlocks(result),
+		diagnosticOutput,
+	]
+		.filter(Boolean)
+		.join("\n");
+}
+
+export function formatVerifierSupervisionFailure(options: {
+	error: unknown;
+	harness?: string;
+	phase: "build" | "diagnostic-rerun" | "smoke";
+	target: string;
+}) {
+	const { error, harness, phase, target } = options;
+	const phaseLabel =
+		phase === "build"
+			? `building packaged target ${target}`
+			: phase === "diagnostic-rerun"
+				? `running the diagnostic ${harness} rerun for ${target}`
+				: `running packaged ${harness} smoke for ${target}`;
+	const message =
+		error instanceof Error ? error.message : String(error ?? "unknown error");
+	return [
+		`Verifier supervision failed while ${phaseLabel}.`,
+		"The packaged command wrapper failed before it could return a normal command result, so this points at verifier supervision rather than a proven packaged-host failure.",
+		`Verifier error: ${message}`,
+	].join("\n");
+}
+
+function renderReportStatus(
+	report: Pick<HarnessRunReport, "exitCode" | "timedOut">,
+) {
+	if (report.exitCode === 0) {
+		return "pass";
+	}
+
+	return report.timedOut ? "timeout" : "fail";
+}
+
+export function renderMarkdownSummary(
 	target: string,
 	packagedHarnesses: readonly string[],
 	reports: HarnessRunReport[],
@@ -215,7 +298,7 @@ function renderMarkdownSummary(
 		"",
 		...reports.map(
 			(report) =>
-				`- \`${report.harness}\`: ${report.exitCode === 0 ? "pass" : "fail"} in ${report.durationMs}ms`,
+				`- \`${report.harness}\`: ${renderReportStatus(report)} in ${report.durationMs}ms`,
 		),
 		"",
 	];
@@ -223,7 +306,7 @@ function renderMarkdownSummary(
 	return `${lines.join("\n")}\n`;
 }
 
-async function main() {
+export async function main() {
 	const { assetDir, reportDir, target } = parseArguments(process.argv.slice(2));
 	const targetMetadata = releaseBuildTargetForCompileTarget(target);
 	if (targetMetadata === null) {
@@ -242,20 +325,24 @@ async function main() {
 
 	console.log(`Building packaged CLI target ${target}...`);
 
-	const buildResult = await runCommand(
-		[process.execPath, "run", "./cli/build.ts", target],
-		REPO_DIR,
-	);
+	let buildResult: CommandResult;
+	try {
+		buildResult = await runCommand(
+			[process.execPath, "run", "./cli/build.ts", target],
+			REPO_DIR,
+		);
+	} catch (error) {
+		throw new Error(
+			formatVerifierSupervisionFailure({
+				error,
+				phase: "build",
+				target,
+			}),
+		);
+	}
 
 	if (buildResult.exitCode !== 0) {
-		throw new Error(
-			[
-				`Failed to build ${target}.`,
-				buildResult.timedOut ? `Timed out after ${COMMAND_TIMEOUT_MS}ms.` : "",
-				buildResult.stdout,
-				buildResult.stderr,
-			].join("\n"),
-		);
+		throw new Error(formatBuildFailure(target, buildResult));
 	}
 
 	const tempDirectory = await mkdtemp(
@@ -297,7 +384,19 @@ async function main() {
 					? [stagedExecutablePath, "run", entryFile]
 					: [stagedExecutablePath, "run", "--harness", harness, entryFile];
 			const startedAt = performance.now();
-			const runResult = await runCommand(command, projectDirectory);
+			let runResult: CommandResult;
+			try {
+				runResult = await runCommand(command, projectDirectory);
+			} catch (error) {
+				throw new Error(
+					formatVerifierSupervisionFailure({
+						error,
+						harness,
+						phase: "smoke",
+						target,
+					}),
+				);
+			}
 			const durationMs = Math.round(performance.now() - startedAt);
 			reports.push({
 				command: runResult.command,
@@ -313,9 +412,29 @@ async function main() {
 			if (runResult.exitCode !== 0) {
 				let diagnosticOutput = "";
 				if (harness === "wazero" && runResult.timedOut) {
-					const diagnosticResult = await runCommand(command, projectDirectory, {
-						AS_HARNESS_TRACE_WAZERO: "1",
-					});
+					let diagnosticResult: CommandResult;
+					try {
+						diagnosticResult = await runCommand(command, projectDirectory, {
+							AS_HARNESS_TRACE_WAZERO: "1",
+						});
+					} catch (error) {
+						throw new Error(
+							[
+								formatPackagedSmokeFailure({
+									harness,
+									result: runResult,
+									target,
+								}),
+								"",
+								formatVerifierSupervisionFailure({
+									error,
+									harness,
+									phase: "diagnostic-rerun",
+									target,
+								}),
+							].join("\n"),
+						);
+					}
 					diagnosticOutput = [
 						"Diagnostic wazero rerun with AS_HARNESS_TRACE_WAZERO=1:",
 						diagnosticResult.stdout,
@@ -326,15 +445,12 @@ async function main() {
 				}
 
 				throw new Error(
-					[
-						`Packaged ${harness} smoke failed for ${target}.`,
-						runResult.timedOut
-							? `Timed out after ${COMMAND_TIMEOUT_MS}ms.`
-							: "",
-						runResult.stdout,
-						runResult.stderr,
+					formatPackagedSmokeFailure({
 						diagnosticOutput,
-					].join("\n"),
+						harness,
+						result: runResult,
+						target,
+					}),
 				);
 			}
 
@@ -384,4 +500,6 @@ async function main() {
 	}
 }
 
-await main();
+if (import.meta.main) {
+	await main();
+}
