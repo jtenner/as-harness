@@ -82,7 +82,7 @@ function executeHookRegistrations(
 		const previousRunOnly = getActiveRunOnly();
 		setActiveNodeIndex(nodeIndex);
 		setActiveHookPhase(registration.kind);
-		callbackStart(registration.kind, nodeIndex);
+		callbackStart(registration.kind, nodeIndex, owner.nodeId);
 		stagedHookRegistration = registration;
 		const trapped = didCallbackTrap(invokeStagedHookRegistration);
 		stagedHookRegistration = null;
@@ -90,11 +90,16 @@ function executeHookRegistrations(
 		clearActiveNodeIndex();
 		setActiveRunOnly(previousRunOnly);
 		if (trapped) {
-			callbackFail(registration.kind, nodeIndex, resolveFailureKind());
+			callbackFail(
+				registration.kind,
+				nodeIndex,
+				owner.nodeId,
+				resolveFailureKind(),
+			);
 			setCurrentNode(previousNode);
 			return false;
 		}
-		callbackPass(registration.kind, nodeIndex);
+		callbackPass(registration.kind, nodeIndex, owner.nodeId);
 	}
 
 	setCurrentNode(previousNode);
@@ -135,7 +140,7 @@ export function executeNode(node: Node): bool {
 	const chain = collectNodeChain(node);
 	const nodeIndex = node.getNodeIndex();
 
-	nodeStart(nodeIndex);
+	nodeStart(nodeIndex, node.nodeId);
 	beginAssertionScope(node.name, node.plan);
 	if (!executeHookKind(chain, HookKind.BeforeAll)) {
 		abandonAssertionScope();
@@ -157,7 +162,7 @@ export function executeNode(node: Node): bool {
 	setCurrentNode(previousNode);
 	setActiveRunOnly(previousRunOnly);
 	if (nodeTrapped) {
-		nodeFail(nodeIndex, resolveFailureKind());
+		nodeFail(nodeIndex, node.nodeId, resolveFailureKind());
 		abandonAssertionScope();
 		return false;
 	}
@@ -175,10 +180,10 @@ export function executeNode(node: Node): bool {
 	stagedNodeForInvocation = null;
 	const scopeTrapped = didCallbackTrap(endAssertionScope);
 	if (scopeTrapped) {
-		nodeFail(nodeIndex, resolveFailureKind());
+		nodeFail(nodeIndex, node.nodeId, resolveFailureKind());
 		abandonAssertionScope();
 		return false;
 	}
-	nodePass(nodeIndex);
+	nodePass(nodeIndex, node.nodeId);
 	return true;
 }

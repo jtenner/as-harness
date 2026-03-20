@@ -88,21 +88,23 @@ function testSerializeNodeFound(): void {
 
 function testSerializeNodeStart(): void {
 	const nodeIndex = [13, 21] as StaticArray<u32>;
-	const payload = serializeNodeStart(nodeIndex);
+	const payload = serializeNodeStart(nodeIndex, 31);
 
-	assert(payload.length == 12);
+	assert(payload.length == 16);
 	assertU32(payload, 0, 2);
 	assertU32(payload, 4, 13);
 	assertU32(payload, 8, 21);
+	assertU32(payload, 12, 31);
 }
 
 function testSerializeNodePass(): void {
 	const nodeIndex = [34] as StaticArray<u32>;
-	const payload = serializeNodePass(nodeIndex);
+	const payload = serializeNodePass(nodeIndex, 32);
 
-	assert(payload.length == 8);
+	assert(payload.length == 12);
 	assertU32(payload, 0, 1);
 	assertU32(payload, 4, 34);
+	assertU32(payload, 8, 32);
 }
 
 function testSerializeFailMessage(): void {
@@ -126,31 +128,33 @@ function testSerializeDiagnostic(): void {
 
 function testSerializeCallbackStart(): void {
 	const nodeIndex = [2, 4, 6] as StaticArray<u32>;
-	const payload = serializeCallbackStart(HookKind.AfterEach, nodeIndex);
+	const payload = serializeCallbackStart(HookKind.AfterEach, nodeIndex, 40);
 
-	assert(payload.length == 20);
+	assert(payload.length == 24);
 	assertByte(payload, 0, <u8>HookKind.AfterEach);
 	assertByte(payload, 1, 0);
 	assertByte(payload, 2, 0);
 	assertByte(payload, 3, 0);
 	assertU32(payload, 4, 3);
-	assertU32(payload, 8, 2);
-	assertU32(payload, 12, 4);
-	assertU32(payload, 16, 6);
+	assertU32(payload, 8, 40);
+	assertU32(payload, 12, 2);
+	assertU32(payload, 16, 4);
+	assertU32(payload, 20, 6);
 }
 
 function testSerializeCallbackPass(): void {
 	const nodeIndex = [9, 10] as StaticArray<u32>;
-	const payload = serializeCallbackPass(HookKind.BeforeEach, nodeIndex);
+	const payload = serializeCallbackPass(HookKind.BeforeEach, nodeIndex, 41);
 
-	assert(payload.length == 16);
+	assert(payload.length == 20);
 	assertByte(payload, 0, <u8>HookKind.BeforeEach);
 	assertByte(payload, 1, 0);
 	assertByte(payload, 2, 0);
 	assertByte(payload, 3, 0);
 	assertU32(payload, 4, 2);
-	assertU32(payload, 8, 9);
-	assertU32(payload, 12, 10);
+	assertU32(payload, 8, 41);
+	assertU32(payload, 12, 9);
+	assertU32(payload, 16, 10);
 }
 
 testSerializeNodeFound();

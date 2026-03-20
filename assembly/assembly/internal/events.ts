@@ -164,12 +164,18 @@ export function serializeNodeFound(
  * Serializes a `NodeStart` payload into the wire-format byte buffer.
  *
  * Payload grammar:
- * `[node_index_length: u32] [node_index: ...bytes]`
+ * `[node_index_length: u32] [node_index: ...bytes] [node_id: u32]`
  */
-export function serializeNodeStart(nodeIndex: NodeIndex): StaticArray<u8> {
+export function serializeNodeStart(
+	nodeIndex: NodeIndex,
+	nodeId: u32,
+): StaticArray<u8> {
 	const nodeIndexLength = <u32>nodeIndex.length;
 	const nodeIndexBytes = nodeIndexByteLength(nodeIndex);
-	const totalByteLength = U32_BYTE_LENGTH + nodeIndexBytes;
+	const totalByteLength =
+		U32_BYTE_LENGTH +
+		nodeIndexBytes +
+		U32_BYTE_LENGTH;
 	const payload = new StaticArray<u8>(totalByteLength);
 	const payloadStart = changetype<usize>(payload);
 	let offset: usize = 0;
@@ -178,6 +184,9 @@ export function serializeNodeStart(nodeIndex: NodeIndex): StaticArray<u8> {
 	offset += <usize>U32_BYTE_LENGTH;
 
 	copyNodeIndexBytes(payloadStart + offset, nodeIndex);
+	offset += <usize>nodeIndexBytes;
+
+	store<u32>(payloadStart + offset, nodeId);
 
 	return payload;
 }
@@ -186,12 +195,18 @@ export function serializeNodeStart(nodeIndex: NodeIndex): StaticArray<u8> {
  * Serializes a `NodePass` payload into the wire-format byte buffer.
  *
  * Payload grammar:
- * `[node_index_length: u32] [node_index: ...bytes]`
+ * `[node_index_length: u32] [node_index: ...bytes] [node_id: u32]`
  */
-export function serializeNodePass(nodeIndex: NodeIndex): StaticArray<u8> {
+export function serializeNodePass(
+	nodeIndex: NodeIndex,
+	nodeId: u32,
+): StaticArray<u8> {
 	const nodeIndexLength = <u32>nodeIndex.length;
 	const nodeIndexBytes = nodeIndexByteLength(nodeIndex);
-	const totalByteLength = U32_BYTE_LENGTH + nodeIndexBytes;
+	const totalByteLength =
+		U32_BYTE_LENGTH +
+		nodeIndexBytes +
+		U32_BYTE_LENGTH;
 	const payload = new StaticArray<u8>(totalByteLength);
 	const payloadStart = changetype<usize>(payload);
 	let offset: usize = 0;
@@ -200,6 +215,9 @@ export function serializeNodePass(nodeIndex: NodeIndex): StaticArray<u8> {
 	offset += <usize>U32_BYTE_LENGTH;
 
 	copyNodeIndexBytes(payloadStart + offset, nodeIndex);
+	offset += <usize>nodeIndexBytes;
+
+	store<u32>(payloadStart + offset, nodeId);
 
 	return payload;
 }
@@ -261,12 +279,14 @@ export function serializeDiagnostic(
 export function serializeCallbackStart(
 	hook: HookKind,
 	nodeIndex: NodeIndex,
+	nodeId: u32,
 ): StaticArray<u8> {
 	const nodeIndexLength = <u32>nodeIndex.length;
 	const nodeIndexBytes = nodeIndexByteLength(nodeIndex);
 	const totalByteLength =
 		U8_BYTE_LENGTH +
 		CALLBACK_ALIGNMENT_PADDING +
+		U32_BYTE_LENGTH +
 		U32_BYTE_LENGTH +
 		nodeIndexBytes;
 	const payload = new StaticArray<u8>(totalByteLength);
@@ -284,6 +304,9 @@ export function serializeCallbackStart(
 	offset += <usize>U8_BYTE_LENGTH;
 
 	store<u32>(payloadStart + offset, nodeIndexLength);
+	offset += <usize>U32_BYTE_LENGTH;
+
+	store<u32>(payloadStart + offset, nodeId);
 	offset += <usize>U32_BYTE_LENGTH;
 
 	copyNodeIndexBytes(payloadStart + offset, nodeIndex);
@@ -301,12 +324,14 @@ export function serializeCallbackStart(
 export function serializeCallbackPass(
 	hook: HookKind,
 	nodeIndex: NodeIndex,
+	nodeId: u32,
 ): StaticArray<u8> {
 	const nodeIndexLength = <u32>nodeIndex.length;
 	const nodeIndexBytes = nodeIndexByteLength(nodeIndex);
 	const totalByteLength =
 		U8_BYTE_LENGTH +
 		CALLBACK_ALIGNMENT_PADDING +
+		U32_BYTE_LENGTH +
 		U32_BYTE_LENGTH +
 		nodeIndexBytes;
 	const payload = new StaticArray<u8>(totalByteLength);
@@ -326,6 +351,9 @@ export function serializeCallbackPass(
 	store<u32>(payloadStart + offset, nodeIndexLength);
 	offset += <usize>U32_BYTE_LENGTH;
 
+	store<u32>(payloadStart + offset, nodeId);
+	offset += <usize>U32_BYTE_LENGTH;
+
 	copyNodeIndexBytes(payloadStart + offset, nodeIndex);
 
 	return payload;
@@ -333,6 +361,7 @@ export function serializeCallbackPass(
 
 export function serializeNodeFail(
 	nodeIndex: NodeIndex,
+	nodeId: u32,
 	failureKind: FailureKind,
 ): StaticArray<u8> {
 	const nodeIndexLength = <u32>nodeIndex.length;
@@ -340,6 +369,7 @@ export function serializeNodeFail(
 	const totalByteLength =
 		U8_BYTE_LENGTH +
 		FAILURE_ALIGNMENT_PADDING +
+		U32_BYTE_LENGTH +
 		U32_BYTE_LENGTH +
 		nodeIndexBytes;
 	const payload = new StaticArray<u8>(totalByteLength);
@@ -357,6 +387,9 @@ export function serializeNodeFail(
 	offset += <usize>U8_BYTE_LENGTH;
 
 	store<u32>(payloadStart + offset, nodeIndexLength);
+	offset += <usize>U32_BYTE_LENGTH;
+
+	store<u32>(payloadStart + offset, nodeId);
 	offset += <usize>U32_BYTE_LENGTH;
 
 	copyNodeIndexBytes(payloadStart + offset, nodeIndex);
@@ -367,6 +400,7 @@ export function serializeNodeFail(
 export function serializeCallbackFail(
 	hook: HookKind,
 	nodeIndex: NodeIndex,
+	nodeId: u32,
 	failureKind: FailureKind,
 ): StaticArray<u8> {
 	const nodeIndexLength = <u32>nodeIndex.length;
@@ -375,6 +409,7 @@ export function serializeCallbackFail(
 		U8_BYTE_LENGTH +
 		U8_BYTE_LENGTH +
 		CALLBACK_FAILURE_ALIGNMENT_PADDING +
+		U32_BYTE_LENGTH +
 		U32_BYTE_LENGTH +
 		nodeIndexBytes;
 	const payload = new StaticArray<u8>(totalByteLength);
@@ -393,6 +428,9 @@ export function serializeCallbackFail(
 	offset += <usize>U8_BYTE_LENGTH;
 
 	store<u32>(payloadStart + offset, nodeIndexLength);
+	offset += <usize>U32_BYTE_LENGTH;
+
+	store<u32>(payloadStart + offset, nodeId);
 	offset += <usize>U32_BYTE_LENGTH;
 
 	copyNodeIndexBytes(payloadStart + offset, nodeIndex);
@@ -444,15 +482,15 @@ export function nodeFound(
 /**
  * Emits a `NodeStart` event.
  */
-export function nodeStart(nodeIndex: NodeIndex): void {
-	sendEvent(EventKind.NodeStart, serializeNodeStart(nodeIndex));
+export function nodeStart(nodeIndex: NodeIndex, nodeId: u32): void {
+	sendEvent(EventKind.NodeStart, serializeNodeStart(nodeIndex, nodeId));
 }
 
 /**
  * Emits a `NodePass` event.
  */
-export function nodePass(nodeIndex: NodeIndex): void {
-	sendEvent(EventKind.NodePass, serializeNodePass(nodeIndex));
+export function nodePass(nodeIndex: NodeIndex, nodeId: u32): void {
+	sendEvent(EventKind.NodePass, serializeNodePass(nodeIndex, nodeId));
 }
 
 /**
@@ -472,28 +510,40 @@ export function diagnostic(nodeIndex: NodeIndex, message: string): void {
 /**
  * Emits a `CallbackStart` event.
  */
-export function callbackStart(hook: HookKind, nodeIndex: NodeIndex): void {
-	sendEvent(EventKind.CallbackStart, serializeCallbackStart(hook, nodeIndex));
+export function callbackStart(
+	hook: HookKind,
+	nodeIndex: NodeIndex,
+	nodeId: u32,
+): void {
+	sendEvent(
+		EventKind.CallbackStart,
+		serializeCallbackStart(hook, nodeIndex, nodeId),
+	);
 }
 
 /**
  * Emits a `CallbackPass` event.
  */
-export function callbackPass(hook: HookKind, nodeIndex: NodeIndex): void {
-	sendEvent(EventKind.CallbackPass, serializeCallbackPass(hook, nodeIndex));
+export function callbackPass(hook: HookKind, nodeIndex: NodeIndex, nodeId: u32): void {
+	sendEvent(EventKind.CallbackPass, serializeCallbackPass(hook, nodeIndex, nodeId));
 }
 
-export function nodeFail(nodeIndex: NodeIndex, failureKind: FailureKind): void {
-	sendEvent(EventKind.NodeFail, serializeNodeFail(nodeIndex, failureKind));
+export function nodeFail(
+	nodeIndex: NodeIndex,
+	nodeId: u32,
+	failureKind: FailureKind,
+): void {
+	sendEvent(EventKind.NodeFail, serializeNodeFail(nodeIndex, nodeId, failureKind));
 }
 
 export function callbackFail(
 	hook: HookKind,
 	nodeIndex: NodeIndex,
+	nodeId: u32,
 	failureKind: FailureKind,
 ): void {
 	sendEvent(
 		EventKind.CallbackFail,
-		serializeCallbackFail(hook, nodeIndex, failureKind),
+		serializeCallbackFail(hook, nodeIndex, nodeId, failureKind),
 	);
 }

@@ -751,7 +751,7 @@ func createUint32SliceValue(env C.napi_env, values []uint32) (C.napi_value, bool
 	return result, true
 }
 
-func createNodeEventObject(env C.napi_env, nodeIndex []uint32) (C.napi_value, bool) {
+func createNodeEventObject(env C.napi_env, nodeIndex []uint32, nodeID uint32) (C.napi_value, bool) {
 	result := createObject(env, "failed to create event object")
 	if result == nil {
 		return nil, false
@@ -763,6 +763,9 @@ func createNodeEventObject(env C.napi_env, nodeIndex []uint32) (C.napi_value, bo
 	}
 
 	if !setNamedProperty(env, result, "nodeIndex", nodeIndexValue) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "nodeId", createUint32(env, nodeID)) {
 		return nil, false
 	}
 
@@ -838,15 +841,12 @@ func createNodeFoundEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
 		return nil, false
 	}
 
-	result, ok := createNodeEventObject(env, node.NodeIndex)
+	result, ok := createNodeEventObject(env, node.NodeIndex, node.NodeID)
 	if !ok {
 		return nil, false
 	}
 
 	if !setNamedProperty(env, result, "kind", createUint32(env, node.Kind)) {
-		return nil, false
-	}
-	if !setNamedProperty(env, result, "nodeId", createUint32(env, node.NodeID)) {
 		return nil, false
 	}
 	if !setNamedProperty(env, result, "parentNodeId", createUint32(env, node.ParentNodeID)) {
@@ -882,17 +882,21 @@ func createNodeFoundEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
 }
 
 func createCallbackEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
-	if len(payload) < 8 {
+	if len(payload) < 12 {
 		return nil, false
 	}
 
 	hook := uint32(payload[0])
-	nodeIndex, _, ok := decodeNodeIndex(payload, 4)
+	nodeID, _, ok := decodeUint32(payload, 4)
+	if !ok {
+		return nil, false
+	}
+	nodeIndex, _, ok := decodeNodeIndex(payload, 8)
 	if !ok {
 		return nil, false
 	}
 
-	result, ok := createNodeEventObject(env, nodeIndex)
+	result, ok := createNodeEventObject(env, nodeIndex, nodeID)
 	if !ok {
 		return nil, false
 	}
@@ -905,16 +909,20 @@ func createCallbackEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
 }
 
 func createNodeFailEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
-	if len(payload) < 8 {
+	if len(payload) < 12 {
 		return nil, false
 	}
 
-	nodeIndex, _, ok := decodeNodeIndex(payload, 4)
+	nodeID, _, ok := decodeUint32(payload, 4)
+	if !ok {
+		return nil, false
+	}
+	nodeIndex, _, ok := decodeNodeIndex(payload, 8)
 	if !ok {
 		return nil, false
 	}
 
-	result, ok := createNodeEventObject(env, nodeIndex)
+	result, ok := createNodeEventObject(env, nodeIndex, nodeID)
 	if !ok {
 		return nil, false
 	}
@@ -927,16 +935,20 @@ func createNodeFailEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
 }
 
 func createCallbackFailEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
-	if len(payload) < 8 {
+	if len(payload) < 12 {
 		return nil, false
 	}
 
-	nodeIndex, _, ok := decodeNodeIndex(payload, 4)
+	nodeID, _, ok := decodeUint32(payload, 4)
+	if !ok {
+		return nil, false
+	}
+	nodeIndex, _, ok := decodeNodeIndex(payload, 8)
 	if !ok {
 		return nil, false
 	}
 
-	result, ok := createNodeEventObject(env, nodeIndex)
+	result, ok := createNodeEventObject(env, nodeIndex, nodeID)
 	if !ok {
 		return nil, false
 	}
@@ -964,6 +976,26 @@ func createFailMessageEvent(env C.napi_env, payload []byte) (C.napi_value, bool)
 	return result, true
 }
 
+func createDiagnosticEventObject(env C.napi_env, nodeIndex []uint32, message string) (C.napi_value, bool) {
+	nodeIndexValue, ok := createNodeIndexValue(env, nodeIndex)
+	if !ok {
+		return nil, false
+	}
+
+	result := createObject(env, "failed to create event object")
+	if result == nil {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "nodeIndex", nodeIndexValue) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "message", createString(env, message)) {
+		return nil, false
+	}
+
+	return result, true
+}
+
 func createDiagnosticEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
 	nodeIndex, offset, ok := decodeNodeIndex(payload, 0)
 	if !ok {
@@ -977,17 +1009,11 @@ func createDiagnosticEvent(env C.napi_env, payload []byte) (C.napi_value, bool) 
 	if nextOffset+int(messageLength) > len(payload) {
 		return nil, false
 	}
-
-	result, ok := createNodeEventObject(env, nodeIndex)
-	if !ok {
-		return nil, false
-	}
-
-	if !setNamedProperty(env, result, "message", createString(env, string(payload[nextOffset:nextOffset+int(messageLength)]))) {
-		return nil, false
-	}
-
-	return result, true
+	return createDiagnosticEventObject(
+		env,
+		nodeIndex,
+		string(payload[nextOffset:nextOffset+int(messageLength)]),
+	)
 }
 
 func decodeLogPayload(payload []byte) (string, []float64, bool) {
@@ -1078,11 +1104,15 @@ func createEventValue(env C.napi_env, kind uint32, payload []byte) (C.napi_value
 	case eventKindNodeFound:
 		return createNodeFoundEvent(env, payload)
 	case eventKindNodeStart, eventKindNodePass:
-		nodeIndex, _, ok := decodeNodeIndex(payload, 0)
+		nodeIndex, offset, ok := decodeNodeIndex(payload, 0)
 		if !ok {
 			return nil, false
 		}
-		return createNodeEventObject(env, nodeIndex)
+		nodeID, _, ok := decodeUint32(payload, offset)
+		if !ok {
+			return nil, false
+		}
+		return createNodeEventObject(env, nodeIndex, nodeID)
 	case eventKindFailMessage:
 		return createFailMessageEvent(env, payload)
 	case eventKindCallbackStart, eventKindCallbackPass:
@@ -1123,45 +1153,79 @@ func decodeEventSnapshot(kind uint32, payload []byte) (eventSnapshot, bool) {
 			Name:              node.Name,
 		}, true
 	case eventKindNodeStart:
-		nodeIndex, _, ok := decodeNodeIndex(payload, 0)
+		nodeIndex, offset, ok := decodeNodeIndex(payload, 0)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+		nodeID, _, ok := decodeUint32(payload, offset)
 		if !ok {
 			return eventSnapshot{}, false
 		}
 
-		return eventSnapshot{Type: "nodeStart", NodeIndex: cloneNodeIndex(nodeIndex)}, true
+		return eventSnapshot{
+			Type:      "nodeStart",
+			NodeID:    nodeID,
+			NodeIndex: cloneNodeIndex(nodeIndex),
+		}, true
 	case eventKindNodePass:
-		nodeIndex, _, ok := decodeNodeIndex(payload, 0)
+		nodeIndex, offset, ok := decodeNodeIndex(payload, 0)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+		nodeID, _, ok := decodeUint32(payload, offset)
 		if !ok {
 			return eventSnapshot{}, false
 		}
 
-		return eventSnapshot{Type: "nodePass", NodeIndex: cloneNodeIndex(nodeIndex)}, true
+		return eventSnapshot{
+			Type:      "nodePass",
+			NodeID:    nodeID,
+			NodeIndex: cloneNodeIndex(nodeIndex),
+		}, true
 	case eventKindFailMessage:
 		return eventSnapshot{Type: "failMessage", Message: string(payload)}, true
 	case eventKindCallbackStart:
-		if len(payload) < 8 {
+		if len(payload) < 12 {
 			return eventSnapshot{}, false
 		}
 
 		hook := uint32(payload[0])
-		nodeIndex, _, ok := decodeNodeIndex(payload, 4)
+		nodeID, _, ok := decodeUint32(payload, 4)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+		nodeIndex, _, ok := decodeNodeIndex(payload, 8)
 		if !ok {
 			return eventSnapshot{}, false
 		}
 
-		return eventSnapshot{Type: "callbackStart", Hook: hook, NodeIndex: cloneNodeIndex(nodeIndex)}, true
+		return eventSnapshot{
+			Type:      "callbackStart",
+			NodeID:    nodeID,
+			Hook:      hook,
+			NodeIndex: cloneNodeIndex(nodeIndex),
+		}, true
 	case eventKindCallbackPass:
-		if len(payload) < 8 {
+		if len(payload) < 12 {
 			return eventSnapshot{}, false
 		}
 
 		hook := uint32(payload[0])
-		nodeIndex, _, ok := decodeNodeIndex(payload, 4)
+		nodeID, _, ok := decodeUint32(payload, 4)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+		nodeIndex, _, ok := decodeNodeIndex(payload, 8)
 		if !ok {
 			return eventSnapshot{}, false
 		}
 
-		return eventSnapshot{Type: "callbackPass", Hook: hook, NodeIndex: cloneNodeIndex(nodeIndex)}, true
+		return eventSnapshot{
+			Type:      "callbackPass",
+			NodeID:    nodeID,
+			Hook:      hook,
+			NodeIndex: cloneNodeIndex(nodeIndex),
+		}, true
 	case eventKindDiagnostic:
 		nodeIndex, offset, ok := decodeNodeIndex(payload, 0)
 		if !ok {
@@ -1182,33 +1246,43 @@ func decodeEventSnapshot(kind uint32, payload []byte) (eventSnapshot, bool) {
 			Message:   string(payload[nextOffset : nextOffset+int(messageLength)]),
 		}, true
 	case eventKindNodeFail:
-		if len(payload) < 8 {
+		if len(payload) < 12 {
 			return eventSnapshot{}, false
 		}
 
-		nodeIndex, _, ok := decodeNodeIndex(payload, 4)
+		nodeID, _, ok := decodeUint32(payload, 4)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+		nodeIndex, _, ok := decodeNodeIndex(payload, 8)
 		if !ok {
 			return eventSnapshot{}, false
 		}
 
 		return eventSnapshot{
 			Type:        "nodeFail",
+			NodeID:      nodeID,
 			FailureKind: uint32(payload[0]),
 			NodeIndex:   cloneNodeIndex(nodeIndex),
 		}, true
 	case eventKindCallbackFail:
-		if len(payload) < 8 {
+		if len(payload) < 12 {
 			return eventSnapshot{}, false
 		}
 
 		hook := uint32(payload[0])
-		nodeIndex, _, ok := decodeNodeIndex(payload, 4)
+		nodeID, _, ok := decodeUint32(payload, 4)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+		nodeIndex, _, ok := decodeNodeIndex(payload, 8)
 		if !ok {
 			return eventSnapshot{}, false
 		}
 
 		return eventSnapshot{
 			Type:        "callbackFail",
+			NodeID:      nodeID,
 			Hook:        hook,
 			FailureKind: uint32(payload[1]),
 			NodeIndex:   cloneNodeIndex(nodeIndex),
@@ -1919,12 +1993,8 @@ func equalNodeIndex(left []uint32, right []uint32) bool {
 }
 
 func createNodeSnapshotValue(env C.napi_env, node nodeSnapshot) (C.napi_value, bool) {
-	result, ok := createNodeEventObject(env, node.NodeIndex)
+	result, ok := createNodeEventObject(env, node.NodeIndex, node.NodeID)
 	if !ok {
-		return nil, false
-	}
-
-	if !setNamedProperty(env, result, "nodeId", createUint32(env, node.NodeID)) {
 		return nil, false
 	}
 	if !setNamedProperty(env, result, "parentNodeId", createUint32(env, node.ParentNodeID)) {
@@ -1994,13 +2064,13 @@ func createEventSnapshotValue(env C.napi_env, event eventSnapshot) (C.napi_value
 		}
 	case "nodeStart", "nodePass":
 		var ok bool
-		data, ok = createNodeEventObject(env, event.NodeIndex)
+		data, ok = createNodeEventObject(env, event.NodeIndex, event.NodeID)
 		if !ok {
 			return nil, false
 		}
 	case "nodeFail":
 		var ok bool
-		data, ok = createNodeEventObject(env, event.NodeIndex)
+		data, ok = createNodeEventObject(env, event.NodeIndex, event.NodeID)
 		if !ok {
 			return nil, false
 		}
@@ -2009,7 +2079,7 @@ func createEventSnapshotValue(env C.napi_env, event eventSnapshot) (C.napi_value
 		}
 	case "callbackStart", "callbackPass":
 		var ok bool
-		data, ok = createNodeEventObject(env, event.NodeIndex)
+		data, ok = createNodeEventObject(env, event.NodeIndex, event.NodeID)
 		if !ok {
 			return nil, false
 		}
@@ -2018,7 +2088,7 @@ func createEventSnapshotValue(env C.napi_env, event eventSnapshot) (C.napi_value
 		}
 	case "callbackFail":
 		var ok bool
-		data, ok = createNodeEventObject(env, event.NodeIndex)
+		data, ok = createNodeEventObject(env, event.NodeIndex, event.NodeID)
 		if !ok {
 			return nil, false
 		}
@@ -2038,11 +2108,8 @@ func createEventSnapshotValue(env C.napi_env, event eventSnapshot) (C.napi_value
 		}
 	case "diagnostic":
 		var ok bool
-		data, ok = createNodeEventObject(env, event.NodeIndex)
+		data, ok = createDiagnosticEventObject(env, event.NodeIndex, event.Message)
 		if !ok {
-			return nil, false
-		}
-		if !setNamedProperty(env, data, "message", createString(env, event.Message)) {
 			return nil, false
 		}
 	case "log":

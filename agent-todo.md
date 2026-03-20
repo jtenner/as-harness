@@ -20,7 +20,6 @@
 
 ### Stable Test Identity and Declaration Metadata
 
-- Add stable declaration IDs in the guest emission path and expose them through the ABI/events/report schema.
 - Keep `NodeIndex` as traversal-only (`discover`/`run`) and route planning/execution decisions through stable IDs.
 - Decide which metadata must be module-global and which remains structural-only, then update host, runner, and report models consistently.
 - Add a regression matrix for `only`/filtered shape drift to prove stable IDs remain resilient under replay.

@@ -104,7 +104,10 @@ function decodeNodeEvent(bytes) {
 		return null;
 	}
 
-	return { nodeIndex: decoded.nodeIndex };
+	return {
+		nodeIndex: decoded.nodeIndex,
+		nodeId: decodeUint32(bytes, decoded.offset)?.value ?? 0,
+	};
 }
 
 function decodeNodeFoundEvent(bytes) {
@@ -182,43 +185,45 @@ function decodeNodeFoundEvent(bytes) {
 }
 
 function decodeCallbackEvent(bytes) {
-	if (bytes.byteLength < 8) {
+	if (bytes.byteLength < 12) {
 		return null;
 	}
 
-	const decodedNodeIndex = decodeNodeIndex(bytes, 4);
+	const decodedNodeIndex = decodeNodeIndex(bytes, 8);
 	if (decodedNodeIndex === null) {
 		return null;
 	}
 
 	return {
 		hook: bytes[0],
+		nodeId: decodeUint32(bytes, 4)?.value ?? 0,
 		nodeIndex: decodedNodeIndex.nodeIndex,
 	};
 }
 
 function decodeNodeFailureEvent(bytes) {
-	if (bytes.byteLength < 8) {
+	if (bytes.byteLength < 12) {
 		return null;
 	}
 
-	const decodedNodeIndex = decodeNodeIndex(bytes, 4);
+	const decodedNodeIndex = decodeNodeIndex(bytes, 8);
 	if (decodedNodeIndex === null) {
 		return null;
 	}
 
 	return {
 		failureKind: bytes[0],
+		nodeId: decodeUint32(bytes, 4)?.value ?? 0,
 		nodeIndex: decodedNodeIndex.nodeIndex,
 	};
 }
 
 function decodeCallbackFailureEvent(bytes) {
-	if (bytes.byteLength < 8) {
+	if (bytes.byteLength < 12) {
 		return null;
 	}
 
-	const decodedNodeIndex = decodeNodeIndex(bytes, 4);
+	const decodedNodeIndex = decodeNodeIndex(bytes, 8);
 	if (decodedNodeIndex === null) {
 		return null;
 	}
@@ -226,6 +231,7 @@ function decodeCallbackFailureEvent(bytes) {
 	return {
 		hook: bytes[0],
 		failureKind: bytes[1],
+		nodeId: decodeUint32(bytes, 4)?.value ?? 0,
 		nodeIndex: decodedNodeIndex.nodeIndex,
 	};
 }

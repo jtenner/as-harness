@@ -40,21 +40,25 @@ export type HarnessNodeFoundEvent = HarnessNode;
 
 export interface HarnessNodeEvent {
 	nodeIndex: Array<number>;
+	nodeId: number;
 }
 
 export interface HarnessCallbackEvent {
 	hook: number;
 	nodeIndex: Array<number>;
+	nodeId: number;
 }
 
 export interface HarnessFailureEvent {
 	nodeIndex: Array<number>;
+	nodeId: number;
 	failureKind: number;
 }
 
 export interface HarnessCallbackFailureEvent {
 	hook: number;
 	nodeIndex: Array<number>;
+	nodeId: number;
 	failureKind: number;
 }
 
