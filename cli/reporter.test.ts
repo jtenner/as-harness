@@ -233,3 +233,122 @@ test("defaultRunReporter explains unexpected-pass expectFailure executions", () 
 		"  fail: expected failure passed unexpectedly",
 	);
 });
+
+test("defaultRunReporter prioritizes discovery failures over execution and blocked details", () => {
+	const messages = {
+		error: [] as string[],
+		info: [] as string[],
+	};
+	const logger: ReporterLogger = {
+		error(message) {
+			messages.error.push(message);
+		},
+		info(message) {
+			messages.info.push(message);
+		},
+	};
+	const report = createHarnessRunReport({
+		ok: false,
+		discoveryOk: false,
+		planningOk: true,
+		discoveredTestCount: 2,
+		topLevelNodes: [createNode("root", 0)],
+		workerCount: 1,
+		branches: [
+			{
+				root: createNode("root", 0),
+				discovery: {
+					ok: false,
+					nodes: [createNode("root", 0)],
+					testCount: 0,
+				},
+				executions: [
+					{
+						node: createNode("should never print", 1),
+						ok: false,
+						events: [],
+					},
+				],
+				ok: false,
+			},
+		],
+		planIssues: [
+			{
+				type: "missing-dependency",
+				targetIdentityKey: "id:1",
+				dependencyIdentityKey: "nodeId:2",
+			},
+		],
+		blocked: [],
+		coverage: null,
+	});
+
+	defaultRunReporter.accept(report, {
+		harnessName: "js",
+		logger,
+	});
+
+	expect(messages.error).toContain(
+		"Discovery failed while traversing the test tree with js.",
+	);
+	expect(messages.error).toContain("- root");
+	expect(messages.error).not.toContain(
+		"should never print",
+);
+	expect(messages.error).not.toContain("FAIL");
+});
+
+test("defaultRunReporter emits fallback failure text when a failing test has no fail message", () => {
+	const messages = {
+		error: [] as string[],
+		info: [] as string[],
+	};
+	const logger: ReporterLogger = {
+		error(message) {
+			messages.error.push(message);
+		},
+		info(message) {
+			messages.info.push(message);
+		},
+	};
+	const report = createHarnessRunReport({
+		ok: false,
+		discoveryOk: true,
+		planningOk: true,
+		discoveredTestCount: 1,
+		topLevelNodes: [createNode("root", 0)],
+		workerCount: 1,
+		branches: [
+			{
+				root: createNode("root", 0),
+				discovery: {
+					ok: true,
+					nodes: [createNode("root", 0), createNode("silent fail", 1)],
+					testCount: 1,
+				},
+				executions: [
+					{
+						node: createNode("silent fail", 1),
+						ok: false,
+						events: [],
+					},
+				],
+				ok: false,
+			},
+		],
+		planIssues: [],
+		blocked: [],
+		coverage: null,
+	});
+
+	defaultRunReporter.accept(report, {
+		harnessName: "js",
+		logger,
+	});
+
+	expect(messages.error).toContain(
+		"FAIL 0 passed, 1 failed, 1 discovered with js.",
+	);
+	expect(messages.error).toContain("- silent fail");
+	expect(messages.error).toContain("  fail: failed without a fail message");
+});
