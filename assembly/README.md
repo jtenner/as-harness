@@ -61,6 +61,10 @@ Explicitly deferred:
 
 - scheduler-step entrypoints beyond the current flat ABI
 
+For the current `v0.3.0` direction, host-owned graph scheduling still lowers
+onto the existing targeted `run()` primitive with staged `NodeIndex` values
+instead of adding extra scheduler-step guest exports.
+
 ## How Hosts Use It
 
 Hosts compile or receive Wasm built from this package and then:

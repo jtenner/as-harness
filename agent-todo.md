@@ -68,9 +68,6 @@ Remaining work:
   leak back into adapters
 - keep the updated host-runner and README contracts aligned if dependency
   policy, blocked semantics, or adapter surfaces change again
-- decide whether targeted replay stays as the execution primitive for `v0.3.0`
-  or whether scheduler-step entrypoints need to return earlier than previously
-  planned
 
 ### Native `as-harness` Adapter Surface
 

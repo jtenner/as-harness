@@ -738,6 +738,7 @@ test("evaluatePlannedExecution blocks downstream dependents after an unsatisfied
 test("decorateHarness can execute start() in-band and merge coverage snapshots", async () => {
 	let nextHarnessId = 1;
 	const runHarnessIds = [];
+	const runNodeIndexes = [];
 
 	function createCoverageSnapshot(id) {
 		return {
@@ -846,6 +847,7 @@ test("decorateHarness can execute start() in-band and merge coverage snapshots",
 			},
 			run(nodeIndex) {
 				runHarnessIds.push(harnessId);
+				runNodeIndexes.push(Array.isArray(nodeIndex) ? nodeIndex : []);
 				emit("nodeStart", {
 					nodeIndex: Array.isArray(nodeIndex) ? nodeIndex : [],
 				});
@@ -879,6 +881,7 @@ test("decorateHarness can execute start() in-band and merge coverage snapshots",
 	assert.equal(result.planningOk, true);
 	assert.equal(result.workerCount, 1);
 	assert.deepEqual(runHarnessIds, [2]);
+	assert.deepEqual(runNodeIndexes, [[0, 0]]);
 	assert.deepEqual(result.coverage, {
 		points: [
 			{ id: 1, file: "instance-1.ts", line: 1, column: 1, coverType: 1 },

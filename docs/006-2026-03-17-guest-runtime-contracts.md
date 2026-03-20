@@ -17,7 +17,9 @@ behind the public harness ABI. Use it together with
 - the current shipped ABI stays flat: `write_event(...)`,
   `invoke_staged()`, `allocateNodeIndexBuffer(...)`, `discover()`, `run()`,
   `invoke()`, and `__start`
-- scheduler-step entrypoints are explicitly deferred beyond `v0.2.0`
+- scheduler-step entrypoints remain deferred for the current `v0.3.0`
+  direction while host-owned scheduling still executes through targeted
+  `run()` replay on staged `NodeIndex` paths
 - adding scheduler-step entrypoints later would require an ABI update, host
   parity proof, and a backlog update across the docs
 

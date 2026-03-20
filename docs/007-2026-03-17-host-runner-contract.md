@@ -89,7 +89,8 @@ The current shipped orchestration contract is:
 2. treat those nodes as top-level branches
 3. rediscover each branch to collect its structurally visible nodes
 4. build a module-global execution plan from the discovered runnable tests
-5. execute planned runnable tests through one shared execution slot
+5. execute planned runnable tests through one shared execution slot by calling
+   targeted `run(nodeIndex)` on the planned replay handles
 6. aggregate the raw branch data into `HarnessStartResult`
 
 Field-level contract:
@@ -116,6 +117,9 @@ Field-level contract:
   in-band without a dedicated worker thread
 - `coverage` is either the merged snapshot for the run or `null` when coverage
   was not requested
+- scheduler-step entrypoints are not part of the current shipped contract; the
+  `v0.3.0` direction keeps targeted replay as the execution primitive while the
+  host-owned scheduler settles
 
 Dependency policy:
 
