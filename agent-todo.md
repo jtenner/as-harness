@@ -20,7 +20,6 @@
   - add blocked/cycle/missing-dependency reporting semantics to the shared result shape
   - prove the graph planner through `js`, `wazero`, and `wasmtime` integration tests
 - Host contract and runner reshape
-- Native `as-harness` adapter surface
 
 ### Risks
 
@@ -30,7 +29,3 @@
 ### Host Contract and Runner Reshape
 
 - Keep `CHANGELOG.md`/release notes ready for API-visible contract changes
-
-### Native `as-harness` Adapter Surface
-
-- Define concise reporter copy for blocked/cycle/missing-dependency outcomes

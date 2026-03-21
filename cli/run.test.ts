@@ -264,7 +264,9 @@ test("dependency blocked dependent", (_context: TestContext): void => {}).depend
 					"  fail: guest dependency prereq mismatch",
 				);
 				expect(result.stderr).toContain("- dependency blocked dependent");
-				expect(result.stderr).toContain("  blocked: blocked-dependency (id:1)");
+				expect(result.stderr).toContain(
+					"  blocked: blocked by prerequisite (id:1)",
+				);
 			},
 		);
 	});
@@ -305,17 +307,17 @@ test("dependency todo dependent", (_context: TestContext): void => {}).dependsOn
 				);
 				expect(result.stderr).toContain("- dependency skipped dependent");
 				expect(result.stderr).toContain(
-					"  blocked: missing-dependency (nodeId:1)",
+					"  blocked: missing prerequisite (nodeId:1)",
 				);
 				expect(result.stderr).toContain("- dependency todo dependent");
 				expect(result.stderr).toContain(
-					"  blocked: missing-dependency (nodeId:3)",
+					"  blocked: missing prerequisite (nodeId:3)",
 				);
 				expect(result.stderr).toContain(
-					"  issue: missing-dependency (id:2 <- nodeId:1)",
+					"  issue: missing prerequisite (id:2 <- nodeId:1)",
 				);
 				expect(result.stderr).toContain(
-					"  issue: missing-dependency (id:4 <- nodeId:3)",
+					"  issue: missing prerequisite (id:4 <- nodeId:3)",
 				);
 			},
 		);
@@ -354,7 +356,9 @@ test(
 				expect(result.stderr).toContain(
 					"- dependency unexpected pass dependent",
 				);
-				expect(result.stderr).toContain("  blocked: blocked-dependency (id:1)");
+				expect(result.stderr).toContain(
+					"  blocked: blocked by prerequisite (id:1)",
+				);
 			},
 		);
 	});
@@ -395,10 +399,10 @@ test("dependency only parent", (context: TestContext): void => {
 				);
 				expect(result.stderr).toContain("- dependency only included dependent");
 				expect(result.stderr).toContain(
-					"  blocked: missing-dependency (nodeId:2)",
+					"  blocked: missing prerequisite (nodeId:2)",
 				);
 				expect(result.stderr).toContain(
-					"  issue: missing-dependency (id:1/id:3 <- nodeId:2)",
+					"  issue: missing prerequisite (id:1/id:3 <- nodeId:2)",
 				);
 			},
 		);
@@ -451,10 +455,10 @@ first.dependsOn(second);
 					`FAIL 0 passed, 0 failed, 2 blocked, 2 discovered with ${harnessName}.`,
 				);
 				expect(result.stderr).toContain("- cycle a");
-				expect(result.stderr).toContain("  blocked: dependency-cycle");
+				expect(result.stderr).toContain("  blocked: dependency cycle");
 				expect(result.stderr).toContain("- cycle b");
-				expect(result.stderr).toContain("  issue: dependency-cycle (id:1)");
-				expect(result.stderr).toContain("  issue: dependency-cycle (id:2)");
+				expect(result.stderr).toContain("  issue: dependency cycle (id:1)");
+				expect(result.stderr).toContain("  issue: dependency cycle (id:2)");
 				expect(result.stderr).not.toContain("missing-dependency");
 				expect(result.stderr).not.toContain("blocked-dependency");
 			},
@@ -542,30 +546,32 @@ test("dependency only parent", (context: TestContext): void => {
 				expect(result.stderr).toContain(
 					"- dependency unexpected pass dependent",
 				);
-				expect(result.stderr).toContain("  blocked: blocked-dependency (id:3)");
+				expect(result.stderr).toContain(
+					"  blocked: blocked by prerequisite (id:3)",
+				);
 				expect(result.stderr).toContain("- dependency skipped dependent");
 				expect(result.stderr).toContain(
-					"  blocked: missing-dependency (nodeId:5)",
+					"  blocked: missing prerequisite (nodeId:5)",
 				);
 				expect(result.stderr).toContain("- dependency todo dependent");
 				expect(result.stderr).toContain(
-					"  blocked: missing-dependency (nodeId:7)",
+					"  blocked: missing prerequisite (nodeId:7)",
 				);
 				expect(result.stderr).toContain("- dependency only included dependent");
 				expect(result.stderr).toContain(
-					"  blocked: missing-dependency (nodeId:10)",
+					"  blocked: missing prerequisite (nodeId:10)",
 				);
 				expect(result.stderr).not.toContain(
 					"  issue: blocked-dependency (id:4 <- id:3)",
 				);
 				expect(result.stderr).toContain(
-					"  issue: missing-dependency (id:6 <- nodeId:5)",
+					"  issue: missing prerequisite (id:6 <- nodeId:5)",
 				);
 				expect(result.stderr).toContain(
-					"  issue: missing-dependency (id:8 <- nodeId:7)",
+					"  issue: missing prerequisite (id:8 <- nodeId:7)",
 				);
 				expect(result.stderr).toContain(
-					"  issue: missing-dependency (id:9/id:11 <- nodeId:10)",
+					"  issue: missing prerequisite (id:9/id:11 <- nodeId:10)",
 				);
 			},
 		);

@@ -130,9 +130,85 @@ test("defaultRunReporter prints blocked failures distinctly when blocked tests e
 		"FAIL 0 passed, 0 failed, 1 blocked, 1 discovered with js.",
 	);
 	expect(messages.error).toContain("- blocked test");
-	expect(messages.error).toContain("  blocked: blocked-dependency (id:1)");
+	expect(messages.error).toContain("  blocked: blocked by prerequisite (id:1)");
 	expect(messages.error).toContain(
-		"  issue: missing-dependency (id:2 <- id:missing)",
+		"  issue: missing prerequisite (id:2 <- id:missing)",
+	);
+});
+
+test("defaultRunReporter uses concise copy for cycle and missing-prerequisite outcomes", () => {
+	const messages = {
+		error: [] as string[],
+		info: [] as string[],
+	};
+	const logger: ReporterLogger = {
+		error(message) {
+			messages.error.push(message);
+		},
+		info(message) {
+			messages.info.push(message);
+		},
+	};
+	const report = createHarnessRunReport({
+		ok: false,
+		discoveryOk: true,
+		planningOk: false,
+		discoveredTestCount: 2,
+		topLevelNodes: [createNode("root", 0)],
+		workerCount: 1,
+		branches: [
+			{
+				root: createNode("root", 0),
+				discovery: {
+					ok: true,
+					nodes: [createNode("root", 0)],
+					testCount: 0,
+				},
+				executions: [],
+				ok: true,
+			},
+		],
+		planIssues: [
+			{
+				type: "dependency-cycle",
+				targetIdentityKey: "id:1",
+				dependencyIdentityKey: "",
+			},
+			{
+				type: "missing-dependency",
+				targetIdentityKey: "id:2",
+				dependencyIdentityKey: "nodeId:7",
+			},
+		],
+		blocked: [
+			{
+				node: createNode("cycle member", 1),
+				issueType: "dependency-cycle",
+				dependencyIdentityKey: "",
+			},
+			{
+				node: createNode("missing prereq", 2),
+				issueType: "missing-dependency",
+				dependencyIdentityKey: "nodeId:7",
+			},
+		],
+		coverage: null,
+	});
+
+	defaultRunReporter.accept(report, {
+		harnessName: "js",
+		logger,
+	});
+
+	expect(messages.error).toContain("- cycle member");
+	expect(messages.error).toContain("  blocked: dependency cycle");
+	expect(messages.error).toContain("- missing prereq");
+	expect(messages.error).toContain(
+		"  blocked: missing prerequisite (nodeId:7)",
+	);
+	expect(messages.error).toContain("  issue: dependency cycle (id:1)");
+	expect(messages.error).toContain(
+		"  issue: missing prerequisite (id:2 <- nodeId:7)",
 	);
 });
 

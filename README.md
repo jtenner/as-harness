@@ -12,7 +12,7 @@ Implemented:
 - Synchronous `node:test` declarations with `dependsOn(...)` chains.
 - `node:assert` / `node:assert/strict` bridge support.
 - Built-in thin adapters for `jest` and `vitest`.
-- Stable start-reporting pipeline with branch, execution, planning, and blocked-dependency details.
+- Stable start-reporting pipeline with branch, execution, planning, and blocked-outcome details.
 - `js`, `wazero`, `wasmtime` source-host runtime support.
 - Coverage output in `text`, `json`, `yaml`, `csv`, `lcov`, `cobertura`.
 
@@ -40,6 +40,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `skip`, `todo`, `only`-filtered, and failing prerequisites block dependents transitively.
 - `expectFailure` satisfies dependents only when it fails as intended.
 - dependency cycles block all cycle members with `dependency-cycle` diagnostics.
+- CLI reports blocked outcomes as concise `blocked by prerequisite`, `missing prerequisite`, and `dependency cycle` messages.
 - when multiple runnable tests are ready, declaration order is the stable tie-breaker.
 - the shipped `start()` scheduler is deterministic for ordering and uses same-machine worker slots for ready work when available.
 

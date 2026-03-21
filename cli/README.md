@@ -32,7 +32,7 @@ Default reporting summarizes:
 
 - counts, passes/failures, and diagnostics
 - planner status from `discoveryOk`, `planningOk`, and `workerCount`
-- blocked runs (`missing-dependency`, `blocked-dependency`, `dependency-cycle`)
+- blocked runs rendered as `missing prerequisite`, `blocked by prerequisite`, and `dependency cycle`
 - coverage after execution (when enabled)
 
 ## Bundled Libraries

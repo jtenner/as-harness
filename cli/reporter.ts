@@ -226,6 +226,33 @@ function getFallbackFailureMessage(execution: HarnessExecutionReport) {
 	return "failed without a fail message";
 }
 
+function formatIssueLabel(type: string) {
+	switch (type) {
+		case "blocked-dependency":
+			return "blocked by prerequisite";
+		case "missing-dependency":
+			return "missing prerequisite";
+		case "dependency-cycle":
+			return "dependency cycle";
+		default:
+			return type;
+	}
+}
+
+function formatBlockedMessage(blocked: HarnessBlockedNode) {
+	const label = formatIssueLabel(blocked.issueType);
+	return blocked.dependencyIdentityKey.length > 0
+		? `  blocked: ${label} (${blocked.dependencyIdentityKey})`
+		: `  blocked: ${label}`;
+}
+
+function formatPlanIssueMessage(issue: HarnessPlanIssue) {
+	const label = formatIssueLabel(issue.type);
+	return issue.dependencyIdentityKey.length > 0
+		? `  issue: ${label} (${issue.targetIdentityKey} <- ${issue.dependencyIdentityKey})`
+		: `  issue: ${label} (${issue.targetIdentityKey})`;
+}
+
 export const defaultRunReporter: RunReporter = {
 	accept(report, context) {
 		const { harnessName, logger } = context;
@@ -276,11 +303,7 @@ export const defaultRunReporter: RunReporter = {
 
 			for (const blocked of report.blocked) {
 				logger.error(`- ${blocked.node.name}`);
-				logger.error(
-					blocked.dependencyIdentityKey.length > 0
-						? `  blocked: ${blocked.issueType} (${blocked.dependencyIdentityKey})`
-						: `  blocked: ${blocked.issueType}`,
-				);
+				logger.error(formatBlockedMessage(blocked));
 			}
 
 			for (const issue of report.planIssues) {
@@ -288,11 +311,7 @@ export const defaultRunReporter: RunReporter = {
 					continue;
 				}
 
-				logger.error(
-					issue.dependencyIdentityKey.length > 0
-						? `  issue: ${issue.type} (${issue.targetIdentityKey} <- ${issue.dependencyIdentityKey})`
-						: `  issue: ${issue.type} (${issue.targetIdentityKey})`,
-				);
+				logger.error(formatPlanIssueMessage(issue));
 			}
 
 			return;
