@@ -5,6 +5,21 @@
 ### Blockers
 
 - Graph-aware scheduling semantics
+  - make stable node identity real in shared discovery/planning inputs
+  - capture declaration-order and sequence metadata during discovery
+  - write and keep pure host-side graph planner tests for:
+    - topological ordering with declaration-order tie-breaking
+    - sequential-group lowering
+    - duplicate-edge collapse
+    - cycle detection
+    - missing dependency detection
+    - blocked propagation
+    - `fails` prerequisite satisfaction rules
+    - `only`, `skip`, and `todo` interaction rules
+  - extend host event/type decoding so stable IDs and planner metadata survive replay
+  - switch `start()` to module-global graph planning instead of branch-local execution assumptions
+  - add blocked/cycle/missing-dependency reporting semantics to the shared result shape
+  - prove the graph planner through `js`, `wazero`, and `wasmtime` integration tests
 - Host contract and runner reshape
 - Native `as-harness` adapter surface
 
