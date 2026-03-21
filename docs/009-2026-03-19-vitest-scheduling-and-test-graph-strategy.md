@@ -321,6 +321,11 @@ instead of fighting the current worker partitioning.
 
 ## Suggested Contract Changes
 
+Most of this contract work has now landed in the shipped `v0.3.0` surface:
+stable node identity, declaration-order and sequence metadata, shared blocked
+diagnostics, module-global planning, and same-machine ready-stage execution are
+all present in the current host contract and proof suite.
+
 Guest/runtime side:
 
 - add stable node identity
@@ -402,6 +407,15 @@ without recompiling Wasm fixtures for every case.
 - targeted discovery and targeted run still work while the graph planner is
   present
 
+That proof now exists in the current repo through:
+
+- `harness/shared/smoke-suite.cjs`
+- `harness/shared/start-planner-smoke.cjs`
+- `harness/shared/start.test.cjs`
+- `harness/js/test/smoke.host.cjs`
+- `harness/wazero/test/smoke.host.cjs`
+- `harness/wasmtime/test/smoke.host.cjs`
+
 ### CLI Smoke Tests
 
 - sequential-group execution order
@@ -411,6 +425,9 @@ without recompiling Wasm fixtures for every case.
 - cycle-report smoke
 
 ## Recommended Implementation Order
+
+This implementation order is now effectively complete for the first shipped
+graph-aware scheduler slice:
 
 1. make stable node identity real
 2. capture declaration order and sequence metadata
@@ -423,13 +440,13 @@ without recompiling Wasm fixtures for every case.
 
 ## Practical Conclusion
 
-For `v0.3.0`, the right blocker stack is:
+For `v0.3.0`, this blocker stack was the right order:
 
 - stable IDs first
 - host-owned planning second
 - sequential groups before arbitrary dependency APIs
 - blocked semantics and diagnostics before any concurrency claims
 
-Without that order, the project risks shipping attractive adapter syntax on top
-of unstable replay identity and branch-local scheduling assumptions that will
-have to be broken immediately afterward.
+That order is now the shipped basis for the current `as-harness` scheduler and
+native adapter surface. Future scheduler work should build on the existing
+proof instead of reopening these completed blocker items in `agent-todo.md`.

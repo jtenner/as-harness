@@ -2,6 +2,7 @@
 
 ## 2026-03-21
 
+- **docs: retire the stale graph-aware scheduling blocker list** Clear the remaining shipped graph-scheduler bullets from `agent-todo.md`, mark the Vitest scheduling strategy note as historical guidance for the now-landed `v0.3.0` planner slice, and keep the live backlog focused only on real unreleased work. GitHub: *@jtenner*
 - **proof: add direct planner coverage for only-filtered prerequisites** Extend the pure shared planner tests so `only`-filtered prerequisite declarations now lock into the same missing-dependency behavior already proved for `skip` and `todo`, refresh the host-runner proof note, and retire the completed pure-planner checklist item from the live backlog. GitHub: *@jtenner*
 - **contract: require detached `start()` metadata snapshots** Tighten `HarnessStartResult` so shipped hosts always return a required `metadata` snapshot, clone the shared summary fields so `metadata` no longer aliases the top-level arrays, remove obsolete reporter fallback logic, prove the new contract through shared smoke coverage, and retire the completed host-contract backlog item. GitHub: *@jtenner*
 - **contract: add concise issue labels to shared planning results** Extend `HarnessPlanIssue` and `HarnessBlockedNode` with shipped `issueLabel` fields, populate them from the shared scheduler, prove the new result shape through shared smoke and reporter coverage, and remove the completed backlog item for blocked-result semantics. GitHub: *@jtenner*
