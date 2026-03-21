@@ -208,7 +208,8 @@ The current parity proof for this contract is:
   [harness/shared/start-planner-smoke.cjs](../harness/shared/start-planner-smoke.cjs)
   and [harness/shared/start.test.cjs](../harness/shared/start.test.cjs),
   including declaration-order tie-breaking, duplicate-edge collapse, cycle
-  detection, and in-band metadata snapshot detachment
+  detection, expected-failure prerequisite satisfaction, skip/todo/only-filtered
+  missing-prerequisite coverage, and in-band metadata snapshot detachment
 - CLI run coverage in
   [cli/run.test.ts](../cli/run.test.ts), including guest-declared dependency
   success, blocked, and missing-dependency reporting through the shipped

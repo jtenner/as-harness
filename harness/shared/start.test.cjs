@@ -987,6 +987,65 @@ test("planExecutionStages treats todo dependency declarations as missing depende
 	]);
 });
 
+test("planExecutionStages treats only-filtered dependency declarations as missing dependency targets", () => {
+	const root = createPlannerNode({
+		identityKey: "id:68",
+		nodeId: 68,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const onlyParent = createPlannerNode({
+		identityKey: "id:68/id:69",
+		parentIdentityKey: "id:68",
+		nodeId: 69,
+		parentNodeId: 68,
+		declarationOrder: 1,
+		kind: 2,
+		name: "only parent",
+	});
+	const ready = createPlannerNode({
+		identityKey: "id:68/id:70",
+		parentIdentityKey: "id:68",
+		nodeId: 70,
+		parentNodeId: 68,
+		declarationOrder: 2,
+		name: "ready test",
+	});
+	const onlyIncludedDependent = createPlannerNode({
+		identityKey: "id:68/id:69/id:72",
+		parentIdentityKey: "id:68/id:69",
+		nodeId: 72,
+		parentNodeId: 69,
+		declarationOrder: 4,
+		dependencyNodeIds: [71],
+		only: true,
+		name: "only included dependent",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [root, onlyParent, ready, onlyIncludedDependent]),
+	]);
+
+	assert.equal(plan.complete, false);
+	assert.deepEqual(
+		plan.stages.map((stage) => stage.map((target) => target.node.name)),
+		[["ready test"]],
+	);
+	assert.deepEqual(
+		plan.blockedTargets.map((target) => target.node.name),
+		["only included dependent"],
+	);
+	assert.deepEqual(plan.issues, [
+		{
+			type: "missing-dependency",
+			issueLabel: "missing prerequisite",
+			targetIdentityKey: "id:68/id:69/id:72",
+			dependencyIdentityKey: "nodeId:71",
+		},
+	]);
+});
+
 test("planExecutionStages resolves dependencyNodeIds through ancestor scopes", () => {
 	const root = createPlannerNode({
 		identityKey: "id:90",
