@@ -2,6 +2,7 @@
 
 ## 2026-03-20
 
+- **docs: codify the dependency-cycle blocked diagnostic shape** Clarify in the host-runner contract and README that cycle members block as `dependency-cycle` with an explicit blank dependency identity key, and remove the completed backlog item. GitHub: *@jtenner*
 - **docs: finalize dependency outcome wording and retire the backlog item** Clarify in the root README and host-runner contract that failing or trapping prerequisites block dependents transitively, while skip/todo/filtered prerequisites surface as `missing-dependency`, and remove the completed live-backlog entry. GitHub: *@jtenner*
 - **reporter: surface shared run metadata and packaged command results** Add a module-global `metadata` snapshot to the shared start result, thread that metadata through the CLI run report, teach the packaged command runner to persist its JSON payload to a caller-provided result path, and refresh the smoke coverage and host contract notes to match the new orchestration surface. GitHub: *@jtenner*
 

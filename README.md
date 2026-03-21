@@ -38,7 +38,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - duplicate dependency edges collapse.
 - `skip`, `todo`, `only`-filtered, and failing prerequisites block dependents transitively.
 - `expectFailure` satisfies dependents only when it fails as intended.
-- dependency cycles block all cycle members.
+- dependency cycles block all cycle members with `dependency-cycle` diagnostics.
 
 ## API Surface
 

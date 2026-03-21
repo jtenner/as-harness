@@ -139,7 +139,8 @@ Dependency policy:
   `blocked-dependency`
 - a skipped, todo, filtered-out, or otherwise undiscovered prerequisite blocks
   its dependents with `missing-dependency`
-- dependency cycles block each participating node with `dependency-cycle`
+- dependency cycles block each participating node with `dependency-cycle`,
+  with a blank dependency identity key on the blocked diagnostic
 - when multiple runnable nodes are otherwise ready at the same time, the lowest
   declaration order runs first
 - blocked tests are distinct from skipped tests in reporting because the user
@@ -204,7 +205,8 @@ The current parity proof for this contract is:
   success, blocked, and missing-dependency reporting through the shipped
   `js`, `wazero`, and source-built `wasmtime` hosts, plus the documented
   `skip`, `todo`, `only`-filtered, expected-failure, duplicate-edge,
-  blocked-propagation, and dependency-cycle matrix
+  blocked-propagation, and dependency-cycle matrix with explicit blocked
+  cycle-member diagnostics
 - package-local host tests in `harness/js`, `harness/wazero`, and
   `harness/wasmtime`
 - the CI source-host matrix and packaged verification flow described in

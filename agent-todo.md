@@ -18,7 +18,6 @@
 ### Graph-Aware Scheduling Semantics
 
 - Define planner tie-breakers for ready-queue ordering (`declarationOrder` vs branch order)
-- Codify cycle behavior and one explicit blocked diagnostic shape for cycle participants
 
 ### Host Contract and Runner Reshape
 
