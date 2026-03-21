@@ -262,6 +262,48 @@ test("planExecutionStages resolves dependencyNodeIds onto discovered targets", (
 	assert.deepEqual(plan.issues, []);
 });
 
+test("planExecutionStages collapses duplicate dependency edges from mixed metadata", () => {
+	const root = createPlannerNode({
+		identityKey: "id:26",
+		nodeId: 26,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const prereq = createPlannerNode({
+		identityKey: "id:26/id:27",
+		parentIdentityKey: "id:26",
+		nodeId: 27,
+		parentNodeId: 26,
+		declarationOrder: 1,
+		name: "prereq",
+	});
+	const dependent = createPlannerNode({
+		identityKey: "id:26/id:28",
+		parentIdentityKey: "id:26",
+		nodeId: 28,
+		parentNodeId: 26,
+		declarationOrder: 2,
+		dependencyKeys: ["id:26/id:27", "id:26/id:27"],
+		dependencyNodeIds: [27, 27],
+		name: "dependent",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [root, prereq, dependent]),
+	]);
+
+	assert.equal(plan.complete, true);
+	assert.deepEqual(
+		plan.stages.map((stage) => stage.map((target) => target.node.name)),
+		[["prereq"], ["dependent"]],
+	);
+	assert.deepEqual(Array.from(plan.adjacency.get("id:26/id:27") || []), [
+		"id:26/id:28",
+	]);
+	assert.deepEqual(plan.issues, []);
+});
+
 test("planExecutionStages applies global topological ordering with declaration-order tie-breaks", () => {
 	const firstRoot = createPlannerNode({
 		identityKey: "id:80",

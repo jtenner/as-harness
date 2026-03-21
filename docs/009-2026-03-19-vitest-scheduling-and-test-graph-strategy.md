@@ -386,7 +386,7 @@ This feature needs more than smoke tests.
 
 - topological sorting with declaration-order tie-breaking
 - sequential-group lowering into ordering constraints
-- duplicate-edge collapse
+- duplicate-edge collapse, covered in `harness/shared/start.test.cjs`
 - cycle detection
 - missing dependency detection
 - blocked propagation

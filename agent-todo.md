@@ -10,7 +10,6 @@
   - write and keep pure host-side graph planner tests for:
     - topological ordering with declaration-order tie-breaking
     - sequential-group lowering
-    - duplicate-edge collapse
     - cycle detection
     - missing dependency detection
     - blocked propagation

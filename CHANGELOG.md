@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-03-21
+
+- **proof: add direct duplicate-edge planner coverage** Add a shared planner regression test that proves mixed dependency metadata collapses to one execution edge, retire the stale duplicate-edge blocker from `agent-todo.md`, and align the graph-planning strategy note with the concrete unit coverage. GitHub: *@jtenner*
+
 ## 2026-03-20
 
 - **proof: add direct planner edge-case coverage for filtered prerequisites and ancestor node IDs** Extend the shared planner unit tests to cover `todo` prerequisites as missing dependencies and dependency-node-id resolution through ancestor scopes, then remove the stale planner coverage risk from the live backlog. GitHub: *@jtenner*
