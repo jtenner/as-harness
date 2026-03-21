@@ -2,6 +2,7 @@
 
 ## 2026-03-20
 
+- **docs: align the host READMEs with the planner-shaped scheduler report** Update the package READMEs and CLI report notes so `start()` is described as deterministic planning plus same-machine worker slots and the CLI report docs mention `discoveryOk`, `planningOk`, and `workerCount`, then remove the completed backlog item. GitHub: *@jtenner*
 - **docs: annotate the host types with the ready-work scheduling policy** Add JSDoc to the shared `workerCount` fields so the `harness/shared/harness-types.d.ts` surface explicitly states that ready work consumes same-machine execution slots, and remove the completed backlog item. GitHub: *@jtenner*
 - **docs: let the module-global scheduler fan out ready work in parallel** Clarify in the host-runner contract, Vitest scheduling note, and README that shipped `start()` keeps deterministic ordering but uses same-machine worker slots for independent ready work, and remove the completed backlog item. GitHub: *@jtenner*
 - **docs: pin declaration-order tie-breaking for ready scheduling** Clarify in the host-runner contract and README that declaration order is the stable ready-queue tie-breaker across branches after dependency and sequential constraints, and remove the completed backlog item. GitHub: *@jtenner*

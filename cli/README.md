@@ -31,6 +31,7 @@ The host contract is `Runtime` in [types.ts](./runtime/types.ts). The wire ABI i
 Default reporting summarizes:
 
 - counts, passes/failures, and diagnostics
+- planner status from `discoveryOk`, `planningOk`, and `workerCount`
 - blocked runs (`missing-dependency`, `blocked-dependency`, `dependency-cycle`)
 - coverage after execution (when enabled)
 

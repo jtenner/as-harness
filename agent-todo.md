@@ -17,7 +17,6 @@
 
 ### Host Contract and Runner Reshape
 
-- Align `cli`, `harness/*`, and reporter outputs with planner fields before the next commit
 - Keep `CHANGELOG.md`/release notes ready for API-visible contract changes
 
 ### Native `as-harness` Adapter Surface

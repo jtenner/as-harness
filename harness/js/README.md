@@ -13,7 +13,7 @@ Portable JavaScript host for the shared runtime contract.
 `createHarness(bytes)` returns a shared `Harness` instance with:
 
 - `discover` / `run` stage/replay by `NodeIndex`
-- `start()` orchestration through shared in-band scheduling
+- `start()` orchestration through shared deterministic planning plus same-machine worker slots
 - event callbacks and report-tree aggregation
 - coverage collection merge/snapshot reset
 - optional `close()`
@@ -29,7 +29,7 @@ Portable JavaScript host for the shared runtime contract.
 ## Testing and Notes
 
 - shared host smoke suites are shared with `wazero` and `wasmtime`.
-- package-local extra checks focus on JS-specific in-band `start()` behavior.
+- package-local extra checks focus on JS-specific `start()` scheduling and report-shape behavior.
 
 ```bash
 cd harness/js

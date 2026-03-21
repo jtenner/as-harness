@@ -15,7 +15,7 @@ Proves the ABI is not tied to one runtime language by implementing the same shar
 - compile and instantiate Wasm via wazero
 - mirror JS host wire decoding and callback registration
 - expose `callI32`, `discover`, `run`
-- run shared `start()` in-band through `harness/shared/start.cjs`
+- run shared `start()` through `harness/shared/start.cjs` with same-machine worker slots for ready work
 - provide persistent coverage snapshots (`getCoverageSnapshot` / `resetCoverage`)
 - explicit `close()` to release native resources promptly
 
