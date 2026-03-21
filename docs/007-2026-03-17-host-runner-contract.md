@@ -122,9 +122,9 @@ Field-level contract:
   for ready work when parallel capacity is available
 - `coverage` is either the merged snapshot for the run or `null` when coverage
   was not requested
-- module-global orchestration metadata is also available as
-  `start().then(result => result.metadata)` and contains the same values as the
-  top-level run summary fields
+- `start().then(result => result.metadata)` is a required detached snapshot of
+  the module-global orchestration summary and contains the same values as the
+  top-level run summary fields without sharing those mutable arrays
 - scheduler-step entrypoints are not part of the current shipped contract; the
   `v0.3.0` direction keeps targeted replay as the execution primitive while the
   host-owned scheduler settles
@@ -203,11 +203,12 @@ The current parity proof for this contract is:
 
 - shared smoke coverage in
   [harness/shared/smoke-suite.cjs](../harness/shared/smoke-suite.cjs)
+  including the required `result.metadata` snapshot mirror proof
 - shared planner-focused smoke coverage in
   [harness/shared/start-planner-smoke.cjs](../harness/shared/start-planner-smoke.cjs)
   and [harness/shared/start.test.cjs](../harness/shared/start.test.cjs),
-  including declaration-order tie-breaking, duplicate-edge collapse, and cycle
-  detection
+  including declaration-order tie-breaking, duplicate-edge collapse, cycle
+  detection, and in-band metadata snapshot detachment
 - CLI run coverage in
   [cli/run.test.ts](../cli/run.test.ts), including guest-declared dependency
   success, blocked, and missing-dependency reporting through the shipped

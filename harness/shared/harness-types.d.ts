@@ -156,7 +156,7 @@ export interface HarnessBranch {
 }
 
 export interface HarnessStartResult {
-	metadata?: HarnessRunMetadata;
+	metadata: HarnessRunMetadata;
 	ok: boolean;
 	discoveryOk: boolean;
 	planningOk: boolean;

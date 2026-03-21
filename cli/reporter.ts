@@ -156,23 +156,14 @@ function toExecutionReport(
 export function createHarnessRunReport(
 	result: HarnessStartResult,
 ): HarnessRunReport {
-	const metadata: HarnessRunMetadata = result.metadata ?? {
-		ok: result.ok,
-		discoveryOk: result.discoveryOk,
-		planningOk: result.planningOk,
-		discoveredTestCount: result.discoveredTestCount,
-		topLevelNodes: result.topLevelNodes.slice(),
-		workerCount: result.workerCount,
-		planIssues: result.planIssues.slice(),
-		blocked: result.blocked.slice(),
-		coverage: result.coverage,
-	};
+	const metadata: HarnessRunMetadata = result.metadata;
 	const branches = result.branches.map((branch) => ({
 		discovery: branch.discovery,
 		executions: branch.executions.map(toExecutionReport),
 		ok: branch.ok,
 		root: branch.root,
 	}));
+	const blocked = metadata.blocked.slice();
 	const discoveryFailures = branches
 		.filter((branch) => !branch.discovery.ok)
 		.map((branch) => branch.root);
@@ -193,8 +184,8 @@ export function createHarnessRunReport(
 	return {
 		metadata,
 		branches,
-		blocked: metadata.blocked,
-		blockedTestCount: metadata.blocked.length,
+		blocked,
+		blockedTestCount: blocked.length,
 		discoveredTestCount: metadata.discoveredTestCount,
 		discoveryFailures,
 		discoveryOk: metadata.discoveryOk,

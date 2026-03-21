@@ -4,6 +4,10 @@ import {
 	defaultRunReporter,
 	type ReporterLogger,
 } from "./reporter";
+import type {
+	HarnessRunMetadata,
+	HarnessStartResult,
+} from "../harness/shared/harness-types";
 
 function createNode(name: string, declarationOrder = 0, expectFailure = false) {
 	return {
@@ -20,9 +24,44 @@ function createNode(name: string, declarationOrder = 0, expectFailure = false) {
 	};
 }
 
+function createStartResult(
+	overrides: Partial<Omit<HarnessStartResult, "metadata">>,
+	metadataOverrides: Partial<HarnessRunMetadata> = {},
+): HarnessStartResult {
+	const result = {
+		ok: true,
+		discoveryOk: true,
+		planningOk: true,
+		discoveredTestCount: 0,
+		topLevelNodes: [createNode("root", 0)],
+		workerCount: 1,
+		branches: [],
+		planIssues: [],
+		blocked: [],
+		coverage: null,
+		...overrides,
+	};
+
+	return {
+		...result,
+		metadata: {
+			ok: result.ok,
+			discoveryOk: result.discoveryOk,
+			planningOk: result.planningOk,
+			discoveredTestCount: result.discoveredTestCount,
+			topLevelNodes: result.topLevelNodes,
+			workerCount: result.workerCount,
+			planIssues: result.planIssues,
+			blocked: result.blocked,
+			coverage: result.coverage,
+			...metadataOverrides,
+		},
+	};
+}
+
 test("createHarnessRunReport preserves blocked nodes and planning issues", () => {
 	const blockedNode = createNode("blocked test", 1);
-	const result = {
+	const result = createStartResult({
 		ok: false,
 		discoveryOk: true,
 		planningOk: false,
@@ -58,7 +97,7 @@ test("createHarnessRunReport preserves blocked nodes and planning issues", () =>
 			},
 		],
 		coverage: null,
-	};
+	});
 
 	const report = createHarnessRunReport(result);
 
@@ -81,49 +120,51 @@ test("defaultRunReporter prints blocked failures distinctly when blocked tests e
 			messages.info.push(message);
 		},
 	};
-	const report = createHarnessRunReport({
-		ok: false,
-		discoveryOk: true,
-		planningOk: false,
-		discoveredTestCount: 1,
-		topLevelNodes: [createNode("root", 0)],
-		workerCount: 1,
-		branches: [
-			{
-				root: createNode("root", 0),
-				discovery: {
+	const report = createHarnessRunReport(
+		createStartResult({
+			ok: false,
+			discoveryOk: true,
+			planningOk: false,
+			discoveredTestCount: 1,
+			topLevelNodes: [createNode("root", 0)],
+			workerCount: 1,
+			branches: [
+				{
+					root: createNode("root", 0),
+					discovery: {
+						ok: true,
+						nodes: [createNode("root", 0)],
+						testCount: 0,
+					},
+					executions: [],
 					ok: true,
-					nodes: [createNode("root", 0)],
-					testCount: 0,
 				},
-				executions: [],
-				ok: true,
-			},
-		],
-		planIssues: [
-			{
-				type: "blocked-dependency",
-				issueLabel: "blocked by prerequisite",
-				targetIdentityKey: "id:2",
-				dependencyIdentityKey: "id:1",
-			},
-			{
-				type: "missing-dependency",
-				issueLabel: "missing prerequisite",
-				targetIdentityKey: "id:2",
-				dependencyIdentityKey: "id:missing",
-			},
-		],
-		blocked: [
-			{
-				node: createNode("blocked test", 1),
-				issueType: "blocked-dependency",
-				issueLabel: "blocked by prerequisite",
-				dependencyIdentityKey: "id:1",
-			},
-		],
-		coverage: null,
-	});
+			],
+			planIssues: [
+				{
+					type: "blocked-dependency",
+					issueLabel: "blocked by prerequisite",
+					targetIdentityKey: "id:2",
+					dependencyIdentityKey: "id:1",
+				},
+				{
+					type: "missing-dependency",
+					issueLabel: "missing prerequisite",
+					targetIdentityKey: "id:2",
+					dependencyIdentityKey: "id:missing",
+				},
+			],
+			blocked: [
+				{
+					node: createNode("blocked test", 1),
+					issueType: "blocked-dependency",
+					issueLabel: "blocked by prerequisite",
+					dependencyIdentityKey: "id:1",
+				},
+			],
+			coverage: null,
+		}),
+	);
 
 	defaultRunReporter.accept(report, {
 		harnessName: "js",
@@ -154,55 +195,57 @@ test("defaultRunReporter uses concise copy for cycle and missing-prerequisite ou
 			messages.info.push(message);
 		},
 	};
-	const report = createHarnessRunReport({
-		ok: false,
-		discoveryOk: true,
-		planningOk: false,
-		discoveredTestCount: 2,
-		topLevelNodes: [createNode("root", 0)],
-		workerCount: 1,
-		branches: [
-			{
-				root: createNode("root", 0),
-				discovery: {
+	const report = createHarnessRunReport(
+		createStartResult({
+			ok: false,
+			discoveryOk: true,
+			planningOk: false,
+			discoveredTestCount: 2,
+			topLevelNodes: [createNode("root", 0)],
+			workerCount: 1,
+			branches: [
+				{
+					root: createNode("root", 0),
+					discovery: {
+						ok: true,
+						nodes: [createNode("root", 0)],
+						testCount: 0,
+					},
+					executions: [],
 					ok: true,
-					nodes: [createNode("root", 0)],
-					testCount: 0,
 				},
-				executions: [],
-				ok: true,
-			},
-		],
-		planIssues: [
-			{
-				type: "dependency-cycle",
-				issueLabel: "dependency cycle",
-				targetIdentityKey: "id:1",
-				dependencyIdentityKey: "",
-			},
-			{
-				type: "missing-dependency",
-				issueLabel: "missing prerequisite",
-				targetIdentityKey: "id:2",
-				dependencyIdentityKey: "nodeId:7",
-			},
-		],
-		blocked: [
-			{
-				node: createNode("cycle member", 1),
-				issueType: "dependency-cycle",
-				issueLabel: "dependency cycle",
-				dependencyIdentityKey: "",
-			},
-			{
-				node: createNode("missing prereq", 2),
-				issueType: "missing-dependency",
-				issueLabel: "missing prerequisite",
-				dependencyIdentityKey: "nodeId:7",
-			},
-		],
-		coverage: null,
-	});
+			],
+			planIssues: [
+				{
+					type: "dependency-cycle",
+					issueLabel: "dependency cycle",
+					targetIdentityKey: "id:1",
+					dependencyIdentityKey: "",
+				},
+				{
+					type: "missing-dependency",
+					issueLabel: "missing prerequisite",
+					targetIdentityKey: "id:2",
+					dependencyIdentityKey: "nodeId:7",
+				},
+			],
+			blocked: [
+				{
+					node: createNode("cycle member", 1),
+					issueType: "dependency-cycle",
+					issueLabel: "dependency cycle",
+					dependencyIdentityKey: "",
+				},
+				{
+					node: createNode("missing prereq", 2),
+					issueType: "missing-dependency",
+					issueLabel: "missing prerequisite",
+					dependencyIdentityKey: "nodeId:7",
+				},
+			],
+			coverage: null,
+		}),
+	);
 
 	defaultRunReporter.accept(report, {
 		harnessName: "js",
@@ -222,43 +265,76 @@ test("defaultRunReporter uses concise copy for cycle and missing-prerequisite ou
 });
 
 test("createHarnessRunReport counts expected-failure executions by semantic outcome", () => {
-	const report = createHarnessRunReport({
-		ok: false,
-		discoveryOk: true,
-		planningOk: true,
-		discoveredTestCount: 2,
-		topLevelNodes: [createNode("root", 0)],
-		workerCount: 1,
-		branches: [
-			{
-				root: createNode("root", 0),
-				discovery: {
-					ok: true,
-					nodes: [createNode("root", 0)],
-					testCount: 2,
-				},
-				executions: [
-					{
-						node: createNode("expected failure prereq", 1, true),
+	const report = createHarnessRunReport(
+		createStartResult({
+			ok: false,
+			discoveryOk: true,
+			planningOk: true,
+			discoveredTestCount: 2,
+			topLevelNodes: [createNode("root", 0)],
+			workerCount: 1,
+			branches: [
+				{
+					root: createNode("root", 0),
+					discovery: {
 						ok: true,
-						events: [],
+						nodes: [createNode("root", 0)],
+						testCount: 2,
 					},
-					{
-						node: createNode("unexpected pass prereq", 2, true),
-						ok: false,
-						events: [],
-					},
-				],
-				ok: false,
-			},
-		],
-		planIssues: [],
-		blocked: [],
-		coverage: null,
-	});
+					executions: [
+						{
+							node: createNode("expected failure prereq", 1, true),
+							ok: true,
+							events: [],
+						},
+						{
+							node: createNode("unexpected pass prereq", 2, true),
+							ok: false,
+							events: [],
+						},
+					],
+					ok: false,
+				},
+			],
+			planIssues: [],
+			blocked: [],
+			coverage: null,
+		}),
+	);
 
 	expect(report.passedTestCount).toBe(1);
 	expect(report.failedTestCount).toBe(1);
+});
+
+test("createHarnessRunReport relies on the required metadata snapshot", () => {
+	const metadataRoot = createNode("metadata root", 9);
+	const report = createHarnessRunReport(
+		createStartResult(
+			{
+				ok: false,
+				discoveryOk: false,
+				planningOk: false,
+				discoveredTestCount: 1,
+				topLevelNodes: [createNode("top-level root", 0)],
+				workerCount: 4,
+			},
+			{
+				ok: true,
+				discoveryOk: true,
+				planningOk: true,
+				discoveredTestCount: 7,
+				topLevelNodes: [metadataRoot],
+				workerCount: 2,
+			},
+		),
+	);
+
+	expect(report.ok).toBe(true);
+	expect(report.discoveryOk).toBe(true);
+	expect(report.planningOk).toBe(true);
+	expect(report.discoveredTestCount).toBe(7);
+	expect(report.workerCount).toBe(2);
+	expect(report.topLevelNodes).toEqual([metadataRoot]);
 });
 
 test("defaultRunReporter explains unexpected-pass expectFailure executions", () => {
@@ -274,35 +350,37 @@ test("defaultRunReporter explains unexpected-pass expectFailure executions", () 
 			messages.info.push(message);
 		},
 	};
-	const report = createHarnessRunReport({
-		ok: false,
-		discoveryOk: true,
-		planningOk: true,
-		discoveredTestCount: 1,
-		topLevelNodes: [createNode("root", 0)],
-		workerCount: 1,
-		branches: [
-			{
-				root: createNode("root", 0),
-				discovery: {
-					ok: true,
-					nodes: [createNode("root", 0)],
-					testCount: 1,
-				},
-				executions: [
-					{
-						node: createNode("unexpected pass prereq", 1, true),
-						ok: false,
-						events: [],
+	const report = createHarnessRunReport(
+		createStartResult({
+			ok: false,
+			discoveryOk: true,
+			planningOk: true,
+			discoveredTestCount: 1,
+			topLevelNodes: [createNode("root", 0)],
+			workerCount: 1,
+			branches: [
+				{
+					root: createNode("root", 0),
+					discovery: {
+						ok: true,
+						nodes: [createNode("root", 0)],
+						testCount: 1,
 					},
-				],
-				ok: false,
-			},
-		],
-		planIssues: [],
-		blocked: [],
-		coverage: null,
-	});
+					executions: [
+						{
+							node: createNode("unexpected pass prereq", 1, true),
+							ok: false,
+							events: [],
+						},
+					],
+					ok: false,
+				},
+			],
+			planIssues: [],
+			blocked: [],
+			coverage: null,
+		}),
+	);
 
 	defaultRunReporter.accept(report, {
 		harnessName: "js",
@@ -332,42 +410,44 @@ test("defaultRunReporter prioritizes discovery failures over execution and block
 			messages.info.push(message);
 		},
 	};
-	const report = createHarnessRunReport({
-		ok: false,
-		discoveryOk: false,
-		planningOk: true,
-		discoveredTestCount: 2,
-		topLevelNodes: [createNode("root", 0)],
-		workerCount: 1,
-		branches: [
-			{
-				root: createNode("root", 0),
-				discovery: {
-					ok: false,
-					nodes: [createNode("root", 0)],
-					testCount: 0,
-				},
-				executions: [
-					{
-						node: createNode("should never print", 1),
+	const report = createHarnessRunReport(
+		createStartResult({
+			ok: false,
+			discoveryOk: false,
+			planningOk: true,
+			discoveredTestCount: 2,
+			topLevelNodes: [createNode("root", 0)],
+			workerCount: 1,
+			branches: [
+				{
+					root: createNode("root", 0),
+					discovery: {
 						ok: false,
-						events: [],
+						nodes: [createNode("root", 0)],
+						testCount: 0,
 					},
-				],
-				ok: false,
-			},
-		],
-		planIssues: [
-			{
-				type: "missing-dependency",
-				issueLabel: "missing prerequisite",
-				targetIdentityKey: "id:1",
-				dependencyIdentityKey: "nodeId:2",
-			},
-		],
-		blocked: [],
-		coverage: null,
-	});
+					executions: [
+						{
+							node: createNode("should never print", 1),
+							ok: false,
+							events: [],
+						},
+					],
+					ok: false,
+				},
+			],
+			planIssues: [
+				{
+					type: "missing-dependency",
+					issueLabel: "missing prerequisite",
+					targetIdentityKey: "id:1",
+					dependencyIdentityKey: "nodeId:2",
+				},
+			],
+			blocked: [],
+			coverage: null,
+		}),
+	);
 
 	defaultRunReporter.accept(report, {
 		harnessName: "js",
@@ -395,35 +475,37 @@ test("defaultRunReporter emits fallback failure text when a failing test has no 
 			messages.info.push(message);
 		},
 	};
-	const report = createHarnessRunReport({
-		ok: false,
-		discoveryOk: true,
-		planningOk: true,
-		discoveredTestCount: 1,
-		topLevelNodes: [createNode("root", 0)],
-		workerCount: 1,
-		branches: [
-			{
-				root: createNode("root", 0),
-				discovery: {
-					ok: true,
-					nodes: [createNode("root", 0), createNode("silent fail", 1)],
-					testCount: 1,
-				},
-				executions: [
-					{
-						node: createNode("silent fail", 1),
-						ok: false,
-						events: [],
+	const report = createHarnessRunReport(
+		createStartResult({
+			ok: false,
+			discoveryOk: true,
+			planningOk: true,
+			discoveredTestCount: 1,
+			topLevelNodes: [createNode("root", 0)],
+			workerCount: 1,
+			branches: [
+				{
+					root: createNode("root", 0),
+					discovery: {
+						ok: true,
+						nodes: [createNode("root", 0), createNode("silent fail", 1)],
+						testCount: 1,
 					},
-				],
-				ok: false,
-			},
-		],
-		planIssues: [],
-		blocked: [],
-		coverage: null,
-	});
+					executions: [
+						{
+							node: createNode("silent fail", 1),
+							ok: false,
+							events: [],
+						},
+					],
+					ok: false,
+				},
+			],
+			planIssues: [],
+			blocked: [],
+			coverage: null,
+		}),
+	);
 
 	defaultRunReporter.accept(report, {
 		harnessName: "js",

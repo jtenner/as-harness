@@ -18,13 +18,7 @@
   - extend host event/type decoding so stable IDs and planner metadata survive replay
   - switch `start()` to module-global graph planning instead of branch-local execution assumptions
   - prove the graph planner through `js`, `wazero`, and `wasmtime` integration tests
-- Host contract and runner reshape
 
 ### Risks
 
-- native dependency APIs are risky before stable IDs and blocked semantics are finalized.
 - remaining regressions are mostly semantic/order-related, so proof density is important.
-
-### Host Contract and Runner Reshape
-
-- Keep `CHANGELOG.md`/release notes ready for API-visible contract changes

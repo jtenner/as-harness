@@ -1281,6 +1281,22 @@ test("decorateHarness can execute start() in-band and merge coverage snapshots",
 	assert.equal(result.discoveryOk, true);
 	assert.equal(result.planningOk, true);
 	assert(result.workerCount >= 1);
+	assert.deepEqual(result.metadata, {
+		ok: result.ok,
+		discoveryOk: result.discoveryOk,
+		planningOk: result.planningOk,
+		discoveredTestCount: result.discoveredTestCount,
+		topLevelNodes: result.topLevelNodes,
+		workerCount: result.workerCount,
+		planIssues: result.planIssues,
+		blocked: result.blocked,
+		coverage: result.coverage,
+	});
+	assert.notStrictEqual(result.metadata, result);
+	assert.notStrictEqual(result.metadata.topLevelNodes, result.topLevelNodes);
+	assert.notStrictEqual(result.metadata.planIssues, result.planIssues);
+	assert.notStrictEqual(result.metadata.blocked, result.blocked);
+	assert.notStrictEqual(result.metadata.coverage, result.coverage);
 	assert.deepEqual(runHarnessIds, [2]);
 	assert.deepEqual(runNodeIndexes, [[0, 0]]);
 	assert.deepEqual(result.coverage, {
@@ -1290,4 +1306,8 @@ test("decorateHarness can execute start() in-band and merge coverage snapshots",
 		],
 		coveredIds: [1, 2],
 	});
+	result.topLevelNodes.pop();
+	result.coverage.coveredIds.push(99);
+	assert.equal(result.metadata.topLevelNodes.length, 1);
+	assert.deepEqual(result.metadata.coverage.coveredIds, [1, 2]);
 });

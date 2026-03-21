@@ -41,7 +41,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `expectFailure` satisfies dependents only when it fails as intended.
 - dependency cycles block all cycle members with `dependency-cycle` diagnostics.
 - CLI reports blocked outcomes as concise `blocked by prerequisite`, `missing prerequisite`, and `dependency cycle` messages.
-- shared `start()` results preserve both machine-readable planner codes and concise issue labels on `planIssues` and `blocked`.
+- shared `start()` results always include a required `metadata` snapshot that mirrors the top-level summary fields and preserves both machine-readable planner codes and concise issue labels on `planIssues` and `blocked`.
 - when multiple runnable tests are ready, declaration order is the stable tie-breaker.
 - the shipped `start()` scheduler is deterministic for ordering and uses same-machine worker slots for ready work when available.
 

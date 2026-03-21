@@ -2,6 +2,7 @@
 
 ## 2026-03-21
 
+- **contract: require detached `start()` metadata snapshots** Tighten `HarnessStartResult` so shipped hosts always return a required `metadata` snapshot, clone the shared summary fields so `metadata` no longer aliases the top-level arrays, remove obsolete reporter fallback logic, prove the new contract through shared smoke coverage, and retire the completed host-contract backlog item. GitHub: *@jtenner*
 - **contract: add concise issue labels to shared planning results** Extend `HarnessPlanIssue` and `HarnessBlockedNode` with shipped `issueLabel` fields, populate them from the shared scheduler, prove the new result shape through shared smoke and reporter coverage, and remove the completed backlog item for blocked-result semantics. GitHub: *@jtenner*
 - **reporter: tighten blocked-outcome CLI copy** Replace raw planner issue codes in the CLI reporter with concise user-facing phrases for blocked prerequisites, missing prerequisites, and dependency cycles; add reporter and CLI proof for the new wording; and remove the completed backlog item. GitHub: *@jtenner*
 - **assembly: add the first native `as-harness` guest adapter slice** Ship a bundled `"as-harness"` library with chainable declaration handles, sequential-group metadata, shared hook/context exports, and end-to-end proof through AssemblyScript internals, compiler bundling, and CLI host runs; then trim the completed native-adapter backlog items and refresh the user-facing docs. GitHub: *@jtenner*

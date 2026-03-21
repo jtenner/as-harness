@@ -1268,6 +1268,21 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(result.ok, false);
 		assert.equal(result.discoveredTestCount, 31);
 		assert.equal(result.topLevelNodes.length, 25);
+		assert.deepEqual(result.metadata, {
+			ok: result.ok,
+			discoveryOk: result.discoveryOk,
+			planningOk: result.planningOk,
+			discoveredTestCount: result.discoveredTestCount,
+			topLevelNodes: result.topLevelNodes,
+			workerCount: result.workerCount,
+			planIssues: result.planIssues,
+			blocked: result.blocked,
+			coverage: result.coverage,
+		});
+		assert.notStrictEqual(result.metadata, result);
+		assert.notStrictEqual(result.metadata.topLevelNodes, result.topLevelNodes);
+		assert.notStrictEqual(result.metadata.planIssues, result.planIssues);
+		assert.notStrictEqual(result.metadata.blocked, result.blocked);
 		assert.deepEqual(result.planIssues, [
 			{
 				type: "blocked-dependency",
@@ -1360,6 +1375,12 @@ function registerHarnessSmokeSuite(options) {
 				20, 21, 22, 23, 24,
 			],
 		);
+		result.topLevelNodes.pop();
+		result.planIssues.shift();
+		result.blocked.pop();
+		assert.equal(result.metadata.topLevelNodes.length, 25);
+		assert.equal(result.metadata.planIssues.length, 5);
+		assert.equal(result.metadata.blocked.length, 5);
 		assert(result.workerCount >= 1);
 		assert.deepEqual(
 			branchesByName

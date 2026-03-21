@@ -3,7 +3,10 @@
 const os = require("node:os");
 const path = require("node:path");
 const { Worker } = require("node:worker_threads");
-const { mergeCoverageSnapshots } = require("./covers.cjs");
+const {
+	cloneCoverageSnapshot,
+	mergeCoverageSnapshots,
+} = require("./covers.cjs");
 
 const NODE_KIND_TEST = 1;
 const DECLARATION_MODE_NORMAL = 1;
@@ -65,16 +68,16 @@ function cloneEvent(event) {
 
 function cloneNode(node) {
 	return {
-		nodeIndex: Array.isArray(node.nodeIndex) ? node.nodeIndex.slice() : [],
-		nodeId: typeof node.nodeId === "number" ? node.nodeId >>> 0 : 0,
+		nodeIndex: Array.isArray(node?.nodeIndex) ? node.nodeIndex.slice() : [],
+		nodeId: typeof node?.nodeId === "number" ? node.nodeId >>> 0 : 0,
 		parentNodeId:
-			typeof node.parentNodeId === "number" ? node.parentNodeId >>> 0 : 0,
+			typeof node?.parentNodeId === "number" ? node.parentNodeId >>> 0 : 0,
 		declarationOrder:
-			typeof node.declarationOrder === "number"
+			typeof node?.declarationOrder === "number"
 				? node.declarationOrder >>> 0
 				: 0,
 		sequenceMode:
-			typeof node.sequenceMode === "number" ? node.sequenceMode >>> 0 : 0,
+			typeof node?.sequenceMode === "number" ? node.sequenceMode >>> 0 : 0,
 		dependencyNodeIds: Array.isArray(node?.dependencyNodeIds)
 			? node.dependencyNodeIds
 					.filter((dependencyNodeId) => typeof dependencyNodeId === "number")
@@ -82,10 +85,69 @@ function cloneNode(node) {
 			: [],
 		only: node?.only === true,
 		expectFailure: node?.expectFailure === true,
-		kind: typeof node.kind === "number" ? node.kind >>> 0 : 0,
+		kind: typeof node?.kind === "number" ? node.kind >>> 0 : 0,
 		declarationMode:
-			typeof node.declarationMode === "number" ? node.declarationMode >>> 0 : 0,
-		name: typeof node.name === "string" ? node.name : "",
+			typeof node?.declarationMode === "number"
+				? node.declarationMode >>> 0
+				: 0,
+		name: typeof node?.name === "string" ? node.name : "",
+	};
+}
+
+function clonePlanIssue(issue) {
+	return {
+		type: typeof issue?.type === "string" ? issue.type : "",
+		issueLabel: typeof issue?.issueLabel === "string" ? issue.issueLabel : "",
+		targetIdentityKey:
+			typeof issue?.targetIdentityKey === "string"
+				? issue.targetIdentityKey
+				: "",
+		dependencyIdentityKey:
+			typeof issue?.dependencyIdentityKey === "string"
+				? issue.dependencyIdentityKey
+				: "",
+	};
+}
+
+function cloneBlockedNode(blocked) {
+	return {
+		node: cloneNode(blocked?.node),
+		issueType: typeof blocked?.issueType === "string" ? blocked.issueType : "",
+		issueLabel:
+			typeof blocked?.issueLabel === "string" ? blocked.issueLabel : "",
+		dependencyIdentityKey:
+			typeof blocked?.dependencyIdentityKey === "string"
+				? blocked.dependencyIdentityKey
+				: "",
+	};
+}
+
+function cloneRunMetadata(metadata) {
+	return {
+		ok: metadata?.ok === true,
+		discoveryOk: metadata?.discoveryOk === true,
+		planningOk: metadata?.planningOk === true,
+		discoveredTestCount:
+			typeof metadata?.discoveredTestCount === "number"
+				? metadata.discoveredTestCount >>> 0
+				: 0,
+		topLevelNodes: Array.isArray(metadata?.topLevelNodes)
+			? metadata.topLevelNodes.map(cloneNode)
+			: [],
+		workerCount:
+			typeof metadata?.workerCount === "number"
+				? metadata.workerCount >>> 0
+				: 0,
+		planIssues: Array.isArray(metadata?.planIssues)
+			? metadata.planIssues.map(clonePlanIssue)
+			: [],
+		blocked: Array.isArray(metadata?.blocked)
+			? metadata.blocked.map(cloneBlockedNode)
+			: [],
+		coverage:
+			metadata?.coverage === null || metadata?.coverage === undefined
+				? null
+				: cloneCoverageSnapshot(metadata.coverage),
 	};
 }
 
@@ -1244,7 +1306,7 @@ async function startHarness(options) {
 		coverageSnapshots.length > 0
 			? mergeCoverageSnapshots(coverageSnapshots)
 			: null;
-	const metadata = {
+	const summary = cloneRunMetadata({
 		ok,
 		discoveryOk,
 		planningOk,
@@ -1254,11 +1316,11 @@ async function startHarness(options) {
 		planIssues: toPlanIssues(evaluatedExecution.issues),
 		blocked,
 		coverage,
-	};
+	});
 
 	return {
-		...metadata,
-		metadata,
+		...summary,
+		metadata: cloneRunMetadata(summary),
 		branches,
 	};
 }
