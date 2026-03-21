@@ -877,6 +877,111 @@ test("planExecutionStages treats skipped dependency declarations as missing depe
 	]);
 });
 
+test("planExecutionStages treats todo dependency declarations as missing dependency targets", () => {
+	const root = createPlannerNode({
+		identityKey: "id:64",
+		nodeId: 64,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const ready = createPlannerNode({
+		identityKey: "id:64/id:65",
+		parentIdentityKey: "id:64",
+		nodeId: 65,
+		parentNodeId: 64,
+		declarationOrder: 1,
+		name: "ready test",
+	});
+	const todoPrereq = createPlannerNode({
+		identityKey: "id:64/id:66",
+		parentIdentityKey: "id:64",
+		nodeId: 66,
+		parentNodeId: 64,
+		declarationOrder: 2,
+		declarationMode: 3,
+		name: "todo prereq",
+	});
+	const blockedDependent = createPlannerNode({
+		identityKey: "id:64/id:67",
+		parentIdentityKey: "id:64",
+		nodeId: 67,
+		parentNodeId: 64,
+		declarationOrder: 3,
+		dependencyNodeIds: [66],
+		name: "blocked dependent",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [root, ready, todoPrereq, blockedDependent]),
+	]);
+
+	assert.equal(plan.complete, false);
+	assert.deepEqual(
+		plan.stages.map((stage) => stage.map((target) => target.node.name)),
+		[["ready test"]],
+	);
+	assert.deepEqual(
+		plan.blockedTargets.map((target) => target.node.name),
+		["blocked dependent"],
+	);
+	assert.deepEqual(plan.issues, [
+		{
+			type: "missing-dependency",
+			targetIdentityKey: "id:64/id:67",
+			dependencyIdentityKey: "nodeId:66",
+		},
+	]);
+});
+
+test("planExecutionStages resolves dependencyNodeIds through ancestor scopes", () => {
+	const root = createPlannerNode({
+		identityKey: "id:90",
+		nodeId: 90,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const ancestorPrereq = createPlannerNode({
+		identityKey: "id:90/id:91",
+		parentIdentityKey: "id:90",
+		nodeId: 91,
+		parentNodeId: 90,
+		declarationOrder: 1,
+		name: "ancestor prereq",
+	});
+	const nestedSuite = createPlannerNode({
+		identityKey: "id:90/id:92",
+		parentIdentityKey: "id:90",
+		nodeId: 92,
+		parentNodeId: 90,
+		declarationOrder: 2,
+		kind: 2,
+		name: "nested suite",
+	});
+	const nestedDependent = createPlannerNode({
+		identityKey: "id:90/id:92/id:93",
+		parentIdentityKey: "id:90/id:92",
+		nodeId: 93,
+		parentNodeId: 92,
+		declarationOrder: 3,
+		dependencyNodeIds: [91],
+		name: "nested dependent",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [root, ancestorPrereq, nestedSuite, nestedDependent]),
+	]);
+
+	assert.equal(plan.complete, true);
+	assert.deepEqual(
+		plan.stages.map((stage) => stage.map((target) => target.node.name)),
+		[["ancestor prereq"], ["nested dependent"]],
+	);
+	assert.deepEqual(plan.blockedTargets, []);
+	assert.deepEqual(plan.issues, []);
+});
+
 test("planExecutionStages ignores malformed dependency metadata", () => {
 	const root = createPlannerNode({
 		identityKey: "id:70",
