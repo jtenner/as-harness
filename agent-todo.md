@@ -10,7 +10,6 @@
 
 ### Risks
 
-- Biome cannot parse AssemblyScript files with top-level `@external(...)` imports yet, so those files are not fully formatter-covered.
 - `start()` is deterministic and shared, but worker-aware parallelism is intentionally out of scope.
 - `sequenceMode`, dependency metadata, and failed outcomes now have shared coverage and docs updates, but host planner behavior still needs full coverage for all edge cases.
 - native dependency APIs are risky before stable IDs and blocked semantics are finalized.
