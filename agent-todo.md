@@ -17,7 +17,6 @@
 
 ### Graph-Aware Scheduling Semantics
 
-- Finalize `dependsOn(...)` outcome rules for failures, transitive blocking, and skip/todo/filtered prerequisites
 - Define planner tie-breakers for ready-queue ordering (`declarationOrder` vs branch order)
 - Codify cycle behavior and one explicit blocked diagnostic shape for cycle participants
 

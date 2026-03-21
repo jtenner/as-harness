@@ -135,7 +135,7 @@ Dependency policy:
   successful in `execution.ok`, branch/result `ok`, and CLI reporting
 - an `expectFailure` execution that passes unexpectedly is a failing
   prerequisite and can block its dependents
-- a failing or trapping prerequisite blocks its dependents with
+- a failing or trapping prerequisite blocks its dependents transitively with
   `blocked-dependency`
 - a skipped, todo, filtered-out, or otherwise undiscovered prerequisite blocks
   its dependents with `missing-dependency`
@@ -203,8 +203,8 @@ The current parity proof for this contract is:
   [cli/run.test.ts](../cli/run.test.ts), including guest-declared dependency
   success, blocked, and missing-dependency reporting through the shipped
   `js`, `wazero`, and source-built `wasmtime` hosts, plus the documented
-  `skip`, `todo`, `only`-filtered, expected-failure, duplicate-edge, and
-  dependency-cycle matrix
+  `skip`, `todo`, `only`-filtered, expected-failure, duplicate-edge,
+  blocked-propagation, and dependency-cycle matrix
 - package-local host tests in `harness/js`, `harness/wazero`, and
   `harness/wasmtime`
 - the CI source-host matrix and packaged verification flow described in

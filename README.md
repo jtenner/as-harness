@@ -36,7 +36,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 
 - chainable declaration handles are honored.
 - duplicate dependency edges collapse.
-- `skip`, `todo`, `only`-filtered, and failing prerequisites block dependents.
+- `skip`, `todo`, `only`-filtered, and failing prerequisites block dependents transitively.
 - `expectFailure` satisfies dependents only when it fails as intended.
 - dependency cycles block all cycle members.
 
