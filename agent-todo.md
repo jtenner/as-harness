@@ -17,8 +17,6 @@
 
 ### Graph-Aware Scheduling Semantics
 
-- Define planner tie-breakers for ready-queue ordering (`declarationOrder` vs branch order)
-
 ### Host Contract and Runner Reshape
 
 - Decide module-global scheduling contract shape now (same-machine parallelism vs fully deterministic baseline)

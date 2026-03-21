@@ -143,6 +143,8 @@ Dependency policy:
   with a blank dependency identity key on the blocked diagnostic
 - when multiple runnable nodes are otherwise ready at the same time, the lowest
   declaration order runs first
+- declaration order is also the ready-queue tie-breaker across branches after
+  dependency and sequential constraints are applied
 - blocked tests are distinct from skipped tests in reporting because the user
   declared a runnable node, but the graph made execution impossible
 

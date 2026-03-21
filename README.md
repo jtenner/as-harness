@@ -39,6 +39,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `skip`, `todo`, `only`-filtered, and failing prerequisites block dependents transitively.
 - `expectFailure` satisfies dependents only when it fails as intended.
 - dependency cycles block all cycle members with `dependency-cycle` diagnostics.
+- when multiple runnable tests are ready, declaration order is the stable tie-breaker.
 
 ## API Surface
 
