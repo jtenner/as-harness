@@ -42,6 +42,9 @@ export interface HarnessRunMetadata {
 	planningOk: boolean;
 	discoveredTestCount: number;
 	topLevelNodes: Array<HarnessNode>;
+	/**
+	 * Number of same-machine execution slots actually used for ready work.
+	 */
 	workerCount: number;
 	planIssues: Array<HarnessPlanIssue>;
 	blocked: Array<HarnessBlockedNode>;
@@ -151,6 +154,9 @@ export interface HarnessStartResult {
 	planningOk: boolean;
 	discoveredTestCount: number;
 	topLevelNodes: Array<HarnessNode>;
+	/**
+	 * Number of same-machine execution slots actually used for ready work.
+	 */
 	workerCount: number;
 	branches: Array<HarnessBranch>;
 	planIssues: Array<HarnessPlanIssue>;

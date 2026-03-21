@@ -17,7 +17,6 @@
 
 ### Host Contract and Runner Reshape
 
-- Update `harness/shared/harness-types.d.ts`-backed host contract text with any scheduling-policy deltas
 - Align `cli`, `harness/*`, and reporter outputs with planner fields before the next commit
 - Keep `CHANGELOG.md`/release notes ready for API-visible contract changes
 
