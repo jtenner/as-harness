@@ -572,6 +572,66 @@ test("dependency only parent", (context: TestContext): void => {
 	});
 }
 
+for (const harnessName of dependencyCliHarnesses) {
+	test(`cli run executes the bundled "as-harness" guest library through the ${harnessName} host`, async () => {
+		await withTempEntryFile(
+			`
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  sequential,
+  SuiteContext,
+  test,
+  TestContext,
+} from "as-harness";
+
+let beforeEachCount = 0;
+let afterEachCount = 0;
+let suiteSetupCount = 0;
+
+beforeAll((_context: TestContext): void => {
+  suiteSetupCount = 1;
+});
+
+beforeEach((_context: TestContext): void => {
+  beforeEachCount += 1;
+});
+
+afterEach((_context: TestContext): void => {
+  afterEachCount += 1;
+});
+
+const prereq = test("native prereq", (_context: TestContext): void => {});
+
+test("native dependent", (context: TestContext): void => {
+  context.assert.strictEqual<i32>(suiteSetupCount, 1, "suite setup mismatch");
+  context.assert.strictEqual<bool>(beforeEachCount > 0, true, "beforeEach missing");
+  context.assert.strictEqual<bool>(afterEachCount == 0, true, "afterEach ran too early");
+  context.diagnostic("as-harness dependent diagnostic");
+}).dependsOn(prereq);
+
+sequential("ordered group", (_context: SuiteContext): void => {
+  test("ordered first", (_context: TestContext): void => {});
+  test("ordered second", (_context: TestContext): void => {});
+});
+`,
+			async (entryFile, cwd) => {
+				const result = await runCliWithArguments(
+					["run", "--harness", harnessName, entryFile],
+					cwd,
+				);
+
+				expect(result.exitCode).toBe(0);
+				expect(result.stderr).toBe("");
+				expect(result.stdout).toContain(
+					`PASS 4 passed, 0 failed, 4 discovered with ${harnessName}.`,
+				);
+			},
+		);
+	});
+}
+
 test('cli run executes a thin jest adapter entry from the bundled "jest" guest library', async () => {
 	await withTempEntryFile(
 		`

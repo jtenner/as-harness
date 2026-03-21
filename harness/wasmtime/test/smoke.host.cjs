@@ -54,9 +54,10 @@ test("start() runs a larger ready stage through parallel worker slots when avail
 	});
 	const result = await decorated.start();
 	const expectedWorkerCount = Math.min(4, availableParallelism());
-	const threadIds = result.branches.map((branch) =>
-		branch.executions[0].events.find((event) => event.type === "diagnostic")
-			?.data?.message ?? "",
+	const threadIds = result.branches.map(
+		(branch) =>
+			branch.executions[0].events.find((event) => event.type === "diagnostic")
+				?.data?.message ?? "",
 	);
 
 	assert.equal(result.discoveryOk, true);
@@ -65,7 +66,11 @@ test("start() runs a larger ready stage through parallel worker slots when avail
 	assert.equal(result.workerCount, expectedWorkerCount);
 	if (expectedWorkerCount > 1) {
 		assert.equal(new Set(threadIds).size, expectedWorkerCount);
-		assert(threadIds.every((message) => Number(message.replace("run-thread-", "")) > 0));
+		assert(
+			threadIds.every(
+				(message) => Number(message.replace("run-thread-", "")) > 0,
+			),
+		);
 	}
 
 	decorated.close();

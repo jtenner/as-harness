@@ -1012,7 +1012,12 @@ test("planExecutionStages resolves dependencyNodeIds through ancestor scopes", (
 	});
 
 	const plan = planExecutionStages([
-		createPlannerBranch(0, [root, ancestorPrereq, nestedSuite, nestedDependent]),
+		createPlannerBranch(0, [
+			root,
+			ancestorPrereq,
+			nestedSuite,
+			nestedDependent,
+		]),
 	]);
 
 	assert.equal(plan.complete, true);

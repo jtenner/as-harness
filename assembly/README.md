@@ -9,6 +9,7 @@ Host owns scheduling, aggregation, and reporting.
 
 - `assembly/assembly/internal/`: runtime primitives (events, nodes, traversal, executor, hooks, assertions, imports/exports).
 - `assembly/assembly/exports.ts`: Wasm exports expected by hosts.
+- `assembly/assembly/as_harness/`: native scheduler-aware guest surface.
 - `assembly/assembly/node_test/`: native `node:test` surface.
 - `assembly/assembly/jest/`: thin sync Jest-shaped surface.
 - `assembly/assembly/vitest/`: thin sync Vitest-shaped surface.
@@ -18,6 +19,7 @@ Host owns scheduling, aggregation, and reporting.
 
 ## Scope
 
+- native `as-harness` declarations, sequential groups, and chainable handles
 - synchronous `node:test`, chainable declarations, core hooks
 - thin `jest` + `vitest` adapters
 - `node:assert` / `node:assert/strict` bridge + trampoline trap observation

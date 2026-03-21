@@ -351,25 +351,24 @@ CLI/reporting side:
 
 ## Native `as-harness` API Direction
 
-The native adapter should not be finalized before the shared model exists, but
-the likely direction is:
+The first shipped native slice now stays thin over shared planner metadata:
 
 ```ts
-import { test } from "as-harness";
+import { sequential, test } from "as-harness";
 
 const first = test("first test", () => {});
 
 test("second test", () => {}).dependsOn(first);
 
-test.sequential("group", [
-  test("one", () => {}),
-  test("two", () => {}),
-]);
+sequential("group", () => {
+  test("one", () => {});
+  test("two", () => {});
+});
 ```
 
-This API is reasonable only if declaration handles map onto stable IDs.
-
-That is why the identifier problem should come before the public dependency API.
+This keeps explicit dependency edges on `TestDeclarationHandle` values and
+lowers sequential intent into shared suite metadata only, with no adapter-local
+scheduler logic.
 
 ## Test Strategy
 

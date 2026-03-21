@@ -6,6 +6,7 @@
 
 Implemented:
 
+- Native `as-harness` declarations with sequential groups and chainable `dependsOn(...)` handles.
 - `as-harness list` for discovering test entry files.
 - `as-harness run` for compile + execute.
 - Synchronous `node:test` declarations with `dependsOn(...)` chains.
@@ -44,6 +45,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 
 ## API Surface
 
+- `as-harness`: native scheduler-aware declarations, `sequential(...)` groups, chainable handles, and shared `TestContext.assert`.
 - `node:test`: core declarations, hooks, sync contexts, and assertion binding.
 - `node:assert`, `node:assert/strict`: synchronous assertions and strict-bridge tests.
 - `jest`: sync declarations, core hooks, matcher slice.

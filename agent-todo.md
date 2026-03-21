@@ -33,6 +33,4 @@
 
 ### Native `as-harness` Adapter Surface
 
-- Design native sequential-group declaration surface that maps to shared metadata only
-- Carry chainable `dependsOn(...)` declarations into shared scheduler inputs, no adapter-local logic
 - Define concise reporter copy for blocked/cycle/missing-dependency outcomes

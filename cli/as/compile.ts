@@ -116,6 +116,7 @@ export const BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH = `${bundledTransformRoot}/i
 export const BUNDLED_COVERAGE_TRANSFORM_PATH = `${bundledTransformRoot}/covers.js`;
 export const BUNDLED_HARNESS_EXPORTS_ENTRY_PATH = `${bundledVirtualRoot}/exports.ts`;
 const BUNDLED_HARNESS_LIBRARY_ENTRY_POINTS = new Set([
+	"as-harness",
 	"node:test",
 	"node:assert",
 	"node:assert/strict",

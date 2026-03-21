@@ -103,7 +103,7 @@ function createBundledWazeroHarness(wasmBytes: Uint8Array) {
 		createBundledNativeHarness(nativeHarnessModule, bundledBytes),
 		{
 			bytes: bundledBytes,
-		createLocalHarness(localBytes) {
+			createLocalHarness(localBytes) {
 				return createBundledNativeHarness(nativeHarnessModule, localBytes);
 			},
 			runInBand: false,

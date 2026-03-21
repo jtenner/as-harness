@@ -1,6 +1,7 @@
 // Barrel entry point for internal AssemblyScript tests.
 export { invoke } from "../internal/trampoline";
 import "./internal/assert-bridge";
+import "./internal/as-harness";
 import "./internal/execution-state";
 import "./internal/executor";
 import "./internal/events";

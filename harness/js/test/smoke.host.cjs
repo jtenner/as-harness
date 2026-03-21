@@ -68,9 +68,10 @@ test("start() runs a larger ready stage through parallel worker slots when avail
 	const result = await harness.start();
 	const expectedWorkerCount = Math.min(4, availableParallelism());
 	const threadIds = result.branches
-		.map((branch) =>
-			branch.executions[0].events.find((event) => event.type === "diagnostic")
-				?.data?.message ?? "",
+		.map(
+			(branch) =>
+				branch.executions[0].events.find((event) => event.type === "diagnostic")
+					?.data?.message ?? "",
 		)
 		.map((message) => Number(message.replace("run-thread-", "")));
 

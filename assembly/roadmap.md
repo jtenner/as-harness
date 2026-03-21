@@ -17,9 +17,9 @@ Adapter-level intent for guest runtime work.
 
 ## Adapter set
 
-Tracked adapters: `node:test`, `node:assert`, `jest`, `vitest`, `mocha`, `ava`, `tap`, `tape`, `uvu`, `jasmine`, `qunit`.
+Tracked adapters: `as-harness`, `node:test`, `node:assert`, `jest`, `vitest`, `mocha`, `ava`, `tap`, `tape`, `uvu`, `jasmine`, `qunit`.
 
-Active surface today: `node:test`, `jest`, `vitest`.
+Active surface today: `as-harness`, `node:test`, `jest`, `vitest`.
 
 For each adapter workstream, start from the doc + TODO pair:
 
