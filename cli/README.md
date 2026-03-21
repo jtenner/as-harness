@@ -33,6 +33,7 @@ Default reporting summarizes:
 - counts, passes/failures, and diagnostics
 - planner status from `discoveryOk`, `planningOk`, and `workerCount`
 - blocked runs rendered as `missing prerequisite`, `blocked by prerequisite`, and `dependency cycle`
+- shared run metadata keeps the underlying planner code plus the concise issue label on `planIssues` and `blocked`
 - coverage after execution (when enabled)
 
 ## Bundled Libraries

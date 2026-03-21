@@ -45,6 +45,7 @@ function registerSharedStartPlannerSmokeSuite(options) {
 		assert.deepEqual(result.planIssues, [
 			{
 				type: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				targetIdentityKey: "id:2/id:11",
 				dependencyIdentityKey: "nodeId:999",
 			},
@@ -54,6 +55,7 @@ function registerSharedStartPlannerSmokeSuite(options) {
 				name: blocked.node.name,
 				dependencyNodeIds: blocked.node.dependencyNodeIds,
 				issueType: blocked.issueType,
+				issueLabel: blocked.issueLabel,
 				dependencyIdentityKey: blocked.dependencyIdentityKey,
 			})),
 			[
@@ -61,6 +63,7 @@ function registerSharedStartPlannerSmokeSuite(options) {
 					name: "blocked missing",
 					dependencyNodeIds: [999],
 					issueType: "missing-dependency",
+					issueLabel: "missing prerequisite",
 					dependencyIdentityKey: "nodeId:999",
 				},
 			],
@@ -95,6 +98,7 @@ function registerSharedStartPlannerSmokeSuite(options) {
 		assert.deepEqual(result.planIssues, [
 			{
 				type: "blocked-dependency",
+				issueLabel: "blocked by prerequisite",
 				targetIdentityKey: "id:2",
 				dependencyIdentityKey: "id:1",
 			},
@@ -104,6 +108,7 @@ function registerSharedStartPlannerSmokeSuite(options) {
 				name: blocked.node.name,
 				dependencyNodeIds: blocked.node.dependencyNodeIds,
 				issueType: blocked.issueType,
+				issueLabel: blocked.issueLabel,
 				dependencyIdentityKey: blocked.dependencyIdentityKey,
 			})),
 			[
@@ -111,6 +116,7 @@ function registerSharedStartPlannerSmokeSuite(options) {
 					name: "blocked by failing prereq",
 					dependencyNodeIds: [1],
 					issueType: "blocked-dependency",
+					issueLabel: "blocked by prerequisite",
 					dependencyIdentityKey: "id:1",
 				},
 			],

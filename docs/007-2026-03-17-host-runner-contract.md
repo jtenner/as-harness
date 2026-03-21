@@ -112,9 +112,11 @@ Field-level contract:
   structurally visible node discovered under it
 - `branches[*].executions` contains one entry per runnable normal test node in
   discovery order
-- `planIssues` contains ordered planning or blocked-dependency diagnostics
+- `planIssues` contains ordered planning or blocked-dependency diagnostics,
+  including the machine-readable `type`, the concise `issueLabel`, and the
+  target/dependency identity fields
 - `blocked` contains planner-blocked tests together with their primary issue
-  and dependency identity
+  code, concise `issueLabel`, and dependency identity
 - `workerCount` reports the number of execution slots actually used by the
   shared executor for the run; the shipped hosts use same-machine worker slots
   for ready work when parallel capacity is available

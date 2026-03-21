@@ -240,14 +240,20 @@ function formatIssueLabel(type: string) {
 }
 
 function formatBlockedMessage(blocked: HarnessBlockedNode) {
-	const label = formatIssueLabel(blocked.issueType);
+	const label =
+		typeof blocked.issueLabel === "string" && blocked.issueLabel.length > 0
+			? blocked.issueLabel
+			: formatIssueLabel(blocked.issueType);
 	return blocked.dependencyIdentityKey.length > 0
 		? `  blocked: ${label} (${blocked.dependencyIdentityKey})`
 		: `  blocked: ${label}`;
 }
 
 function formatPlanIssueMessage(issue: HarnessPlanIssue) {
-	const label = formatIssueLabel(issue.type);
+	const label =
+		typeof issue.issueLabel === "string" && issue.issueLabel.length > 0
+			? issue.issueLabel
+			: formatIssueLabel(issue.type);
 	return issue.dependencyIdentityKey.length > 0
 		? `  issue: ${label} (${issue.targetIdentityKey} <- ${issue.dependencyIdentityKey})`
 		: `  issue: ${label} (${issue.targetIdentityKey})`;

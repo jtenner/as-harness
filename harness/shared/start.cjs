@@ -699,9 +699,23 @@ function comparePlanIssues(left, right) {
 function createPlanIssue(type, targetIdentityKey, dependencyIdentityKey = "") {
 	return {
 		type,
+		issueLabel: formatIssueLabel(type),
 		targetIdentityKey,
 		dependencyIdentityKey,
 	};
+}
+
+function formatIssueLabel(type) {
+	switch (type) {
+		case "blocked-dependency":
+			return "blocked by prerequisite";
+		case "missing-dependency":
+			return "missing prerequisite";
+		case "dependency-cycle":
+			return "dependency cycle";
+		default:
+			return type;
+	}
 }
 
 function propagateBlockedTargets(initialBlockedKeys, adjacency) {
@@ -1014,10 +1028,15 @@ function createBlockedNodeIssueMap(evaluatedExecution) {
 }
 
 function toBlockedNode(target, issue) {
+	const issueType =
+		typeof issue?.type === "string" ? issue.type : "blocked-dependency";
 	return {
 		node: cloneNode(target.node),
-		issueType:
-			typeof issue?.type === "string" ? issue.type : "blocked-dependency",
+		issueType,
+		issueLabel:
+			typeof issue?.issueLabel === "string"
+				? issue.issueLabel
+				: formatIssueLabel(issueType),
 		dependencyIdentityKey:
 			typeof issue?.dependencyIdentityKey === "string"
 				? issue.dependencyIdentityKey
@@ -1028,6 +1047,10 @@ function toBlockedNode(target, issue) {
 function toPlanIssues(issues) {
 	return (Array.isArray(issues) ? issues : []).map((issue) => ({
 		type: typeof issue?.type === "string" ? issue.type : "",
+		issueLabel:
+			typeof issue?.issueLabel === "string"
+				? issue.issueLabel
+				: formatIssueLabel(typeof issue?.type === "string" ? issue.type : ""),
 		targetIdentityKey:
 			typeof issue?.targetIdentityKey === "string"
 				? issue.targetIdentityKey

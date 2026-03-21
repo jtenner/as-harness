@@ -2,6 +2,7 @@
 
 ## 2026-03-21
 
+- **contract: add concise issue labels to shared planning results** Extend `HarnessPlanIssue` and `HarnessBlockedNode` with shipped `issueLabel` fields, populate them from the shared scheduler, prove the new result shape through shared smoke and reporter coverage, and remove the completed backlog item for blocked-result semantics. GitHub: *@jtenner*
 - **reporter: tighten blocked-outcome CLI copy** Replace raw planner issue codes in the CLI reporter with concise user-facing phrases for blocked prerequisites, missing prerequisites, and dependency cycles; add reporter and CLI proof for the new wording; and remove the completed backlog item. GitHub: *@jtenner*
 - **assembly: add the first native `as-harness` guest adapter slice** Ship a bundled `"as-harness"` library with chainable declaration handles, sequential-group metadata, shared hook/context exports, and end-to-end proof through AssemblyScript internals, compiler bundling, and CLI host runs; then trim the completed native-adapter backlog items and refresh the user-facing docs. GitHub: *@jtenner*
 - **proof: add direct duplicate-edge planner coverage** Add a shared planner regression test that proves mixed dependency metadata collapses to one execution edge, retire the stale duplicate-edge blocker from `agent-todo.md`, and align the graph-planning strategy note with the concrete unit coverage. GitHub: *@jtenner*

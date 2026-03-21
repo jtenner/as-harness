@@ -218,6 +218,7 @@ test("planExecutionStages blocks dependents when a dependency target is missing"
 	assert.deepEqual(plan.issues, [
 		{
 			type: "missing-dependency",
+			issueLabel: "missing prerequisite",
 			targetIdentityKey: "id:20/id:22",
 			dependencyIdentityKey: "id:missing",
 		},
@@ -503,6 +504,7 @@ test("planExecutionStages does not resolve repeated local nodeIds across unrelat
 	assert.deepEqual(plan.issues, [
 		{
 			type: "missing-dependency",
+			issueLabel: "missing prerequisite",
 			targetIdentityKey: "id:30/id:31",
 			dependencyIdentityKey: "nodeId:29",
 		},
@@ -538,6 +540,7 @@ test("planExecutionStages reports missing dependencyNodeIds with blocked depende
 	assert.deepEqual(plan.issues, [
 		{
 			type: "missing-dependency",
+			issueLabel: "missing prerequisite",
 			targetIdentityKey: "id:28/id:29",
 			dependencyIdentityKey: "nodeId:999",
 		},
@@ -595,11 +598,13 @@ test("planExecutionStages reports dependency cycles after planning ready nodes",
 	assert.deepEqual(plan.issues, [
 		{
 			type: "dependency-cycle",
+			issueLabel: "dependency cycle",
 			targetIdentityKey: "id:30/id:31",
 			dependencyIdentityKey: "",
 		},
 		{
 			type: "dependency-cycle",
+			issueLabel: "dependency cycle",
 			targetIdentityKey: "id:30/id:32",
 			dependencyIdentityKey: "",
 		},
@@ -734,11 +739,13 @@ test("evaluatePlannedExecution keeps unrelated work satisfied while blocking onl
 		[
 			{
 				type: "blocked-dependency",
+				issueLabel: "blocked by prerequisite",
 				targetIdentityKey: "id:120/id:122",
 				dependencyIdentityKey: "id:120/id:121",
 			},
 			{
 				type: "blocked-dependency",
+				issueLabel: "blocked by prerequisite",
 				targetIdentityKey: "id:120/id:126",
 				dependencyIdentityKey: "id:120/id:121",
 			},
@@ -811,11 +818,13 @@ test("evaluatePlannedExecution blocks downstream dependents after an unsatisfied
 		[
 			{
 				type: "blocked-dependency",
+				issueLabel: "blocked by prerequisite",
 				targetIdentityKey: "id:40/id:42",
 				dependencyIdentityKey: "id:40/id:41",
 			},
 			{
 				type: "blocked-dependency",
+				issueLabel: "blocked by prerequisite",
 				targetIdentityKey: "id:40/id:43",
 				dependencyIdentityKey: "id:40/id:41",
 			},
@@ -913,6 +922,7 @@ test("planExecutionStages treats skipped dependency declarations as missing depe
 	assert.deepEqual(plan.issues, [
 		{
 			type: "missing-dependency",
+			issueLabel: "missing prerequisite",
 			targetIdentityKey: "id:60/id:63",
 			dependencyIdentityKey: "nodeId:62",
 		},
@@ -970,6 +980,7 @@ test("planExecutionStages treats todo dependency declarations as missing depende
 	assert.deepEqual(plan.issues, [
 		{
 			type: "missing-dependency",
+			issueLabel: "missing prerequisite",
 			targetIdentityKey: "id:64/id:67",
 			dependencyIdentityKey: "nodeId:66",
 		},
@@ -1111,6 +1122,7 @@ test("evaluatePlannedExecution keeps pre-blocked targets blocked even with execu
 	assert.deepEqual(evaluated.issues, [
 		{
 			type: "missing-dependency",
+			issueLabel: "missing prerequisite",
 			targetIdentityKey: "id:80/id:81",
 			dependencyIdentityKey: "id:missing",
 		},

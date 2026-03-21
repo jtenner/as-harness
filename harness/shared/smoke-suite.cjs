@@ -1271,26 +1271,31 @@ function registerHarnessSmokeSuite(options) {
 		assert.deepEqual(result.planIssues, [
 			{
 				type: "blocked-dependency",
+				issueLabel: "blocked by prerequisite",
 				targetIdentityKey: "id:16",
 				dependencyIdentityKey: "id:15",
 			},
 			{
 				type: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				targetIdentityKey: "id:20",
 				dependencyIdentityKey: "nodeId:19",
 			},
 			{
 				type: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				targetIdentityKey: "id:22",
 				dependencyIdentityKey: "nodeId:21",
 			},
 			{
 				type: "blocked-dependency",
+				issueLabel: "blocked by prerequisite",
 				targetIdentityKey: "id:24",
 				dependencyIdentityKey: "id:23",
 			},
 			{
 				type: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				targetIdentityKey: "id:25/id:27",
 				dependencyIdentityKey: "nodeId:26",
 			},
@@ -1300,6 +1305,7 @@ function registerHarnessSmokeSuite(options) {
 				name: blocked.node.name,
 				dependencyNodeIds: blocked.node.dependencyNodeIds,
 				issueType: blocked.issueType,
+				issueLabel: blocked.issueLabel,
 				dependencyIdentityKey: blocked.dependencyIdentityKey,
 			})),
 			[
@@ -1307,30 +1313,35 @@ function registerHarnessSmokeSuite(options) {
 					name: "dependency blocked dependent",
 					dependencyNodeIds: [15],
 					issueType: "blocked-dependency",
+					issueLabel: "blocked by prerequisite",
 					dependencyIdentityKey: "id:15",
 				},
 				{
 					name: "dependency skipped dependent",
 					dependencyNodeIds: [19],
 					issueType: "missing-dependency",
+					issueLabel: "missing prerequisite",
 					dependencyIdentityKey: "nodeId:19",
 				},
 				{
 					name: "dependency todo dependent",
 					dependencyNodeIds: [21],
 					issueType: "missing-dependency",
+					issueLabel: "missing prerequisite",
 					dependencyIdentityKey: "nodeId:21",
 				},
 				{
 					name: "dependency unexpected pass dependent",
 					dependencyNodeIds: [23],
 					issueType: "blocked-dependency",
+					issueLabel: "blocked by prerequisite",
 					dependencyIdentityKey: "id:23",
 				},
 				{
 					name: "dependency only included dependent",
 					dependencyNodeIds: [26],
 					issueType: "missing-dependency",
+					issueLabel: "missing prerequisite",
 					dependencyIdentityKey: "nodeId:26",
 				},
 			],
@@ -1560,27 +1571,32 @@ function registerHarnessSmokeSuite(options) {
 			.map((blocked) => ({
 				name: blocked.node.name,
 				issueType: blocked.issueType,
+				issueLabel: blocked.issueLabel,
 				dependencyIdentityKey: blocked.dependencyIdentityKey,
 			}));
 
 		assert.deepEqual(focusedPlanIssues, [
 			{
 				type: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				targetIdentityKey: "id:20",
 				dependencyIdentityKey: "nodeId:19",
 			},
 			{
 				type: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				targetIdentityKey: "id:22",
 				dependencyIdentityKey: "nodeId:21",
 			},
 			{
 				type: "blocked-dependency",
+				issueLabel: "blocked by prerequisite",
 				targetIdentityKey: "id:24",
 				dependencyIdentityKey: "id:23",
 			},
 			{
 				type: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				targetIdentityKey: "id:25/id:27",
 				dependencyIdentityKey: "nodeId:26",
 			},
@@ -1589,21 +1605,25 @@ function registerHarnessSmokeSuite(options) {
 			{
 				name: "dependency skipped dependent",
 				issueType: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				dependencyIdentityKey: "nodeId:19",
 			},
 			{
 				name: "dependency todo dependent",
 				issueType: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				dependencyIdentityKey: "nodeId:21",
 			},
 			{
 				name: "dependency unexpected pass dependent",
 				issueType: "blocked-dependency",
+				issueLabel: "blocked by prerequisite",
 				dependencyIdentityKey: "id:23",
 			},
 			{
 				name: "dependency only included dependent",
 				issueType: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				dependencyIdentityKey: "nodeId:26",
 			},
 		]);

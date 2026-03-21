@@ -122,15 +122,23 @@ export interface HarnessExecution {
 	events: Array<HarnessEvent>;
 }
 
+export type HarnessIssueType =
+	| "missing-dependency"
+	| "blocked-dependency"
+	| "dependency-cycle"
+	| (string & {});
+
 export interface HarnessPlanIssue {
-	type: string;
+	type: HarnessIssueType;
+	issueLabel: string;
 	targetIdentityKey: string;
 	dependencyIdentityKey: string;
 }
 
 export interface HarnessBlockedNode {
 	node: HarnessNode;
-	issueType: string;
+	issueType: HarnessIssueType;
+	issueLabel: string;
 	dependencyIdentityKey: string;
 }
 

@@ -44,6 +44,7 @@ test("createHarnessRunReport preserves blocked nodes and planning issues", () =>
 		planIssues: [
 			{
 				type: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				targetIdentityKey: "id:2",
 				dependencyIdentityKey: "id:missing",
 			},
@@ -52,6 +53,7 @@ test("createHarnessRunReport preserves blocked nodes and planning issues", () =>
 			{
 				node: blockedNode,
 				issueType: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				dependencyIdentityKey: "id:missing",
 			},
 		],
@@ -101,11 +103,13 @@ test("defaultRunReporter prints blocked failures distinctly when blocked tests e
 		planIssues: [
 			{
 				type: "blocked-dependency",
+				issueLabel: "blocked by prerequisite",
 				targetIdentityKey: "id:2",
 				dependencyIdentityKey: "id:1",
 			},
 			{
 				type: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				targetIdentityKey: "id:2",
 				dependencyIdentityKey: "id:missing",
 			},
@@ -114,6 +118,7 @@ test("defaultRunReporter prints blocked failures distinctly when blocked tests e
 			{
 				node: createNode("blocked test", 1),
 				issueType: "blocked-dependency",
+				issueLabel: "blocked by prerequisite",
 				dependencyIdentityKey: "id:1",
 			},
 		],
@@ -171,11 +176,13 @@ test("defaultRunReporter uses concise copy for cycle and missing-prerequisite ou
 		planIssues: [
 			{
 				type: "dependency-cycle",
+				issueLabel: "dependency cycle",
 				targetIdentityKey: "id:1",
 				dependencyIdentityKey: "",
 			},
 			{
 				type: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				targetIdentityKey: "id:2",
 				dependencyIdentityKey: "nodeId:7",
 			},
@@ -184,11 +191,13 @@ test("defaultRunReporter uses concise copy for cycle and missing-prerequisite ou
 			{
 				node: createNode("cycle member", 1),
 				issueType: "dependency-cycle",
+				issueLabel: "dependency cycle",
 				dependencyIdentityKey: "",
 			},
 			{
 				node: createNode("missing prereq", 2),
 				issueType: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				dependencyIdentityKey: "nodeId:7",
 			},
 		],
@@ -351,6 +360,7 @@ test("defaultRunReporter prioritizes discovery failures over execution and block
 		planIssues: [
 			{
 				type: "missing-dependency",
+				issueLabel: "missing prerequisite",
 				targetIdentityKey: "id:1",
 				dependencyIdentityKey: "nodeId:2",
 			},

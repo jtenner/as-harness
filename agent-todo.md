@@ -17,7 +17,6 @@
     - `only`, `skip`, and `todo` interaction rules
   - extend host event/type decoding so stable IDs and planner metadata survive replay
   - switch `start()` to module-global graph planning instead of branch-local execution assumptions
-  - add blocked/cycle/missing-dependency reporting semantics to the shared result shape
   - prove the graph planner through `js`, `wazero`, and `wasmtime` integration tests
 - Host contract and runner reshape
 
