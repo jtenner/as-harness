@@ -1,11 +1,12 @@
 const assert = require("node:assert/strict");
 const { spawnSync } = require("node:child_process");
 const { mkdtempSync, rmSync, writeFileSync } = require("node:fs");
-const { tmpdir } = require("node:os");
+const { availableParallelism, tmpdir } = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
 
 const addon = require("..");
+const { decorateHarness } = require("../../shared/start.cjs");
 const {
 	compileSmokeFixtures,
 	registerHarnessSmokeSuite,
@@ -13,6 +14,9 @@ const {
 const {
 	registerSharedStartPlannerSmokeSuite,
 } = require("../../shared/start-planner-smoke.cjs");
+const {
+	createHarness: createParallelReadyHarness,
+} = require("../../shared/fixtures/parallel-ready-harness.cjs");
 
 const repoDir = path.resolve(__dirname, "..", "..", "..");
 const cliEntrypointPath = path.join(repoDir, "cli", "index.ts");
@@ -31,6 +35,40 @@ registerHarnessSmokeSuite({
 registerSharedStartPlannerSmokeSuite({
 	assert,
 	test,
+	runInBand: false,
+});
+
+test("start() runs a larger ready stage through parallel worker slots when available", async () => {
+	const decorated = decorateHarness(createParallelReadyHarness(), {
+		bytes: Buffer.alloc(0),
+		createLocalHarness: createParallelReadyHarness,
+		runInBand: false,
+		workerModulePath: path.join(
+			__dirname,
+			"..",
+			"..",
+			"shared",
+			"fixtures",
+			"parallel-ready-harness.cjs",
+		),
+	});
+	const result = await decorated.start();
+	const expectedWorkerCount = Math.min(4, availableParallelism());
+	const threadIds = result.branches.map((branch) =>
+		branch.executions[0].events.find((event) => event.type === "diagnostic")
+			?.data?.message ?? "",
+	);
+
+	assert.equal(result.discoveryOk, true);
+	assert.equal(result.ok, true);
+	assert.equal(result.branches.length, 4);
+	assert.equal(result.workerCount, expectedWorkerCount);
+	if (expectedWorkerCount > 1) {
+		assert.equal(new Set(threadIds).size, expectedWorkerCount);
+		assert(threadIds.every((message) => Number(message.replace("run-thread-", "")) > 0));
+	}
+
+	decorated.close();
 });
 
 test("cli run executes tests through the wasmtime harness", () => {

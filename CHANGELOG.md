@@ -2,6 +2,7 @@
 
 ## 2026-03-20
 
+- **proof: close the worker-slot scheduling parity risk with a larger ready-stage proof** Add a shared parallel-ready fixture that stages four ready branches, run the shared planner suite in parallel mode through `js`, `wazero`, and `wasmtime`, and remove the resolved worker-slot parity risk from the live backlog. GitHub: *@jtenner*
 - **docs: refresh the live risk list for worker-slot scheduling parity** Remove the obsolete note that `start()` keeps worker-aware parallelism out of scope, replace it with the current cross-host parity risk for shared worker-slot scheduling, and keep the remaining risk list aligned with the shipped scheduler. GitHub: *@jtenner*
 - **docs: align the host READMEs with the planner-shaped scheduler report** Update the package READMEs and CLI report notes so `start()` is described as deterministic planning plus same-machine worker slots and the CLI report docs mention `discoveryOk`, `planningOk`, and `workerCount`, then remove the completed backlog item. GitHub: *@jtenner*
 - **docs: annotate the host types with the ready-work scheduling policy** Add JSDoc to the shared `workerCount` fields so the `harness/shared/harness-types.d.ts` surface explicitly states that ready work consumes same-machine execution slots, and remove the completed backlog item. GitHub: *@jtenner*

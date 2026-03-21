@@ -14,7 +14,7 @@ const {
 } = require("../../shared/smoke-suite.cjs");
 const {
 	createHarness: createParallelStartHarness,
-} = require("./fixtures/parallel-start-harness.cjs");
+} = require("../../shared/fixtures/parallel-ready-harness.cjs");
 const {
 	createHarness: createNestedIdentityHarness,
 } = require("./fixtures/nested-identity-harness.cjs");
@@ -25,8 +25,11 @@ const {
 const repoDir = path.resolve(__dirname, "..", "..", "..");
 const parallelStartHarnessModulePath = path.join(
 	__dirname,
+	"..",
+	"..",
+	"shared",
 	"fixtures",
-	"parallel-start-harness.cjs",
+	"parallel-ready-harness.cjs",
 );
 const nestedIdentityHarnessModulePath = path.join(
 	__dirname,
@@ -54,7 +57,7 @@ registerSharedStartPlannerSmokeSuite({
 	test,
 });
 
-test("start() runs graph execution through parallel worker slots when available", async () => {
+test("start() runs a larger ready stage through parallel worker slots when available", async () => {
 	const harness = decorateHarness(createParallelStartHarness(), {
 		bytes: Buffer.alloc(0),
 		createLocalHarness: createParallelStartHarness,
@@ -63,7 +66,7 @@ test("start() runs graph execution through parallel worker slots when available"
 	});
 
 	const result = await harness.start();
-	const expectedWorkerCount = Math.min(2, availableParallelism());
+	const expectedWorkerCount = Math.min(4, availableParallelism());
 	const threadIds = result.branches
 		.map((branch) =>
 			branch.executions[0].events.find((event) => event.type === "diagnostic")
@@ -73,13 +76,13 @@ test("start() runs graph execution through parallel worker slots when available"
 
 	assert.equal(result.discoveryOk, true);
 	assert.equal(result.ok, true);
-	assert.equal(result.branches.length, 2);
+	assert.equal(result.branches.length, 4);
 	assert.equal(result.workerCount, expectedWorkerCount);
 	if (expectedWorkerCount > 1) {
-		assert.equal(new Set(threadIds).size, 2);
+		assert.equal(new Set(threadIds).size, expectedWorkerCount);
 		assert(threadIds.every((threadId) => threadId > 0));
 	} else {
-		assert.deepEqual(threadIds, [0, 0]);
+		assert.deepEqual(threadIds, [0, 0, 0, 0]);
 	}
 
 	harness.close();

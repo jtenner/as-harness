@@ -10,7 +10,6 @@
 
 ### Risks
 
-- shared `start()` worker-slot scheduling needs ongoing parity proof across hosts, especially on larger ready stages.
 - `sequenceMode`, dependency metadata, and failed outcomes now have shared coverage and docs updates, but host planner behavior still needs full coverage for all edge cases.
 - native dependency APIs are risky before stable IDs and blocked semantics are finalized.
 - remaining regressions are mostly semantic/order-related, so proof density is important.
