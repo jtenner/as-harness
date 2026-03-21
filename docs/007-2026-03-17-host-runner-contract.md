@@ -88,13 +88,15 @@ The current shipped orchestration contract is:
 2. treat those nodes as top-level branches
 3. rediscover each branch to collect its structurally visible nodes
 4. build a module-global execution plan from the discovered runnable tests
-5. execute ready runnable tests across same-machine worker slots by calling
-   targeted `run(nodeIndex)` on the planned replay handles
+5. execute ready runnable tests across same-machine worker slots, or in-band on
+   stability-constrained hosts, by calling targeted `run(nodeIndex)` on the
+   planned replay handles
 6. aggregate the raw branch data into `HarnessStartResult`
 
 This is the shipped module-global scheduling contract: discovery and planning
 stay deterministic, while ready work fans out across same-machine worker slots
-when available.
+when available unless a host intentionally falls back to in-band execution for
+stability.
 
 Field-level contract:
 
@@ -118,8 +120,10 @@ Field-level contract:
 - `blocked` contains planner-blocked tests together with their primary issue
   code, concise `issueLabel`, and dependency identity
 - `workerCount` reports the number of execution slots actually used by the
-  shared executor for the run; the shipped hosts use same-machine worker slots
-  for ready work when parallel capacity is available
+  shared executor for the run; shipped hosts use same-machine worker slots for
+  ready work when parallel capacity is available, except that Linux `wazero`
+  currently defaults to one in-band execution slot for stability unless
+  `AS_HARNESS_WAZERO_PARALLEL=1` opts back into worker-thread execution
 - `coverage` is either the merged snapshot for the run or `null` when coverage
   was not requested
 - `start().then(result => result.metadata)` is a required detached snapshot of

@@ -2,6 +2,10 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import sharedStartModule from "../../harness/shared/start.cjs";
 import type { Harness } from "../../harness/shared/harness-types";
+import {
+	WAZERO_PARALLEL_ENV_VAR,
+	shouldRunWazeroInBand,
+} from "./wazero-runtime-options";
 import { setCompilerOptionValue, type Runtime } from "./types";
 
 declare const WAZERO_TARGET: string | undefined;
@@ -97,8 +101,13 @@ function createBundledNativeHarness(
 function createBundledWazeroHarness(wasmBytes: Uint8Array) {
 	const nativeHarnessModule = resolveWazeroHarnessModule();
 	const bundledBytes = Buffer.from(wasmBytes);
+	const runInBand = shouldRunWazeroInBand();
 
-	traceWazero("decorating bundled wazero harness");
+	traceWazero(
+		runInBand
+			? `decorating bundled wazero harness in-band; set ${WAZERO_PARALLEL_ENV_VAR}=1 to re-enable worker-thread execution`
+			: "decorating bundled wazero harness with worker-thread execution",
+	);
 	return decorateHarness(
 		createBundledNativeHarness(nativeHarnessModule, bundledBytes),
 		{
@@ -106,7 +115,7 @@ function createBundledWazeroHarness(wasmBytes: Uint8Array) {
 			createLocalHarness(localBytes) {
 				return createBundledNativeHarness(nativeHarnessModule, localBytes);
 			},
-			runInBand: false,
+			runInBand,
 			workerModulePath: runtimeModulePath,
 		},
 	);

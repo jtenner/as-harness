@@ -2,6 +2,7 @@
 
 const native = require("./dist/wazero.node");
 const { decorateHarness } = require("../shared/start.cjs");
+const { shouldRunWazeroInBand } = require("./runtime-options.cjs");
 
 function toWasmBytes(value) {
 	if (Buffer.isBuffer(value)) {
@@ -25,12 +26,13 @@ function toWasmBytes(value) {
 
 function createHarness(bytes) {
 	const wasmBytes = Buffer.from(toWasmBytes(bytes));
+	const runInBand = shouldRunWazeroInBand();
 
 	return decorateHarness(native.createHarness(wasmBytes), {
 		bytes: wasmBytes,
 		createLocalHarness: (localBytes) =>
 			native.createHarness(Buffer.from(toWasmBytes(localBytes))),
-		runInBand: false,
+		runInBand,
 		workerModulePath: __filename,
 	});
 }

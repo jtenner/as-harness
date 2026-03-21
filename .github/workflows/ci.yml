@@ -14,15 +14,15 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.10
+          bun-version: 1.3.11
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -42,12 +42,12 @@ jobs:
       matrix: ${{ steps.host-validation-matrix.outputs.matrix }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.10
+          bun-version: 1.3.11
 
       - name: Emit host validation matrix
         id: host-validation-matrix
@@ -64,20 +64,20 @@ jobs:
       matrix: ${{ fromJSON(needs.host-validation-matrix.outputs.matrix) }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.10
+          bun-version: 1.3.11
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.nodeVersion }}
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: "1.24.1"
 
@@ -97,7 +97,7 @@ jobs:
 
       - name: Upload source-host report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
           name: source-host-${{ matrix.label }}-node${{ matrix.nodeVersion }}
@@ -109,12 +109,12 @@ jobs:
       matrix: ${{ steps.release-matrix.outputs.matrix }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.10
+          bun-version: 1.3.11
 
       - name: Emit release matrix
         id: release-matrix
@@ -130,20 +130,20 @@ jobs:
       matrix: ${{ fromJSON(needs.release-matrix.outputs.matrix) }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.10
+          bun-version: 1.3.11
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: "1.24.1"
 
@@ -158,7 +158,7 @@ jobs:
         run: bun run ./scripts/verify-packaged-cli.ts --target "${{ matrix.compileTarget }}" --asset-dir ./dist/release-assets --report-dir ./dist/packaged-cli-reports
 
       - name: Upload packaged CLI artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
           name: ${{ matrix.artifactName }}
@@ -166,7 +166,7 @@ jobs:
 
       - name: Upload packaged CLI verification report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
           name: packaged-cli-report-${{ matrix.compileTarget }}

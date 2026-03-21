@@ -43,7 +43,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - CLI reports blocked outcomes as concise `blocked by prerequisite`, `missing prerequisite`, and `dependency cycle` messages.
 - shared `start()` results always include a required `metadata` snapshot that mirrors the top-level summary fields and preserves both machine-readable planner codes and concise issue labels on `planIssues` and `blocked`.
 - when multiple runnable tests are ready, declaration order is the stable tie-breaker.
-- the shipped `start()` scheduler is deterministic for ordering and uses same-machine worker slots for ready work when available.
+- the shipped `start()` scheduler is deterministic for ordering and uses same-machine worker slots for ready work when available, except that Linux `wazero` currently defaults to in-band execution for stability.
 
 ## API Surface
 

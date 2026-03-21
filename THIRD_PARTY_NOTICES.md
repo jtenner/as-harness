@@ -41,7 +41,7 @@ This component is relevant to release artifacts that package the `wazero` host.
 
 ### Bun Runtime
 
-The packaged standalone executables are built with Bun `1.3.10`. Bun’s own license and third-party licensing information should be reviewed as part of any public binary release:
+The packaged standalone executables are built with Bun `1.3.11`. Bun’s own license and third-party licensing information should be reviewed as part of any public binary release:
 
 - <https://bun.sh/docs/project/licensing>
 

@@ -15,7 +15,7 @@ Proves the ABI is not tied to one runtime language by implementing the same shar
 - compile and instantiate Wasm via wazero
 - mirror JS host wire decoding and callback registration
 - expose `callI32`, `discover`, `run`
-- run shared `start()` through `harness/shared/start.cjs` with same-machine worker slots for ready work
+- run shared `start()` through `harness/shared/start.cjs`; Linux defaults to in-band execution for stability, while other hosts can still use same-machine worker slots for ready work
 - provide persistent coverage snapshots (`getCoverageSnapshot` / `resetCoverage`)
 - explicit `close()` to release native resources promptly
 
@@ -38,6 +38,7 @@ npm test
 - Linux glibc is in scope for `v0.1.0`; musl is not.
 - source Linux arm64 and Windows builds can be produced locally.
 - packaged release matrix currently falls back to `js` on known problem targets while collecting verification.
+- set `AS_HARNESS_WAZERO_PARALLEL=1` to force the Linux worker-thread path when debugging native scheduling issues.
 
 ## Related Docs
 
