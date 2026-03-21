@@ -2,6 +2,7 @@
 
 ## 2026-03-20
 
+- **docs: let the module-global scheduler fan out ready work in parallel** Clarify in the host-runner contract, Vitest scheduling note, and README that shipped `start()` keeps deterministic ordering but uses same-machine worker slots for independent ready work, and remove the completed backlog item. GitHub: *@jtenner*
 - **docs: pin declaration-order tie-breaking for ready scheduling** Clarify in the host-runner contract and README that declaration order is the stable ready-queue tie-breaker across branches after dependency and sequential constraints, and remove the completed backlog item. GitHub: *@jtenner*
 - **docs: codify the dependency-cycle blocked diagnostic shape** Clarify in the host-runner contract and README that cycle members block as `dependency-cycle` with an explicit blank dependency identity key, and remove the completed backlog item. GitHub: *@jtenner*
 - **docs: finalize dependency outcome wording and retire the backlog item** Clarify in the root README and host-runner contract that failing or trapping prerequisites block dependents transitively, while skip/todo/filtered prerequisites surface as `missing-dependency`, and remove the completed live-backlog entry. GitHub: *@jtenner*

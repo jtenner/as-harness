@@ -15,11 +15,8 @@
 - native dependency APIs are risky before stable IDs and blocked semantics are finalized.
 - remaining regressions are mostly semantic/order-related, so proof density is important.
 
-### Graph-Aware Scheduling Semantics
-
 ### Host Contract and Runner Reshape
 
-- Decide module-global scheduling contract shape now (same-machine parallelism vs fully deterministic baseline)
 - Update `harness/shared/harness-types.d.ts`-backed host contract text with any scheduling-policy deltas
 - Align `cli`, `harness/*`, and reporter outputs with planner fields before the next commit
 - Keep `CHANGELOG.md`/release notes ready for API-visible contract changes

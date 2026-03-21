@@ -1,5 +1,6 @@
 "use strict";
 
+const os = require("node:os");
 const path = require("node:path");
 const { Worker } = require("node:worker_threads");
 const { mergeCoverageSnapshots } = require("./covers.cjs");
@@ -433,12 +434,12 @@ function runBranchTaskInBand(options, task) {
 	}
 }
 
-async function runExecutionTasks(options, tasks) {
+async function runExecutionTasks(options, tasks, workerCount = 1) {
 	if (tasks.length === 0) {
 		return [];
 	}
 
-	if (options.runInBand === true) {
+	if (options.runInBand === true || workerCount <= 1) {
 		return tasks.map((task) => runBranchTaskInBand(options, task));
 	}
 
@@ -447,7 +448,7 @@ async function runExecutionTasks(options, tasks) {
 		options.bytes,
 		"runBranch",
 		tasks,
-		1,
+		workerCount,
 	);
 }
 
@@ -802,6 +803,18 @@ function compareExecutionTargets(left, right) {
 	return compareNodeDeclarationOrder(left?.node, right?.node);
 }
 
+function getParallelWorkerCount(taskCount) {
+	if (taskCount <= 0) {
+		return 0;
+	}
+
+	const availableParallelism =
+		typeof os.availableParallelism === "function"
+			? os.availableParallelism()
+			: 1;
+	return Math.max(1, Math.min(taskCount, availableParallelism));
+}
+
 function createPlanSuccessorMap(adjacency, blockedTargets) {
 	const blockedKeys = new Set(
 		Array.isArray(blockedTargets)
@@ -1055,13 +1068,19 @@ async function executePlannedStages(options, branches, plan) {
 			continue;
 		}
 
+		const stageWorkerCount =
+			options.runInBand === true
+				? 1
+				: getParallelWorkerCount(stageTargets.length);
+
 		const executionGroups = await runExecutionTasks(
 			options,
 			stageTargets.map((target) => ({
 				runTargets: [target.node],
 			})),
+			stageWorkerCount,
 		);
-		workerCount = 1;
+		workerCount = Math.max(workerCount, stageWorkerCount);
 
 		for (let index = 0; index < stageTargets.length; index += 1) {
 			const target = stageTargets[index];

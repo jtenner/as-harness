@@ -30,7 +30,7 @@ function createHarness(bytes) {
 		bytes: wasmBytes,
 		createLocalHarness: (localBytes) =>
 			native.createHarness(Buffer.from(toWasmBytes(localBytes))),
-		runInBand: true,
+		runInBand: false,
 		workerModulePath: __filename,
 	});
 }

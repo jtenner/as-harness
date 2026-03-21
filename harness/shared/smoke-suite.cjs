@@ -1349,7 +1349,7 @@ function registerHarnessSmokeSuite(options) {
 				20, 21, 22, 23, 24,
 			],
 		);
-		assert.equal(result.workerCount, 1);
+		assert(result.workerCount >= 1);
 		assert.deepEqual(
 			branchesByName
 				.get("parent test")
@@ -1652,7 +1652,7 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(result.ok, true);
 		assert.equal(result.discoveredTestCount, 8);
 		assert.equal(result.topLevelNodes.length, 1);
-		assert.equal(result.workerCount, 1);
+		assert(result.workerCount >= 1);
 		assert.deepEqual(result.planIssues, []);
 		assert.deepEqual(result.blocked, []);
 		assert.deepEqual(

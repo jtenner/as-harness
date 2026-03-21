@@ -1,6 +1,7 @@
 "use strict";
 
 const path = require("node:path");
+const { availableParallelism } = require("node:os");
 
 const { decorateHarness } = require("./start.cjs");
 const {
@@ -33,11 +34,14 @@ function registerSharedStartPlannerSmokeSuite(options) {
 		});
 
 		const result = await harness.start();
+		const expectedWorkerCount = runInBand
+			? 1
+			: Math.min(2, availableParallelism());
 
 		assert.equal(result.discoveryOk, true);
 		assert.equal(result.ok, false);
 		assert.equal(result.planningOk, false);
-		assert.equal(result.workerCount, 1);
+		assert.equal(result.workerCount, expectedWorkerCount);
 		assert.deepEqual(result.planIssues, [
 			{
 				type: "missing-dependency",
@@ -80,11 +84,14 @@ function registerSharedStartPlannerSmokeSuite(options) {
 		});
 
 		const result = await harness.start();
+		const expectedWorkerCount = runInBand
+			? 1
+			: Math.min(2, availableParallelism());
 
 		assert.equal(result.discoveryOk, true);
 		assert.equal(result.ok, false);
 		assert.equal(result.planningOk, false);
-		assert.equal(result.workerCount, 1);
+		assert.equal(result.workerCount, expectedWorkerCount);
 		assert.deepEqual(result.planIssues, [
 			{
 				type: "blocked-dependency",

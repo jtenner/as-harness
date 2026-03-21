@@ -204,8 +204,9 @@ Recommendation:
 
 ## Proposed Scheduling Semantics
 
-The first graph-aware scheduler should remain globally sequential and
-deterministic.
+The first graph-aware scheduler should remain globally deterministic at the
+planning layer, but it should fan out ready work across same-machine worker
+slots as much as possible.
 
 Planning order:
 
@@ -216,10 +217,10 @@ Planning order:
 5. add explicit dependency edges
 6. validate the graph
 7. topologically schedule ready nodes using declaration order as the tie-breaker
-8. execute nodes one at a time
+8. execute each ready stage across available worker slots
 
-This keeps the first implementation honest while leaving room for later worker
-and concurrency work.
+This keeps the first implementation honest while still allowing the host to use
+same-machine parallelism for independent ready work.
 
 ### Recommended Rule Set
 
@@ -227,6 +228,8 @@ Base ordering:
 
 - declaration order is the default stable order
 - when multiple nodes are ready at once, the lowest declaration order wins
+- keep the shipped `start()` scheduler deterministic for ordering while using
+  same-machine worker fanout for ready work
 
 Sequential groups:
 
@@ -252,6 +255,8 @@ Dependency outcomes:
   explicitly allows soft prerequisites
 - missing dependency target: plan error plus blocked dependent
 - dependency cycle: plan error plus blocked cycle members
+- same-machine parallel execution is part of the current `v0.3.0` scheduler
+  contract for independent ready work
 
 Expected-failure detail:
 

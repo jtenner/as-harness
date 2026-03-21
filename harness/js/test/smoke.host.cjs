@@ -1,5 +1,6 @@
 const assert = require("node:assert/strict");
 const path = require("node:path");
+const { availableParallelism } = require("node:os");
 const test = require("node:test");
 
 const addon = require("..");
@@ -53,25 +54,32 @@ registerSharedStartPlannerSmokeSuite({
 	test,
 });
 
-test("start() runs graph execution through one in-band shared execution slot", async () => {
+test("start() runs graph execution through parallel worker slots when available", async () => {
 	const harness = decorateHarness(createParallelStartHarness(), {
 		bytes: Buffer.alloc(0),
 		createLocalHarness: createParallelStartHarness,
-		runInBand: true,
+		runInBand: false,
 		workerModulePath: parallelStartHarnessModulePath,
 	});
 
 	const result = await harness.start();
+	const expectedWorkerCount = Math.min(2, availableParallelism());
+	const threadIds = result.branches
+		.map((branch) =>
+			branch.executions[0].events.find((event) => event.type === "diagnostic")
+				?.data?.message ?? "",
+		)
+		.map((message) => Number(message.replace("run-thread-", "")));
 
 	assert.equal(result.discoveryOk, true);
 	assert.equal(result.ok, true);
 	assert.equal(result.branches.length, 2);
-	assert.equal(result.workerCount, 1);
-	for (const branch of result.branches) {
-		const diagnosticEvent = branch.executions[0].events.find(
-			(event) => event.type === "diagnostic",
-		);
-		assert.equal(diagnosticEvent?.data?.message ?? "", "run-thread-0");
+	assert.equal(result.workerCount, expectedWorkerCount);
+	if (expectedWorkerCount > 1) {
+		assert.equal(new Set(threadIds).size, 2);
+		assert(threadIds.every((threadId) => threadId > 0));
+	} else {
+		assert.deepEqual(threadIds, [0, 0]);
 	}
 
 	harness.close();
@@ -151,7 +159,7 @@ test("start() executes sequential-scope branches without forcing root barriers",
 
 	assert.equal(result.discoveryOk, true);
 	assert.equal(result.ok, true);
-	assert.equal(result.workerCount, 1);
+	assert(result.workerCount >= 1);
 	assert.deepEqual(
 		result.branches.map((branch) =>
 			branch.executions.map((execution) => execution.node.name),

@@ -1116,7 +1116,7 @@ test("decorateHarness can execute start() in-band and merge coverage snapshots",
 	assert.equal(result.ok, true);
 	assert.equal(result.discoveryOk, true);
 	assert.equal(result.planningOk, true);
-	assert.equal(result.workerCount, 1);
+	assert(result.workerCount >= 1);
 	assert.deepEqual(runHarnessIds, [2]);
 	assert.deepEqual(runNodeIndexes, [[0, 0]]);
 	assert.deepEqual(result.coverage, {

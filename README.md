@@ -40,6 +40,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `expectFailure` satisfies dependents only when it fails as intended.
 - dependency cycles block all cycle members with `dependency-cycle` diagnostics.
 - when multiple runnable tests are ready, declaration order is the stable tie-breaker.
+- the shipped `start()` scheduler is deterministic for ordering and uses same-machine worker slots for ready work when available.
 
 ## API Surface
 
