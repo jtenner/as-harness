@@ -25,6 +25,9 @@ it with
   chainable declaration handles for dependencies and hints, `sequential(...)`
   declarations, and `SuiteContext` / `TestContext` hint setters; no broader
   scheduler-shaped native helper family is planned this cycle
+- the binding shared constraint vocabulary for this cycle is still only
+  `sequenceMode` plus `dependencyNodeIds`; no additional binding field is
+  planned until a concrete framework control cannot lower onto those two
 - unsupported hint values still surface through discovery metadata, but the
   current host only treats them as informational `ignored-hint` planner issues
   instead of binding execution policy

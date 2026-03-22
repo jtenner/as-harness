@@ -88,6 +88,13 @@ Only some of these are constraints today:
 - `sequenceMode`
 - `dependencyNodeIds`
 
+Current decision for this cycle:
+
+- keep `sequenceMode` and `dependencyNodeIds` as the only binding shared
+  constraint fields
+- do not add another constraint field until a concrete framework control fails
+  to lower honestly onto those two
+
 The rest are hints in the first slice:
 
 - `preferredRunnerMode`
@@ -138,6 +145,22 @@ Files likely affected:
 - `docs/003-2026-03-17-harness-abi.md`
 - `docs/006-2026-03-17-guest-runtime-contracts.md`
 - `docs/007-2026-03-17-host-runner-contract.md`
+
+Status:
+
+- complete for this dev cycle without adding another shared constraint field
+
+Decision:
+
+- keep `sequenceMode` and `dependencyNodeIds` as the full binding shared
+  constraint vocabulary for now
+
+Reason:
+
+- the shipped planner, adapter lowering, and diagnostics are already centered
+  on those two fields
+- adding another binding field without a concrete unmet framework need would
+  widen the contract faster than the current proof surface justifies
 
 ### Slice 2: Host Planner Support For Guest Hints
 

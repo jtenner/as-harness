@@ -171,6 +171,9 @@ Hint policy:
   `planIssues` instead of treating them as blocking planner failures
 - these fields remain host-owned planning hints rather than binding
   correctness constraints
+- the binding constraint vocabulary remains limited to `sequenceMode` and
+  `dependencyNodeIds`; no additional binding field is planned in this cycle
+  unless a concrete framework control cannot lower honestly onto those two
 
 Targeted discovery detail:
 
