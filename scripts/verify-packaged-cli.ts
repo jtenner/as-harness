@@ -392,8 +392,10 @@ export async function main() {
 	try {
 		const installDirectory = join(tempDirectory, "install");
 		const projectDirectory = join(tempDirectory, "project");
+		const runtimeTempDirectory = join(tempDirectory, "runtime-tmp");
 		await mkdir(installDirectory, { recursive: true });
 		await mkdir(projectDirectory, { recursive: true });
+		await mkdir(runtimeTempDirectory, { recursive: true });
 
 		const stagedExecutablePath = join(
 			installDirectory,
@@ -416,6 +418,11 @@ export async function main() {
 		);
 
 		const reports: HarnessRunReport[] = [];
+		const smokeEnvironment = createPackagedSmokeEnvironment(process.env, {
+			TEMP: runtimeTempDirectory,
+			TMP: runtimeTempDirectory,
+			TMPDIR: runtimeTempDirectory,
+		});
 
 		for (const harness of packagedHarnesses) {
 			console.log(
@@ -434,7 +441,7 @@ export async function main() {
 					projectDirectory,
 					{},
 					SMOKE_COMMAND_TIMEOUT_MS,
-					createPackagedSmokeEnvironment(),
+					smokeEnvironment,
 				);
 			} catch (error) {
 				throw new Error(
@@ -468,7 +475,7 @@ export async function main() {
 							projectDirectory,
 							{ AS_HARNESS_TRACE_WAZERO: "1" },
 							SMOKE_COMMAND_TIMEOUT_MS,
-							createPackagedSmokeEnvironment(),
+							smokeEnvironment,
 						);
 					} catch (error) {
 						throw new Error(

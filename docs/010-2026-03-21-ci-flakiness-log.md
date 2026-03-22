@@ -16,7 +16,7 @@ This note answers which CI failures and flaky behaviors were encountered while s
 
 - Symptom: `Packaged CLI (bun-linux-x64)` timed out after 60 seconds while verifying the packaged executable, often with trace output stopping at `resolving bundled wazero harness module`.
 - Root cause: the staged packaged smoke process was inheriting the full CI environment, including tool-manager variables that did not match the intended “clean staged executable” contract.
-- Fix: `verify-packaged-cli.ts` now builds a small cross-platform environment whitelist for packaged smoke commands and uses the same sanitized environment for the trace rerun.
+- Fix: `verify-packaged-cli.ts` now builds a small cross-platform environment whitelist for packaged smoke commands, uses the same sanitized environment for the trace rerun, and gives the packaged process a verifier-owned temp directory so Bun's embedded `.node` extraction path does not depend on runner-global temp configuration.
 - Status: fixed for the current packaged verification path.
 
 ### 2. Packaged verification used the same timeout budget for build and smoke

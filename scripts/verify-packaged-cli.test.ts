@@ -140,12 +140,15 @@ test("createPackagedSmokeEnvironment strips tool-manager env while preserving ru
 		{
 			HOME: "/tmp/home",
 			PATH: "/usr/bin:/bin",
-			TMPDIR: "/tmp",
+			TMPDIR: "/tmp/original",
 			MISE_LOG_LEVEL: "debug",
 			RUSTUP_TOOLCHAIN: "1.94.0",
 		},
 		{
 			AS_HARNESS_TRACE_WAZERO: "1",
+			TEMP: "/tmp/runtime",
+			TMP: "/tmp/runtime",
+			TMPDIR: "/tmp/runtime",
 		},
 	);
 
@@ -153,6 +156,8 @@ test("createPackagedSmokeEnvironment strips tool-manager env while preserving ru
 		AS_HARNESS_TRACE_WAZERO: "1",
 		HOME: "/tmp/home",
 		PATH: "/usr/bin:/bin",
-		TMPDIR: "/tmp",
+		TEMP: "/tmp/runtime",
+		TMP: "/tmp/runtime",
+		TMPDIR: "/tmp/runtime",
 	});
 });
