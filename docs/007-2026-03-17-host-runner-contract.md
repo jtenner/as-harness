@@ -104,7 +104,8 @@ Field-level contract:
   blocked by invalid or unsatisfied prerequisites
 - `topLevelNodes` is the ordered root discovery result
 - discovered nodes preserve stable declaration metadata including `nodeId`,
-  `parentNodeId`, `declarationOrder`, `sequenceMode`, `only`,
+  `parentNodeId`, `declarationOrder`, `sequenceMode`,
+  `preferredRunnerMode`, `preferredFailurePolicy`, `only`,
   `expectFailure`, and `dependencyNodeIds`
 - `discoveredTestCount` is the total count of discovered test nodes across all
   branches
@@ -126,7 +127,7 @@ Field-level contract:
   the module-global orchestration summary and contains the same values as the
   top-level run summary fields without sharing those mutable arrays
 - scheduler-step entrypoints are not part of the current shipped contract; the
-  `v0.3.0` direction keeps targeted replay as the execution primitive while the
+  current direction keeps targeted replay as the execution primitive while the
   host-owned scheduler settles
 
 Dependency policy:
@@ -153,6 +154,19 @@ Dependency policy:
   dependency and sequential constraints are applied
 - blocked tests are distinct from skipped tests in reporting because the user
   declared a runnable node, but the graph made execution impossible
+
+Hint policy:
+
+- `preferredRunnerMode` and `preferredFailurePolicy` are read from the nearest
+  declaring ancestor when the host resolves one runnable target
+- `preferredRunnerMode = in-band` keeps that hinted scope on the main-thread
+  execution lane while unrelated ready work may still use worker fanout
+- `preferredFailurePolicy = bail` blocks the remaining nearest hinted scope
+  after the first unsatisfied execution inside it
+- `preferredFailurePolicy = continue` opts a scope out of an inherited `bail`
+- these fields remain host-owned planning hints rather than binding
+  correctness constraints, so the host may still ignore unsupported future
+  hint values without changing the discovery contract
 
 Targeted discovery detail:
 
@@ -209,14 +223,16 @@ The current parity proof for this contract is:
   and [harness/shared/start.test.cjs](../harness/shared/start.test.cjs),
   including declaration-order tie-breaking, duplicate-edge collapse, cycle
   detection, expected-failure prerequisite satisfaction, skip/todo/only-filtered
-  missing-prerequisite coverage, and in-band metadata snapshot detachment
+  missing-prerequisite coverage, in-band metadata snapshot detachment, and
+  nearest-scope `bail` / `continue` hint evaluation
 - CLI run coverage in
   [cli/run.test.ts](../cli/run.test.ts), including guest-declared dependency
   success, blocked, and missing-dependency reporting through the shipped
   `js`, `wazero`, and source-built `wasmtime` hosts, plus the documented
   `skip`, `todo`, `only`-filtered, expected-failure, duplicate-edge,
-  blocked-propagation, and dependency-cycle matrix with explicit blocked
-  cycle-member diagnostics
+  blocked-propagation, dependency-cycle matrix with explicit blocked
+  cycle-member diagnostics, and bundled `uvu` hint-lowering proof through
+  real compile-and-run paths
 - package-local host tests in `harness/js`, `harness/wazero`, and
   `harness/wasmtime`
 - the CI source-host matrix and packaged verification flow described in

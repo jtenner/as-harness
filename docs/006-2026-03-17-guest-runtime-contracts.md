@@ -17,9 +17,10 @@ it with
 - the current shipped ABI stays flat: `write_event(...)`,
   `invoke_staged()`, `allocateNodeIndexBuffer(...)`, `discover()`, `run()`,
   `invoke()`, and `__start`
-- scheduler-step entrypoints remain deferred for the current `v0.3.0`
-  direction while host-owned scheduling still executes through targeted
-  `run()` replay on staged `NodeIndex` paths
+- scheduler-step entrypoints remain deferred while host-owned scheduling still
+  executes through targeted `run()` replay on staged `NodeIndex` paths
+- the guest may declare scheduling metadata through discovery facts, but the
+  host still owns final planning and execution decisions
 - adding scheduler-step entrypoints later would require an ABI update, host
   parity proof, and a backlog update across the docs
 
@@ -45,7 +46,9 @@ Purpose:
 Inputs:
 
 - adapter-level declaration requests
-- optional declaration metadata such as `mode`, `only`, `plan`, and hook kind
+- optional declaration metadata such as `mode`, `only`, `plan`,
+  `sequenceMode`, `preferredRunnerMode`, `preferredFailurePolicy`, and hook
+  kind
 
 Outputs:
 
@@ -57,6 +60,8 @@ Owned state:
 
 - no durable tree state of its own
 - normalization rules for declaration-time options and default names
+- the guest-side vocabulary for declaration metadata that later surfaces in
+  discovery events
 
 Forbidden decisions:
 
@@ -90,6 +95,9 @@ Owned state:
 - per-node declaration metadata
 - child ordering and ordinals
 - registered hooks and replay-reset behavior
+- binding constraints such as `sequenceMode` and `dependencyNodeIds`
+- host-readable hints such as `preferredRunnerMode` and
+  `preferredFailurePolicy`
 
 Forbidden decisions:
 
@@ -97,6 +105,7 @@ Forbidden decisions:
 - no wire-format encoding
 - no durable attempt-local failure state
 - no host-owned scheduling policy
+- no host-facing decision about whether a declared hint is honored or ignored
 
 ## `traversal`
 
@@ -109,6 +118,7 @@ Inputs:
 - parent node or root node
 - staged `NodeIndex`
 - declaration-mode and `only` filtering metadata from the registry
+- discovered constraint and hint metadata attached to each node
 
 Outputs:
 
@@ -128,6 +138,7 @@ Forbidden decisions:
 - no callback execution ordering beyond delegating to the executor
 - no report-tree aggregation
 - no host-facing byte decoding
+- no host-owned decision about whether a hint changes execution policy
 
 Current contract details:
 
@@ -243,7 +254,7 @@ Purpose:
 Inputs:
 
 - typed event data such as `NodeIndex`, hook kind, failure kind, message text,
-  and coverage point metadata
+  coverage point metadata, constraint metadata, and scheduling-hint metadata
 
 Outputs:
 
@@ -254,6 +265,8 @@ Owned state:
 
 - no durable state
 - the authoritative guest-side payload layout and encoding helpers
+- the authoritative byte layout for `sequenceMode`, `dependencyNodeIds`,
+  `preferredRunnerMode`, and `preferredFailurePolicy` on `NodeFound`
 
 Forbidden decisions:
 
@@ -334,3 +347,5 @@ Forbidden decisions:
 - only `executor` owns lifecycle execution ordering
 - the host remains the durable source of truth for branch scheduling, result
   aggregation, and user-facing reporting
+- guest-declared hints may flow through discovery metadata, but only the host
+  may decide whether those hints influence planning

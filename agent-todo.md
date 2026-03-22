@@ -2,12 +2,6 @@
 
 ## v0.6.0
 
-### Blockers
-
-- update the ABI and runtime-contract docs for the now-shipped
-  `preferredFailurePolicy` and `preferredRunnerMode` semantics before adapters
-  grow more lowering on top of them.
-
 ### Risks
 
 - shipped `uvu` intentionally diverges from upstream callable returned suite
@@ -23,8 +17,6 @@
 
 ### Runtime: Shared Guest Hints
 
-- update the guest/runtime/host ABI docs so hint ownership boundaries are
-  explicit and stable.
 - decide whether ignored hints should stay silent or surface as informational
   metadata once more adapters start lowering into the shared hint model.
 
@@ -74,12 +66,3 @@
 
 - keep `js`, `wazero`, and `wasmtime` parity proof in place as adapters start
   lowering framework-shaped controls onto the shared hint model.
-
-### Docs
-
-- update [docs/006-2026-03-17-guest-runtime-contracts.md](/home/jtenner/Projects/as-harness/docs/006-2026-03-17-guest-runtime-contracts.md),
-  [docs/007-2026-03-17-host-runner-contract.md](/home/jtenner/Projects/as-harness/docs/007-2026-03-17-host-runner-contract.md),
-  and [docs/003-2026-03-17-harness-abi.md](/home/jtenner/Projects/as-harness/docs/003-2026-03-17-harness-abi.md)
-  for the new hint and constraint metadata once implemented.
-- keep [docs/015-2026-03-22-guest-hint-and-constraint-plan.md](/home/jtenner/Projects/as-harness/docs/015-2026-03-22-guest-hint-and-constraint-plan.md)
-  as the current design note for this dev-cycle work.
