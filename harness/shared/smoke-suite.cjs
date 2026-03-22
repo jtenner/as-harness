@@ -616,6 +616,11 @@ function compileSmokeFixtures(options) {
 			"assembly/test/mocha-smoke.ts",
 			path.join(options.cacheDir, "mocha-smoke.wasm"),
 		),
+		compiledUvuAssertWasm: compileFixture(
+			assemblyDir,
+			"assembly/test/uvu-assert-smoke.ts",
+			path.join(options.cacheDir, "uvu-assert-smoke.wasm"),
+		),
 		compiledUvuWasm: compileFixture(
 			assemblyDir,
 			"assembly/test/uvu-smoke.ts",
@@ -715,6 +720,7 @@ function registerHarnessSmokeSuite(options) {
 		compiledExportsWasm,
 		compiledJasmineWasm,
 		compiledMochaWasm,
+		compiledUvuAssertWasm,
 		compiledUvuHintsWasm,
 		compiledUvuWasm,
 		compiledNodeTestWasm,
@@ -2122,6 +2128,41 @@ function registerHarnessSmokeSuite(options) {
 			branch.executions.map((execution) => execution.node.name),
 			["plain pass", "runs hooks and matchers"],
 		);
+
+		closeHarness(harness);
+	});
+
+	test('start() preserves the bundled "uvu/assert" slice through shared graph execution', async () => {
+		const harness = createHarness(compiledUvuAssertWasm);
+
+		const result = await harness.start();
+		const branch = result.branches[0];
+
+		assert.equal(result.discoveryOk, true);
+		assert.equal(result.planningOk, true);
+		assert.equal(result.ok, true);
+		assert.equal(result.discoveredTestCount, 1);
+		assert.equal(result.topLevelNodes.length, 1);
+		assert(result.workerCount >= 1);
+		assert.deepEqual(result.planIssues, []);
+		assert.deepEqual(result.blocked, []);
+		assert.deepEqual(
+			result.topLevelNodes.map((node) => [node.name, node.kind]),
+			[["passes through uvu/assert", 1]],
+		);
+		assert.deepEqual(
+			branch.discovery.nodes.map((node) => [
+				node.name,
+				node.kind,
+				node.declarationMode,
+			]),
+			[["passes through uvu/assert", 1, 1]],
+		);
+		assert.deepEqual(
+			branch.executions.map((execution) => execution.node.name),
+			["passes through uvu/assert"],
+		);
+		assert(branch.executions.every((execution) => execution.ok));
 
 		closeHarness(harness);
 	});
