@@ -12,6 +12,7 @@ Host owns scheduling, aggregation, and reporting.
 - `assembly/assembly/as_harness/`: native scheduler-aware guest surface.
 - `assembly/assembly/node_test/`: native `node:test` surface.
 - `assembly/assembly/jest/`: thin sync Jest-shaped surface.
+- `assembly/assembly/mocha/`: thin sync Mocha BDD-shaped surface.
 - `assembly/assembly/vitest/`: thin sync Vitest-shaped surface.
 - `assembly/assembly/node_assert/`: assertion adapters.
 - `assembly/assembly/test/`: guest fixtures and bootstrap tests.
@@ -21,7 +22,7 @@ Host owns scheduling, aggregation, and reporting.
 
 - native `as-harness` declarations, sequential groups, and chainable handles
 - synchronous `node:test`, chainable declarations, core hooks
-- thin `jest` + `vitest` adapters
+- thin `jest`, `mocha`, and `vitest` adapters
 - `node:assert` / `node:assert/strict` bridge + trampoline trap observation
 - shared event ABI, `NodeIndex` discovery/run model, and coverage declarations
 

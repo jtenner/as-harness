@@ -1,16 +1,17 @@
 # `mocha` Adapter TODO
 
-Status: planned for the `v0.4.0` slice.
+Status: declaration surface implemented for the current `v0.4.0` line.
 
-First slice:
+Implemented:
 
-- `describe` / `it` declarations
-- skip/todo variants
-- lifecycle hooks
-- one traversal fixture
+- BDD declarations: `describe`, `context`, `it`, `specify`
+- `only`, `skip`, and `x*` aliases
+- `before`, `after`, `beforeEach`, `afterEach`
+- callback-less pending tests
+- bundled CLI wiring and JS-host smoke proof
 
-Constraints:
+Remaining:
 
-- keep lowering into the shared runtime and ABI
-- keep the first slice synchronous and honest about unsupported async behavior
-- do not promise broad Chai parity in the first shipped adapter pass
+- keep async `done`, returned `Promise`, and callback `this` APIs out of scope
+- extend proof beyond bundled JS-host smoke into the remaining host matrix
+- keep assertion guidance on shared `node:assert` and optional `TestContext`

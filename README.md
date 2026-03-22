@@ -11,7 +11,7 @@ Implemented:
 - `as-harness run` for compile + execute.
 - Synchronous `node:test` declarations with `dependsOn(...)` chains.
 - `node:assert` / `node:assert/strict` bridge support.
-- Built-in thin adapters for `jest` and `vitest`.
+- Built-in thin adapters for `jest`, `mocha`, and `vitest`.
 - Stable start-reporting pipeline with branch, execution, planning, and blocked-outcome details.
 - `js`, `wazero`, `wasmtime` source-host runtime support.
 - Coverage output in `text`, `json`, `yaml`, `csv`, `lcov`, `cobertura`.
@@ -58,6 +58,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `node:test`: core declarations, hooks, sync contexts, and assertion binding.
 - `node:assert`, `node:assert/strict`: synchronous assertions and strict-bridge tests.
 - `jest`: sync declarations, core hooks, matcher slice.
+- `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks.
 - `vitest`: sync declarations, low-risk `sequential` aliases, and the same matcher slice.
 
 See:
@@ -67,6 +68,7 @@ See:
 - [docs/006-2026-03-17-guest-runtime-contracts.md](./docs/006-2026-03-17-guest-runtime-contracts.md)
 - [docs/007-2026-03-17-host-runner-contract.md](./docs/007-2026-03-17-host-runner-contract.md)
 - [docs/008-2026-03-19-vitest-adapter.md](./docs/008-2026-03-19-vitest-adapter.md)
+- [docs/012-2026-03-22-mocha-adapter-interface.md](./docs/012-2026-03-22-mocha-adapter-interface.md)
 - [docs/009-2026-03-19-vitest-scheduling-and-test-graph-strategy.md](./docs/009-2026-03-19-vitest-scheduling-and-test-graph-strategy.md)
 
 ## Validation

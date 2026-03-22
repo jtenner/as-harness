@@ -73,6 +73,14 @@ test("rewrites jest to the bundled harness library root", () => {
 	expect(result.lib).toEqual([BUNDLED_LIBRARY_COMPONENTS_PATH]);
 });
 
+test("rewrites mocha to the bundled harness library root", () => {
+	const result = withBundledHarnessLibraryComponents({
+		lib: ["mocha"],
+	});
+
+	expect(result.lib).toEqual([BUNDLED_LIBRARY_COMPONENTS_PATH]);
+});
+
 test("rewrites vitest to the bundled harness library root", () => {
 	const result = withBundledHarnessLibraryComponents({
 		lib: ["vitest"],
@@ -255,6 +263,9 @@ test("bundles Windows-safe assembly paths alongside public node:* library aliase
 	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/lib/jest.ts`)).toBe(
 		true,
 	);
+	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/lib/mocha.ts`)).toBe(
+		true,
+	);
 	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/lib/vitest.ts`)).toBe(
 		true,
 	);
@@ -268,6 +279,9 @@ test("bundles Windows-safe assembly paths alongside public node:* library aliase
 		bundledVirtualFiles.has(`${bundledVirtualRoot}/as_harness/index.ts`),
 	).toBe(true);
 	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/jest/index.ts`)).toBe(
+		true,
+	);
+	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/mocha/index.ts`)).toBe(
 		true,
 	);
 	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/vitest/index.ts`)).toBe(

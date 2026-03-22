@@ -26,6 +26,10 @@ Checked on 2026-03-22 against:
 - support `describe`, `context`, `it`, `specify`, `before`, `after`,
   `beforeEach`, `afterEach`, plus `only` / `skip` aliases and pending tests by
   omitted callback
+- keep the exported callback types compatible with the repo's explicit
+  `TestContext` / `SuiteContext` model so users can still opt into shared
+  diagnostics and assertions even though zero-arg Mocha-style callbacks remain
+  valid
 - keep callbacks synchronous in the first slice
 - do not promise callback `done`, returned `Promise`, `async` / `await`,
   `this.skip()`, `this.timeout()`, `this.slow()`, `this.retries()`, delayed
@@ -99,13 +103,16 @@ import {
 Recommended callback signatures for the first slice:
 
 ```ts
-type MochaTestFn = () => void;
-type MochaSuiteFn = () => void;
-type MochaHookFn = () => void;
+type MochaTestFn = (context: TestContext) => void;
+type MochaSuiteFn = (context: SuiteContext) => void;
+type MochaHookFn = (context: TestContext) => void;
 ```
 
-This is intentionally narrower than upstream, which allows async callbacks and
-binds a Mocha context object as `this`.
+This is intentionally different from upstream, which allows async callbacks and
+binds a Mocha context object as `this`. The explicit shared context keeps the
+existing `as-harness` assertion and diagnostic path available, while plain
+zero-arg callbacks still type-check because AssemblyScript accepts a callback
+with fewer parameters where a wider callback type is expected.
 
 ## Function-By-Function Plan
 
@@ -157,20 +164,23 @@ Compatibility notes:
 
 ### `describe.skip(description, callback)` and `context.skip(...)`
 
-Status: Ship now, with an explicit compatibility warning.
+Status: Ship now, with an explicit reporting warning.
 
 Game plan:
 
 - map to shared suite declaration with `DeclarationMode.Skip`
-- preserve the current `as-harness` meaning that skipped suites do not discover
-  or execute descendants
+- keep the shared `as-harness` behavior where skipped suite callbacks can still
+  build child structure, but skipped descendants do not become runnable
+  discovery or execution results
 
-Compatibility blocker:
+Compatibility warning:
 
 - upstream Mocha still invokes skipped suite callbacks so it can build suite
-  structure for visualization
-- current `as-harness` skip pruning is stricter: skipped suites suppress
-  descendant discovery
+  structure for visualization; the current adapter matches that declaration
+  behavior
+- the remaining divergence is in reporting shape: current `as-harness`
+  scheduling prunes skipped descendants out of runnable discovery/execution
+  results instead of exposing a Mocha-style skipped subtree in reports
 - this is the biggest first-slice semantic divergence in the Mocha DSL
 
 Recommendation:

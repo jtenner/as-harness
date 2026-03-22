@@ -67,19 +67,6 @@
 
 ### Adapter: `mocha`
 
-#### Slice 3: `mocha` Declaration Surface
-
-- add `assembly/assembly/mocha/index.ts` plus bundled guest-lib wiring for a
-  BDD-only `mocha` surface.
-- ship `describe`, `context`, `it`, `specify`, `before`, `after`,
-  `beforeEach`, and `afterEach`.
-- ship `describe.only`, `context.only`, `it.only`, `specify.only`,
-  `describe.skip`, `context.skip`, `it.skip`, `specify.skip`, and the `x*`
-  aliases.
-- treat callback-less `it(...)` and `specify(...)` as pending declarations.
-- keep the first slice synchronous and declaration-shaped with no adapter-local
-  scheduler behavior.
-
 #### Slice 4: `mocha` Compatibility Boundaries
 
 - keep callback `done`, returned `Promise`, and `async` / `await` out of scope.
@@ -90,21 +77,20 @@
   adapter.
 - keep delayed root suites, root hook plugins, and any guest-owned runner entry
   such as `run()` out of scope.
-- document the known skipped-suite divergence: upstream `mocha` still executes
-  `describe.skip(...)` callbacks for structure building, while current
-  `as-harness` skip semantics prune skipped-suite descendants.
+- keep the current skipped-suite contract explicit: skipped suite callbacks may
+  still build child structure, but the shared planner prunes skipped
+  descendants from runnable discovery and execution results.
 - do not imply bundled Chai support; keep assertion guidance on shared
   `node:assert` and the existing guest assertion boundary.
 
 #### Slice 5: `mocha` Proof And Release Readiness
 
-- add compile fixtures that lock the supported declaration, alias, hook, and
-  callback-less pending forms.
-- add guest and cross-host smoke coverage for declaration shape, `only`,
+- extend the current bundled-compile, internal guest, and JS-host CLI proof to
+  dedicated guest and cross-host smoke coverage for declaration shape, `only`,
   `skip`, pending declarations, and hook ordering.
-- add CLI smoke through `js`, `wazero`, and `wasmtime`.
-- update the adapter docs and README set only when the supported surface and
-  explicit non-goals are proved end to end.
+- add CLI smoke through `wazero` and `wasmtime`.
+- keep the adapter docs and README set aligned if the supported surface widens
+  beyond the current BDD-only declaration slice.
 
 ### Adapter: `jasmine`
 

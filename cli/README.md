@@ -42,11 +42,13 @@ Default reporting summarizes:
 
 - `as-harness`: native scheduler-aware declarations, `sequential(...)` groups, chainable `dependsOn(...)` handles, and shared `TestContext.assert`.
 - `jest`: thin sync declarations + shared assertion set (containment, length/size, numeric, `toThrow`, strict equality helpers).
+- `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks for diagnostics and assertions.
 - `vitest`: sync declarations, low-risk `sequential` aliases, `fails`, `skipIf` / `runIf`, `assertType(...)`, and the same shared matcher set.
 
 See their interface docs:
 
 - [docs/005-2026-03-17-jest-adapter.md](../docs/005-2026-03-17-jest-adapter.md)
+- [docs/012-2026-03-22-mocha-adapter-interface.md](../docs/012-2026-03-22-mocha-adapter-interface.md)
 - [docs/008-2026-03-19-vitest-adapter.md](../docs/008-2026-03-19-vitest-adapter.md)
 
 ## Built-In Harnesses

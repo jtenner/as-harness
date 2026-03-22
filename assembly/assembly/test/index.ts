@@ -6,6 +6,7 @@ import "./internal/execution-state";
 import "./internal/executor";
 import "./internal/events";
 import "./internal/failure-state";
+import "./internal/mocha";
 import "./internal/node";
 import "./internal/node-test";
 import "./internal/reflected-value";

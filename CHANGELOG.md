@@ -2,6 +2,7 @@
 
 ## 2026-03-22
 
+- **mocha: add the first thin bundled adapter slice** Ship a BDD-only synchronous `mocha` guest adapter with `describe` / `context` / `it` / `specify`, `before` / `after` / `beforeEach` / `afterEach`, `only` / `skip` / `x*` aliases, pending-by-omitted-callback behavior, bundled compiler wiring, internal declaration coverage, bundled JS-host CLI smoke, and refreshed backlog plus README guidance for the new supported surface. GitHub: *@jtenner*
 - **docs: record the post-0.3.0 adapter game plan in the live backlog and interface notes** Add dedicated interface research notes for `mocha`, `jasmine`, and `uvu`, move the post-`0.3.0` roadmap into dated docs, and expand `agent-todo.md` into concrete `v0.4.0` runtime-hardening plus adapter slices so the remaining release work is tracked in implementation order. GitHub: *@jtenner*
 - **release: prepare the repository metadata for `v0.3.0`** Bump `cli/package.json` to `0.3.0`, move the live backlog forward to the next unreleased line, and refresh the versioned ABI and Node-targeted CLI bundle proof so the release tag, docs, and smoke coverage all match the published minor line. GitHub: *@jtenner*
 - **docs: define pre-v1 release bump expectations** Clarify in the root README and release-process guide that `0.x` minor releases are the expected lane for breaking API or behavior changes, `patch` remains the non-breaking lane within a minor line, and `1.0.0` is the stabilization boundary. GitHub: *@jtenner*
