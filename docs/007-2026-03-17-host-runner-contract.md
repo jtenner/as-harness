@@ -230,9 +230,9 @@ The current parity proof for this contract is:
   and [harness/shared/start.test.cjs](../harness/shared/start.test.cjs),
   including declaration-order tie-breaking, duplicate-edge collapse, cycle
   detection, expected-failure prerequisite satisfaction, skip/todo/only-filtered
-  missing-prerequisite coverage, in-band metadata snapshot detachment,
-  ignored-hint informational reporting, and nearest-scope `bail` /
-  `continue` hint evaluation
+  missing-prerequisite coverage, mixed external-dependency plus sequential-scope
+  staging, in-band metadata snapshot detachment, ignored-hint informational
+  reporting, and nearest-scope `bail` / `continue` hint evaluation
 - CLI run coverage in
   [cli/run.test.ts](../cli/run.test.ts), including guest-declared dependency
   success, blocked, and missing-dependency reporting through the shipped

@@ -119,6 +119,91 @@ test("planExecutionStages only serializes descendants of sequential scopes", () 
 	);
 });
 
+test("planExecutionStages composes external dependencies with sequential descendants deterministically", () => {
+	const root = createPlannerNode({
+		identityKey: "id:300",
+		nodeId: 300,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const externalPrereq = createPlannerNode({
+		identityKey: "id:300/id:301",
+		parentIdentityKey: "id:300",
+		nodeId: 301,
+		parentNodeId: 300,
+		declarationOrder: 1,
+		name: "external prereq",
+	});
+	const sequentialSuite = createPlannerNode({
+		identityKey: "id:300/id:302",
+		parentIdentityKey: "id:300",
+		nodeId: 302,
+		parentNodeId: 300,
+		declarationOrder: 2,
+		sequenceMode: 1,
+		kind: 2,
+		name: "sequential suite",
+	});
+	const sequentialFirst = createPlannerNode({
+		identityKey: "id:300/id:302/id:303",
+		parentIdentityKey: "id:300/id:302",
+		nodeId: 303,
+		parentNodeId: 302,
+		declarationOrder: 3,
+		dependencyKeys: ["id:300/id:301"],
+		name: "sequential first",
+	});
+	const sequentialSecond = createPlannerNode({
+		identityKey: "id:300/id:302/id:304",
+		parentIdentityKey: "id:300/id:302",
+		nodeId: 304,
+		parentNodeId: 302,
+		declarationOrder: 4,
+		name: "sequential second",
+	});
+	const unrelatedReady = createPlannerNode({
+		identityKey: "id:300/id:305",
+		parentIdentityKey: "id:300",
+		nodeId: 305,
+		parentNodeId: 300,
+		declarationOrder: 5,
+		name: "unrelated ready",
+	});
+	const downstreamDependent = createPlannerNode({
+		identityKey: "id:300/id:306",
+		parentIdentityKey: "id:300",
+		nodeId: 306,
+		parentNodeId: 300,
+		declarationOrder: 6,
+		dependencyKeys: ["id:300/id:302/id:304"],
+		name: "downstream dependent",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [
+			root,
+			externalPrereq,
+			sequentialSuite,
+			sequentialFirst,
+			sequentialSecond,
+			unrelatedReady,
+			downstreamDependent,
+		]),
+	]);
+
+	assert.equal(plan.complete, true);
+	assert.deepEqual(
+		plan.stages.map((stage) => stage.map((target) => target.node.name)),
+		[
+			["external prereq", "unrelated ready"],
+			["sequential first"],
+			["sequential second"],
+			["downstream dependent"],
+		],
+	);
+});
+
 test("planExecutionStages keeps runnable ancestors ahead of nested descendants", () => {
 	const root = createPlannerNode({
 		identityKey: "id:10",
