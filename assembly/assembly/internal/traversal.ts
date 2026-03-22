@@ -2,6 +2,7 @@ import {
 	clearActiveTraversalTarget,
 	setActiveTraversalTarget,
 } from "./execution-state";
+import { popArtifactFrame, pushNodeArtifactFrame } from "./artifact-frame";
 import { executeNode } from "./executor";
 import { nodeFound } from "./events";
 import { DeclarationMode } from "./imports";
@@ -39,8 +40,10 @@ function resolveTraversalChildren(
 	}
 
 	stagedReplayParent = parent;
+	pushNodeArtifactFrame(parent, parent.getNodeIndex());
 	const trapped = didCallbackTrap(invokeStagedReplayParent);
 	stagedReplayParent = null;
+	popArtifactFrame();
 	if (trapped) {
 		const slotSource = parent.getDeclarationSlotSource();
 		if (!slotSource.hasResolvedChildren()) {

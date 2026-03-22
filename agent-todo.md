@@ -4,8 +4,8 @@
 
 ### Blockers
 
-- ship guest artifact-frame plumbing before exposing public `uvu/assert`
-  artifact helpers.
+- ship the host-readable artifact-frame ABI before exposing public
+  `uvu/assert` artifact helpers.
 
 ### Risks
 
@@ -25,11 +25,6 @@
 
 ### Runtime: Snapshot Artifacts
 
-- `ss-002`: add guest execution-frame artifact metadata.
-  Keep a guest-global stack of pushed and popped artifact descriptors so helper
-  functions can resolve against the active declaration file even when
-  `snapshot(...)` or `fixture(...)` is declared in another module than the
-  current test node.
 - `ss-003`: add a host-readable artifact metadata ABI.
   Expose the current top-of-stack descriptor through a stable wire contract so
   `js`, `wazero`, and `wasmtime` can resolve the active artifact file and

@@ -11,6 +11,11 @@ import {
 	setActiveRunOnly,
 } from "./execution-state";
 import {
+	popArtifactFrame,
+	pushHookArtifactFrame,
+	pushNodeArtifactFrame,
+} from "./artifact-frame";
+import {
 	callbackFail,
 	callbackPass,
 	callbackStart,
@@ -83,9 +88,11 @@ function executeHookRegistrations(
 		setActiveNodeIndex(nodeIndex);
 		setActiveHookPhase(registration.kind);
 		callbackStart(registration.kind, nodeIndex, owner.nodeId);
+		pushHookArtifactFrame(owner, registration.kind, nodeIndex);
 		stagedHookRegistration = registration;
 		const trapped = didCallbackTrap(invokeStagedHookRegistration);
 		stagedHookRegistration = null;
+		popArtifactFrame();
 		clearActiveHookPhase();
 		clearActiveNodeIndex();
 		setActiveRunOnly(previousRunOnly);
@@ -155,9 +162,11 @@ export function executeNode(node: Node): bool {
 	const previousRunOnly = getActiveRunOnly();
 	setActiveNodeIndex(nodeIndex);
 	clearActiveHookPhase();
+	pushNodeArtifactFrame(node, nodeIndex);
 	stagedNodeForInvocation = node;
 	const nodeTrapped = didCallbackTrap(invokeStagedNodeCallback);
 	stagedNodeForInvocation = null;
+	popArtifactFrame();
 	clearActiveNodeIndex();
 	setCurrentNode(previousNode);
 	setActiveRunOnly(previousRunOnly);
