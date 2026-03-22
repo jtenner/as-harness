@@ -50,6 +50,7 @@ Current import shape:
 import { exec, suite, test, TestContext, UvuSuite } from "uvu";
 import {
   equal,
+  instance,
   is,
   match,
   not,
@@ -143,12 +144,14 @@ Shipped:
 - `equal`
 - `match`
 - `type`
+- `instance`
 - `throws`
 - `not`
 - `is.not`
 - `not.equal`
 - `not.match`
 - `not.type`
+- `not.instance`
 - `not.throws`
 - `unreachable`
 
@@ -161,13 +164,27 @@ Mappings:
   prefix-by-index matching for arraylikes, subset matching for sets and maps,
   and keyed subset matching for reflected managed classes
 - `type` -> shared primitive-type comparison on the current AssemblyScript value category
+- `instance` -> shared runtime-type-id equality using explicit `idof<T>()`
+  tokens instead of upstream constructor objects
 - `throws` -> shared trap-boundary throw assertion
 - `not` / `is.not` -> strict inequality
 - `not.equal` -> deep strict inequality
 - `not.match` -> negated shared partial-match semantics
 - `not.type` -> negated shared primitive-type comparison
+- `not.instance` -> negated shared runtime-type-id equality
 - `not.throws` -> shared trap-boundary does-not-throw assertion
 - `unreachable` -> shared `fail(...)`
+
+Current `instance(...)` signature:
+
+```ts
+instance(value, idof<MyType>());
+not.instance(value, idof<MyType>());
+```
+
+This is an intentional divergence from upstream constructor-token parity. The
+current runtime ships explicit `u32` runtime type ids, not upstream JS
+constructor objects.
 
 ## Exact Compatibility Differences
 
@@ -436,18 +453,19 @@ Shipped:
 - `equal`
 - `match`
 - `type`
+- `instance`
 - `throws`
 - `not`
 - `is.not`
 - `not.equal`
 - `not.match`
 - `not.type`
+- `not.instance`
 - `not.throws`
 - `unreachable`
 
 Deferred:
 
-- `instance`
 - `snapshot`
 - `fixture`
 - negated forms that depend on those helpers
@@ -494,12 +512,13 @@ The still-deferred helpers now split into two contract families:
   on a richer adapter-local error object contract than the shared trap and
   fail-message boundary currently provides
 
-The reopened helper families now have a concrete in-repo direction:
+The reopened helper families are now shipped with explicit repo-local
+semantics:
 
-- `match(...)` may be added if it lowers onto one shared partial-match core
-  instead of duplicating ad hoc adapter logic
-- `instance(...)` may be added if it accepts the current runtime-type-id
-  boundary rather than pretending to support upstream constructor tokens
+- `match(...)` lowers onto one shared partial-match core instead of duplicating
+  ad hoc adapter logic
+- `instance(...)` uses the current runtime-type-id boundary instead of
+  pretending to support upstream constructor tokens
 
 ## Selected This Cycle
 
@@ -508,8 +527,7 @@ The reopened helper families now have a concrete in-repo direction:
    `continueOnFailure(...)` helpers on top-level `test` and `UvuSuite`
 3. ship `exec(bail?)` as root-level `bail` hint lowering only
 4. keep `.run()` as a compatibility no-op
-5. reopen low-risk `uvu/assert` `match(...)` and `instance(...)` support
-6. explicitly defer artifact-backed and upstream object-model helpers
+5. explicitly defer artifact-backed and upstream object-model helpers
 
 ## Suggested Future Order
 

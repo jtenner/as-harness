@@ -29,7 +29,7 @@ Host owns scheduling, aggregation, and reporting.
 - thin `jest`, `mocha`, `jasmine`, `uvu`, and `vitest` adapters, including the
   shipped Vitest scheduling subset
 - shared `uvu/assert` subset for assertion reuse, including structural
-  `match(...)` support
+  `match(...)` and runtime-type `instance(...)` support
 - `node:assert` / `node:assert/strict` bridge + trampoline trap observation
 - shared event ABI, `NodeIndex` discovery/run model, and coverage declarations
 

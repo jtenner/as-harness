@@ -12,9 +12,9 @@
   crumb/context objects, so strict source parity remains incomplete even though
   the sync declaration slice now ships.
 - the remaining upstream `uvu/assert` helpers stay intentionally out of this
-  cycle because they need constructor-aware contracts, shared partial-match
-  semantics, or host-backed artifact I/O that the current guest/runtime model
-  does not provide.
+  cycle because they need host-backed artifact I/O or richer adapter-local
+  error object contracts that the current guest/runtime model does not
+  provide.
 - guest-provided orchestration metadata can easily blur into guest-owned
   scheduling if the ABI grows new scheduler entrypoints instead of staying on
   discovery metadata plus host-owned `start()`.
@@ -30,8 +30,6 @@
 
 ### Adapter: `uvu`
 
-- finish the remaining low-risk `uvu/assert` runtime-type helper:
-  `instance(...)` and `not.instance(...)`.
 - keep the shipped sync `uvu` builder surface stable:
   `test(...)`, top-level `test.before.each(...)` / `test.after.each(...)`,
   `suite(...)`, suite-builder `.test(...)`, `.only(...)`, `.skip(...)`,

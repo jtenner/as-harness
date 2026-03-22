@@ -2,6 +2,7 @@ import { didCallbackTrap } from "../../internal/trampoline";
 import { addReflectedValueKeyValuePair } from "../../internal/reflected-value";
 import {
 	equal,
+	instance,
 	is,
 	match,
 	not,
@@ -56,6 +57,10 @@ function testUvuAssertFunctions(): void {
 	is<i32>(2, 2);
 	is.not<i32>(2, 3);
 	equal<Array<i32>>([1, 2], [1, 2]);
+	instance<UvuAssertMatchNode>(
+		new UvuAssertMatchNode("runner", new UvuAssertMatchLeaf("leaf value", 3)),
+		idof<UvuAssertMatchNode>(),
+	);
 	match<string, string>("uvu assert partial match", "partial");
 	match<Array<i32>, Array<i32>>([1, 2, 3], [1, 2]);
 	match<UvuAssertMatchNode, UvuAssertMatchNode>(
@@ -66,6 +71,10 @@ function testUvuAssertFunctions(): void {
 	type<bool>(true, "boolean");
 	type<string>("uvu", "string");
 	not<i32>(2, 3);
+	not.instance<UvuAssertMatchNode>(
+		new UvuAssertMatchNode("runner", new UvuAssertMatchLeaf("leaf value", 3)),
+		idof<Uint8Array>(),
+	);
 	not.equal<Array<i32>>([1, 2], [1, 3]);
 	not.match<string, string>("uvu", "runner");
 	not.type<i32>(2, "string");
@@ -74,6 +83,16 @@ function testUvuAssertFunctions(): void {
 
 	assert(didCallbackTrap(trapsUnreachable));
 	assert(didCallbackTrap(trapsFailedOk));
+	assert(
+		didCallbackTrap((): void => {
+			instance<string>("uvu", idof<ArrayBuffer>());
+		}),
+	);
+	assert(
+		didCallbackTrap((): void => {
+			not.instance<string>("uvu", idof<string>());
+		}),
+	);
 	assert(
 		didCallbackTrap((): void => {
 			match<Array<i32>, Array<i32>>([1, 2], [1, 3]);

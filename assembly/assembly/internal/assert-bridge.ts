@@ -1,6 +1,7 @@
 import { failMessage } from "./events";
 import { setActiveErrorMessage, setActiveFailureKind } from "./failure-state";
 import { isPartialMatch as matchesPartialShape } from "./partial-match";
+import { isRuntimeTypeInstance as matchesRuntimeTypeInstance } from "./runtime-type";
 import {
 	compareStrictEqualityValue,
 	resetStrictEqualityReferencePairTracking,
@@ -236,6 +237,13 @@ export function isPartialMatch<Actual, Expected>(
 	expected: Expected,
 ): bool {
 	return matchesPartialShape(actual, expected);
+}
+
+export function isRuntimeTypeInstance<T>(
+	value: T,
+	expectedRuntimeTypeId: u32,
+): bool {
+	return matchesRuntimeTypeInstance(value, expectedRuntimeTypeId);
 }
 
 export function isStrictlyEqual<T>(actual: T, expected: T): bool {

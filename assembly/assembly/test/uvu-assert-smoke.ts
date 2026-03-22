@@ -2,6 +2,7 @@ import { test, TestContext } from "../node_test";
 import { addReflectedValueKeyValuePair } from "../internal/reflected-value";
 import {
 	equal,
+	instance,
 	is,
 	match,
 	not,
@@ -51,6 +52,10 @@ test("passes through uvu/assert", (context: TestContext): void => {
 	is<i32>(11, 11);
 	is.not<i32>(11, 12);
 	equal<Array<i32>>([1, 2], [1, 2]);
+	instance<UvuAssertSmokeNode>(
+		new UvuAssertSmokeNode("runner", new UvuAssertSmokeLeaf("leaf value")),
+		idof<UvuAssertSmokeNode>(),
+	);
 	match<string, string>("uvu assert smoke", "smoke");
 	match<Array<i32>, Array<i32>>([1, 2, 3], [1, 2]);
 	match<UvuAssertSmokeNode, UvuAssertSmokeNode>(
@@ -61,6 +66,10 @@ test("passes through uvu/assert", (context: TestContext): void => {
 	type<string>("uvu", "string");
 	throws(failViaUnreachable);
 	not<i32>(11, 12);
+	not.instance<UvuAssertSmokeNode>(
+		new UvuAssertSmokeNode("runner", new UvuAssertSmokeLeaf("leaf value")),
+		idof<Uint8Array>(),
+	);
 	not.equal<Array<i32>>([1, 2], [1, 3]);
 	not.match<string, string>("uvu", "runner");
 	not.type<i32>(11, "string");

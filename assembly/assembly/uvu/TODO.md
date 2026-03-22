@@ -13,9 +13,9 @@ Shipped:
   `.test(...)`, `.only(...)`, `.skip(...)`, `.inBand(...)`, `.bail(...)`,
   `.continueOnFailure(...)`, `.before(...)`, `.after(...)`, `.beforeEach(...)`,
   `.afterEach(...)`, and `exec(...)`
-- `uvu/assert`: `ok`, `is`, `equal`, `match`, `type`, `throws`, `not`,
-  `is.not`, `not.equal`, `not.match`, `not.type`, `not.throws`, and
-  `unreachable`
+- `uvu/assert`: `ok`, `is`, `equal`, `match`, `type`, `instance`, `throws`,
+  `not`, `is.not`, `not.equal`, `not.match`, `not.type`, `not.instance`,
+  `not.throws`, and `unreachable`
 
 Deferred this cycle:
 

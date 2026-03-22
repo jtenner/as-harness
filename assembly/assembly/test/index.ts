@@ -12,6 +12,7 @@ import "./internal/node";
 import "./internal/node-test";
 import "./internal/partial-match";
 import "./internal/reflected-value";
+import "./internal/runtime-type";
 import "./internal/strict-equality";
 import "./internal/traversal";
 import "./internal/uvu-assert";

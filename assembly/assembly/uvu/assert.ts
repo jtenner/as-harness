@@ -8,7 +8,11 @@ import {
 	strictEqual,
 	throws as assertThrows,
 } from "../node_assert/shared";
-import { assertCondition, isPartialMatch } from "../internal/assert-bridge";
+import {
+	assertCondition,
+	isPartialMatch,
+	isRuntimeTypeInstance,
+} from "../internal/assert-bridge";
 import { TrapCallback } from "../internal/trampoline";
 
 function typeNameFor<T>(value: T): string {
@@ -72,6 +76,17 @@ export function match<Actual, Expected>(
 	);
 }
 
+export function instance<T>(
+	value: T,
+	expectedRuntimeTypeId: u32,
+	message: string | null = null,
+): void {
+	assertCondition(
+		isRuntimeTypeInstance(value, expectedRuntimeTypeId),
+		message === null ? "uvu assert instance mismatch" : message,
+	);
+}
+
 export function type<T>(
 	value: T,
 	expected: string,
@@ -121,6 +136,17 @@ export namespace not {
 		assertCondition(
 			!isPartialMatch(actual, expected),
 			message === null ? "uvu assert not.match mismatch" : message,
+		);
+	}
+
+	export function instance<T>(
+		value: T,
+		expectedRuntimeTypeId: u32,
+		message: string | null = null,
+	): void {
+		assertCondition(
+			!isRuntimeTypeInstance(value, expectedRuntimeTypeId),
+			message === null ? "uvu assert not.instance mismatch" : message,
 		);
 	}
 
