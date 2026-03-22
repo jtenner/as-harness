@@ -12,6 +12,7 @@ Implemented:
 - Synchronous `node:test` declarations with `dependsOn(...)` chains.
 - `node:assert` / `node:assert/strict` bridge support.
 - Built-in thin adapters for `jest`, `mocha`, `jasmine`, and `vitest`.
+- Built-in low-risk `uvu/assert` subset.
 - Stable start-reporting pipeline with branch, execution, planning, and blocked-outcome details.
 - `js`, `wazero`, `wasmtime` source-host runtime support.
 - Coverage output in `text`, `json`, `yaml`, `csv`, `lcov`, `cobertura`.
@@ -57,6 +58,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `as-harness`: native scheduler-aware declarations, `sequential(...)` groups, chainable handles, and shared `TestContext.assert`.
 - `node:test`: core declarations, hooks, sync contexts, and assertion binding.
 - `node:assert`, `node:assert/strict`: synchronous assertions and strict-bridge tests.
+- `uvu/assert`: low-risk assertion subset for use with other supported runner surfaces.
 - `jest`: sync declarations, core hooks, matcher slice.
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks.
 - `jasmine`: sync declarations, focus/exclude aliases, core hooks, `fail(...)`, and a narrow matcher slice backed by the shared expectation core.
@@ -71,6 +73,7 @@ See:
 - [docs/008-2026-03-19-vitest-adapter.md](./docs/008-2026-03-19-vitest-adapter.md)
 - [docs/013-2026-03-22-jasmine-adapter-interface.md](./docs/013-2026-03-22-jasmine-adapter-interface.md)
 - [docs/012-2026-03-22-mocha-adapter-interface.md](./docs/012-2026-03-22-mocha-adapter-interface.md)
+- [docs/014-2026-03-22-uvu-adapter-interface.md](./docs/014-2026-03-22-uvu-adapter-interface.md)
 - [docs/009-2026-03-19-vitest-scheduling-and-test-graph-strategy.md](./docs/009-2026-03-19-vitest-scheduling-and-test-graph-strategy.md)
 
 ## Validation

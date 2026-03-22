@@ -1,11 +1,16 @@
 # `uvu` Adapter TODO
 
-Status: planned later, explicitly deferred from the committed `v0.4.0` slice.
+Status: full runner surface remains deferred; low-risk `uvu/assert` subset is shipped.
 
-First slice:
+Shipped:
 
-- minimum declaration surface
-- map to shared runtime
-- add one traversal fixture
+- `uvu/assert`: `ok`, `is`, `equal`, `not`, `is.not`, `not.equal`,
+  `unreachable`
+
+Remaining:
+
+- minimum `suite(...)` / top-level `test` runner surface
+- explicit `.run()` compatibility policy
+- hook-builder mapping into the shared runtime
 
 Constraint: keep logic in shared runtime, no runtime-policy duplication in adapter.

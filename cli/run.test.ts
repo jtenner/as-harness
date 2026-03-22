@@ -947,6 +947,42 @@ fdescribe("focused jasmine suite", (_context): void => {
 	);
 });
 
+test('cli run executes the bundled "uvu/assert" guest library through the js host', async () => {
+	await withTempEntryFile(
+		`
+import { test, TestContext } from "node:test";
+import { equal, is, not, ok, unreachable } from "uvu/assert";
+
+function failViaUnreachable(): void {
+  unreachable("uvu assert trap");
+}
+
+test("passes through uvu/assert", (context: TestContext): void => {
+  ok<bool>(true);
+  is<i32>(11, 11);
+  is.not<i32>(11, 12);
+  equal<Array<i32>>([1, 2], [1, 2]);
+  not<i32>(11, 12);
+  not.equal<Array<i32>>([1, 2], [1, 3]);
+  context.assert.throws(failViaUnreachable);
+  context.diagnostic("uvu assert diagnostic");
+});
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 1 passed, 0 failed, 1 discovered with js.",
+			);
+		},
+	);
+});
+
 test('cli run executes a thin vitest adapter entry from the bundled "vitest" guest library', async () => {
 	await withTempEntryFile(
 		`

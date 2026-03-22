@@ -4,10 +4,11 @@ This note answers which `uvu` and `uvu/assert` functions are realistic for
 `as-harness`, recommends a deferred but well-defined adapter strategy, and
 covers the affected guest adapter, shared runtime, and assertion surface in
 `assembly/`, `harness/`, and `cli/`. The recommendation is to defer `uvu` from
-the committed `v0.4.0` slice, but to preserve a concrete design: support
-`suite(...)`, the returned test object, and a carefully chosen subset of
-`uvu/assert` only after the project decides how much guest-side runner control
-it is willing to emulate.
+the full runner slice for now, but to preserve a concrete design: support
+`suite(...)`, the returned test object, and a carefully chosen `uvu/assert`
+subset. The repo now ships the low-risk `uvu/assert` subset while keeping the
+full `uvu` runner surface deferred until the project decides how much
+guest-side runner control it is willing to emulate.
 
 ## Research Basis
 
@@ -23,14 +24,15 @@ Checked on 2026-03-22 against:
 
 ## Short Recommendation
 
-- do not ship `uvu` in the current `v0.4.0` slice
+- do not ship the full `uvu` runner surface in the current release line
+- ship the low-risk `uvu/assert` subset independently because it does not
+  conflict with host-owned `start()`
 - if implemented later, support `suite(title?, context?)` and the returned
   suite/test object before attempting the broader runner surface
 - keep `exec(...)` out of scope because it conflicts with host-owned `start()`
 - treat `test.run()` as the central design question: either adapt it as a
   declaration finalizer/no-op or do not ship `uvu`
-- ship only the low-risk `uvu/assert` subset if and when the suite API is
-  settled
+- keep the full `uvu` runner surface deferred until the suite API is settled
 
 ## Why `uvu` Is Different From `mocha` And `jasmine`
 
@@ -88,6 +90,16 @@ From `uvu/assert`:
 - `not.throws`
 - `Assertion`
 
+Current shipped subset:
+
+- `ok`
+- `is`
+- `equal`
+- `not`
+- `is.not`
+- `not.equal`
+- `unreachable`
+
 ## Current `as-harness` Constraints That Matter
 
 - the host owns execution start through `start()`
@@ -98,6 +110,31 @@ From `uvu/assert`:
 - thrown-value inspection is still intentionally narrow
 - adapters generally expose direct declarations, not builder objects with their
   own run loop
+
+## Current Repo Shape
+
+The repo now ships a `uvu/assert` subpath only:
+
+```ts
+import { equal, is, not, ok, unreachable } from "uvu/assert";
+```
+
+Shipped subset:
+
+- `ok`
+- `is`
+- `equal`
+- `not`
+- `is.not`
+- `not.equal`
+- `unreachable`
+
+Reasoning:
+
+- these helpers fit the existing shared assertion bridge directly
+- they do not require guest-owned runner control, suite builders, or `.run()`
+- they remain useful alongside the already-shipped `node:test`, `mocha`,
+  `jasmine`, and `vitest` runner surfaces
 
 ## Recommended Eventual Public Shape
 

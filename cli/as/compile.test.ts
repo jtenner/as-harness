@@ -89,6 +89,14 @@ test("rewrites mocha to the bundled harness library root", () => {
 	expect(result.lib).toEqual([BUNDLED_LIBRARY_COMPONENTS_PATH]);
 });
 
+test("rewrites uvu/assert to the bundled harness library root", () => {
+	const result = withBundledHarnessLibraryComponents({
+		lib: ["uvu/assert"],
+	});
+
+	expect(result.lib).toEqual([BUNDLED_LIBRARY_COMPONENTS_PATH]);
+});
+
 test("rewrites vitest to the bundled harness library root", () => {
 	const result = withBundledHarnessLibraryComponents({
 		lib: ["vitest"],
@@ -277,6 +285,9 @@ test("bundles Windows-safe assembly paths alongside public node:* library aliase
 	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/lib/mocha.ts`)).toBe(
 		true,
 	);
+	expect(
+		bundledVirtualFiles.has(`${bundledVirtualRoot}/lib/uvu/assert.ts`),
+	).toBe(true);
 	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/lib/vitest.ts`)).toBe(
 		true,
 	);
@@ -296,6 +307,9 @@ test("bundles Windows-safe assembly paths alongside public node:* library aliase
 		true,
 	);
 	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/mocha/index.ts`)).toBe(
+		true,
+	);
+	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/uvu/assert.ts`)).toBe(
 		true,
 	);
 	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/vitest/index.ts`)).toBe(

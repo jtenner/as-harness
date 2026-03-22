@@ -123,6 +123,7 @@ const BUNDLED_HARNESS_LIBRARY_ENTRY_POINTS = new Set([
 	"jasmine",
 	"jest",
 	"mocha",
+	"uvu/assert",
 	"vitest",
 ]);
 const STRICT_EQUALITY_LIBRARY_ENTRY_POINTS = new Set([

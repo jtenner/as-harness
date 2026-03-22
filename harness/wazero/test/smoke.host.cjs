@@ -341,3 +341,55 @@ test("cli run executes a thin jasmine adapter entry through the wazero harness",
 		removeTempDirectory(tempDirectory);
 	}
 });
+
+test('cli run executes the bundled "uvu/assert" guest library through the wazero harness', () => {
+	const tempDirectory = mkdtempSync(
+		path.join(tmpdir(), "as-harness-wazero-uvu-assert-"),
+	);
+
+	try {
+		const entryFile = path.join(tempDirectory, "suite.test.ts");
+		writeFileSync(
+			entryFile,
+			[
+				'import { test, TestContext } from "node:test";',
+				'import { equal, is, not, ok, unreachable } from "uvu/assert";',
+				"",
+				"function failViaUnreachable(): void {",
+				'\tunreachable("uvu assert trap");',
+				"}",
+				"",
+				'test("passes through uvu/assert", (context: TestContext): void => {',
+				"\tok<bool>(true);",
+				"\tis<i32>(11, 11);",
+				"\tis.not<i32>(11, 12);",
+				"\tequal<Array<i32>>([1, 2], [1, 2]);",
+				"\tnot<i32>(11, 12);",
+				"\tnot.equal<Array<i32>>([1, 2], [1, 3]);",
+				"\tcontext.assert.throws(failViaUnreachable);",
+				'\tcontext.diagnostic("uvu assert host diagnostic");',
+				"});",
+				"",
+			].join("\n"),
+			"utf8",
+		);
+
+		const result = spawnSync(
+			process.execPath,
+			[cliEntrypointPath, "run", "--harness", "wazero", entryFile],
+			{
+				cwd: tempDirectory,
+				encoding: "utf8",
+				env: createCliEnvironment(),
+			},
+		);
+
+		assertSuccessfulCliRun(result);
+		assert.match(
+			result.stdout,
+			/PASS 1 passed, 0 failed, 1 discovered with wazero\./,
+		);
+	} finally {
+		removeTempDirectory(tempDirectory);
+	}
+});

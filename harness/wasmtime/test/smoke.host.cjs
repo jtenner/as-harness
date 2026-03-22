@@ -331,3 +331,56 @@ test("cli run executes a thin jasmine adapter entry through the wasmtime harness
 		removeTempDirectory(tempDirectory);
 	}
 });
+
+test('cli run executes the bundled "uvu/assert" guest library through the wasmtime harness', () => {
+	const tempDirectory = mkdtempSync(
+		path.join(tmpdir(), "as-harness-wasmtime-uvu-assert-"),
+	);
+
+	try {
+		const entryFile = path.join(tempDirectory, "suite.test.ts");
+		writeFileSync(
+			entryFile,
+			[
+				'import { test, TestContext } from "node:test";',
+				'import { equal, is, not, ok, unreachable } from "uvu/assert";',
+				"",
+				"function failViaUnreachable(): void {",
+				'\tunreachable("uvu assert trap");',
+				"}",
+				"",
+				'test("passes through uvu/assert", (context: TestContext): void => {',
+				"\tok<bool>(true);",
+				"\tis<i32>(11, 11);",
+				"\tis.not<i32>(11, 12);",
+				"\tequal<Array<i32>>([1, 2], [1, 2]);",
+				"\tnot<i32>(11, 12);",
+				"\tnot.equal<Array<i32>>([1, 2], [1, 3]);",
+				"\tcontext.assert.throws(failViaUnreachable);",
+				'\tcontext.diagnostic("uvu assert host diagnostic");',
+				"});",
+				"",
+			].join("\n"),
+			"utf8",
+		);
+
+		const result = spawnSync(
+			process.execPath,
+			[cliEntrypointPath, "run", "--harness", "wasmtime", entryFile],
+			{
+				cwd: tempDirectory,
+				encoding: "utf8",
+				env: createCliEnvironment(),
+			},
+		);
+
+		assert.equal(result.status, 0);
+		assert.equal(result.stderr, "");
+		assert.match(
+			result.stdout,
+			/PASS 1 passed, 0 failed, 1 discovered with wasmtime\./,
+		);
+	} finally {
+		removeTempDirectory(tempDirectory);
+	}
+});
