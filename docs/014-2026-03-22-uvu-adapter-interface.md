@@ -35,7 +35,9 @@ Checked on 2026-03-22 against:
   as an explicit revert to inherited failure policy
 - keep the shared `TestContext` callback model instead of promising upstream
   crumb/context parity
-- keep `uvu/assert` on the low-risk shared assertion subset
+- reopen the low-risk shared `uvu/assert` helper families that fit the current
+  runtime honestly: shared partial-match semantics for `match(...)` and
+  runtime-type-id checks for `instance(...)`
 - do not claim full upstream source compatibility because AssemblyScript cannot
   model a callable object with attached methods the way upstream `suite()`
   expects
@@ -475,19 +477,21 @@ The repo still does not support:
 
 ### 4. Remaining `uvu/assert` Helpers Need Contracts The Repo Does Not Ship
 
-The remaining helpers now split into three deferred contract families:
+The still-deferred helpers now split into two contract families:
 
-- constructor-aware checks like `instance(...)`, which need a stable guest
-  constructor-token story before they can be documented honestly
-- matcher-style and partial-match helpers like `match(...)`, which would
-  otherwise duplicate logic outside the shared assertion core
 - artifact-backed helpers like `snapshot(...)` and `fixture(...)`, which need a
   host-backed file or persisted-artifact contract that the current guest ABI
   does not expose
+- upstream-specific object-model helpers like `Assertion`, which still depend
+  on a richer adapter-local error object contract than the shared trap and
+  fail-message boundary currently provides
 
-`Assertion` stays deferred with that set because it depends on a richer
-upstream-specific error object model than the shared trap and fail-message
-boundary currently provides.
+The reopened helper families now have a concrete in-repo direction:
+
+- `match(...)` may be added if it lowers onto one shared partial-match core
+  instead of duplicating ad hoc adapter logic
+- `instance(...)` may be added if it accepts the current runtime-type-id
+  boundary rather than pretending to support upstream constructor tokens
 
 ## Selected This Cycle
 
@@ -496,15 +500,16 @@ boundary currently provides.
    `continueOnFailure(...)` helpers on top-level `test` and `UvuSuite`
 3. ship `exec(bail?)` as root-level `bail` hint lowering only
 4. keep `.run()` as a compatibility no-op
-5. explicitly defer the remaining `uvu/assert` helper families for this cycle
+5. reopen low-risk `uvu/assert` `match(...)` and `instance(...)` support
+6. explicitly defer artifact-backed and upstream object-model helpers
 
 ## Suggested Future Order
 
 1. revisit crumb/context parity only if the callback-model divergence becomes a
    practical blocker
-2. revisit richer `uvu/assert` helpers only after the repo adopts either a
-   constructor-token contract, a shared partial-match assertion core, or a
-   host-backed artifact model
+2. revisit `snapshot(...)`, `fixture(...)`, and `Assertion` only after the repo
+   adopts a host-backed artifact model or an adapter-local error object
+   contract
 3. keep async behavior deferred until the project-wide runtime contract changes
 
 ## Sources

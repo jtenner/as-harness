@@ -21,7 +21,7 @@ Deferred this cycle:
 - strict upstream callable-suite source compatibility
 - upstream crumb/context callback parity
 - async hooks/tests
-- `uvu/assert` `instance(...)`, `match(...)`, `snapshot(...)`, `fixture(...)`,
-  `Assertion`, and negated forms that depend on those helpers
+- artifact-backed `uvu/assert` `snapshot(...)` and `fixture(...)`
+- upstream `Assertion` object parity
 
 Constraint: keep logic in shared runtime, no runtime-policy duplication in adapter.

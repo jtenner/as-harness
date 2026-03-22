@@ -30,6 +30,8 @@
 
 ### Adapter: `uvu`
 
+- reopen the low-risk `uvu/assert` helpers that fit the current runtime:
+  `match(...)`, `not.match(...)`, `instance(...)`, and `not.instance(...)`.
 - keep the shipped sync `uvu` builder surface stable:
   `test(...)`, top-level `test.before.each(...)` / `test.after.each(...)`,
   `suite(...)`, suite-builder `.test(...)`, `.only(...)`, `.skip(...)`,
@@ -39,6 +41,9 @@
   unless the repo later adopts a transform-backed rewrite policy.
 - keep crumb/context callback parity and async behavior deferred until the
   higher-level compatibility decision is settled.
+- keep artifact-backed `snapshot(...)` / `fixture(...)` and upstream
+  `Assertion` object parity deferred until the repo ships explicit persisted
+  artifact or adapter-local error-object contracts.
 
 ### Proof
 
