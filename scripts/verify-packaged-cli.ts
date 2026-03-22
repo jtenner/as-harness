@@ -25,6 +25,8 @@ import {
 
 const REPO_DIR = join(import.meta.dir, "..");
 const NODE_RUNNER_SOURCE = createPackagedCommandRunnerSource();
+const BUILD_COMMAND_TIMEOUT_MS = 180_000;
+const SMOKE_COMMAND_TIMEOUT_MS = DEFAULT_COMMAND_TIMEOUT_MS;
 
 type ParsedArguments = {
 	assetDir?: string;
@@ -51,8 +53,6 @@ export type HarnessRunReport = {
 	stdout: string;
 	timedOut: boolean;
 };
-
-const COMMAND_TIMEOUT_MS = DEFAULT_COMMAND_TIMEOUT_MS;
 
 export function parseArguments(argv: string[]): ParsedArguments {
 	let assetDir: string | undefined;
@@ -118,6 +118,7 @@ async function runCommand(
 	command: string[],
 	cwd: string,
 	extraEnv: Record<string, string> = {},
+	timeoutMs: number = SMOKE_COMMAND_TIMEOUT_MS,
 ): Promise<CommandResult> {
 	return await new Promise((resolve, reject) => {
 		let stdout = "";
@@ -130,7 +131,7 @@ async function runCommand(
 				env: {
 					...process.env,
 					...extraEnv,
-					[COMMAND_TIMEOUT_ENV_VAR]: String(COMMAND_TIMEOUT_MS),
+					[COMMAND_TIMEOUT_ENV_VAR]: String(timeoutMs),
 				},
 				stdio: ["ignore", "pipe", "pipe"],
 			},
@@ -213,7 +214,7 @@ function formatCommandOutputBlocks(result: {
 export function formatBuildFailure(
 	target: string,
 	result: CommandResult,
-	timeoutMs: number = COMMAND_TIMEOUT_MS,
+	timeoutMs: number = BUILD_COMMAND_TIMEOUT_MS,
 ) {
 	return [
 		`Packaged CLI build failed for ${target}.`,
@@ -237,7 +238,7 @@ export function formatPackagedSmokeFailure(options: {
 		harness,
 		result,
 		target,
-		timeoutMs = COMMAND_TIMEOUT_MS,
+		timeoutMs = SMOKE_COMMAND_TIMEOUT_MS,
 	} = options;
 	return [
 		`Packaged ${harness} smoke failed for ${target}.`,
@@ -330,6 +331,8 @@ export async function main() {
 		buildResult = await runCommand(
 			[process.execPath, "run", "./cli/build.ts", target],
 			REPO_DIR,
+			{},
+			BUILD_COMMAND_TIMEOUT_MS,
 		);
 	} catch (error) {
 		throw new Error(

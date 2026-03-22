@@ -13,7 +13,7 @@
 - `verify-source-hosts.ts` — execute host package tests for a matrix target and emit reports.
 - `release-manifest.ts` — generate `release-manifest.json`, `SHA256SUMS.txt`, and notes.
 - `stage-release-legal.ts` — gather third-party legal files into a release artifact directory.
-- `verify-packaged-cli.ts` — run packaged CLI smoke with timeout-safe supervision and failure separation.
+- `verify-packaged-cli.ts` — run packaged CLI smoke with phase-specific timeout-safe supervision and failure separation.
 
 ## What These Scripts Prove
 

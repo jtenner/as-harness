@@ -61,7 +61,8 @@ Tag must match `cli/package.json` version.
 
 - release build failure: inspect target packaged smoke step
 - verifier-wrapper failure: check wrapper logs first
-- packaged timeout: treat as likely host hang before blaming the package itself
+- packaged build timeout: treat as build-budget exhaustion before blaming hosted verifier supervision
+- packaged smoke timeout: treat as likely host hang before blaming the package itself
 - non-matching tag/version: align `cli/package.json` and tag
 
 ## Non-goals

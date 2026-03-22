@@ -99,6 +99,26 @@ test("formatBuildFailure distinguishes build-step failures from verifier supervi
 	expect(message).toContain("stderr:\ncompile failed");
 });
 
+test("formatBuildFailure uses the packaged-build timeout budget for timed out builds", () => {
+	const message = formatBuildFailure(
+		"bun-darwin-x64",
+		createCommandResult({
+			command: ["bun", "run", "./cli/build.ts", "bun-darwin-x64"],
+			exitCode: 124,
+			stderr: "",
+			stdout: "building local wazero addon for CLI packaging",
+			timedOut: true,
+		}),
+	);
+
+	expect(message).toContain("Packaged CLI build failed for bun-darwin-x64.");
+	expect(message).toContain("timed out after 180000ms");
+	expect(message).toContain("real build-step failure");
+	expect(message).toContain(
+		"stdout:\nbuilding local wazero addon for CLI packaging",
+	);
+});
+
 test("formatVerifierSupervisionFailure reports verifier wrapper problems separately", () => {
 	const message = formatVerifierSupervisionFailure({
 		error: new Error("runner JSON parse failed"),

@@ -4,7 +4,8 @@
 
 ### Blockers
 
-- None currently tracked.
+- packaged `bun-linux-x64` verification still hangs in the bundled `wazero`
+  startup path on GitHub Ubuntu.
 
 ### Risks
 
@@ -16,3 +17,5 @@
 - bundled Linux `wazero` now forces the interpreter engine to avoid the hosted
   packaged createHarness hang, so future work should confirm whether the compiler
   engine can be restored safely.
+- packaged verifier builds now get a longer timeout budget than smoke runs, but
+  first-time native dependency downloads can still skew hosted CI timing.
