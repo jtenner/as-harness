@@ -2,7 +2,12 @@
 // These expose the declaration-time methods that can be supported before
 // runnable execution and per-attempt state exist.
 
-import { DeclarationMode, HookKind } from "./imports";
+import {
+	DeclarationMode,
+	FailurePolicyHint,
+	HookKind,
+	RunnerModeHint,
+} from "./imports";
 import {
 	declareTestNode,
 	NodeDeclarationOptions,
@@ -164,6 +169,24 @@ export class SuiteContext {
 	get signal(): usize {
 		return 0;
 	}
+
+	inBand(shouldRunInBand: bool = true): void {
+		currentNode.setPreferredRunnerMode(
+			shouldRunInBand ? RunnerModeHint.InBand : RunnerModeHint.Default,
+		);
+	}
+
+	bail(shouldBail: bool = true): void {
+		currentNode.setPreferredFailurePolicy(
+			shouldBail ? FailurePolicyHint.Bail : FailurePolicyHint.Inherit,
+		);
+	}
+
+	continueOnFailure(shouldContinue: bool = true): void {
+		currentNode.setPreferredFailurePolicy(
+			shouldContinue ? FailurePolicyHint.Continue : FailurePolicyHint.Inherit,
+		);
+	}
 }
 
 export class TestContext {
@@ -236,6 +259,24 @@ export class TestContext {
 
 	runOnly(shouldRunOnlyTests: bool): void {
 		setActiveRunOnly(shouldRunOnlyTests);
+	}
+
+	inBand(shouldRunInBand: bool = true): void {
+		currentNode.setPreferredRunnerMode(
+			shouldRunInBand ? RunnerModeHint.InBand : RunnerModeHint.Default,
+		);
+	}
+
+	bail(shouldBail: bool = true): void {
+		currentNode.setPreferredFailurePolicy(
+			shouldBail ? FailurePolicyHint.Bail : FailurePolicyHint.Inherit,
+		);
+	}
+
+	continueOnFailure(shouldContinue: bool = true): void {
+		currentNode.setPreferredFailurePolicy(
+			shouldContinue ? FailurePolicyHint.Continue : FailurePolicyHint.Inherit,
+		);
 	}
 
 	skip(_message: string | null = null): void {

@@ -1,4 +1,10 @@
-import { DeclarationMode, HookKind, NodeKind } from "../../internal/imports";
+import {
+	DeclarationMode,
+	FailurePolicyHint,
+	HookKind,
+	NodeKind,
+	RunnerModeHint,
+} from "../../internal/imports";
 import { Node, resetCurrentNode, setCurrentNode } from "../../internal/node";
 import {
 	before,
@@ -37,10 +43,15 @@ function declareViaContext(context: TestContext): void {
 	context.plan(2);
 	context.assert.equal<i32>(1, 1);
 	context.assert.deepEqual<i32>(2, 2);
+	context.inBand();
+	context.bail();
 	context.runOnly(true);
 	const runOnlyChild = context.test("run-only child", noopTest);
 	context.runOnly(false);
-	context.test("plain child", noopTest).dependsOn(runOnlyChild);
+	context
+		.test("plain child", noopTest)
+		.dependsOn(runOnlyChild)
+		.continueOnFailure();
 	context.beforeEach(noopHook);
 }
 
@@ -57,6 +68,8 @@ function declareSuiteMetadata(context: SuiteContext): void {
 	assert(context.fullName == "suite parent");
 	assert(context.filePath == "");
 	assert(context.signal == 0);
+	context.inBand();
+	context.continueOnFailure();
 }
 
 function testNodeTestDeclarationRegistration(): void {
@@ -82,6 +95,8 @@ function testNodeTestDeclarationRegistration(): void {
 	assert(plainTest.name == "plain test");
 	assert(!plainTest.only);
 	assert(!plainTest.expectFailure);
+	assert(plainTest.preferredRunnerMode == RunnerModeHint.Default);
+	assert(plainTest.preferredFailurePolicy == FailurePolicyHint.Inherit);
 
 	const skippedSuite = unchecked(children[1]);
 	assert(skippedSuite.kind == NodeKind.Describe);
@@ -152,11 +167,16 @@ function testNodeTestContextMethods(): void {
 	assert(runOnlyNested.kind == NodeKind.Test);
 	assert(runOnlyNested.name == "run-only child");
 	assert(runOnlyNested.only);
+	assert(runOnlyNested.preferredRunnerMode == RunnerModeHint.Default);
+	assert(runOnlyNested.preferredFailurePolicy == FailurePolicyHint.Inherit);
 
 	const plainNested = unchecked(nestedChildren[1]);
 	assert(plainNested.kind == NodeKind.Test);
 	assert(plainNested.name == "plain child");
 	assert(!plainNested.only);
+	assert(parent.preferredRunnerMode == RunnerModeHint.InBand);
+	assert(parent.preferredFailurePolicy == FailurePolicyHint.Bail);
+	assert(plainNested.preferredFailurePolicy == FailurePolicyHint.Continue);
 	const dependencyNodeIds = plainNested.getDependencyNodeIds();
 	assert(dependencyNodeIds.length == 1);
 	assert(unchecked(dependencyNodeIds[0]) == runOnlyNested.nodeId);
@@ -180,6 +200,10 @@ function testNodeTestContextSkipAndTodo(): void {
 	assert(unchecked(children[0]).declarationMode == DeclarationMode.Skip);
 	assert(unchecked(children[1]).declarationMode == DeclarationMode.Todo);
 	assert(unchecked(children[2]).declarationMode == DeclarationMode.Normal);
+	assert(unchecked(children[2]).preferredRunnerMode == RunnerModeHint.InBand);
+	assert(
+		unchecked(children[2]).preferredFailurePolicy == FailurePolicyHint.Continue,
+	);
 
 	resetCurrentNode();
 }
@@ -190,7 +214,7 @@ function testNodeTestDependencyHandles(): void {
 
 	const prereq = test("dependency prereq", noopTest);
 	const dependent = test("dependency dependent", noopTest);
-	const chained = dependent.dependsOn(prereq);
+	const chained = dependent.dependsOn(prereq).inBand().bail();
 
 	assert(chained === dependent);
 
@@ -202,6 +226,8 @@ function testNodeTestDependencyHandles(): void {
 	const dependencyNodeIds = dependentNode.getDependencyNodeIds();
 	assert(dependencyNodeIds.length == 1);
 	assert(unchecked(dependencyNodeIds[0]) == prereqNode.nodeId);
+	assert(dependentNode.preferredRunnerMode == RunnerModeHint.InBand);
+	assert(dependentNode.preferredFailurePolicy == FailurePolicyHint.Bail);
 
 	resetCurrentNode();
 }

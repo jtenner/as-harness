@@ -127,17 +127,19 @@ type hostCallState struct {
 }
 
 type nodeSnapshot struct {
-	NodeIndex         []uint32
-	NodeID            uint32
-	ParentNodeID      uint32
-	DeclarationOrder  uint32
-	SequenceMode      uint32
-	DependencyNodeIDs []uint32
-	Only              bool
-	ExpectFailure     bool
-	Kind              uint32
-	DeclarationMode   uint32
-	Name              string
+	NodeIndex              []uint32
+	NodeID                 uint32
+	ParentNodeID           uint32
+	DeclarationOrder       uint32
+	SequenceMode           uint32
+	PreferredRunnerMode    uint32
+	PreferredFailurePolicy uint32
+	DependencyNodeIDs      []uint32
+	Only                   bool
+	ExpectFailure          bool
+	Kind                   uint32
+	DeclarationMode        uint32
+	Name                   string
 }
 
 type immediateDiscoverySnapshot struct {
@@ -152,22 +154,24 @@ type discoverySnapshot struct {
 }
 
 type eventSnapshot struct {
-	Type              string
-	NodeIndex         []uint32
-	NodeID            uint32
-	ParentNodeID      uint32
-	DeclarationOrder  uint32
-	SequenceMode      uint32
-	DependencyNodeIDs []uint32
-	Only              bool
-	ExpectFailure     bool
-	Kind              uint32
-	DeclarationMode   uint32
-	Name              string
-	Hook              uint32
-	FailureKind       uint32
-	Message           string
-	Values            []float64
+	Type                   string
+	NodeIndex              []uint32
+	NodeID                 uint32
+	ParentNodeID           uint32
+	DeclarationOrder       uint32
+	SequenceMode           uint32
+	PreferredRunnerMode    uint32
+	PreferredFailurePolicy uint32
+	DependencyNodeIDs      []uint32
+	Only                   bool
+	ExpectFailure          bool
+	Kind                   uint32
+	DeclarationMode        uint32
+	Name                   string
+	Hook                   uint32
+	FailureKind            uint32
+	Message                string
+	Values                 []float64
 }
 
 type executionSnapshot struct {
@@ -799,6 +803,8 @@ func decodeNodeFoundSnapshot(payload []byte) (nodeSnapshot, bool) {
 	sequenceMode := uint32(payload[nextOffset+2])
 	only := payload[nextOffset+3] != 0
 	expectFailure := payload[nextOffset+4] != 0
+	preferredRunnerMode := uint32(payload[nextOffset+5])
+	preferredFailurePolicy := uint32(payload[nextOffset+6])
 	dependencyCount, nextOffset, ok := decodeUint32(payload, nextOffset+8)
 	if !ok {
 		return nodeSnapshot{}, false
@@ -824,17 +830,19 @@ func decodeNodeFoundSnapshot(payload []byte) (nodeSnapshot, bool) {
 	}
 
 	return nodeSnapshot{
-		NodeIndex:         cloneNodeIndex(nodeIndex),
-		NodeID:            nodeID,
-		ParentNodeID:      parentNodeID,
-		DeclarationOrder:  declarationOrder,
-		SequenceMode:      sequenceMode,
-		DependencyNodeIDs: dependencyNodeIDs,
-		Only:              only,
-		ExpectFailure:     expectFailure,
-		Kind:              kind,
-		DeclarationMode:   mode,
-		Name:              string(payload[nextOffset : nextOffset+int(nameLength)]),
+		NodeIndex:              cloneNodeIndex(nodeIndex),
+		NodeID:                 nodeID,
+		ParentNodeID:           parentNodeID,
+		DeclarationOrder:       declarationOrder,
+		SequenceMode:           sequenceMode,
+		PreferredRunnerMode:    preferredRunnerMode,
+		PreferredFailurePolicy: preferredFailurePolicy,
+		DependencyNodeIDs:      dependencyNodeIDs,
+		Only:                   only,
+		ExpectFailure:          expectFailure,
+		Kind:                   kind,
+		DeclarationMode:        mode,
+		Name:                   string(payload[nextOffset : nextOffset+int(nameLength)]),
 	}, true
 }
 
@@ -859,6 +867,12 @@ func createNodeFoundEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
 		return nil, false
 	}
 	if !setNamedProperty(env, result, "sequenceMode", createUint32(env, node.SequenceMode)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "preferredRunnerMode", createUint32(env, node.PreferredRunnerMode)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "preferredFailurePolicy", createUint32(env, node.PreferredFailurePolicy)) {
 		return nil, false
 	}
 	dependencyNodeIDsValue, ok := createUint32SliceValue(env, node.DependencyNodeIDs)
@@ -1142,18 +1156,20 @@ func decodeEventSnapshot(kind uint32, payload []byte) (eventSnapshot, bool) {
 		}
 
 		return eventSnapshot{
-			Type:              "nodeFound",
-			NodeIndex:         cloneNodeIndex(node.NodeIndex),
-			NodeID:            node.NodeID,
-			ParentNodeID:      node.ParentNodeID,
-			DeclarationOrder:  node.DeclarationOrder,
-			SequenceMode:      node.SequenceMode,
-			DependencyNodeIDs: append([]uint32(nil), node.DependencyNodeIDs...),
-			Only:              node.Only,
-			ExpectFailure:     node.ExpectFailure,
-			Kind:              node.Kind,
-			DeclarationMode:   node.DeclarationMode,
-			Name:              node.Name,
+			Type:                   "nodeFound",
+			NodeIndex:              cloneNodeIndex(node.NodeIndex),
+			NodeID:                 node.NodeID,
+			ParentNodeID:           node.ParentNodeID,
+			DeclarationOrder:       node.DeclarationOrder,
+			SequenceMode:           node.SequenceMode,
+			PreferredRunnerMode:    node.PreferredRunnerMode,
+			PreferredFailurePolicy: node.PreferredFailurePolicy,
+			DependencyNodeIDs:      append([]uint32(nil), node.DependencyNodeIDs...),
+			Only:                   node.Only,
+			ExpectFailure:          node.ExpectFailure,
+			Kind:                   node.Kind,
+			DeclarationMode:        node.DeclarationMode,
+			Name:                   node.Name,
 		}, true
 	case eventKindNodeStart:
 		nodeIndex, offset, ok := decodeNodeIndex(payload, 0)
@@ -2047,6 +2063,12 @@ func createNodeSnapshotValue(env C.napi_env, node nodeSnapshot) (C.napi_value, b
 	if !setNamedProperty(env, result, "sequenceMode", createUint32(env, node.SequenceMode)) {
 		return nil, false
 	}
+	if !setNamedProperty(env, result, "preferredRunnerMode", createUint32(env, node.PreferredRunnerMode)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "preferredFailurePolicy", createUint32(env, node.PreferredFailurePolicy)) {
+		return nil, false
+	}
 	dependencyNodeIDsValue, ok := createUint32SliceValue(env, node.DependencyNodeIDs)
 	if !ok {
 		return nil, false
@@ -2088,17 +2110,19 @@ func createEventSnapshotValue(env C.napi_env, event eventSnapshot) (C.napi_value
 	case "nodeFound":
 		var ok bool
 		data, ok = createNodeSnapshotValue(env, nodeSnapshot{
-			NodeIndex:         event.NodeIndex,
-			NodeID:            event.NodeID,
-			ParentNodeID:      event.ParentNodeID,
-			DeclarationOrder:  event.DeclarationOrder,
-			SequenceMode:      event.SequenceMode,
-			DependencyNodeIDs: event.DependencyNodeIDs,
-			Only:              event.Only,
-			ExpectFailure:     event.ExpectFailure,
-			Kind:              event.Kind,
-			DeclarationMode:   event.DeclarationMode,
-			Name:              event.Name,
+			NodeIndex:              event.NodeIndex,
+			NodeID:                 event.NodeID,
+			ParentNodeID:           event.ParentNodeID,
+			DeclarationOrder:       event.DeclarationOrder,
+			SequenceMode:           event.SequenceMode,
+			PreferredRunnerMode:    event.PreferredRunnerMode,
+			PreferredFailurePolicy: event.PreferredFailurePolicy,
+			DependencyNodeIDs:      event.DependencyNodeIDs,
+			Only:                   event.Only,
+			ExpectFailure:          event.ExpectFailure,
+			Kind:                   event.Kind,
+			DeclarationMode:        event.DeclarationMode,
+			Name:                   event.Name,
 		})
 		if !ok {
 			return nil, false

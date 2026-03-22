@@ -1,7 +1,9 @@
 import {
 	DeclarationMode,
+	FailurePolicyHint,
 	HookKind,
 	NodeKind,
+	RunnerModeHint,
 	SequenceMode,
 } from "../../internal/imports";
 import { Node, resetCurrentNode, setCurrentNode } from "../../internal/node";
@@ -34,6 +36,7 @@ function testAsHarnessDeclarationRegistration(): void {
 
 	const prereq = test("dependency prereq", noopTest);
 	test("dependency dependent", noopTest).dependsOn(prereq);
+	test("hinted leaf", noopTest).inBand().bail();
 	test("implicit todo");
 	test.fails("expected failure", noopTest);
 	test.sequential("sequential leaf", noopTest);
@@ -41,7 +44,9 @@ function testAsHarnessDeclarationRegistration(): void {
 		test("ordered first", noopTest);
 		it("ordered second", noopTest);
 	});
-	describe.only("focused suite", (_context: SuiteContext): void => {
+	describe.only("focused suite", (context: SuiteContext): void => {
+		context.inBand();
+		context.continueOnFailure();
 		suite.sequential("nested ordered suite", noopSuite);
 		it.only("nested only", noopTest);
 	});
@@ -53,30 +58,36 @@ function testAsHarnessDeclarationRegistration(): void {
 	assert(localRoot.getHooks(HookKind.AfterEach).length == 1);
 
 	const children = localRoot.getChildren();
-	assert(children.length == 8);
+	assert(children.length == 9);
 
 	const dependent = unchecked(children[1]);
 	const dependencyNodeIds = dependent.getDependencyNodeIds();
 	assert(dependencyNodeIds.length == 1);
 	assert(unchecked(dependencyNodeIds[0]) == unchecked(children[0]).nodeId);
 
-	assert(unchecked(children[2]).declarationMode == DeclarationMode.Todo);
-	assert(unchecked(children[3]).expectFailure);
-	assert(unchecked(children[4]).sequenceMode == SequenceMode.Sequential);
+	const hintedLeaf = unchecked(children[2]);
+	assert(hintedLeaf.preferredRunnerMode == RunnerModeHint.InBand);
+	assert(hintedLeaf.preferredFailurePolicy == FailurePolicyHint.Bail);
 
-	const orderedGroup = unchecked(children[5]);
+	assert(unchecked(children[3]).declarationMode == DeclarationMode.Todo);
+	assert(unchecked(children[4]).expectFailure);
+	assert(unchecked(children[5]).sequenceMode == SequenceMode.Sequential);
+
+	const orderedGroup = unchecked(children[6]);
 	assert(orderedGroup.kind == NodeKind.Describe);
 	assert(orderedGroup.sequenceMode == SequenceMode.Sequential);
 	assert(orderedGroup.getChildren().length == 2);
 
-	const focusedSuite = unchecked(children[6]);
+	const focusedSuite = unchecked(children[7]);
 	assert(focusedSuite.only);
+	assert(focusedSuite.preferredRunnerMode == RunnerModeHint.InBand);
+	assert(focusedSuite.preferredFailurePolicy == FailurePolicyHint.Continue);
 	const focusedChildren = focusedSuite.getChildren();
 	assert(focusedChildren.length == 2);
 	assert(unchecked(focusedChildren[0]).sequenceMode == SequenceMode.Sequential);
 	assert(unchecked(focusedChildren[1]).only);
 
-	assert(unchecked(children[7]).declarationMode == DeclarationMode.Skip);
+	assert(unchecked(children[8]).declarationMode == DeclarationMode.Skip);
 
 	resetCurrentNode();
 }

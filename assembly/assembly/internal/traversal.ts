@@ -163,6 +163,8 @@ function emitDiscoveredNode(node: Node): void {
 		node.sequenceMode,
 		node.only,
 		node.expectFailure,
+		node.preferredRunnerMode,
+		node.preferredFailurePolicy,
 		node.getDependencyNodeIds(),
 		node.name,
 	);

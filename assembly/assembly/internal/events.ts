@@ -1,9 +1,11 @@
 import {
 	DeclarationMode,
 	EventKind,
+	FailurePolicyHint,
 	FailureKind,
 	HookKind,
 	NodeKind,
+	RunnerModeHint,
 	SequenceMode,
 	writeEvent,
 } from "./imports";
@@ -63,7 +65,8 @@ function copyDependencyNodeIdsBytes(
  * `[node_index_length: u32] [node_index: ...bytes]
  * [node_id: u32] [parent_node_id: u32] [declaration_order: u32]
  * [node_kind: u8] [declaration_mode: u8] [sequence_mode: u8]
- * [only: u8] [expect_failure: u8] [3 bytes empty for alignment]
+ * [only: u8] [expect_failure: u8] [preferred_runner_mode: u8]
+ * [preferred_failure_policy: u8] [1 byte empty for alignment]
  * [dependency_count: u32] [dependency_node_ids: ...bytes]
  * [name_byte_length: u32] [name: ...bytes]`
  */
@@ -77,6 +80,8 @@ export function serializeNodeFound(
 	sequenceMode: SequenceMode,
 	only: bool,
 	expectFailure: bool,
+	preferredRunnerMode: RunnerModeHint,
+	preferredFailurePolicy: FailurePolicyHint,
 	dependencyNodeIds: Array<u32>,
 	name: string,
 ): StaticArray<u8> {
@@ -137,10 +142,10 @@ export function serializeNodeFound(
 	store<u8>(payloadStart + offset, expectFailure ? 1 : 0);
 	offset += <usize>U8_BYTE_LENGTH;
 
-	store<u8>(payloadStart + offset, 0);
+	store<u8>(payloadStart + offset, <u8>preferredRunnerMode);
 	offset += <usize>U8_BYTE_LENGTH;
 
-	store<u8>(payloadStart + offset, 0);
+	store<u8>(payloadStart + offset, <u8>preferredFailurePolicy);
 	offset += <usize>U8_BYTE_LENGTH;
 
 	store<u8>(payloadStart + offset, 0);
@@ -452,6 +457,8 @@ export function nodeFound(
 	sequenceMode: SequenceMode,
 	only: bool,
 	expectFailure: bool,
+	preferredRunnerMode: RunnerModeHint,
+	preferredFailurePolicy: FailurePolicyHint,
 	dependencyNodeIds: Array<u32>,
 	name: string,
 ): void {
@@ -467,6 +474,8 @@ export function nodeFound(
 			sequenceMode,
 			only,
 			expectFailure,
+			preferredRunnerMode,
+			preferredFailurePolicy,
 			dependencyNodeIds,
 			name,
 		),

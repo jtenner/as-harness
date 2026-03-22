@@ -4,8 +4,6 @@
 
 ### Blockers
 
-- define the shared guest hint vocabulary and decide which fields are hints
-  versus hard constraints before any adapter grows new orchestration APIs.
 - decide the first supported host-owned hint scopes for `bail` and `in-band`
   execution so planner behavior is deterministic across `js`, `wazero`, and
   `wasmtime`.
@@ -25,15 +23,11 @@
 
 ### Runtime: Shared Guest Hints
 
-- define the shared guest hint contract for this cycle:
-  `preferredFailurePolicy`, `preferredRunnerMode`, and any necessary scoping
-  metadata.
-- keep hint transport on shared node discovery metadata rather than adding
-  guest-owned scheduler exports.
 - update the guest/runtime/host ABI docs so hint ownership boundaries are
   explicit and stable.
-- add host type definitions for hint-carrying discovered nodes and any
-  resulting metadata snapshots.
+- implement first-pass host fallback and scope semantics for
+  `preferredFailurePolicy` and `preferredRunnerMode` now that the shared
+  metadata fields ship end to end through discovery.
 
 ### Runtime: Shared Guest Constraints
 
@@ -60,12 +54,9 @@
 
 ### Runtime: Native Guest APIs
 
-- add native guest-facing APIs for declaring shared hints in the core
-  `as-harness` and `node:test`-style surfaces.
-- keep those APIs declarative and scheduler-neutral; they should lower to
-  shared metadata rather than triggering execution.
-- add guest-side internal coverage for hint declaration, scoping, and replay
-  stability.
+- decide whether any additional native declaration helpers are needed beyond
+  the shipped chainable handle methods plus `SuiteContext` / `TestContext`
+  `inBand(...)`, `bail(...)`, and `continueOnFailure(...)`.
 
 ### Adapter: `vitest`
 

@@ -15,14 +15,25 @@ export const enum DeclarationMode {
 }
 
 export const enum SequenceMode {
-  Inherit = 0,
-  Sequential = 1,
+	Inherit = 0,
+	Sequential = 1,
+}
+
+export const enum RunnerModeHint {
+	Default = 0,
+	InBand = 1,
+}
+
+export const enum FailurePolicyHint {
+	Inherit = 0,
+	Continue = 1,
+	Bail = 2,
 }
 
 export const enum HookKind {
-  BeforeAll = 1,
-  BeforeEach = 2,
-  AfterEach = 3,
+	BeforeAll = 1,
+	BeforeEach = 2,
+	AfterEach = 3,
   AfterAll = 4,
 }
 

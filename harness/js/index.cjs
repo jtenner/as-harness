@@ -177,6 +177,8 @@ function decodeNodeFoundEvent(bytes) {
 		kind: bytes[declarationOrder.offset],
 		declarationMode: bytes[declarationOrder.offset + 1],
 		sequenceMode: bytes[declarationOrder.offset + 2],
+		preferredRunnerMode: bytes[declarationOrder.offset + 5],
+		preferredFailurePolicy: bytes[declarationOrder.offset + 6],
 		dependencyNodeIds,
 		only: bytes[declarationOrder.offset + 3] !== 0,
 		expectFailure: bytes[declarationOrder.offset + 4] !== 0,

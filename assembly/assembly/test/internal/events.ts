@@ -9,8 +9,10 @@ import {
 } from "../../internal/events";
 import {
 	DeclarationMode,
+	FailurePolicyHint,
 	HookKind,
 	NodeKind,
+	RunnerModeHint,
 	SequenceMode,
 } from "../../internal/imports";
 
@@ -59,6 +61,8 @@ function testSerializeNodeFound(): void {
 		SequenceMode.Sequential,
 		true,
 		false,
+		RunnerModeHint.InBand,
+		FailurePolicyHint.Bail,
 		[34, 55],
 		"alpha",
 	);
@@ -76,8 +80,8 @@ function testSerializeNodeFound(): void {
 	assertByte(payload, 30, <u8>SequenceMode.Sequential);
 	assertByte(payload, 31, 1);
 	assertByte(payload, 32, 0);
-	assertByte(payload, 33, 0);
-	assertByte(payload, 34, 0);
+	assertByte(payload, 33, <u8>RunnerModeHint.InBand);
+	assertByte(payload, 34, <u8>FailurePolicyHint.Bail);
 	assertByte(payload, 35, 0);
 	assertU32(payload, 36, 2);
 	assertU32(payload, 40, 34);

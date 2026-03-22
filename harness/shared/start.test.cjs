@@ -19,6 +19,8 @@ function createPlannerNode(options) {
 			parentNodeId: options.parentNodeId ?? 0,
 			declarationOrder: options.declarationOrder ?? 0,
 			sequenceMode: options.sequenceMode ?? 0,
+			preferredRunnerMode: options.preferredRunnerMode ?? 0,
+			preferredFailurePolicy: options.preferredFailurePolicy ?? 0,
 			dependencyNodeIds: options.dependencyNodeIds ?? [],
 			dependencyKeys: options.dependencyKeys ?? [],
 			expectFailure: options.expectFailure ?? false,

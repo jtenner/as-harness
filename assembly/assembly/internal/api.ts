@@ -1,4 +1,11 @@
-import { DeclarationMode, HookKind, NodeKind, SequenceMode } from "./imports";
+import {
+	DeclarationMode,
+	FailurePolicyHint,
+	HookKind,
+	NodeKind,
+	RunnerModeHint,
+	SequenceMode,
+} from "./imports";
 import {
 	currentNode,
 	Node,
@@ -18,6 +25,8 @@ export class NodeDeclarationOptions {
 	concurrency: i32 = 0;
 	plan: i32 = -1;
 	sequenceMode: SequenceMode = SequenceMode.Inherit;
+	preferredRunnerMode: RunnerModeHint = RunnerModeHint.Default;
+	preferredFailurePolicy: FailurePolicyHint = FailurePolicyHint.Inherit;
 }
 
 export class TestDeclarationHandle {
@@ -35,6 +44,27 @@ export class TestDeclarationHandle {
 		}
 
 		this.node.registerDependency(dependency.node);
+		return this;
+	}
+
+	inBand(shouldRunInBand: bool = true): TestDeclarationHandle {
+		this.node.setPreferredRunnerMode(
+			shouldRunInBand ? RunnerModeHint.InBand : RunnerModeHint.Default,
+		);
+		return this;
+	}
+
+	bail(shouldBail: bool = true): TestDeclarationHandle {
+		this.node.setPreferredFailurePolicy(
+			shouldBail ? FailurePolicyHint.Bail : FailurePolicyHint.Inherit,
+		);
+		return this;
+	}
+
+	continueOnFailure(shouldContinue: bool = true): TestDeclarationHandle {
+		this.node.setPreferredFailurePolicy(
+			shouldContinue ? FailurePolicyHint.Continue : FailurePolicyHint.Inherit,
+		);
 		return this;
 	}
 }
@@ -57,6 +87,8 @@ function createExecutionOptions(
 	executionOptions.concurrency = options.concurrency;
 	executionOptions.plan = options.plan;
 	executionOptions.sequenceMode = options.sequenceMode;
+	executionOptions.preferredRunnerMode = options.preferredRunnerMode;
+	executionOptions.preferredFailurePolicy = options.preferredFailurePolicy;
 	return executionOptions;
 }
 

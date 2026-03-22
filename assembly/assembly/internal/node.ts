@@ -1,4 +1,11 @@
-import { DeclarationMode, HookKind, NodeKind, SequenceMode } from "./imports";
+import {
+	DeclarationMode,
+	FailurePolicyHint,
+	HookKind,
+	NodeKind,
+	RunnerModeHint,
+	SequenceMode,
+} from "./imports";
 import { getActiveRunOnly, setActiveRunOnly } from "./execution-state";
 import {
 	sharedSuiteContext,
@@ -37,6 +44,8 @@ function createExecutionOptionsFromNode(source: Node): NodeExecutionOptions {
 	options.concurrency = source.concurrency;
 	options.plan = source.plan;
 	options.sequenceMode = source.sequenceMode;
+	options.preferredRunnerMode = source.preferredRunnerMode;
+	options.preferredFailurePolicy = source.preferredFailurePolicy;
 	options.dependencyNodeIds = source.getDependencyNodeIds();
 	return options;
 }
@@ -58,6 +67,8 @@ export class NodeExecutionOptions {
 	concurrency: i32 = 0;
 	plan: i32 = -1;
 	sequenceMode: SequenceMode = SequenceMode.Inherit;
+	preferredRunnerMode: RunnerModeHint = RunnerModeHint.Default;
+	preferredFailurePolicy: FailurePolicyHint = FailurePolicyHint.Inherit;
 	dependencyNodeIds: Array<u32> = new Array<u32>();
 }
 
@@ -77,6 +88,8 @@ export class Node {
 	readonly concurrency: i32;
 	readonly plan: i32;
 	readonly sequenceMode: SequenceMode;
+	private preferredRunnerModeValue: RunnerModeHint;
+	private preferredFailurePolicyValue: FailurePolicyHint;
 	private readonly dependencyNodeIdsValue: Array<u32>;
 
 	private readonly baseDeclarationModeValue: DeclarationMode;
@@ -142,6 +155,12 @@ export class Node {
 		this.plan = options !== null ? options.plan : -1;
 		this.sequenceMode =
 			options !== null ? options.sequenceMode : SequenceMode.Inherit;
+		this.preferredRunnerModeValue =
+			options !== null ? options.preferredRunnerMode : RunnerModeHint.Default;
+		this.preferredFailurePolicyValue =
+			options !== null
+				? options.preferredFailurePolicy
+				: FailurePolicyHint.Inherit;
 		this.dependencyNodeIdsValue = new Array<u32>();
 		if (options !== null) {
 			for (
@@ -158,6 +177,14 @@ export class Node {
 
 	get parent(): Node | null {
 		return this.parentValue;
+	}
+
+	get preferredRunnerMode(): RunnerModeHint {
+		return this.preferredRunnerModeValue;
+	}
+
+	get preferredFailurePolicy(): FailurePolicyHint {
+		return this.preferredFailurePolicyValue;
 	}
 
 	getDeclarationSlotSource(): Node {
@@ -287,6 +314,30 @@ export class Node {
 		}
 
 		this.declarationModeValue = mode;
+	}
+
+	setPreferredRunnerMode(mode: RunnerModeHint): void {
+		if (this.replayStateActive) {
+			this.preferredRunnerModeValue = mode;
+			return;
+		}
+
+		this.preferredRunnerModeValue = mode;
+		if (this.slotSourceValue !== null) {
+			changetype<Node>(this.slotSourceValue).preferredRunnerModeValue = mode;
+		}
+	}
+
+	setPreferredFailurePolicy(mode: FailurePolicyHint): void {
+		if (this.replayStateActive) {
+			this.preferredFailurePolicyValue = mode;
+			return;
+		}
+
+		this.preferredFailurePolicyValue = mode;
+		if (this.slotSourceValue !== null) {
+			changetype<Node>(this.slotSourceValue).preferredFailurePolicyValue = mode;
+		}
 	}
 
 	private beginReplayState(): void {
@@ -489,7 +540,15 @@ export class Node {
 			this.concurrency == (options !== null ? options.concurrency : 0) &&
 			this.plan == (options !== null ? options.plan : -1) &&
 			this.sequenceMode ==
-				(options !== null ? options.sequenceMode : SequenceMode.Inherit)
+				(options !== null ? options.sequenceMode : SequenceMode.Inherit) &&
+			this.preferredRunnerMode ==
+				(options !== null
+					? options.preferredRunnerMode
+					: RunnerModeHint.Default) &&
+			this.preferredFailurePolicy ==
+				(options !== null
+					? options.preferredFailurePolicy
+					: FailurePolicyHint.Inherit)
 		);
 	}
 

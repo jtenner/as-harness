@@ -28,6 +28,8 @@ export interface HarnessNode {
 	parentNodeId: number;
 	declarationOrder: number;
 	sequenceMode: number;
+	preferredRunnerMode: number;
+	preferredFailurePolicy: number;
 	dependencyNodeIds: Array<number>;
 	only: boolean;
 	expectFailure: boolean;

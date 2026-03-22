@@ -78,6 +78,14 @@ function cloneNode(node) {
 				: 0,
 		sequenceMode:
 			typeof node?.sequenceMode === "number" ? node.sequenceMode >>> 0 : 0,
+		preferredRunnerMode:
+			typeof node?.preferredRunnerMode === "number"
+				? node.preferredRunnerMode >>> 0
+				: 0,
+		preferredFailurePolicy:
+			typeof node?.preferredFailurePolicy === "number"
+				? node.preferredFailurePolicy >>> 0
+				: 0,
 		dependencyNodeIds: Array.isArray(node?.dependencyNodeIds)
 			? node.dependencyNodeIds
 					.filter((dependencyNodeId) => typeof dependencyNodeId === "number")
