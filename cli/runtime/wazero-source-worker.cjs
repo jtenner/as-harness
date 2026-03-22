@@ -1,6 +1,18 @@
 "use strict";
 
-const native = require("../../harness/wazero/dist/wazero.node");
+const path = require("node:path");
+
+const native = require(
+	path.resolve(
+		__dirname,
+		"..",
+		"..",
+		"harness",
+		"wazero",
+		"dist",
+		"wazero.node",
+	),
+);
 
 function toWasmBytes(value) {
 	if (Buffer.isBuffer(value)) {

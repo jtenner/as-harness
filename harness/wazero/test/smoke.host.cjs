@@ -41,6 +41,21 @@ registerSharedStartPlannerSmokeSuite({
 	runInBand: false,
 });
 
+function assertSuccessfulCliRun(result) {
+	const diagnostic = [
+		`status: ${result.status}`,
+		`signal: ${result.signal ?? ""}`,
+		`stdout:\n${result.stdout}`,
+		`stderr:\n${result.stderr}`,
+		result.error ? `error:\n${String(result.error)}` : "",
+	]
+		.filter(Boolean)
+		.join("\n\n");
+
+	assert.equal(result.status, 0, diagnostic);
+	assert.equal(result.stderr, "", diagnostic);
+}
+
 test("start() runs a larger ready stage through parallel worker slots when available", async () => {
 	const decorated = decorateHarness(createParallelReadyHarness(), {
 		bytes: Buffer.alloc(0),
@@ -106,8 +121,7 @@ test("cli run executes tests through the wazero harness", () => {
 			},
 		);
 
-		assert.equal(result.status, 0);
-		assert.equal(result.stderr, "");
+		assertSuccessfulCliRun(result);
 		assert.match(
 			result.stdout,
 			/PASS 1 passed, 0 failed, 1 discovered with wazero\./,
@@ -162,8 +176,7 @@ test("cli run emits coverage through the wazero harness", () => {
 			},
 		);
 
-		assert.equal(result.status, 0);
-		assert.equal(result.stderr, "");
+		assertSuccessfulCliRun(result);
 		assert.match(result.stdout, /Coverage:/);
 		assert.match(result.stdout, /suite\.test\.ts/);
 	} finally {
@@ -209,8 +222,7 @@ test("cli run executes a thin vitest adapter entry through the wazero harness", 
 			},
 		);
 
-		assert.equal(result.status, 0);
-		assert.equal(result.stderr, "");
+		assertSuccessfulCliRun(result);
 		assert.match(
 			result.stdout,
 			/PASS 6 passed, 0 failed, 6 discovered with wazero\./,

@@ -81,8 +81,8 @@ This note answers which CI failures and flaky behaviors were encountered while s
 ### 10. Windows source-host `wazero` CLI still failed under Bun after cleanup was fixed
 
 - Symptom: after the temp-directory cleanup race was removed, the Windows Node 25 source-host matrix still failed three `wazero` CLI smoke assertions with exit code `3` while the same native host passed all in-process harness checks.
-- Root cause: the CLI source runtime was loading `harness/wazero/index.cjs` through Bun and then relying on that wrapper's relative native-addon require path, which left a Windows-specific Bun source-host boundary distinct from both the packaged path and the in-process Node smoke path.
-- Fix: the CLI source `wazero` runtime now loads the built native addon directly from [`harness/wazero/dist/wazero.node`](/home/jtenner/Projects/as-harness/harness/wazero/dist/wazero.node), decorates the harness in [`cli/runtime/wazero.ts`](/home/jtenner/Projects/as-harness/cli/runtime/wazero.ts), and uses a dedicated CJS worker module in [`cli/runtime/wazero-source-worker.cjs`](/home/jtenner/Projects/as-harness/cli/runtime/wazero-source-worker.cjs) so source worker execution no longer depends on Bun loading the published wrapper module.
+- Root cause: the CLI source runtime was still depending on Bun to resolve the source native addon from repo-relative specifiers, leaving a Windows-specific Bun boundary distinct from both the packaged path and the in-process Node smoke path.
+- Fix: the source `wazero` runtime now routes both the main thread and worker-thread path through a shared absolute-path CJS harness module in [`cli/runtime/wazero-source-worker.cjs`](/home/jtenner/Projects/as-harness/cli/runtime/wazero-source-worker.cjs), and the native smoke suite now prints spawned CLI stdout and stderr whenever a future assertion fails so the next hosted failure is directly diagnosable from the report artifact.
 - Status: fixed locally and queued for CI re-verification.
 
 ## Remaining Open Risk

@@ -27,7 +27,7 @@ const { decorateHarness } = sharedStartModule as {
 	decorateHarness(harness: Harness, options: DecorateHarnessOptions): Harness;
 };
 const runtimeModulePath = fileURLToPath(import.meta.url);
-const sourceWorkerModulePath = fileURLToPath(
+const sourceHarnessModulePath = fileURLToPath(
 	new URL("./wazero-source-worker.cjs", import.meta.url),
 );
 let cachedHarnessModule: WazeroHarnessModule | null = null;
@@ -40,15 +40,7 @@ function traceWazero(message: string) {
 }
 
 function loadSourceWazeroHarnessModule(): WazeroHarnessModule {
-	const sourceSpecifier = [
-		"..",
-		"..",
-		"harness",
-		"wazero",
-		"dist",
-		"wazero.node",
-	].join("/");
-	return sourceRequire(sourceSpecifier) as WazeroHarnessModule;
+	return sourceRequire(sourceHarnessModulePath) as WazeroHarnessModule;
 }
 
 function loadBundledWazeroHarnessModule(): WazeroHarnessModule {
@@ -157,7 +149,7 @@ function createSourceWazeroHarness(wasmBytes: Uint8Array) {
 			return nativeHarnessModule.createHarness(Buffer.from(localBytes));
 		},
 		runInBand: false,
-		workerModulePath: sourceWorkerModulePath,
+		workerModulePath: sourceHarnessModulePath,
 	});
 }
 
