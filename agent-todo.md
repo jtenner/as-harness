@@ -4,11 +4,8 @@
 
 ### Blockers
 
-- freeze the persisted snapshot and fixture artifact contract before shipping
-  any `uvu/assert` artifact helpers.
-- freeze the on-disk `.snap` grammar for this cycle.
-  Reuse the `as-pect`-style export-map format where it fits so snapshot files
-  stay easy to parse, diff, and regenerate.
+- ship guest artifact-frame plumbing before exposing public `uvu/assert`
+  artifact helpers.
 
 ### Risks
 
@@ -28,12 +25,6 @@
 
 ### Runtime: Snapshot Artifacts
 
-- `ss-001`: freeze artifact identity and path rules.
-  Persist snapshots under `project/__snapshots__/path/to/file.snap` using the
-  declaring source file path, not the runtime node label, as the owning file
-  identity, and keep the file contents compatible with the `as-pect` export-map
-  shape:
-  `exports[\`key\`] = \`value\`;`.
 - `ss-002`: add guest execution-frame artifact metadata.
   Keep a guest-global stack of pushed and popped artifact descriptors so helper
   functions can resolve against the active declaration file even when
