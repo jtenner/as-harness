@@ -64,10 +64,6 @@ function resolveWazeroHarnessModule() {
 	return cachedHarnessModule;
 }
 
-function shouldBypassBundledWazeroClose() {
-	return typeof WAZERO_TARGET !== "undefined";
-}
-
 function shouldUseBundledLinuxInterpreterEngine() {
 	return typeof WAZERO_TARGET !== "undefined" && process.platform === "linux";
 }
@@ -88,23 +84,6 @@ function createBundledNativeHarness(
 			? nativeHarnessModule.createHarness(Buffer.from(wasmBytes), engine)
 			: nativeHarnessModule.createHarness(Buffer.from(wasmBytes));
 	traceWazero("created bundled native harness");
-
-	if (!shouldBypassBundledWazeroClose()) {
-		return harness;
-	}
-
-	const rawClose =
-		typeof harness.close === "function" ? harness.close.bind(harness) : null;
-	if (rawClose === null) {
-		return harness;
-	}
-
-	// Packaged Bun builds on hosted Linux can hang while synchronously closing the
-	// embedded Node-API-backed wazero runtime even though the one-shot CLI process
-	// will exit immediately afterward. Leave bundled close teardown to process exit.
-	harness.close = function bundledWazeroCloseNoop() {
-		traceWazero("skipping bundled native harness close");
-	};
 	return harness;
 }
 

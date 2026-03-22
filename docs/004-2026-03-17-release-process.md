@@ -16,7 +16,7 @@ Operational flow for shipping `as-harness` through GitHub:
 - packaged release assets stay archived instead of renaming the executable itself because current Bun standalone native-addon loading is sensitive to the compiled executable basename on Linux
 - `wasmtime` is source-only
 - CI and release install toolchains from repo-local [`.mise.toml`](../.mise.toml)
-  through `jdx/mise-action@v3`
+  through `jdx/mise-action@v4`
 - Node.js `25.8.1` baseline
 - Bun `1.3.11` baseline for packaged artifacts and repo automation
 - Go `1.26.1` baseline for `wazero` source verification and packaged verification

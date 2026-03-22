@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up mise toolchain
-        uses: jdx/mise-action@v3
+        uses: jdx/mise-action@v4
         with:
           install_args: bun node
 
@@ -40,7 +40,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up mise toolchain
-        uses: jdx/mise-action@v3
+        uses: jdx/mise-action@v4
         with:
           install_args: bun
 
@@ -62,7 +62,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up mise toolchain
-        uses: jdx/mise-action@v3
+        uses: jdx/mise-action@v4
         with:
           install_args: bun node go rust
 
@@ -94,7 +94,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up mise toolchain
-        uses: jdx/mise-action@v3
+        uses: jdx/mise-action@v4
         with:
           install_args: bun
 
@@ -115,7 +115,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up mise toolchain
-        uses: jdx/mise-action@v3
+        uses: jdx/mise-action@v4
         with:
           install_args: bun node go rust
 
