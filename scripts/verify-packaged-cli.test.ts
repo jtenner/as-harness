@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import type { CommandResult, HarnessRunReport } from "./verify-packaged-cli";
 import {
+	createPackagedSmokeEnvironment,
 	formatBuildFailure,
 	formatPackagedSmokeFailure,
 	formatVerifierSupervisionFailure,
@@ -132,4 +133,26 @@ test("formatVerifierSupervisionFailure reports verifier wrapper problems separat
 	);
 	expect(message).toContain("points at verifier supervision");
 	expect(message).toContain("runner JSON parse failed");
+});
+
+test("createPackagedSmokeEnvironment strips tool-manager env while preserving runtime essentials", () => {
+	const environment = createPackagedSmokeEnvironment(
+		{
+			HOME: "/tmp/home",
+			PATH: "/usr/bin:/bin",
+			TMPDIR: "/tmp",
+			MISE_LOG_LEVEL: "debug",
+			RUSTUP_TOOLCHAIN: "1.94.0",
+		},
+		{
+			AS_HARNESS_TRACE_WAZERO: "1",
+		},
+	);
+
+	expect(environment).toEqual({
+		AS_HARNESS_TRACE_WAZERO: "1",
+		HOME: "/tmp/home",
+		PATH: "/usr/bin:/bin",
+		TMPDIR: "/tmp",
+	});
 });

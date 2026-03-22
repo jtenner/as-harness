@@ -43,6 +43,23 @@ export type CommandResult = {
 	timedOut: boolean;
 };
 
+const PACKAGED_SMOKE_ENV_KEYS = [
+	"HOME",
+	"LANG",
+	"LC_ALL",
+	"PATH",
+	"PATHEXT",
+	"SHELL",
+	"SYSTEMROOT",
+	"SystemRoot",
+	"TEMP",
+	"TMP",
+	"TMPDIR",
+	"USER",
+	"USERPROFILE",
+	"WINDIR",
+] as const;
+
 export type HarnessRunReport = {
 	command: string[];
 	cwd: string;
@@ -119,6 +136,7 @@ async function runCommand(
 	cwd: string,
 	extraEnv: Record<string, string> = {},
 	timeoutMs: number = SMOKE_COMMAND_TIMEOUT_MS,
+	baseEnv: Record<string, string> = process.env as Record<string, string>,
 ): Promise<CommandResult> {
 	return await new Promise((resolve, reject) => {
 		let stdout = "";
@@ -129,7 +147,7 @@ async function runCommand(
 			{
 				cwd,
 				env: {
-					...process.env,
+					...baseEnv,
 					...extraEnv,
 					[COMMAND_TIMEOUT_ENV_VAR]: String(timeoutMs),
 				},
@@ -178,6 +196,24 @@ async function runCommand(
 			}
 		});
 	});
+}
+
+export function createPackagedSmokeEnvironment(
+	environment: NodeJS.ProcessEnv = process.env,
+	extraEnv: Record<string, string> = {},
+) {
+	const cleanEnvironment: Record<string, string> = {};
+	for (const key of PACKAGED_SMOKE_ENV_KEYS) {
+		const value = environment[key];
+		if (typeof value === "string" && value.length > 0) {
+			cleanEnvironment[key] = value;
+		}
+	}
+
+	return {
+		...cleanEnvironment,
+		...extraEnv,
+	};
 }
 
 function assertContains(text: string, expected: string, context: string) {
@@ -393,7 +429,13 @@ export async function main() {
 			const startedAt = performance.now();
 			let runResult: CommandResult;
 			try {
-				runResult = await runCommand(command, projectDirectory);
+				runResult = await runCommand(
+					command,
+					projectDirectory,
+					{},
+					SMOKE_COMMAND_TIMEOUT_MS,
+					createPackagedSmokeEnvironment(),
+				);
 			} catch (error) {
 				throw new Error(
 					formatVerifierSupervisionFailure({
@@ -421,9 +463,13 @@ export async function main() {
 				if (harness === "wazero" && runResult.timedOut) {
 					let diagnosticResult: CommandResult;
 					try {
-						diagnosticResult = await runCommand(command, projectDirectory, {
-							AS_HARNESS_TRACE_WAZERO: "1",
-						});
+						diagnosticResult = await runCommand(
+							command,
+							projectDirectory,
+							{ AS_HARNESS_TRACE_WAZERO: "1" },
+							SMOKE_COMMAND_TIMEOUT_MS,
+							createPackagedSmokeEnvironment(),
+						);
 					} catch (error) {
 						throw new Error(
 							[
