@@ -22,6 +22,15 @@ export type {
 
 export type HarnessBytes = Buffer | ArrayBufferView | ArrayBuffer;
 
+export interface HarnessArtifactOptions {
+	projectRoot: string;
+	updateSnapshots: boolean;
+}
+
+export interface HarnessCreateOptions {
+	artifactOptions?: HarnessArtifactOptions | null;
+}
+
 export interface HarnessNode {
 	nodeIndex: Array<number>;
 	nodeId: number;

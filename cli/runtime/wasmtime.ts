@@ -1,10 +1,13 @@
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
-import type { Harness } from "../../harness/shared/harness-types";
+import type {
+	Harness,
+	HarnessCreateOptions,
+} from "../../harness/shared/harness-types";
 import { setCompilerOptionValue, type Runtime } from "./types";
 
 type WasmtimeHarnessModule = {
-	createHarness(bytes: Uint8Array): Harness;
+	createHarness(bytes: Uint8Array, options?: HarnessCreateOptions): Harness;
 };
 
 const sourceRequire = createRequire(import.meta.url);
@@ -31,7 +34,7 @@ export const wasmtimeRuntime: Runtime = {
 	mutateCompilerArguments(compilerArguments) {
 		setCompilerOptionValue(compilerArguments, "--exportStart", "__start");
 	},
-	createHarness(wasmBytes) {
-		return resolveWasmtimeHarnessModule().createHarness(wasmBytes);
+	createHarness(wasmBytes, options) {
+		return resolveWasmtimeHarnessModule().createHarness(wasmBytes, options);
 	},
 };

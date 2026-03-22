@@ -4,8 +4,8 @@
 
 ### Blockers
 
-- ship explicit snapshot update mode plus transform-backed declaration file
-  markers before exposing public `uvu/assert` artifact helpers.
+- ship transform-backed declaration file markers before exposing public
+  `uvu/assert` artifact helpers.
 
 ### Risks
 
@@ -25,10 +25,9 @@
 
 ### Runtime: Snapshot Artifacts
 
-- `ss-006`: add an explicit snapshot update mode.
-  Ship a CLI flag such as `--update-snapshots` so missing or mismatched entries
-  can be rewritten intentionally using the same export-map serializer, while
-  ordinary runs stay read-only and fail on drift.
+- keep the shipped explicit snapshot update mode on the current contract:
+  `--update-snapshots` is the only supported rewrite path, and normal runs stay
+  read-only even after public snapshot helpers land.
 
 ### Adapter: `uvu` Snapshot Helpers
 

@@ -18,7 +18,10 @@ const harnessModule = require(workerData.modulePath);
 const wasmBytes = Buffer.from(workerData.bytes);
 
 function runBranch(branch) {
-	const harness = harnessModule.createHarness(wasmBytes);
+	const harness = harnessModule.createHarness(
+		wasmBytes,
+		workerData.createHarnessOptions,
+	);
 	let currentEvents = null;
 
 	try {
@@ -55,7 +58,10 @@ function runBranch(branch) {
 function runTask(message) {
 	switch (message.type) {
 		case "discoverBranch": {
-			const harness = harnessModule.createHarness(wasmBytes);
+			const harness = harnessModule.createHarness(
+				wasmBytes,
+				workerData.createHarnessOptions,
+			);
 			try {
 				return discoverBranch(harness, message.task.root);
 			} finally {

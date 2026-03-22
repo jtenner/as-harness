@@ -5,6 +5,7 @@ test("parseCommand captures run harness selection and compiler options", () => {
 	const parsed = parseCommand([
 		"run",
 		"--coverage",
+		"--update-snapshots",
 		"--coverage-format",
 		"json",
 		"--coverage-include",
@@ -30,6 +31,7 @@ test("parseCommand captures run harness selection and compiler options", () => {
 
 	expect(parsed.command).toBe("run");
 	expect(parsed.coverage).toBe(true);
+	expect(parsed.updateSnapshots).toBe(true);
 	expect(parsed.coverageFormat).toBe("json");
 	expect(parsed.coverageInclude).toEqual(["src/**/*.ts"]);
 	expect(parsed.coverageExclude).toEqual(["**/*.generated.ts"]);

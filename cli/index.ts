@@ -32,6 +32,7 @@ export type ParsedCommand = {
 	coverageInclude: string[];
 	coverageExclude: string[];
 	coveragePointTypes: CoveragePointTypeName[];
+	updateSnapshots: boolean;
 	harness?: string;
 	compilerOptions: CompilerOptions;
 	ignore: string[];
@@ -69,6 +70,7 @@ Options:
   --coverage-include g   Include coverage for files matching this glob
   --coverage-exclude g   Exclude coverage for files matching this glob
   --coverage-point-type  Coverage point type: function | block | expression
+  --update-snapshots     Rewrite missing, mismatched, and stale snapshots
   --harness name         Select the execution harness (\`js\` by default)
   -i, --ignore glob      Glob matcher that excludes an entry point`);
 }
@@ -93,6 +95,7 @@ Run Options:
   --coverage-include glob    Include coverage for files matching this glob
   --coverage-exclude glob    Exclude coverage for files matching this glob
   --coverage-point-type kind Select coverage points: function | block | expression
+  --update-snapshots         Rewrite missing, mismatched, and stale snapshots
   --harness name             Select the execution harness (\`js\` | \`wazero\` | \`wasmtime\`)
   -i, --ignore glob          Glob matcher that excludes an entry point
 
@@ -632,6 +635,7 @@ export function parseCommand(args: string[]): ParsedCommand {
 			coverageInclude: [],
 			coverageExclude: [],
 			coveragePointTypes: [],
+			updateSnapshots: false,
 			compilerOptions: {},
 			ignore: [],
 		};
@@ -647,6 +651,7 @@ export function parseCommand(args: string[]): ParsedCommand {
 			coverageInclude: [],
 			coverageExclude: [],
 			coveragePointTypes: [],
+			updateSnapshots: false,
 			compilerOptions: {},
 			ignore: [],
 		};
@@ -662,6 +667,7 @@ export function parseCommand(args: string[]): ParsedCommand {
 			coverageInclude: [],
 			coverageExclude: [],
 			coveragePointTypes: [],
+			updateSnapshots: false,
 			compilerOptions: {},
 			ignore: [],
 		};
@@ -680,6 +686,7 @@ export function parseCommand(args: string[]): ParsedCommand {
 		coverageInclude: [],
 		coverageExclude: [],
 		coveragePointTypes: [],
+		updateSnapshots: false,
 		compilerOptions: {},
 		ignore: [],
 	};
@@ -710,6 +717,11 @@ export function parseCommand(args: string[]): ParsedCommand {
 
 		if (token === "--coverage") {
 			parsed.coverage = true;
+			continue;
+		}
+
+		if (token === "--update-snapshots") {
+			parsed.updateSnapshots = true;
 			continue;
 		}
 
@@ -841,6 +853,9 @@ async function runRunCommand(command: ParsedCommand, cwd: string) {
 			include: command.coverageInclude,
 			exclude: command.coverageExclude,
 			pointTypes: command.coveragePointTypes,
+		},
+		{
+			updateSnapshots: command.updateSnapshots,
 		},
 	);
 	process.exitCode = result.exitCode;

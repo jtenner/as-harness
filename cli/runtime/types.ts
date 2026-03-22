@@ -1,9 +1,12 @@
-import type { Harness } from "../../harness/shared/harness-types";
+import type {
+	Harness,
+	HarnessCreateOptions,
+} from "../../harness/shared/harness-types";
 
 export interface Runtime {
 	name: string;
 	mutateCompilerArguments(compilerArguments: string[]): void;
-	createHarness(wasmBytes: Uint8Array): Harness;
+	createHarness(wasmBytes: Uint8Array, options?: HarnessCreateOptions): Harness;
 }
 
 export function setCompilerOptionValue(

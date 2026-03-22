@@ -839,12 +839,13 @@ class Harness {
 	}
 }
 
-function createHarness(bytes) {
+function createHarness(bytes, options = {}) {
 	const wasmBytes = toWasmBytes(bytes);
 	const compiledModule = new WebAssembly.Module(wasmBytes);
 	return decorateHarness(new Harness(compiledModule), {
 		bytes: wasmBytes,
 		createLocalHarness,
+		createHarnessOptions: options,
 		runInBand: false,
 		workerModulePath: __filename,
 	});

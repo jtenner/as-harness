@@ -1,6 +1,9 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, win32 } from "node:path";
-import type { HarnessStartResult } from "../harness/shared/harness-types";
+import type {
+	HarnessCreateOptions,
+	HarnessStartResult,
+} from "../harness/shared/harness-types";
 import { stringifyCoverage } from "../harness/shared/covers.cjs";
 import { compileEntrypoints, type CompilerOptions } from "./as/compile";
 import type { CoverageTransformPointTypeName } from "./transform/src/covers";
@@ -37,6 +40,10 @@ export type CoverageOptions = {
 	include?: string[];
 	exclude?: string[];
 	pointTypes?: CoverageTransformPointTypeName[];
+};
+
+export type ArtifactRunOptions = {
+	updateSnapshots: boolean;
 };
 
 const DEFAULT_RUN_LIBRARIES = [
@@ -161,6 +168,7 @@ export async function runEntryFiles(
 	compilerOptions: CompilerOptions = {},
 	reporter: RunReporter = defaultRunReporter,
 	coverageOptions: CoverageOptions = { enabled: false },
+	artifactOptions: ArtifactRunOptions = { updateSnapshots: false },
 ): Promise<RunCommandResult> {
 	let wasmBytes: Uint8Array;
 	const temporaryEntrypoint = await createRunEntrypoint(entryFiles, cwd);
@@ -228,9 +236,15 @@ export async function runEntryFiles(
 
 	let result: HarnessStartResult;
 	let harness = null;
+	const harnessCreateOptions: HarnessCreateOptions = {
+		artifactOptions: {
+			projectRoot: cwd,
+			updateSnapshots: artifactOptions.updateSnapshots === true,
+		},
+	};
 
 	try {
-		harness = runtime.createHarness(wasmBytes);
+		harness = runtime.createHarness(wasmBytes, harnessCreateOptions);
 		result = await harness.start();
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);

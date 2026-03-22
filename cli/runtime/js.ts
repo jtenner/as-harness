@@ -1,9 +1,12 @@
 import jsHarnessModule from "../../harness/js/index.cjs";
-import type { Harness } from "../../harness/shared/harness-types";
+import type {
+	Harness,
+	HarnessCreateOptions,
+} from "../../harness/shared/harness-types";
 import { setCompilerOptionValue, type Runtime } from "./types";
 
 const { createHarness } = jsHarnessModule as {
-	createHarness(bytes: Uint8Array): Harness;
+	createHarness(bytes: Uint8Array, options?: HarnessCreateOptions): Harness;
 };
 
 export const jsRuntime: Runtime = {
@@ -11,7 +14,7 @@ export const jsRuntime: Runtime = {
 	mutateCompilerArguments(compilerArguments) {
 		setCompilerOptionValue(compilerArguments, "--exportStart", "__start");
 	},
-	createHarness(wasmBytes) {
-		return createHarness(wasmBytes);
+	createHarness(wasmBytes, options) {
+		return createHarness(wasmBytes, options);
 	},
 };

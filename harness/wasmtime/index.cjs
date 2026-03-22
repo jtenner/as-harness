@@ -525,15 +525,16 @@ class Harness {
 	}
 }
 
-function createLocalHarness(bytes) {
-	return new Harness(native.createHarness(toWasmBytes(bytes)));
+function createLocalHarness(bytes, options) {
+	return new Harness(native.createHarness(toWasmBytes(bytes), options));
 }
 
-function createHarness(bytes) {
+function createHarness(bytes, options = {}) {
 	const wasmBytes = toWasmBytes(bytes);
-	return decorateHarness(createLocalHarness(wasmBytes), {
+	return decorateHarness(createLocalHarness(wasmBytes, options), {
 		bytes: wasmBytes,
 		createLocalHarness,
+		createHarnessOptions: options,
 		runInBand: false,
 		workerModulePath: __filename,
 	});

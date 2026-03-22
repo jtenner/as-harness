@@ -16,6 +16,7 @@ Implemented:
 - Stable start-reporting pipeline with branch, execution, planning, and blocked-outcome details.
 - `js`, `wazero`, `wasmtime` source-host runtime support.
 - Coverage output in `text`, `json`, `yaml`, `csv`, `lcov`, `cobertura`.
+- Explicit snapshot rewrite mode via `as-harness run --update-snapshots`.
 
 Limits:
 
@@ -30,6 +31,7 @@ bun run ./cli/index.ts list
 bun run ./cli/index.ts run ./example.test.ts
 bun run ./cli/index.ts run --harness wazero ./example.test.ts
 bun run ./cli/index.ts run --harness js --coverage ./example.test.ts
+bun run ./cli/index.ts run --update-snapshots ./example.test.ts
 ```
 
 For contributor validation, the repo now uses two distinct execution proofs:

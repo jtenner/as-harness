@@ -23,13 +23,14 @@ function toWasmBytes(value) {
 	);
 }
 
-function createHarness(bytes) {
+function createHarness(bytes, options = {}) {
 	const wasmBytes = Buffer.from(toWasmBytes(bytes));
 
 	return decorateHarness(native.createHarness(wasmBytes), {
 		bytes: wasmBytes,
 		createLocalHarness: (localBytes) =>
 			native.createHarness(Buffer.from(toWasmBytes(localBytes))),
+		createHarnessOptions: options,
 		runInBand: false,
 		workerModulePath: __filename,
 	});

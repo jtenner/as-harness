@@ -8,6 +8,7 @@ The Bun CLI compiles AssemblyScript test files to Wasm, selects a harness, and e
 - `run` compiles and runs entries.
 - `run --coverage` emits merged coverage in `text`, `json`, `yaml`, `csv`, `lcov`, or `cobertura`.
 - `--coverage-include`, `--coverage-exclude`, and repeated `--coverage-point-type` refine instrumentation.
+- `--update-snapshots` is the explicit rewrite path for host-owned snapshot artifacts.
 - `--harness js|wazero|wasmtime` selects the runtime.
 - `build.ts` builds target-specific packaged executables; release packaging wraps them into target-specific archives.
 - root `bun test` and release smoke flows now reuse package-local host commands (`npm test` per host).
@@ -94,6 +95,7 @@ bun install
 bun run dev -- help
 bun run dev -- run ./example.test.ts
 bun run dev -- run --harness js --coverage ./example.test.ts
+bun run dev -- run --update-snapshots ./example.test.ts
 bun run build
 bun run build:release
 ```

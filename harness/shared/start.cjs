@@ -393,6 +393,7 @@ function terminateWorkers(workers) {
 async function runTasksInWorkerPool(
 	workerModulePath,
 	bytes,
+	createHarnessOptions,
 	taskType,
 	tasks,
 	workerCount,
@@ -443,6 +444,7 @@ async function runTasksInWorkerPool(
 				workerData: {
 					modulePath: workerModulePath,
 					bytes: Buffer.from(bytes),
+					createHarnessOptions,
 				},
 			});
 			workers.push(worker);
@@ -482,7 +484,10 @@ async function runTasksInWorkerPool(
 }
 
 function runBranchTaskInBand(options, task) {
-	const harness = options.createLocalHarness(options.bytes);
+	const harness = options.createLocalHarness(
+		options.bytes,
+		options.createHarnessOptions,
+	);
 	let currentEvents = null;
 
 	try {
@@ -1270,6 +1275,7 @@ async function runExecutionBatch(options, stageTargets) {
 			? runTasksInWorkerPool(
 					options.workerModulePath,
 					options.bytes,
+					options.createHarnessOptions,
 					"runBranch",
 					workerTargets.map((target) => ({
 						runTargets: [target.node],
@@ -1691,7 +1697,10 @@ async function executePlannedStages(options, branches, plan) {
 }
 
 async function startHarness(options) {
-	const discoveryHarness = options.createLocalHarness(options.bytes);
+	const discoveryHarness = options.createLocalHarness(
+		options.bytes,
+		options.createHarnessOptions,
+	);
 	let topLevelDiscovery;
 	let initialCoverage = null;
 	let topLevelNodes = [];
@@ -1801,6 +1810,7 @@ function decorateHarness(harness, options) {
 		return startHarness({
 			bytes: Buffer.from(options.bytes),
 			createLocalHarness: options.createLocalHarness,
+			createHarnessOptions: options.createHarnessOptions,
 			runInBand: options.runInBand === true,
 			workerModulePath: path.resolve(options.workerModulePath),
 		});

@@ -3,7 +3,18 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "bun:test";
-import { resolveRunEntrypointBaseDirectory } from "./run";
+import type {
+	Harness,
+	HarnessCreateOptions,
+	HarnessStartResult,
+} from "../harness/shared/harness-types";
+import { jsRuntime } from "./runtime/js";
+import {
+	resolveRunEntrypointBaseDirectory,
+	runEntryFiles,
+	RunExitCode,
+} from "./run";
+import type { Runtime } from "./runtime/types";
 
 const cliEntrypointPath = join(import.meta.dir, "index.ts");
 const wazeroAddonPath = join(
@@ -77,6 +88,64 @@ async function runCli(entryFile: string, cwd: string): Promise<CliRunResult> {
 	return runCliWithArguments(["run", entryFile], cwd);
 }
 
+function createPassingStartResult(): HarnessStartResult {
+	return {
+		metadata: {
+			ok: true,
+			discoveryOk: true,
+			planningOk: true,
+			discoveredTestCount: 1,
+			topLevelNodes: [],
+			workerCount: 0,
+			planIssues: [],
+			blocked: [],
+			coverage: null,
+		},
+		ok: true,
+		discoveryOk: true,
+		planningOk: true,
+		discoveredTestCount: 1,
+		topLevelNodes: [],
+		workerCount: 0,
+		branches: [],
+		planIssues: [],
+		blocked: [],
+		coverage: null,
+	};
+}
+
+function createCapturingHarness(): Harness {
+	return {
+		onNodeFound() {},
+		onNodeStart() {},
+		onNodePass() {},
+		onNodeFail() {},
+		onFailMessage() {},
+		onCallbackStart() {},
+		onCallbackPass() {},
+		onCallbackFail() {},
+		onDiagnostic() {},
+		onLog() {},
+		callI32() {
+			return 0;
+		},
+		discover() {
+			return false;
+		},
+		run() {
+			return false;
+		},
+		async start() {
+			return createPassingStartResult();
+		},
+		getCoverageSnapshot() {
+			return null;
+		},
+		resetCoverage() {},
+		close() {},
+	};
+}
+
 function parseCoverageJSONFromStdout(stdout: string) {
 	const jsonStart = stdout.indexOf("{");
 	if (jsonStart === -1) {
@@ -108,6 +177,51 @@ test("resolveRunEntrypointBaseDirectory rejects mixed Windows drive entry sets",
 		),
 	).toThrow(
 		"as-harness run does not support entry files on multiple Windows drives.",
+	);
+});
+
+test("runEntryFiles passes snapshot update mode into harness creation", async () => {
+	await withTempEntryFile(
+		`
+import { test, TestContext } from "node:test";
+
+test("passing test", (_context: TestContext): void => {});
+`,
+		async (entryFile, cwd) => {
+			let capturedOptions: HarnessCreateOptions | undefined;
+			const runtime: Runtime = {
+				name: "capture",
+				mutateCompilerArguments(compilerArguments) {
+					jsRuntime.mutateCompilerArguments(compilerArguments);
+				},
+				createHarness(_wasmBytes, options) {
+					capturedOptions = options;
+					return createCapturingHarness();
+				},
+			};
+
+			const result = await runEntryFiles(
+				[entryFile],
+				cwd,
+				{
+					error() {},
+					info() {},
+				},
+				runtime,
+				{},
+				undefined,
+				{ enabled: false },
+				{ updateSnapshots: true },
+			);
+
+			expect(result.exitCode).toBe(RunExitCode.Success);
+			expect(capturedOptions).toEqual({
+				artifactOptions: {
+					projectRoot: cwd,
+					updateSnapshots: true,
+				},
+			});
+		},
 	);
 });
 
