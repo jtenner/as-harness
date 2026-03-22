@@ -11,6 +11,10 @@
 - shipped `uvu` callbacks still use shared `TestContext` rather than upstream
   crumb/context objects, so strict source parity remains incomplete even though
   the sync declaration slice now ships.
+- the remaining upstream `uvu/assert` helpers stay intentionally out of this
+  cycle because they need constructor-aware contracts, shared partial-match
+  semantics, or host-backed artifact I/O that the current guest/runtime model
+  does not provide.
 - guest-provided orchestration metadata can easily blur into guest-owned
   scheduling if the ABI grows new scheduler entrypoints instead of staying on
   discovery metadata plus host-owned `start()`.
@@ -41,10 +45,6 @@
   `.run()`, and `exec(...)`.
 - freeze the current builder-object divergence as the permanent `uvu` contract
   unless the repo later adopts a transform-backed rewrite policy.
-- continue expanding `uvu/assert` only where helpers map cleanly onto the
-  shared assertion and trap model; the remaining open gap is `instance`,
-  `snapshot`, `fixture`, `match`, `Assertion`, and any negated forms that
-  depend on those helpers.
 - keep crumb/context callback parity and async behavior deferred until the
   higher-level compatibility decision is settled.
 

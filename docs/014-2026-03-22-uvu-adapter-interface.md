@@ -473,10 +473,21 @@ The repo still does not support:
 - Promise tests
 - guest-owned execution finalization
 
-### 4. Rich `uvu/assert` Error Matching
+### 4. Remaining `uvu/assert` Helpers Need Contracts The Repo Does Not Ship
 
-Helpers like `throws`, `match`, and constructor-aware checks still do not fit
-the current failure boundary cleanly.
+The remaining helpers now split into three deferred contract families:
+
+- constructor-aware checks like `instance(...)`, which need a stable guest
+  constructor-token story before they can be documented honestly
+- matcher-style and partial-match helpers like `match(...)`, which would
+  otherwise duplicate logic outside the shared assertion core
+- artifact-backed helpers like `snapshot(...)` and `fixture(...)`, which need a
+  host-backed file or persisted-artifact contract that the current guest ABI
+  does not expose
+
+`Assertion` stays deferred with that set because it depends on a richer
+upstream-specific error object model than the shared trap and fail-message
+boundary currently provides.
 
 ## Selected This Cycle
 
@@ -485,13 +496,15 @@ the current failure boundary cleanly.
    `continueOnFailure(...)` helpers on top-level `test` and `UvuSuite`
 3. ship `exec(bail?)` as root-level `bail` hint lowering only
 4. keep `.run()` as a compatibility no-op
-5. revisit richer `uvu/assert` helpers after the hint surface ships
+5. explicitly defer the remaining `uvu/assert` helper families for this cycle
 
 ## Suggested Future Order
 
-1. revisit richer `uvu/assert` helpers that fit the current shared failure model
-2. revisit crumb/context parity only if the callback-model divergence becomes a
+1. revisit crumb/context parity only if the callback-model divergence becomes a
    practical blocker
+2. revisit richer `uvu/assert` helpers only after the repo adopts either a
+   constructor-token contract, a shared partial-match assertion core, or a
+   host-backed artifact model
 3. keep async behavior deferred until the project-wide runtime contract changes
 
 ## Sources
