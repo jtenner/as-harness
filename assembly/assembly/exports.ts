@@ -1,4 +1,18 @@
 export { invoke } from "./internal/trampoline";
+export {
+	ArtifactFrameKind,
+	getActiveArtifactFrameDepth,
+	getActiveArtifactFrameHookKind,
+	getActiveArtifactFrameKind,
+	getActiveArtifactFrameName,
+	getActiveArtifactFrameNodeIndexElement,
+	getActiveArtifactFrameNodeIndexLength,
+	getActiveArtifactFrameNodeKind,
+	getActiveArtifactFrameSourceColumn,
+	getActiveArtifactFrameSourceFile,
+	getActiveArtifactFrameSourceLine,
+	hasActiveArtifactFrame,
+} from "./internal/artifact-frame";
 import {
 	discoverChildrenByIndex,
 	discoverRootNodes,

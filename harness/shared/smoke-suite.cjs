@@ -616,6 +616,11 @@ function compileSmokeFixtures(options) {
 			"assembly/test/mocha-smoke.ts",
 			path.join(options.cacheDir, "mocha-smoke.wasm"),
 		),
+		compiledArtifactFrameWasm: compileFixture(
+			assemblyDir,
+			"assembly/test/artifact-frame-smoke.ts",
+			path.join(options.cacheDir, "artifact-frame-smoke.wasm"),
+		),
 		compiledUvuAssertWasm: compileFixture(
 			assemblyDir,
 			"assembly/test/uvu-assert-smoke.ts",
@@ -717,6 +722,7 @@ function registerHarnessSmokeSuite(options) {
 	const {
 		addon,
 		assert,
+		compiledArtifactFrameWasm,
 		compiledExportsWasm,
 		compiledJasmineWasm,
 		compiledMochaWasm,
@@ -789,6 +795,31 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(harness.discover("bad"), false);
 		assert.equal(harness.run([]), true);
 		assert.equal(harness.run("bad"), false);
+		closeHarness(harness);
+	});
+
+	test("hosts can inspect the live artifact frame during hook and test execution", () => {
+		const harness = createHarness(compiledArtifactFrameWasm);
+		const diagnostics = [];
+
+		harness.onDiagnostic((event) => {
+			diagnostics.push(event);
+		});
+
+		assert.equal(harness.run([0, 0]), true);
+		assert.deepEqual(diagnostics, [
+			{
+				nodeIndex: [0],
+				message:
+					"depth=1 kind=3 nodeKind=2 hookKind=2 name=artifact suite file= line=0 column=0 index=[0]",
+			},
+			{
+				nodeIndex: [0, 0],
+				message:
+					"depth=1 kind=2 nodeKind=1 hookKind=0 name=artifact test file= line=0 column=0 index=[0,0]",
+			},
+		]);
+
 		closeHarness(harness);
 	});
 

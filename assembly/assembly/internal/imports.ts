@@ -81,3 +81,11 @@ export declare function writeEvent(
 // @ts-ignore AssemblyScript external decorator
 @external("as-harness", "invoke_staged")
 export declare function invokeStaged(): i32;
+
+/**
+ * Test-only host hook that captures the current artifact frame while the guest
+ * callback is still live.
+ */
+// @ts-ignore AssemblyScript external decorator
+@external("__asArtifacts", "capture_active_frame")
+export declare function captureActiveArtifactFrame(): void;

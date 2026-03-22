@@ -7,6 +7,7 @@ const { decorateHarness } = require("../shared/start.cjs");
 const HARNESS_MODULE_NAME = "as-harness";
 const ABORT_MODULE_NAME = "env";
 const COVERS_MODULE_NAME = "__asCovers";
+const ARTIFACTS_MODULE_NAME = "__asArtifacts";
 const ALLOCATE_NODE_INDEX_BUFFER_EXPORT = "allocateNodeIndexBuffer";
 const DISCOVER_EXPORT = "discover";
 const RUN_EXPORT = "run";
@@ -24,6 +25,21 @@ const EVENT_KIND_DIAGNOSTIC = 7;
 const EVENT_KIND_NODE_FAIL = 8;
 const EVENT_KIND_CALLBACK_FAIL = 9;
 const EVENT_KIND_LOG = 10;
+const ACTIVE_ARTIFACT_FRAME_DEPTH_EXPORT = "getActiveArtifactFrameDepth";
+const ACTIVE_ARTIFACT_FRAME_KIND_EXPORT = "getActiveArtifactFrameKind";
+const ACTIVE_ARTIFACT_FRAME_NODE_KIND_EXPORT = "getActiveArtifactFrameNodeKind";
+const ACTIVE_ARTIFACT_FRAME_HOOK_KIND_EXPORT = "getActiveArtifactFrameHookKind";
+const ACTIVE_ARTIFACT_FRAME_NAME_EXPORT = "getActiveArtifactFrameName";
+const ACTIVE_ARTIFACT_FRAME_SOURCE_FILE_EXPORT =
+	"getActiveArtifactFrameSourceFile";
+const ACTIVE_ARTIFACT_FRAME_SOURCE_LINE_EXPORT =
+	"getActiveArtifactFrameSourceLine";
+const ACTIVE_ARTIFACT_FRAME_SOURCE_COLUMN_EXPORT =
+	"getActiveArtifactFrameSourceColumn";
+const ACTIVE_ARTIFACT_FRAME_NODE_INDEX_LENGTH_EXPORT =
+	"getActiveArtifactFrameNodeIndexLength";
+const ACTIVE_ARTIFACT_FRAME_NODE_INDEX_ELEMENT_EXPORT =
+	"getActiveArtifactFrameNodeIndexElement";
 
 function toWasmBytes(value) {
 	if (Buffer.isBuffer(value)) {
@@ -378,6 +394,102 @@ function clampTraceValueCount(value) {
 	return Math.max(0, Math.min(5, value | 0));
 }
 
+function callI32Export(exports, exportName, ...args) {
+	const exported = exports[exportName];
+	if (typeof exported !== "function") {
+		return null;
+	}
+
+	const result = exported(...args);
+	return typeof result === "number" ? result | 0 : null;
+}
+
+function readActiveArtifactFrame(exports) {
+	const depth = callI32Export(exports, ACTIVE_ARTIFACT_FRAME_DEPTH_EXPORT);
+	if (depth === null || depth <= 0) {
+		return null;
+	}
+
+	const kind = callI32Export(exports, ACTIVE_ARTIFACT_FRAME_KIND_EXPORT);
+	const nodeKind = callI32Export(
+		exports,
+		ACTIVE_ARTIFACT_FRAME_NODE_KIND_EXPORT,
+	);
+	const hookKind = callI32Export(
+		exports,
+		ACTIVE_ARTIFACT_FRAME_HOOK_KIND_EXPORT,
+	);
+	const sourceLine = callI32Export(
+		exports,
+		ACTIVE_ARTIFACT_FRAME_SOURCE_LINE_EXPORT,
+	);
+	const sourceColumn = callI32Export(
+		exports,
+		ACTIVE_ARTIFACT_FRAME_SOURCE_COLUMN_EXPORT,
+	);
+	const nodeIndexLength = callI32Export(
+		exports,
+		ACTIVE_ARTIFACT_FRAME_NODE_INDEX_LENGTH_EXPORT,
+	);
+	const namePointer = callI32Export(exports, ACTIVE_ARTIFACT_FRAME_NAME_EXPORT);
+	const sourceFilePointer = callI32Export(
+		exports,
+		ACTIVE_ARTIFACT_FRAME_SOURCE_FILE_EXPORT,
+	);
+	if (
+		kind === null ||
+		nodeKind === null ||
+		hookKind === null ||
+		sourceLine === null ||
+		sourceColumn === null ||
+		nodeIndexLength === null ||
+		namePointer === null ||
+		sourceFilePointer === null
+	) {
+		return null;
+	}
+
+	const nodeIndex = [];
+	for (let index = 0; index < nodeIndexLength; index += 1) {
+		const element = callI32Export(
+			exports,
+			ACTIVE_ARTIFACT_FRAME_NODE_INDEX_ELEMENT_EXPORT,
+			index,
+		);
+		if (element === null) {
+			return null;
+		}
+
+		nodeIndex.push(element >>> 0);
+	}
+
+	return {
+		depth,
+		kind,
+		nodeKind,
+		hookKind,
+		name: readAssemblyString(exports, namePointer >>> 0),
+		sourceFile: readAssemblyString(exports, sourceFilePointer >>> 0),
+		sourceLine,
+		sourceColumn,
+		nodeIndex,
+	};
+}
+
+function formatActiveArtifactFrame(frame) {
+	return [
+		`depth=${frame.depth}`,
+		`kind=${frame.kind}`,
+		`nodeKind=${frame.nodeKind}`,
+		`hookKind=${frame.hookKind}`,
+		`name=${frame.name}`,
+		`file=${frame.sourceFile}`,
+		`line=${frame.sourceLine}`,
+		`column=${frame.sourceColumn}`,
+		`index=[${frame.nodeIndex.join(",")}]`,
+	].join(" ");
+}
+
 class Harness {
 	#compiledModule;
 	#coverage;
@@ -608,6 +720,28 @@ class Harness {
 				},
 				cover: (id) => {
 					this.#coverage.hit(id >>> 0);
+				},
+			},
+			[ARTIFACTS_MODULE_NAME]: {
+				capture_active_frame: () => {
+					if (exports === null) {
+						throw new Error("Harness exports are not ready.");
+					}
+
+					const callback = this.#callbacks.diagnostic;
+					if (callback === null) {
+						return;
+					}
+
+					const frame = readActiveArtifactFrame(exports);
+					if (frame === null) {
+						return;
+					}
+
+					callback({
+						nodeIndex: frame.nodeIndex,
+						message: formatActiveArtifactFrame(frame),
+					});
 				},
 			},
 			[ABORT_MODULE_NAME]: {

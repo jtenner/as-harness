@@ -60,6 +60,7 @@ import (
 	"os"
 	goruntime "runtime"
 	"sort"
+	"strings"
 	"sync"
 	"unicode/utf16"
 	"unsafe"
@@ -75,8 +76,10 @@ const runExport = "run"
 const abortModuleName = "env"
 const writeEventModuleName = "as-harness"
 const coversModuleName = "__asCovers"
+const artifactImportModuleName = "__asArtifacts"
 const invokeExport = "invoke"
 const invokeStagedImport = "invoke_staged"
+const captureActiveArtifactFrameImport = "capture_active_frame"
 const uint32ByteLength = 4
 const wazeroEngineInterpreter = "interpreter"
 const eventKindNodeFound = 1
@@ -91,6 +94,16 @@ const eventKindCallbackFail = 9
 const eventKindLog = 10
 const nodeKindTest = 1
 const declarationModeNormal = 1
+const activeArtifactFrameDepthExport = "getActiveArtifactFrameDepth"
+const activeArtifactFrameKindExport = "getActiveArtifactFrameKind"
+const activeArtifactFrameNodeKindExport = "getActiveArtifactFrameNodeKind"
+const activeArtifactFrameHookKindExport = "getActiveArtifactFrameHookKind"
+const activeArtifactFrameNameExport = "getActiveArtifactFrameName"
+const activeArtifactFrameSourceFileExport = "getActiveArtifactFrameSourceFile"
+const activeArtifactFrameSourceLineExport = "getActiveArtifactFrameSourceLine"
+const activeArtifactFrameSourceColumnExport = "getActiveArtifactFrameSourceColumn"
+const activeArtifactFrameNodeIndexLengthExport = "getActiveArtifactFrameNodeIndexLength"
+const activeArtifactFrameNodeIndexElementExport = "getActiveArtifactFrameNodeIndexElement"
 
 type callbackSlot int
 
@@ -214,6 +227,18 @@ type coverageCollector struct {
 	mu      sync.Mutex
 	points  map[uint32]coveragePoint
 	covered map[uint32]struct{}
+}
+
+type activeArtifactFrame struct {
+	Depth        int32
+	Kind         int32
+	NodeKind     int32
+	HookKind     int32
+	Name         string
+	SourceFile   string
+	SourceLine   int32
+	SourceColumn int32
+	NodeIndex    []uint32
 }
 
 type nodeCollector struct {
@@ -728,6 +753,134 @@ func readAssemblyString(memory api.Memory, pointer uint32) (string, bool) {
 	return string(utf16.Decode(codeUnits)), true
 }
 
+func callI32Export(ctx context.Context, module api.Module, exportName string) (int32, bool) {
+	function := module.ExportedFunction(exportName)
+	if function == nil {
+		return 0, false
+	}
+
+	results, err := function.Call(ctx)
+	if err != nil || len(results) != 1 {
+		return 0, false
+	}
+
+	return int32(uint32(results[0])), true
+}
+
+func callI32IndexExport(ctx context.Context, module api.Module, exportName string, index int32) (int32, bool) {
+	function := module.ExportedFunction(exportName)
+	if function == nil {
+		return 0, false
+	}
+
+	results, err := function.Call(ctx, uint64(uint32(index)))
+	if err != nil || len(results) != 1 {
+		return 0, false
+	}
+
+	return int32(uint32(results[0])), true
+}
+
+func readActiveArtifactFrame(ctx context.Context, module api.Module) (*activeArtifactFrame, bool) {
+	depth, ok := callI32Export(ctx, module, activeArtifactFrameDepthExport)
+	if !ok || depth <= 0 {
+		return nil, ok
+	}
+
+	kind, ok := callI32Export(ctx, module, activeArtifactFrameKindExport)
+	if !ok {
+		return nil, false
+	}
+	nodeKind, ok := callI32Export(ctx, module, activeArtifactFrameNodeKindExport)
+	if !ok {
+		return nil, false
+	}
+	hookKind, ok := callI32Export(ctx, module, activeArtifactFrameHookKindExport)
+	if !ok {
+		return nil, false
+	}
+	sourceLine, ok := callI32Export(ctx, module, activeArtifactFrameSourceLineExport)
+	if !ok {
+		return nil, false
+	}
+	sourceColumn, ok := callI32Export(ctx, module, activeArtifactFrameSourceColumnExport)
+	if !ok {
+		return nil, false
+	}
+	nodeIndexLength, ok := callI32Export(ctx, module, activeArtifactFrameNodeIndexLengthExport)
+	if !ok {
+		return nil, false
+	}
+	namePointer, ok := callI32Export(ctx, module, activeArtifactFrameNameExport)
+	if !ok {
+		return nil, false
+	}
+	sourceFilePointer, ok := callI32Export(ctx, module, activeArtifactFrameSourceFileExport)
+	if !ok {
+		return nil, false
+	}
+
+	memory := module.Memory()
+	if memory == nil {
+		return nil, false
+	}
+
+	name, ok := readAssemblyString(memory, uint32(namePointer))
+	if !ok {
+		return nil, false
+	}
+	sourceFile, ok := readAssemblyString(memory, uint32(sourceFilePointer))
+	if !ok {
+		return nil, false
+	}
+
+	nodeIndexCapacity := 0
+	if nodeIndexLength > 0 {
+		nodeIndexCapacity = int(nodeIndexLength)
+	}
+	nodeIndex := make([]uint32, 0, nodeIndexCapacity)
+	for index := int32(0); index < nodeIndexLength; index++ {
+		element, ok := callI32IndexExport(ctx, module, activeArtifactFrameNodeIndexElementExport, index)
+		if !ok {
+			return nil, false
+		}
+
+		nodeIndex = append(nodeIndex, uint32(element))
+	}
+
+	return &activeArtifactFrame{
+		Depth:        depth,
+		Kind:         kind,
+		NodeKind:     nodeKind,
+		HookKind:     hookKind,
+		Name:         name,
+		SourceFile:   sourceFile,
+		SourceLine:   sourceLine,
+		SourceColumn: sourceColumn,
+		NodeIndex:    nodeIndex,
+	}, true
+}
+
+func formatActiveArtifactFrame(frame *activeArtifactFrame) string {
+	segments := make([]string, 0, len(frame.NodeIndex))
+	for _, value := range frame.NodeIndex {
+		segments = append(segments, fmt.Sprintf("%d", value))
+	}
+
+	return fmt.Sprintf(
+		"depth=%d kind=%d nodeKind=%d hookKind=%d name=%s file=%s line=%d column=%d index=[%s]",
+		frame.Depth,
+		frame.Kind,
+		frame.NodeKind,
+		frame.HookKind,
+		frame.Name,
+		frame.SourceFile,
+		frame.SourceLine,
+		frame.SourceColumn,
+		strings.Join(segments, ","),
+	)
+}
+
 func createNodeIndexValue(env C.napi_env, nodeIndex []uint32) (C.napi_value, bool) {
 	result := createArrayWithLength(env, uint32(len(nodeIndex)))
 	if result == nil {
@@ -1073,6 +1226,23 @@ func encodeLogPayload(message string, values []float64) []byte {
 			math.Float64bits(value),
 		)
 		offset += 8
+	}
+
+	binary.LittleEndian.PutUint32(payload[offset:offset+4], uint32(len(messageBytes)))
+	offset += 4
+	copy(payload[offset:], messageBytes)
+	return payload
+}
+
+func encodeDiagnosticPayload(nodeIndex []uint32, message string) []byte {
+	messageBytes := []byte(message)
+	payload := make([]byte, 4+len(nodeIndex)*4+4+len(messageBytes))
+	binary.LittleEndian.PutUint32(payload[0:4], uint32(len(nodeIndex)))
+	offset := 4
+
+	for _, segment := range nodeIndex {
+		binary.LittleEndian.PutUint32(payload[offset:offset+4], segment)
+		offset += 4
 	}
 
 	binary.LittleEndian.PutUint32(payload[offset:offset+4], uint32(len(messageBytes)))
@@ -1580,6 +1750,39 @@ func compileHarness(bytes []byte, engine string) (*harnessState, error) {
 		return nil, err
 	}
 	traceNativeWazero("instantiated coverage host module")
+
+	_, err = runtime.NewHostModuleBuilder(artifactImportModuleName).
+		NewFunctionBuilder().
+		WithFunc(func(ctx context.Context, module api.Module) {
+			frame, ok := readActiveArtifactFrame(ctx, module)
+			if !ok || frame == nil {
+				return
+			}
+
+			payload := encodeDiagnosticPayload(
+				frame.NodeIndex,
+				formatActiveArtifactFrame(frame),
+			)
+			sink := writeEventSinkFromContext(ctx)
+			if sink != nil {
+				sink.Handle(eventKindDiagnostic, payload)
+				return
+			}
+
+			state := harnessStateFromContext(ctx)
+			if state == nil {
+				return
+			}
+
+			dispatchEventPayload(state, eventKindDiagnostic, payload)
+		}).
+		Export(captureActiveArtifactFrameImport).
+		Instantiate(ctx)
+	if err != nil {
+		_ = runtime.Close(ctx)
+		return nil, err
+	}
+	traceNativeWazero("instantiated artifact host module")
 
 	compiled, err := runtime.CompileModule(ctx, bytes)
 	if err != nil {

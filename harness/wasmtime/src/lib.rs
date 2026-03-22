@@ -16,7 +16,22 @@ const INVOKE_EXPORT: &str = "invoke";
 const RUN_EXPORT: &str = "run";
 const START_EXPORT: &str = "__start";
 const COVER_IMPORT_MODULE: &str = "__asCovers";
+const ARTIFACT_IMPORT_MODULE: &str = "__asArtifacts";
+const CAPTURE_ACTIVE_ARTIFACT_FRAME_IMPORT: &str = "capture_active_frame";
 const EVENT_KIND_LOG: u32 = 10;
+const EVENT_KIND_DIAGNOSTIC: u32 = 7;
+const ACTIVE_ARTIFACT_FRAME_DEPTH_EXPORT: &str = "getActiveArtifactFrameDepth";
+const ACTIVE_ARTIFACT_FRAME_KIND_EXPORT: &str = "getActiveArtifactFrameKind";
+const ACTIVE_ARTIFACT_FRAME_NODE_KIND_EXPORT: &str = "getActiveArtifactFrameNodeKind";
+const ACTIVE_ARTIFACT_FRAME_HOOK_KIND_EXPORT: &str = "getActiveArtifactFrameHookKind";
+const ACTIVE_ARTIFACT_FRAME_NAME_EXPORT: &str = "getActiveArtifactFrameName";
+const ACTIVE_ARTIFACT_FRAME_SOURCE_FILE_EXPORT: &str = "getActiveArtifactFrameSourceFile";
+const ACTIVE_ARTIFACT_FRAME_SOURCE_LINE_EXPORT: &str = "getActiveArtifactFrameSourceLine";
+const ACTIVE_ARTIFACT_FRAME_SOURCE_COLUMN_EXPORT: &str = "getActiveArtifactFrameSourceColumn";
+const ACTIVE_ARTIFACT_FRAME_NODE_INDEX_LENGTH_EXPORT: &str =
+    "getActiveArtifactFrameNodeIndexLength";
+const ACTIVE_ARTIFACT_FRAME_NODE_INDEX_ELEMENT_EXPORT: &str =
+    "getActiveArtifactFrameNodeIndexElement";
 
 #[napi(object)]
 pub struct RawHarnessEvent {
@@ -58,6 +73,39 @@ struct CoveragePoint {
 struct CoverageCollector {
     points: BTreeMap<u32, CoveragePoint>,
     covered_ids: BTreeSet<u32>,
+}
+
+struct ActiveArtifactFrame {
+    depth: i32,
+    kind: i32,
+    node_kind: i32,
+    hook_kind: i32,
+    name: String,
+    source_file: String,
+    source_line: i32,
+    source_column: i32,
+    node_index: Vec<u32>,
+}
+
+impl ActiveArtifactFrame {
+    fn format_message(&self) -> String {
+        format!(
+            "depth={} kind={} nodeKind={} hookKind={} name={} file={} line={} column={} index=[{}]",
+            self.depth,
+            self.kind,
+            self.node_kind,
+            self.hook_kind,
+            self.name,
+            self.source_file,
+            self.source_line,
+            self.source_column,
+            self.node_index
+                .iter()
+                .map(u32::to_string)
+                .collect::<Vec<_>>()
+                .join(","),
+        )
+    }
 }
 
 impl CoverageCollector {
@@ -359,6 +407,27 @@ impl NativeHarness {
             )
             .map_err(to_napi_error)?;
 
+        linker
+            .func_wrap(
+                ARTIFACT_IMPORT_MODULE,
+                CAPTURE_ACTIVE_ARTIFACT_FRAME_IMPORT,
+                |mut caller: Caller<'_, HostState>| -> AnyResult<()> {
+                    let Some(frame) = read_active_artifact_frame(&mut caller)? else {
+                        return Ok(());
+                    };
+
+                    caller.data_mut().events.push(RawHarnessEvent {
+                        kind: EVENT_KIND_DIAGNOSTIC,
+                        payload: Buffer::from(encode_diagnostic_payload(
+                            &frame.node_index,
+                            &frame.format_message(),
+                        )),
+                    });
+                    Ok(())
+                },
+            )
+            .map_err(to_napi_error)?;
+
         let instance = linker
             .instantiate(&mut store, &self.module)
             .map_err(to_napi_error)?;
@@ -432,6 +501,92 @@ fn read_assembly_string(
         .collect::<Vec<_>>();
 
     String::from_utf16(&utf16).map_err(|error| anyhow!(error.to_string()))
+}
+
+fn get_exported_func(
+    caller: &mut Caller<'_, HostState>,
+    export_name: &str,
+) -> AnyResult<wasmtime::Func> {
+    match caller.get_export(export_name) {
+        Some(Extern::Func(func)) => Ok(func),
+        _ => Err(anyhow!("missing export {export_name}")),
+    }
+}
+
+fn call_i32_export(caller: &mut Caller<'_, HostState>, export_name: &str) -> AnyResult<i32> {
+    let func = get_exported_func(caller, export_name)?;
+    let typed = func.typed::<(), i32>(&caller)?;
+    typed.call(caller.as_context_mut(), ())
+}
+
+fn call_i32_index_export(
+    caller: &mut Caller<'_, HostState>,
+    export_name: &str,
+    index: i32,
+) -> AnyResult<i32> {
+    let func = get_exported_func(caller, export_name)?;
+    let typed = func.typed::<i32, i32>(&caller)?;
+    typed.call(caller.as_context_mut(), index)
+}
+
+fn read_active_artifact_frame(
+    caller: &mut Caller<'_, HostState>,
+) -> AnyResult<Option<ActiveArtifactFrame>> {
+    let depth = call_i32_export(caller, ACTIVE_ARTIFACT_FRAME_DEPTH_EXPORT)?;
+    if depth <= 0 {
+        return Ok(None);
+    }
+
+    let kind = call_i32_export(caller, ACTIVE_ARTIFACT_FRAME_KIND_EXPORT)?;
+    let node_kind = call_i32_export(caller, ACTIVE_ARTIFACT_FRAME_NODE_KIND_EXPORT)?;
+    let hook_kind = call_i32_export(caller, ACTIVE_ARTIFACT_FRAME_HOOK_KIND_EXPORT)?;
+    let source_line = call_i32_export(caller, ACTIVE_ARTIFACT_FRAME_SOURCE_LINE_EXPORT)?;
+    let source_column = call_i32_export(caller, ACTIVE_ARTIFACT_FRAME_SOURCE_COLUMN_EXPORT)?;
+    let node_index_length =
+        call_i32_export(caller, ACTIVE_ARTIFACT_FRAME_NODE_INDEX_LENGTH_EXPORT)?;
+    let name_pointer = call_i32_export(caller, ACTIVE_ARTIFACT_FRAME_NAME_EXPORT)? as u32;
+    let source_file_pointer =
+        call_i32_export(caller, ACTIVE_ARTIFACT_FRAME_SOURCE_FILE_EXPORT)? as u32;
+    let memory = get_memory_from_caller(caller)?;
+
+    let mut node_index = Vec::with_capacity(node_index_length.max(0) as usize);
+    for index in 0..node_index_length {
+        node_index.push(call_i32_index_export(
+            caller,
+            ACTIVE_ARTIFACT_FRAME_NODE_INDEX_ELEMENT_EXPORT,
+            index,
+        )? as u32);
+    }
+
+    Ok(Some(ActiveArtifactFrame {
+        depth,
+        kind,
+        node_kind,
+        hook_kind,
+        name: read_assembly_string(&memory, &*caller, name_pointer)?,
+        source_file: read_assembly_string(&memory, &*caller, source_file_pointer)?,
+        source_line,
+        source_column,
+        node_index,
+    }))
+}
+
+fn encode_diagnostic_payload(node_index: &[u32], message: &str) -> Vec<u8> {
+    let message_bytes = message.as_bytes();
+    let mut payload = Vec::with_capacity(
+        size_of::<u32>()
+            + (node_index.len() * size_of::<u32>())
+            + size_of::<u32>()
+            + message_bytes.len(),
+    );
+
+    payload.extend_from_slice(&(node_index.len() as u32).to_le_bytes());
+    for segment in node_index {
+        payload.extend_from_slice(&segment.to_le_bytes());
+    }
+    payload.extend_from_slice(&(message_bytes.len() as u32).to_le_bytes());
+    payload.extend_from_slice(message_bytes);
+    payload
 }
 
 fn encode_log_payload(message: &str, values: &[f64]) -> Vec<u8> {

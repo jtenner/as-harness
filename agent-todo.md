@@ -4,8 +4,8 @@
 
 ### Blockers
 
-- ship the host-readable artifact-frame ABI before exposing public
-  `uvu/assert` artifact helpers.
+- ship host-side snapshot manifest loading before exposing public `uvu/assert`
+  artifact helpers.
 
 ### Risks
 
@@ -25,10 +25,6 @@
 
 ### Runtime: Snapshot Artifacts
 
-- `ss-003`: add a host-readable artifact metadata ABI.
-  Expose the current top-of-stack descriptor through a stable wire contract so
-  `js`, `wazero`, and `wasmtime` can resolve the active artifact file and
-  related callsite metadata without depending on AssemblyScript object layout.
 - `ss-004`: add host snapshot manifest loading.
   Preload each `.snap` file into a grouped in-memory manifest keyed by source
   file and `name~(number)` entry identity using an `as-pect`-compatible parser,
