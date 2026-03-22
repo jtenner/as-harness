@@ -872,6 +872,8 @@ function createPlanIssue(
 
 function formatIssueLabel(type) {
 	switch (type) {
+		case "invalid-constraint":
+			return "invalid constraint";
 		case "bailed":
 			return "stopped after failure";
 		case "blocked-dependency":
@@ -889,6 +891,26 @@ function formatIssueLabel(type) {
 
 function isPlanningIssueType(type) {
 	return type !== "bailed" && type !== "ignored-hint";
+}
+
+function hasMalformedDependencyMetadata(node) {
+	if (Array.isArray(node?.dependencyKeys)) {
+		for (const dependencyKey of node.dependencyKeys) {
+			if (typeof dependencyKey !== "string" || dependencyKey.length === 0) {
+				return true;
+			}
+		}
+	}
+
+	if (Array.isArray(node?.dependencyNodeIds)) {
+		for (const dependencyNodeId of node.dependencyNodeIds) {
+			if (typeof dependencyNodeId !== "number" || dependencyNodeId <= 0) {
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 function isSupportedRunnerModeHint(value) {
@@ -1036,6 +1058,12 @@ function buildExecutionDependencies(
 	}
 
 	for (const target of targetsByIdentity.values()) {
+		if (hasMalformedDependencyMetadata(target.node)) {
+			blockedKeys.add(target.identityKey);
+			issues.push(createPlanIssue("invalid-constraint", target.identityKey));
+			continue;
+		}
+
 		for (const dependencyKey of listDependencyKeys(
 			target,
 			targetsByScopeAndNodeId,

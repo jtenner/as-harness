@@ -19,6 +19,9 @@ const {
 const {
 	createHarness: createIgnoredHintHarness,
 } = require("./fixtures/ignored-hint-harness.cjs");
+const {
+	createHarness: createInvalidDependencyConstraintHarness,
+} = require("./fixtures/invalid-dependency-constraint-harness.cjs");
 
 const dependencyStartHarnessModulePath = path.join(
 	__dirname,
@@ -44,6 +47,11 @@ const ignoredHintHarnessModulePath = path.join(
 	__dirname,
 	"fixtures",
 	"ignored-hint-harness.cjs",
+);
+const invalidDependencyConstraintHarnessModulePath = path.join(
+	__dirname,
+	"fixtures",
+	"invalid-dependency-constraint-harness.cjs",
 );
 
 function registerSharedStartPlannerSmokeSuite(options) {
@@ -301,6 +309,56 @@ function registerSharedStartPlannerSmokeSuite(options) {
 				]),
 			),
 			[[["ignored hint child", true]]],
+		);
+
+		harness.close();
+	});
+
+	test("start() treats malformed dependency constraints as planning failures", async () => {
+		const harness = decorateHarness(
+			createInvalidDependencyConstraintHarness(),
+			{
+				bytes: Buffer.alloc(0),
+				createLocalHarness: createInvalidDependencyConstraintHarness,
+				runInBand,
+				workerModulePath: invalidDependencyConstraintHarnessModulePath,
+			},
+		);
+
+		const result = await harness.start();
+		const expectedWorkerCount = 1;
+
+		assert.equal(result.discoveryOk, true);
+		assert.equal(result.planningOk, false);
+		assert.equal(result.ok, false);
+		assert.equal(result.workerCount, expectedWorkerCount);
+		assert.deepEqual(result.planIssues, [
+			{
+				type: "invalid-constraint",
+				issueLabel: "invalid constraint",
+				targetIdentityKey: "id:1/id:2",
+				dependencyIdentityKey: "",
+			},
+		]);
+		assert.deepEqual(
+			result.blocked.map((blocked) => ({
+				name: blocked.node.name,
+				issueType: blocked.issueType,
+				issueLabel: blocked.issueLabel,
+			})),
+			[
+				{
+					name: "invalid dependency target",
+					issueType: "invalid-constraint",
+					issueLabel: "invalid constraint",
+				},
+			],
+		);
+		assert.deepEqual(
+			result.branches.map((branch) =>
+				branch.executions.map((execution) => execution.node.name),
+			),
+			[["plain ready child"]],
 		);
 
 		harness.close();

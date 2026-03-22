@@ -128,6 +128,7 @@ export type HarnessIssueType =
 	| "missing-dependency"
 	| "blocked-dependency"
 	| "dependency-cycle"
+	| "invalid-constraint"
 	| "ignored-hint"
 	| (string & {});
 

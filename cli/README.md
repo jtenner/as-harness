@@ -34,7 +34,7 @@ Default reporting summarizes:
 
 - counts, passes/failures, and diagnostics
 - planner status from `discoveryOk`, `planningOk`, and `workerCount`
-- blocked runs rendered as `missing prerequisite`, `blocked by prerequisite`, `dependency cycle`, and `stopped after failure`
+- blocked runs rendered as `missing prerequisite`, `blocked by prerequisite`, `dependency cycle`, `invalid constraint`, and `stopped after failure`
 - unsupported hint values rendered as informational `ignored hint` planner issues without changing pass/fail status
 - shared run metadata is a required `start()` snapshot that mirrors the top-level summary fields and keeps the underlying planner code plus the concise issue label on `planIssues` and `blocked`
 - coverage after execution (when enabled)

@@ -51,7 +51,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `inBand` keeps the nearest hinted scope on the main-thread execution lane while unrelated ready work can still use worker fanout.
 - unsupported hint values stay visible in discovery metadata and surface as informational `ignored hint` planner issues instead of blocking execution.
 - dependency cycles block all cycle members with `dependency-cycle` diagnostics.
-- CLI reports blocked outcomes as concise `blocked by prerequisite`, `missing prerequisite`, `dependency cycle`, and `stopped after failure` messages.
+- CLI reports blocked outcomes as concise `blocked by prerequisite`, `missing prerequisite`, `dependency cycle`, `invalid constraint`, and `stopped after failure` messages.
 - shared `start()` results always include a required `metadata` snapshot that mirrors the top-level summary fields and preserves both machine-readable planner codes and concise issue labels on `planIssues` and `blocked`.
 - when multiple runnable tests are ready, declaration order is the stable tie-breaker.
 - the shipped `start()` scheduler is deterministic for ordering and uses same-machine worker slots for ready work when available.

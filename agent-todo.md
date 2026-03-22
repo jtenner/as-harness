@@ -25,8 +25,8 @@
   constraint model.
 - decide whether any new constraint fields are needed beyond the current
   sequential and dependency machinery.
-- validate unsupported or malformed constraints as planner issues instead of
-  silently ignoring them.
+- validate unsupported constraints as planner issues instead of silently
+  ignoring them.
 - preserve declaration-order tie-breaking and same-machine ready-work fanout
   after constraint lowering.
 

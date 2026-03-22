@@ -266,6 +266,69 @@ test("defaultRunReporter uses concise copy for cycle and missing-prerequisite ou
 	);
 });
 
+test("defaultRunReporter renders invalid constraint outcomes with the shipped concise label", () => {
+	const messages = {
+		error: [] as string[],
+		info: [] as string[],
+	};
+	const logger: ReporterLogger = {
+		error(message) {
+			messages.error.push(message);
+		},
+		info(message) {
+			messages.info.push(message);
+		},
+	};
+	const report = createHarnessRunReport(
+		createStartResult({
+			ok: false,
+			discoveryOk: true,
+			planningOk: false,
+			discoveredTestCount: 1,
+			topLevelNodes: [createNode("root", 0)],
+			workerCount: 1,
+			branches: [
+				{
+					root: createNode("root", 0),
+					discovery: {
+						ok: true,
+						nodes: [createNode("root", 0)],
+						testCount: 0,
+					},
+					executions: [],
+					ok: true,
+				},
+			],
+			planIssues: [
+				{
+					type: "invalid-constraint",
+					issueLabel: "invalid constraint",
+					targetIdentityKey: "id:2",
+					dependencyIdentityKey: "",
+				},
+			],
+			blocked: [
+				{
+					node: createNode("invalid constraint test", 1),
+					issueType: "invalid-constraint",
+					issueLabel: "invalid constraint",
+					dependencyIdentityKey: "",
+				},
+			],
+			coverage: null,
+		}),
+	);
+
+	defaultRunReporter.accept(report, {
+		harnessName: "js",
+		logger,
+	});
+
+	expect(messages.error).toContain("- invalid constraint test");
+	expect(messages.error).toContain("  blocked: invalid constraint");
+	expect(messages.error).toContain("  issue: invalid constraint (id:2)");
+});
+
 test("defaultRunReporter renders bail policy blocks with the shipped concise label", () => {
 	const messages = {
 		error: [] as string[],

@@ -1259,7 +1259,7 @@ test("planExecutionStages resolves dependencyNodeIds through ancestor scopes", (
 	assert.deepEqual(plan.issues, []);
 });
 
-test("planExecutionStages ignores malformed dependency metadata", () => {
+test("planExecutionStages rejects malformed dependency metadata as invalid constraints", () => {
 	const root = createPlannerNode({
 		identityKey: "id:70",
 		nodeId: 70,
@@ -1290,13 +1290,23 @@ test("planExecutionStages ignores malformed dependency metadata", () => {
 		createPlannerBranch(0, [root, ready, malformed]),
 	]);
 
-	assert.equal(plan.complete, true);
+	assert.equal(plan.complete, false);
 	assert.deepEqual(
 		plan.stages.map((stage) => stage.map((target) => target.node.name)),
-		[["ready test", "malformed dependent"]],
+		[["ready test"]],
 	);
-	assert.deepEqual(plan.blockedTargets, []);
-	assert.deepEqual(plan.issues, []);
+	assert.deepEqual(
+		plan.blockedTargets.map((target) => target.node.name),
+		["malformed dependent"],
+	);
+	assert.deepEqual(plan.issues, [
+		{
+			type: "invalid-constraint",
+			issueLabel: "invalid constraint",
+			targetIdentityKey: "id:70/id:72",
+			dependencyIdentityKey: "",
+		},
+	]);
 });
 
 test("evaluatePlannedExecution keeps pre-blocked targets blocked even with execution results", () => {

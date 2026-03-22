@@ -225,6 +225,8 @@ function formatIssueLabel(type: string) {
 			return "missing prerequisite";
 		case "dependency-cycle":
 			return "dependency cycle";
+		case "invalid-constraint":
+			return "invalid constraint";
 		case "ignored-hint":
 			return "ignored hint";
 		default:
