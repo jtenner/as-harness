@@ -323,6 +323,7 @@ export async function main() {
 	);
 	const packagedHarnesses = packagedHarnessesForCompileTarget(target);
 	const releaseAssetFilename = releaseAssetFilenameForTarget(target);
+	const stagedExecutableFilename = executableFilenameForTarget(target);
 
 	console.log(`Building packaged CLI target ${target}...`);
 
@@ -358,7 +359,10 @@ export async function main() {
 		await mkdir(installDirectory, { recursive: true });
 		await mkdir(projectDirectory, { recursive: true });
 
-		const stagedExecutablePath = join(installDirectory, releaseAssetFilename);
+		const stagedExecutablePath = join(
+			installDirectory,
+			stagedExecutableFilename,
+		);
 		await copyFile(builtExecutablePath, stagedExecutablePath);
 
 		const entryFile = join(projectDirectory, "suite.test.ts");
@@ -463,8 +467,22 @@ export async function main() {
 		if (assetDir) {
 			await mkdir(assetDir, { recursive: true });
 			const assetPath = join(assetDir, releaseAssetFilename);
-			await copyFile(stagedExecutablePath, assetPath);
-			console.log(`Copied release asset to ${assetPath}`);
+			const archiveProcess = Bun.spawn(
+				["tar", "-czf", assetPath, "-C", installDirectory, "."],
+				{
+					cwd: REPO_DIR,
+					stderr: "inherit",
+					stdout: "inherit",
+					stdin: "inherit",
+				},
+			);
+			const archiveExitCode = await archiveProcess.exited;
+			if (archiveExitCode !== 0) {
+				throw new Error(
+					`Failed to archive packaged release asset ${releaseAssetFilename}.`,
+				);
+			}
+			console.log(`Wrote release asset archive to ${assetPath}`);
 		}
 
 		if (reportDir) {

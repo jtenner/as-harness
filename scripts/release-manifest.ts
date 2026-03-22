@@ -87,12 +87,12 @@ function renderReleaseNotes(tag: string) {
 		"",
 		"- The normal CI workflow validates source-host smoke coverage separately from the packaged release matrix.",
 		"- Packaged Windows artifacts are currently `js`-only.",
-		"- Packaged `wazero` support is currently shipped on macOS and Linux release artifacts.",
+		"- Packaged `wazero` support is currently shipped on macOS and Linux release archives with the native addon embedded inside the executable.",
 		"- Source-based Windows `wazero` development remains supported outside the packaged executable path.",
 		"- Source-based `wasmtime` support is validated in CI but is not bundled into the packaged release artifacts yet.",
 		"- `LICENSE` carries the project MIT license for this release.",
 		"- `THIRD_PARTY_NOTICES.md` and the tracked third-party license texts are included in the release asset set.",
-		"- `SHA256SUMS.txt` contains checksums for the packaged executables in this release.",
+		"- `SHA256SUMS.txt` contains checksums for the packaged release archives in this release.",
 		"",
 	];
 

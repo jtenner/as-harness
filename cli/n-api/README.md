@@ -10,7 +10,7 @@
 ## Behavior
 
 - `cli/build.ts` builds and stages the matching wazero artifact for the current machine.
-- release builds resolve staged artifacts from this directory.
+- release builds resolve staged artifacts from this directory before Bun bundles the matching native addon into the packaged executable.
 - generated `.node` files are ignored from VCS.
 
 ## Limits

@@ -2,13 +2,11 @@
 
 ## v0.3.0
 
-### Blockers
-
-- packaged `bun-linux-x64` verification still hangs in the bundled `wazero`
-  startup path on GitHub Ubuntu.
-
 ### Risks
 
+- packaged release archives now intentionally preserve the inner executable
+  basename because current Bun standalone native-addon loading is sensitive to
+  renaming the compiled Linux executable.
 - future scheduler changes are mostly semantic and order-related, so proof density
   still matters.
 - CI and release native-host verification is pinned to current upstream Go/Rust

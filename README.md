@@ -85,13 +85,18 @@ bun run verify:packaged-cli -- --target bun-linux-x64 --report-dir ./dist/packag
 
 ## Release Packaging
 
-Current packaged artifacts:
+Current packaged release archives:
 
 - `bun-darwin-arm64`: `js`, `wazero`
 - `bun-darwin-x64`: `js`, `wazero`
 - `bun-linux-arm64`: `js`
 - `bun-linux-x64`: `js`, `wazero`
 - `bun-windows-x64`: `js`
+
+Each archive preserves the inner executable name as `as-harness` (or
+`as-harness.exe` on Windows), and `wazero` targets keep the native addon
+bundled inside that executable so extraction does not rename the compiled
+binary away from Bun's working embedded-addon path.
 
 `npm` publication is not the current distribution channel.
 

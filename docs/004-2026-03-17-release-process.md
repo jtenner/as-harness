@@ -12,7 +12,8 @@ Operational flow for shipping `as-harness` through GitHub:
 
 - official distribution: packaged Bun executables
 - no current `npm` publication
-- packaged targets include `js` and `wazero` (release matrix varies by platform)
+- packaged targets include `js` and `wazero` (release matrix varies by platform), and the release workflow now ships target-specific archives that preserve the inner executable basename while keeping `wazero` bundled inside the executable
+- packaged release assets stay archived instead of renaming the executable itself because current Bun standalone native-addon loading is sensitive to the compiled executable basename on Linux
 - `wasmtime` is source-only
 - explicit Node.js 22 baseline
 - Bun `1.3.11` build baseline for packaged artifacts and CI

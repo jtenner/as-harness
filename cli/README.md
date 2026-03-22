@@ -9,7 +9,7 @@ The Bun CLI compiles AssemblyScript test files to Wasm, selects a harness, and e
 - `run --coverage` emits merged coverage in `text`, `json`, `yaml`, `csv`, `lcov`, or `cobertura`.
 - `--coverage-include`, `--coverage-exclude`, and repeated `--coverage-point-type` refine instrumentation.
 - `--harness js|wazero|wasmtime` selects the runtime.
-- `build.ts` builds target-specific packaged executables.
+- `build.ts` builds target-specific packaged executables; release packaging wraps them into target-specific archives.
 - root `bun test` and release smoke flows now reuse package-local host commands (`npm test` per host).
 
 ## Not yet
@@ -55,10 +55,15 @@ See their interface docs:
 
 Packaging matrix:
 
-- macOS: `js`, `wazero`
-- Linux x64: `js`, `wazero`
+- macOS: `js`, `wazero` in a release archive
+- Linux x64: `js`, `wazero` in a release archive
 - Linux arm64: `js`
 - Windows: `js`
+
+The packaged archive keeps the executable basename stable as `as-harness`
+(`as-harness.exe` on Windows). `wazero` targets keep the native addon bundled
+inside that executable, so extraction preserves the Bun-compiled basename that
+successfully loads the embedded addon.
 
 ## Commands
 

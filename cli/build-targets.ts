@@ -154,6 +154,5 @@ export function executableFilenameForTarget(target: string) {
 }
 
 export function releaseAssetFilenameForTarget(target: string) {
-	const extension = target.startsWith("bun-windows-") ? ".exe" : "";
-	return `${EXECUTABLE_NAME}-${target}${extension}`;
+	return `${EXECUTABLE_NAME}-${target}.tar.gz`;
 }
