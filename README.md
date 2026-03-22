@@ -31,6 +31,13 @@ bun run ./cli/index.ts run --harness wazero ./example.test.ts
 bun run ./cli/index.ts run --harness js --coverage ./example.test.ts
 ```
 
+For contributor validation, the repo now uses two distinct execution proofs:
+
+- source-host verification builds a Node-targeted CLI bundle with Bun and runs
+  that bundle under the Node baseline from [`.mise.toml`](./.mise.toml)
+- packaged verification stages the real compiled Bun executable from its
+  release archive under a sanitized runtime environment
+
 ## Dependency Notes
 
 The runtime enforces scheduler semantics from discovered metadata:
@@ -102,6 +109,10 @@ Each archive preserves the inner executable name as `as-harness` (or
 `as-harness.exe` on Windows), and `wazero` targets keep the native addon
 bundled inside that executable so extraction does not rename the compiled
 binary away from Bun's working embedded-addon path.
+
+`wasmtime` remains source-only, and the source-host matrix now validates the
+native hosts through the Bun-built Node-targeted CLI bundle rather than direct
+`bun run ./cli/index.ts` execution.
 
 `npm` publication is not the current distribution channel.
 

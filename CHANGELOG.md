@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-03-22
+
+- **docs: align release, runtime, and CI guidance with the current 0.3.0 repo state** Refresh the root and package READMEs, release/process notes, host-contract proof references, Vitest adapter status framing, generated release-note text, and the March CI flakiness log so they consistently describe the current packaged matrix, the Node-targeted source-host verification path, and the remaining bundled Linux `wazero` interpreter-engine risk. GitHub: *@jtenner*
+
 ## 2026-03-21
 
 - **source-hosts: run native-host CLI smoke through a Node-targeted source bundle** Keep packaged verification on real Bun executables, but stop the Node 25 source-host matrix from executing native-host CLI smoke through `bun run ./cli/index.ts` by building a Node-targeted CLI bundle with Bun, running that bundle under Node, and teaching the native source runtimes to resolve repo-local host modules through an explicit repo-root override for bundled source proof. GitHub: *@jtenner*

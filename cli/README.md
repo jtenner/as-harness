@@ -11,6 +11,8 @@ The Bun CLI compiles AssemblyScript test files to Wasm, selects a harness, and e
 - `--harness js|wazero|wasmtime` selects the runtime.
 - `build.ts` builds target-specific packaged executables; release packaging wraps them into target-specific archives.
 - root `bun test` and release smoke flows now reuse package-local host commands (`npm test` per host).
+- source-host verification builds a Node-targeted CLI bundle with Bun and runs
+  that bundle under the Node baseline from [`.mise.toml`](../.mise.toml).
 
 ## Not yet
 
@@ -55,15 +57,21 @@ See their interface docs:
 
 Packaging matrix:
 
-- macOS: `js`, `wazero` in a release archive
-- Linux x64: `js`, `wazero` in a release archive
-- Linux arm64: `js`
-- Windows: `js`
+- `bun-darwin-arm64`: `js`, `wazero`
+- `bun-darwin-x64`: `js`, `wazero`
+- `bun-linux-arm64`: `js`
+- `bun-linux-x64`: `js`, `wazero`
+- `bun-windows-x64`: `js`
 
 The packaged archive keeps the executable basename stable as `as-harness`
 (`as-harness.exe` on Windows). `wazero` targets keep the native addon bundled
 inside that executable, so extraction preserves the Bun-compiled basename that
 successfully loads the embedded addon.
+
+Source-host proof is a separate path: the source-host matrix builds a
+Node-targeted CLI bundle with Bun, executes that bundle under Node `25.8.1`,
+and uses `AS_HARNESS_SOURCE_CLI_REPO_DIR` so the bundled CLI still resolves the
+repo-local `wazero` and `wasmtime` host packages during CI smoke.
 
 ## Commands
 
@@ -93,6 +101,8 @@ bun run verify:packaged-cli -- --target bun-linux-x64 --report-dir ./dist/packag
 - compile failures: inspect AS diagnostics.
 - harness selection failures: confirm `--harness` and packaged host support.
 - packaged failures: verify host addons, target match, and release tags.
+- source-host native failures on Windows: verify the generated Node-targeted
+  source bundle path before narrowing the issue to the native host addon.
 
 ## Related Docs
 

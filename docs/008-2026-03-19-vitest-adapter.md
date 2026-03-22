@@ -1,6 +1,12 @@
 # Vitest Adapter
 
-Recommended shape for a future thin sync `"vitest"` guest library in `as-harness`.
+Design and status note for the shipped thin sync `"vitest"` guest library in
+`as-harness`.
+
+This document captured the implementation target for the first `v0.3.0`
+adapter slice. The repo now ships that intentionally thin synchronous surface;
+the `Later` and `Skip` classifications below remain the current boundary for
+future expansion.
 
 Research basis:
 
@@ -14,10 +20,11 @@ Research basis:
 
 Short conclusion:
 
-- `vitest` is the best next adapter to implement after `node:test` and `jest`
-- the right target is a thin, synchronous, Jest-shaped subset of Vitest
-- broad Vitest parity is not realistic with the current Wasm runtime or the
-  current state of AssemblyScript
+- `vitest` was the right next adapter to implement after `node:test` and
+  `jest`
+- the shipped surface is a thin, synchronous, Jest-shaped subset of Vitest
+- broad Vitest parity is still not realistic with the current Wasm runtime or
+  the current state of AssemblyScript
 
 ## Why Pick Vitest Next
 
@@ -114,7 +121,7 @@ explicit buckets:
 
 The first shipped slice should be intentionally small and honest.
 
-## First Shipped Slice
+## Shipped Slice
 
 The recommended first public export surface is:
 

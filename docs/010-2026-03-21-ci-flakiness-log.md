@@ -1,6 +1,9 @@
 # CI Flakiness Log For March 2026
 
-This note answers which CI failures and flaky behaviors were encountered while stabilizing `as-harness` on March 21, 2026, recommends the concrete repo-level mitigations that proved effective, and covers the affected release, packaged-verification, source-host, and `wazero` runtime paths. The current recommendation is to keep CI and local toolchains unified through `mise`, keep packaged smoke execution isolated from tool-manager environment drift, treat Windows spawned-process temp cleanup as retry-based by default, and keep the remaining bundled Linux `wazero` compiler-engine risk explicitly tracked until it is reproduced and fixed without the current interpreter fallback.
+This note answers which CI failures and flaky behaviors were encountered while stabilizing `as-harness` on March 21, 2026, recommends the concrete repo-level mitigations that proved effective, and covers the affected release, packaged-verification, source-host, and `wazero` runtime paths. The current recommendation is to keep CI and local toolchains unified through `mise`, keep packaged smoke execution isolated from tool-manager environment drift, keep the Node-targeted source CLI bundle path for the Node 25 source-host matrix, treat Windows spawned-process temp cleanup as retry-based by default, and keep the remaining bundled Linux `wazero` compiler-engine risk explicitly tracked until it is reproduced and fixed without the current interpreter fallback.
+
+These mitigations correspond to the repo state that produced the fully green
+GitHub Actions run `23404563889` on 2026-03-22.
 
 ## Scope
 
@@ -19,7 +22,9 @@ This note answers which CI failures and flaky behaviors were encountered while s
 - Fix: `verify-packaged-cli.ts` now builds a small cross-platform environment whitelist for packaged smoke commands, uses the same sanitized environment for the trace rerun, and gives the packaged process a verifier-owned temp directory so Bun's embedded `.node` extraction path does not depend on runner-global temp configuration.
 - Follow-up: the packaged Linux `wazero` hang still reproduced after the verifier-owned temp-root change, so the runtime stopped relying on Bun's special standalone embedded `.node` loader and moved addon extraction into repo code. The first repo-controlled loader still used `process.dlopen(...)` with a synthetic module record, which executed correctly but still hung on hosted Linux teardown after the packaged command had already reported `PASS`.
 - Final fix: keep the repo-controlled addon extraction, but load the extracted absolute `.node` path through normal `require(...)` resolution instead of manual `process.dlopen(...)`. That preserves bundling, keeps the addon out of sidecars, and lets the packaged process exit cleanly in local reproduction.
-- Status: fixed locally and queued for CI re-verification.
+- Status: fixed in CI. Packaged verification is green on the current release
+  matrix; the remaining open item is the separate compiler-engine restoration
+  risk tracked below.
 
 ### 2. Packaged verification used the same timeout budget for build and smoke
 
@@ -76,7 +81,7 @@ This note answers which CI failures and flaky behaviors were encountered while s
 - Root cause: GitHub Windows could leave short-lived handles on spawned-process temp trees after the child process had exited.
 - First fix: the native host smoke suites switched to explicit recursive retry semantics (`maxRetries` plus `retryDelay`) instead of assuming immediate handle release.
 - Follow-up: hosted Windows still outlived both the initial retry window and Node's built-in `rmSync(..., { maxRetries, retryDelay })` behavior, so cleanup moved to a repo-owned retry loop that explicitly catches retryable temp-tree removal errors and sleeps between attempts.
-- Status: fixed locally and queued for CI re-verification.
+- Status: fixed in CI.
 
 ### 10. Windows source-host native-host CLI smoke still failed under Bun after cleanup was fixed
 
@@ -86,7 +91,8 @@ This note answers which CI failures and flaky behaviors were encountered while s
 - Final fix: Bun on GitHub Windows was still crashing when that shared source harness module loaded the repo-built [`harness/wazero/dist/wazero.node`](/home/jtenner/Projects/as-harness/harness/wazero/dist/wazero.node) directly, so the source loader now stages a private temporary copy of the addon before `require(...)` whenever the CLI is running under Bun on Windows. That keeps worker-thread support intact while avoiding the direct repo-path native-addon boundary that was still segfaulting.
 - Follow-up: that still left the broader Bun-on-Windows native-addon crash class open for source CLI execution itself. The stable repo-level mitigation was to keep packaged verification on real Bun executables, but change source-host verification to build a Node-targeted source CLI bundle with Bun and execute that bundle under the same Node 25 runtime the source-host matrix already provisions. The native source runtimes now honor `AS_HARNESS_SOURCE_CLI_REPO_DIR` so the bundled Node CLI can still resolve the repo-local `wasmtime` and `wazero` hosts.
 - Upstream context: Bun still has open Windows native-addon crash reports in this area, including [`oven-sh/bun#13566`](https://github.com/oven-sh/bun/issues/13566) and [`oven-sh/bun#15551`](https://github.com/oven-sh/bun/issues/15551).
-- Status: fixed locally and queued for CI re-verification.
+- Status: fixed in CI. The source-host matrix now stays on the Node-targeted
+  bundle path for native-host CLI smoke.
 
 ## Remaining Open Risk
 
