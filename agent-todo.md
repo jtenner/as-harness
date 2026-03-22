@@ -57,8 +57,10 @@
   `.run()`, and `exec(...)`.
 - freeze the current builder-object divergence as the permanent `uvu` contract
   unless the repo later adopts a transform-backed rewrite policy.
-- add richer `uvu/assert` helpers that fit the current shared assertion and
-  failure model before attempting async or upstream error-object parity.
+- continue expanding `uvu/assert` only where helpers map cleanly onto the
+  shared assertion and trap model; the remaining open gap is `instance`,
+  `snapshot`, `fixture`, `match`, `Assertion`, and any negated forms that
+  depend on those helpers.
 - keep crumb/context callback parity and async behavior deferred until the
   higher-level compatibility decision is settled.
 

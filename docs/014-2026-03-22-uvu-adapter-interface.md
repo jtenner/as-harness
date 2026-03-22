@@ -46,7 +46,15 @@ Current import shape:
 
 ```ts
 import { exec, suite, test, TestContext, UvuSuite } from "uvu";
-import { equal, is, not, ok, unreachable } from "uvu/assert";
+import {
+  equal,
+  is,
+  not,
+  ok,
+  throws,
+  type,
+  unreachable,
+} from "uvu/assert";
 ```
 
 ### Top-Level `test`
@@ -130,9 +138,13 @@ Shipped:
 - `ok`
 - `is`
 - `equal`
+- `type`
+- `throws`
 - `not`
 - `is.not`
 - `not.equal`
+- `not.type`
+- `not.throws`
 - `unreachable`
 
 Mappings:
@@ -140,8 +152,12 @@ Mappings:
 - `ok` -> shared truthy assertion
 - `is` -> strict equality
 - `equal` -> deep strict equality
+- `type` -> shared primitive-type comparison on the current AssemblyScript value category
+- `throws` -> shared trap-boundary throw assertion
 - `not` / `is.not` -> strict inequality
 - `not.equal` -> deep strict inequality
+- `not.type` -> negated shared primitive-type comparison
+- `not.throws` -> shared trap-boundary does-not-throw assertion
 - `unreachable` -> shared `fail(...)`
 
 ## Exact Compatibility Differences
@@ -409,19 +425,21 @@ Shipped:
 - `ok`
 - `is`
 - `equal`
+- `type`
+- `throws`
 - `not`
 - `is.not`
 - `not.equal`
+- `not.type`
+- `not.throws`
 - `unreachable`
 
 Deferred:
 
-- `type`
 - `instance`
 - `snapshot`
 - `fixture`
 - `match`
-- `throws`
 - negated forms that depend on those helpers
 - `Assertion`
 

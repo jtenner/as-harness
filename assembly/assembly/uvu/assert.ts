@@ -1,11 +1,34 @@
 import {
+	doesNotThrow,
 	deepStrictEqual,
 	fail,
 	notDeepStrictEqual,
 	notStrictEqual,
 	ok as assertOk,
 	strictEqual,
+	throws as assertThrows,
 } from "../node_assert/shared";
+import { TrapCallback } from "../internal/trampoline";
+
+function typeNameFor<T>(value: T): string {
+	if (isBoolean<T>()) {
+		return "boolean";
+	}
+
+	if (isInteger<T>() || isFloat<T>()) {
+		return "number";
+	}
+
+	if (isString<T>()) {
+		return "string";
+	}
+
+	if (isReference<T>()) {
+		return changetype<usize>(value) == 0 ? "object" : "object";
+	}
+
+	return "number";
+}
 
 export function ok<T>(value: T, message: string | null = null): void {
 	assertOk(value, message);
@@ -37,6 +60,18 @@ export function equal<T>(
 	deepStrictEqual(actual, expected, message);
 }
 
+export function type<T>(
+	value: T,
+	expected: string,
+	message: string | null = null,
+): void {
+	strictEqual(
+		typeNameFor(value),
+		expected,
+		message === null ? "uvu assert type mismatch" : message,
+	);
+}
+
 export function not<T>(
 	actual: T,
 	expected: T,
@@ -53,6 +88,32 @@ export namespace not {
 	): void {
 		notDeepStrictEqual(actual, expected, message);
 	}
+
+	export function type<T>(
+		value: T,
+		expected: string,
+		message: string | null = null,
+	): void {
+		notStrictEqual(
+			typeNameFor(value),
+			expected,
+			message === null ? "uvu assert not.type mismatch" : message,
+		);
+	}
+
+	export function throws(
+		callback: TrapCallback,
+		message: string | null = null,
+	): void {
+		doesNotThrow(callback, message);
+	}
+}
+
+export function throws(
+	callback: TrapCallback,
+	message: string | null = null,
+): void {
+	assertThrows(callback, message);
 }
 
 export function unreachable(message: string | null = null): void {
