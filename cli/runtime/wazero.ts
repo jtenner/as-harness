@@ -83,12 +83,9 @@ function loadBundledWazeroHarnessModule(): WazeroHarnessModule {
 	});
 
 	traceWazero("loading extracted bundled wazero addon");
-	const moduleRecord = {
-		exports: {} as WazeroHarnessModule,
-	};
-	process.dlopen(moduleRecord as NodeJS.Module, addonPath);
+	const harnessModule = sourceRequire(addonPath) as WazeroHarnessModule;
 	traceWazero("loaded extracted bundled wazero addon");
-	return moduleRecord.exports;
+	return harnessModule;
 }
 
 function resolveWazeroHarnessModule() {

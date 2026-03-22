@@ -17,8 +17,9 @@ This note answers which CI failures and flaky behaviors were encountered while s
 - Symptom: `Packaged CLI (bun-linux-x64)` timed out after 60 seconds while verifying the packaged executable, often with trace output stopping at `resolving bundled wazero harness module`.
 - Root cause: the staged packaged smoke process was inheriting the full CI environment, including tool-manager variables that did not match the intended “clean staged executable” contract.
 - Fix: `verify-packaged-cli.ts` now builds a small cross-platform environment whitelist for packaged smoke commands, uses the same sanitized environment for the trace rerun, and gives the packaged process a verifier-owned temp directory so Bun's embedded `.node` extraction path does not depend on runner-global temp configuration.
-- Follow-up: the packaged Linux `wazero` hang still reproduced after the verifier-owned temp-root change, so the runtime now stops relying on Bun's special standalone embedded `.node` loader for packaged `wazero` and instead controls addon extraction plus `process.dlopen(...)` directly from repo code.
-- Status: fixed for the current packaged verification path.
+- Follow-up: the packaged Linux `wazero` hang still reproduced after the verifier-owned temp-root change, so the runtime stopped relying on Bun's special standalone embedded `.node` loader and moved addon extraction into repo code. The first repo-controlled loader still used `process.dlopen(...)` with a synthetic module record, which executed correctly but still hung on hosted Linux teardown after the packaged command had already reported `PASS`.
+- Final fix: keep the repo-controlled addon extraction, but load the extracted absolute `.node` path through normal `require(...)` resolution instead of manual `process.dlopen(...)`. That preserves bundling, keeps the addon out of sidecars, and lets the packaged process exit cleanly in local reproduction.
+- Status: fixed locally and queued for CI re-verification.
 
 ### 2. Packaged verification used the same timeout budget for build and smoke
 
