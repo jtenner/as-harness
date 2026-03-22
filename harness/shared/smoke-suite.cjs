@@ -559,8 +559,9 @@ const PASSING_BRANCH_EVENTS = [
 
 function compileFixture(assemblyDir, entryFile, outputPath) {
 	mkdirSync(path.dirname(outputPath), { recursive: true });
+	const ascCommand = process.platform === "win32" ? "npx.cmd" : "npx";
 	execFileSync(
-		"npx",
+		ascCommand,
 		[
 			"asc",
 			entryFile,

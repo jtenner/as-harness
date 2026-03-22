@@ -55,7 +55,9 @@ import "C"
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 	"math"
+	"os"
 	goruntime "runtime"
 	"sort"
 	"sync"
@@ -76,6 +78,7 @@ const coversModuleName = "__asCovers"
 const invokeExport = "invoke"
 const invokeStagedImport = "invoke_staged"
 const uint32ByteLength = 4
+const wazeroEngineInterpreter = "interpreter"
 const eventKindNodeFound = 1
 const eventKindNodeStart = 2
 const eventKindNodePass = 3
@@ -1416,9 +1419,32 @@ func handleWriteEvent(ctx context.Context, module api.Module, kind uint32, paylo
 	dispatchEventPayload(state, kind, payload)
 }
 
-func compileHarness(bytes []byte) (*harnessState, error) {
+func traceNativeWazero(format string, args ...any) {
+	if os.Getenv("AS_HARNESS_TRACE_WAZERO") != "1" {
+		return
+	}
+
+	_, _ = fmt.Fprintf(os.Stderr, "[wazero-native] "+format+"\n", args...)
+}
+
+func useInterpreterWazeroRuntime(engine string) bool {
+	return engine == wazeroEngineInterpreter
+}
+
+func createWazeroRuntime(ctx context.Context, engine string) wazero.Runtime {
+	if useInterpreterWazeroRuntime(engine) {
+		traceNativeWazero("using interpreter runtime engine")
+		return wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfigInterpreter())
+	}
+
+	traceNativeWazero("using default runtime engine")
+	return wazero.NewRuntime(ctx)
+}
+
+func compileHarness(bytes []byte, engine string) (*harnessState, error) {
 	ctx := context.Background()
-	runtime := wazero.NewRuntime(ctx)
+	traceNativeWazero("compileHarness bytes=%d engine=%q", len(bytes), engine)
+	runtime := createWazeroRuntime(ctx, engine)
 
 	_, err := runtime.NewHostModuleBuilder(abortModuleName).
 		NewFunctionBuilder().
@@ -1465,6 +1491,7 @@ func compileHarness(bytes []byte) (*harnessState, error) {
 		_ = runtime.Close(ctx)
 		return nil, err
 	}
+	traceNativeWazero("instantiated abort host module")
 
 	writeEventBuilder := runtime.NewHostModuleBuilder(writeEventModuleName)
 	writeEventBuilder.NewFunctionBuilder().
@@ -1492,6 +1519,7 @@ func compileHarness(bytes []byte) (*harnessState, error) {
 		_ = runtime.Close(ctx)
 		return nil, err
 	}
+	traceNativeWazero("instantiated write_event host module")
 
 	_, err = runtime.NewHostModuleBuilder(coversModuleName).
 		NewFunctionBuilder().
@@ -1535,12 +1563,14 @@ func compileHarness(bytes []byte) (*harnessState, error) {
 		_ = runtime.Close(ctx)
 		return nil, err
 	}
+	traceNativeWazero("instantiated coverage host module")
 
 	compiled, err := runtime.CompileModule(ctx, bytes)
 	if err != nil {
 		_ = runtime.Close(ctx)
 		return nil, err
 	}
+	traceNativeWazero("compiled module")
 
 	return &harnessState{
 		runtime:  runtime,
@@ -1760,7 +1790,7 @@ func createHarnessObject(env C.napi_env, id int64) C.napi_value {
 
 //export GoCreateHarness
 func GoCreateHarness(env C.napi_env, info C.napi_callback_info) C.napi_value {
-	args, _, ok := getCallbackArguments(env, info, 1)
+	args, _, ok := getCallbackArguments(env, info, 2)
 	if !ok {
 		return nil
 	}
@@ -1775,11 +1805,22 @@ func GoCreateHarness(env C.napi_env, info C.napi_callback_info) C.napi_value {
 		return nil
 	}
 
-	state, err := compileHarness(wasmBytes)
+	engine := ""
+	if len(args) > 1 {
+		engine, ok = stringFromValue(env, args[1])
+		if !ok {
+			throwTypeError(env, "createHarness engine override must be a string")
+			return nil
+		}
+	}
+
+	traceNativeWazero("GoCreateHarness invoked")
+	state, err := compileHarness(wasmBytes, engine)
 	if err != nil {
 		throwError(env, err.Error())
 		return nil
 	}
+	traceNativeWazero("GoCreateHarness finished")
 
 	state.env = env
 

@@ -8,7 +8,7 @@ declare const WAZERO_TARGET: string | undefined;
 declare const WAZERO_NODE_PATH: string | null | undefined;
 
 type WazeroHarnessModule = {
-	createHarness(bytes: Uint8Array): Harness;
+	createHarness(bytes: Uint8Array, engine?: string): Harness;
 };
 
 type DecorateHarnessOptions = {
@@ -18,6 +18,7 @@ type DecorateHarnessOptions = {
 	workerModulePath: string;
 };
 
+const WAZERO_ENGINE_INTERPRETER = "interpreter";
 const sourceRequire = createRequire(import.meta.url);
 const { decorateHarness } = sharedStartModule as {
 	decorateHarness(harness: Harness, options: DecorateHarnessOptions): Harness;
@@ -67,12 +68,25 @@ function shouldBypassBundledWazeroClose() {
 	return typeof WAZERO_TARGET !== "undefined";
 }
 
+function shouldUseBundledLinuxInterpreterEngine() {
+	return typeof WAZERO_TARGET !== "undefined" && process.platform === "linux";
+}
+
 function createBundledNativeHarness(
 	nativeHarnessModule: WazeroHarnessModule,
 	wasmBytes: Uint8Array,
 ) {
 	traceWazero("creating bundled native harness");
-	const harness = nativeHarnessModule.createHarness(Buffer.from(wasmBytes));
+	const engine = shouldUseBundledLinuxInterpreterEngine()
+		? WAZERO_ENGINE_INTERPRETER
+		: "";
+	if (engine === WAZERO_ENGINE_INTERPRETER) {
+		traceWazero("forcing bundled Linux wazero interpreter engine");
+	}
+	const harness =
+		engine.length > 0
+			? nativeHarnessModule.createHarness(Buffer.from(wasmBytes), engine)
+			: nativeHarnessModule.createHarness(Buffer.from(wasmBytes));
 	traceWazero("created bundled native harness");
 
 	if (!shouldBypassBundledWazeroClose()) {

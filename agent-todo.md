@@ -4,8 +4,7 @@
 
 ### Blockers
 
-- packaged `bun-linux-x64` verification still hangs in the bundled `wazero`
-  createHarness path on GitHub Ubuntu after toolchain setup succeeds.
+- None currently tracked.
 
 ### Risks
 
@@ -14,3 +13,6 @@
 - CI and release native-host verification is pinned to current upstream Go/Rust
   stable releases, so external toolchain rollovers still need explicit baseline
   refreshes here.
+- bundled Linux `wazero` now forces the interpreter engine to avoid the hosted
+  packaged createHarness hang, so future work should confirm whether the compiler
+  engine can be restored safely.

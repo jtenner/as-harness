@@ -36,6 +36,7 @@ npm test
 ## Packaging Notes
 
 - Linux glibc is in scope for `v0.1.0`; musl is not.
+- bundled Linux CLI builds force the `wazero` interpreter engine for stability.
 - source Linux arm64 and Windows builds can be produced locally.
 - packaged release matrix currently falls back to `js` on known problem targets while collecting verification.
 
