@@ -78,6 +78,13 @@ This note answers which CI failures and flaky behaviors were encountered while s
 - Follow-up: hosted Windows still outlived both the initial retry window and Node's built-in `rmSync(..., { maxRetries, retryDelay })` behavior, so cleanup moved to a repo-owned retry loop that explicitly catches retryable temp-tree removal errors and sleeps between attempts.
 - Status: fixed locally and queued for CI re-verification.
 
+### 10. Windows source-host `wazero` CLI still failed under Bun after cleanup was fixed
+
+- Symptom: after the temp-directory cleanup race was removed, the Windows Node 25 source-host matrix still failed three `wazero` CLI smoke assertions with exit code `3` while the same native host passed all in-process harness checks.
+- Root cause: the CLI source runtime was loading `harness/wazero/index.cjs` through Bun and then relying on that wrapper's relative native-addon require path, which left a Windows-specific Bun source-host boundary distinct from both the packaged path and the in-process Node smoke path.
+- Fix: the CLI source `wazero` runtime now loads the built native addon directly from [`harness/wazero/dist/wazero.node`](/home/jtenner/Projects/as-harness/harness/wazero/dist/wazero.node), decorates the harness in [`cli/runtime/wazero.ts`](/home/jtenner/Projects/as-harness/cli/runtime/wazero.ts), and exports a top-level `createHarness(...)` entry so worker-thread execution uses the same runtime module contract in both source and bundled modes.
+- Status: fixed locally and queued for CI re-verification.
+
 ## Remaining Open Risk
 
 ### Bundled Linux `wazero` still forces the interpreter engine

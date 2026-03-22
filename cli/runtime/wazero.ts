@@ -37,9 +37,14 @@ function traceWazero(message: string) {
 }
 
 function loadSourceWazeroHarnessModule(): WazeroHarnessModule {
-	const sourceSpecifier = ["..", "..", "harness", "wazero", "index.cjs"].join(
-		"/",
-	);
+	const sourceSpecifier = [
+		"..",
+		"..",
+		"harness",
+		"wazero",
+		"dist",
+		"wazero.node",
+	].join("/");
 	return sourceRequire(sourceSpecifier) as WazeroHarnessModule;
 }
 
@@ -138,18 +143,35 @@ function createBundledWazeroHarness(wasmBytes: Uint8Array) {
 	);
 }
 
+function createSourceWazeroHarness(wasmBytes: Uint8Array) {
+	const nativeHarnessModule = resolveWazeroHarnessModule();
+	const sourceBytes = Buffer.from(wasmBytes);
+
+	traceWazero("decorating source wazero harness");
+	return decorateHarness(nativeHarnessModule.createHarness(sourceBytes), {
+		bytes: sourceBytes,
+		createLocalHarness(localBytes) {
+			return nativeHarnessModule.createHarness(Buffer.from(localBytes));
+		},
+		runInBand: false,
+		workerModulePath: runtimeModulePath,
+	});
+}
+
+export function createHarness(wasmBytes: Uint8Array) {
+	if (typeof WAZERO_TARGET === "undefined") {
+		traceWazero("resolving source wazero harness module");
+		return createSourceWazeroHarness(wasmBytes);
+	}
+
+	traceWazero("resolving bundled wazero harness module");
+	return createBundledWazeroHarness(wasmBytes);
+}
+
 export const wazeroRuntime: Runtime = {
 	name: "wazero",
 	mutateCompilerArguments(compilerArguments) {
 		setCompilerOptionValue(compilerArguments, "--exportStart", "__start");
 	},
-	createHarness(wasmBytes) {
-		if (typeof WAZERO_TARGET === "undefined") {
-			traceWazero("resolving source wazero harness module");
-			return resolveWazeroHarnessModule().createHarness(wasmBytes);
-		}
-
-		traceWazero("resolving bundled wazero harness module");
-		return createBundledWazeroHarness(wasmBytes);
-	},
+	createHarness,
 };
