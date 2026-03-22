@@ -231,8 +231,10 @@ The current parity proof for this contract is:
   including declaration-order tie-breaking, duplicate-edge collapse, cycle
   detection, expected-failure prerequisite satisfaction, skip/todo/only-filtered
   missing-prerequisite coverage, mixed external-dependency plus sequential-scope
-  staging, in-band metadata snapshot detachment, ignored-hint informational
-  reporting, and nearest-scope `bail` / `continue` hint evaluation
+  staging, host-level proof that unrelated ready work still fans out while the
+  constrained path serializes, in-band metadata snapshot detachment,
+  ignored-hint informational reporting, and nearest-scope `bail` / `continue`
+  hint evaluation
 - CLI run coverage in
   [cli/run.test.ts](../cli/run.test.ts), including guest-declared dependency
   success, blocked, and missing-dependency reporting through the shipped

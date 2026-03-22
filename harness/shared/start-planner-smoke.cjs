@@ -25,6 +25,9 @@ const {
 const {
 	createHarness: createInvalidSequenceConstraintHarness,
 } = require("./fixtures/invalid-sequence-constraint-harness.cjs");
+const {
+	createHarness: createMixedConstraintHarness,
+} = require("./fixtures/mixed-constraint-harness.cjs");
 
 const dependencyStartHarnessModulePath = path.join(
 	__dirname,
@@ -60,6 +63,11 @@ const invalidSequenceConstraintHarnessModulePath = path.join(
 	__dirname,
 	"fixtures",
 	"invalid-sequence-constraint-harness.cjs",
+);
+const mixedConstraintHarnessModulePath = path.join(
+	__dirname,
+	"fixtures",
+	"mixed-constraint-harness.cjs",
 );
 
 function registerSharedStartPlannerSmokeSuite(options) {
@@ -271,6 +279,61 @@ function registerSharedStartPlannerSmokeSuite(options) {
 			),
 			[[["failing bail child", false]], [["plain ready child", true]]],
 		);
+
+		harness.close();
+	});
+
+	test("start() keeps unrelated work runnable while mixed sequential and dependency constraints serialize only the constrained path", async () => {
+		const harness = decorateHarness(createMixedConstraintHarness(), {
+			bytes: Buffer.alloc(0),
+			createLocalHarness: createMixedConstraintHarness,
+			runInBand,
+			workerModulePath: mixedConstraintHarnessModulePath,
+		});
+
+		const result = await harness.start();
+		const expectedWorkerCount = runInBand
+			? 1
+			: Math.min(2, availableParallelism());
+		const executionThreads = new Map(
+			result.branches.flatMap((branch) =>
+				branch.executions.map((execution) => [
+					execution.node.name,
+					Number(
+						execution.events
+							.find((event) => event.type === "diagnostic")
+							?.data?.message?.replace("run-thread-", "") ?? "",
+					),
+				]),
+			),
+		);
+
+		assert.equal(result.discoveryOk, true);
+		assert.equal(result.planningOk, true);
+		assert.equal(result.ok, true);
+		assert.equal(result.workerCount, expectedWorkerCount);
+		assert.deepEqual(
+			result.branches.map((branch) =>
+				branch.executions.map((execution) => execution.node.name),
+			),
+			[
+				[
+					"external prereq",
+					"sequential first",
+					"sequential second",
+					"downstream dependent",
+				],
+				["unrelated ready"],
+			],
+		);
+		if (!runInBand && availableParallelism() > 1) {
+			assert(executionThreads.get("external prereq") > 0);
+			assert(executionThreads.get("unrelated ready") > 0);
+			assert.notEqual(
+				executionThreads.get("external prereq"),
+				executionThreads.get("unrelated ready"),
+			);
+		}
 
 		harness.close();
 	});

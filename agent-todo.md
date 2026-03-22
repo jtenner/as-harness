@@ -23,8 +23,6 @@
 
 - keep `sequenceMode` and `dependencyNodeIds` as the authoritative shared
   constraint model.
-- preserve declaration-order tie-breaking and same-machine ready-work fanout
-  after constraint lowering.
 
 ### Adapter: `uvu`
 
