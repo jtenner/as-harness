@@ -584,3 +584,71 @@ test("defaultRunReporter emits fallback failure text when a failing test has no 
 	expect(messages.error).toContain("- silent fail");
 	expect(messages.error).toContain("  fail: failed without a fail message");
 });
+
+test("defaultRunReporter surfaces ignored hints as informational issues on passing runs", () => {
+	const messages = {
+		error: [] as string[],
+		info: [] as string[],
+	};
+	const logger: ReporterLogger = {
+		error(message) {
+			messages.error.push(message);
+		},
+		info(message) {
+			messages.info.push(message);
+		},
+	};
+	const report = createHarnessRunReport(
+		createStartResult({
+			ok: true,
+			discoveryOk: true,
+			planningOk: true,
+			discoveredTestCount: 1,
+			topLevelNodes: [createNode("root", 0)],
+			workerCount: 1,
+			branches: [
+				{
+					root: createNode("root", 0),
+					discovery: {
+						ok: true,
+						nodes: [createNode("root", 0), createNode("passing test", 1)],
+						testCount: 1,
+					},
+					executions: [
+						{
+							node: createNode("passing test", 1),
+							ok: true,
+							events: [],
+						},
+					],
+					ok: true,
+				},
+			],
+			planIssues: [
+				{
+					type: "ignored-hint",
+					issueLabel: "ignored hint",
+					targetIdentityKey: "id:1",
+					dependencyIdentityKey: "",
+					hintName: "preferredRunnerMode",
+					hintValue: 9,
+				},
+			],
+			blocked: [],
+			coverage: null,
+		}),
+	);
+
+	defaultRunReporter.accept(report, {
+		harnessName: "js",
+		logger,
+	});
+
+	expect(messages.error).toEqual([]);
+	expect(messages.info).toContain(
+		"PASS 1 passed, 0 failed, 1 discovered with js.",
+	);
+	expect(messages.info).toContain(
+		"  issue: ignored hint (id:1, preferredRunnerMode=9)",
+	);
+});

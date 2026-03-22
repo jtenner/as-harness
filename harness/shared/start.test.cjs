@@ -863,6 +863,56 @@ test("evaluatePlannedExecution applies bail only within the nearest hinted scope
 	);
 });
 
+test("planExecutionStages surfaces ignored unsupported hint metadata without blocking runnable work", () => {
+	const root = createPlannerNode({
+		identityKey: "id:150",
+		nodeId: 150,
+		declarationOrder: 0,
+		kind: 2,
+		preferredRunnerMode: 9,
+		name: "root suite",
+	});
+	const child = createPlannerNode({
+		identityKey: "id:150/id:151",
+		parentIdentityKey: "id:150",
+		nodeId: 151,
+		parentNodeId: 150,
+		declarationOrder: 1,
+		preferredFailurePolicy: 7,
+		name: "plain child",
+	});
+
+	const plan = planExecutionStages([createPlannerBranch(0, [root, child])]);
+
+	assert.equal(plan.complete, true);
+	assert.deepEqual(
+		plan.stages.map((stage) => stage.map((target) => target.node.name)),
+		[["plain child"]],
+	);
+	assert.deepEqual(plan.blockedTargets, []);
+	assert.deepEqual(
+		plan.issues.filter((issue) => issue.type === "ignored-hint"),
+		[
+			{
+				type: "ignored-hint",
+				issueLabel: "ignored hint",
+				targetIdentityKey: "id:150",
+				dependencyIdentityKey: "",
+				hintName: "preferredRunnerMode",
+				hintValue: 9,
+			},
+			{
+				type: "ignored-hint",
+				issueLabel: "ignored hint",
+				targetIdentityKey: "id:150/id:151",
+				dependencyIdentityKey: "",
+				hintName: "preferredFailurePolicy",
+				hintValue: 7,
+			},
+		],
+	);
+});
+
 test("evaluatePlannedExecution blocks downstream dependents after an unsatisfied prerequisite", () => {
 	const root = createPlannerNode({
 		identityKey: "id:40",

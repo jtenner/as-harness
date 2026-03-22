@@ -106,7 +106,7 @@ function cloneNode(node) {
 }
 
 function clonePlanIssue(issue) {
-	return {
+	const clone = {
 		type: typeof issue?.type === "string" ? issue.type : "",
 		issueLabel: typeof issue?.issueLabel === "string" ? issue.issueLabel : "",
 		targetIdentityKey:
@@ -118,6 +118,15 @@ function clonePlanIssue(issue) {
 				? issue.dependencyIdentityKey
 				: "",
 	};
+
+	if (typeof issue?.hintName === "string" && issue.hintName.length > 0) {
+		clone.hintName = issue.hintName;
+	}
+	if (typeof issue?.hintValue === "number") {
+		clone.hintValue = issue.hintValue >>> 0;
+	}
+
+	return clone;
 }
 
 function cloneBlockedNode(blocked) {
@@ -821,16 +830,44 @@ function comparePlanIssues(left, right) {
 		return leftDependency.localeCompare(rightDependency);
 	}
 
+	const leftHintName = left?.hintName || "";
+	const rightHintName = right?.hintName || "";
+	if (leftHintName !== rightHintName) {
+		return leftHintName.localeCompare(rightHintName);
+	}
+
+	const leftHintValue =
+		typeof left?.hintValue === "number" ? left.hintValue >>> 0 : 0;
+	const rightHintValue =
+		typeof right?.hintValue === "number" ? right.hintValue >>> 0 : 0;
+	if (leftHintValue !== rightHintValue) {
+		return leftHintValue - rightHintValue;
+	}
+
 	return (left?.type || "").localeCompare(right?.type || "");
 }
 
-function createPlanIssue(type, targetIdentityKey, dependencyIdentityKey = "") {
-	return {
+function createPlanIssue(
+	type,
+	targetIdentityKey,
+	dependencyIdentityKey = "",
+	detail = null,
+) {
+	const issue = {
 		type,
 		issueLabel: formatIssueLabel(type),
 		targetIdentityKey,
 		dependencyIdentityKey,
 	};
+
+	if (typeof detail?.hintName === "string" && detail.hintName.length > 0) {
+		issue.hintName = detail.hintName;
+	}
+	if (typeof detail?.hintValue === "number") {
+		issue.hintValue = detail.hintValue >>> 0;
+	}
+
+	return issue;
 }
 
 function formatIssueLabel(type) {
@@ -843,13 +880,75 @@ function formatIssueLabel(type) {
 			return "missing prerequisite";
 		case "dependency-cycle":
 			return "dependency cycle";
+		case "ignored-hint":
+			return "ignored hint";
 		default:
 			return type;
 	}
 }
 
 function isPlanningIssueType(type) {
-	return type !== "bailed";
+	return type !== "bailed" && type !== "ignored-hint";
+}
+
+function isSupportedRunnerModeHint(value) {
+	return value === 0 || value === RUNNER_MODE_IN_BAND;
+}
+
+function isSupportedFailurePolicyHint(value) {
+	return (
+		value === 0 ||
+		value === FAILURE_POLICY_CONTINUE ||
+		value === FAILURE_POLICY_BAIL
+	);
+}
+
+function collectIgnoredHintIssues(branches) {
+	const issues = [];
+	const seen = new Set();
+
+	for (const branch of Array.isArray(branches) ? branches : []) {
+		for (const node of Array.isArray(branch?.discovery?.nodes)
+			? branch.discovery.nodes
+			: []) {
+			const targetIdentityKey = getNodeIdentityKey(node);
+			const preferredRunnerMode =
+				typeof node?.preferredRunnerMode === "number"
+					? node.preferredRunnerMode >>> 0
+					: 0;
+			if (!isSupportedRunnerModeHint(preferredRunnerMode)) {
+				const issueKey = `${targetIdentityKey}:preferredRunnerMode:${preferredRunnerMode}`;
+				if (!seen.has(issueKey)) {
+					seen.add(issueKey);
+					issues.push(
+						createPlanIssue("ignored-hint", targetIdentityKey, "", {
+							hintName: "preferredRunnerMode",
+							hintValue: preferredRunnerMode,
+						}),
+					);
+				}
+			}
+
+			const preferredFailurePolicy =
+				typeof node?.preferredFailurePolicy === "number"
+					? node.preferredFailurePolicy >>> 0
+					: 0;
+			if (!isSupportedFailurePolicyHint(preferredFailurePolicy)) {
+				const issueKey = `${targetIdentityKey}:preferredFailurePolicy:${preferredFailurePolicy}`;
+				if (!seen.has(issueKey)) {
+					seen.add(issueKey);
+					issues.push(
+						createPlanIssue("ignored-hint", targetIdentityKey, "", {
+							hintName: "preferredFailurePolicy",
+							hintValue: preferredFailurePolicy,
+						}),
+					);
+				}
+			}
+		}
+	}
+
+	return issues.sort(comparePlanIssues);
 }
 
 function appendBlockedTarget(
@@ -1265,7 +1364,9 @@ function planExecutionStages(branches) {
 			.filter((target) => blockedKeys.has(target.identityKey))
 			.sort(compareExecutionTargets),
 		complete: completedTargetCount === targets.length,
-		issues: issues.sort(comparePlanIssues),
+		issues: issues
+			.concat(collectIgnoredHintIssues(branches))
+			.sort(comparePlanIssues),
 		stages: plannedStages,
 		successorsByIdentity: createPlanSuccessorMap(
 			adjacency,
@@ -1398,21 +1499,32 @@ function toBlockedNode(target, issue) {
 }
 
 function toPlanIssues(issues) {
-	return (Array.isArray(issues) ? issues : []).map((issue) => ({
-		type: typeof issue?.type === "string" ? issue.type : "",
-		issueLabel:
-			typeof issue?.issueLabel === "string"
-				? issue.issueLabel
-				: formatIssueLabel(typeof issue?.type === "string" ? issue.type : ""),
-		targetIdentityKey:
-			typeof issue?.targetIdentityKey === "string"
-				? issue.targetIdentityKey
-				: "",
-		dependencyIdentityKey:
-			typeof issue?.dependencyIdentityKey === "string"
-				? issue.dependencyIdentityKey
-				: "",
-	}));
+	return (Array.isArray(issues) ? issues : []).map((issue) => {
+		const normalized = {
+			type: typeof issue?.type === "string" ? issue.type : "",
+			issueLabel:
+				typeof issue?.issueLabel === "string"
+					? issue.issueLabel
+					: formatIssueLabel(typeof issue?.type === "string" ? issue.type : ""),
+			targetIdentityKey:
+				typeof issue?.targetIdentityKey === "string"
+					? issue.targetIdentityKey
+					: "",
+			dependencyIdentityKey:
+				typeof issue?.dependencyIdentityKey === "string"
+					? issue.dependencyIdentityKey
+					: "",
+		};
+
+		if (typeof issue?.hintName === "string" && issue.hintName.length > 0) {
+			normalized.hintName = issue.hintName;
+		}
+		if (typeof issue?.hintValue === "number") {
+			normalized.hintValue = issue.hintValue >>> 0;
+		}
+
+		return normalized;
+	});
 }
 
 async function executePlannedStages(options, branches, plan) {

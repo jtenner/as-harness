@@ -2,6 +2,7 @@
 
 ## 2026-03-22
 
+- **planner: surface ignored hints as informational issues** Keep unsupported guest hint values visible in discovery metadata, report them as non-blocking `ignored-hint` planner issues through `start()` and CLI reporting, add dedicated planner smoke coverage for that path, and clear the completed hint-visibility decision from the live backlog. GitHub: *@jtenner*
 - **uvu/assert: prove the new helpers through shared and CLI smoke** Add a dedicated `uvu/assert` shared smoke fixture, verify it through host-level `start()` proof, and update the bundled CLI smoke paths for `js`, `wazero`, and `wasmtime` so the new `type` / `throws` helpers and their negated forms are exercised through real compile-and-run flows. GitHub: *@jtenner*
 - **uvu/assert: add low-risk throw and type helpers** Expand the bundled `uvu/assert` subset with `throws`, `type`, `not.throws`, and `not.type`, prove them in internal guest coverage, and refresh the public adapter docs plus backlog so the remaining `uvu/assert` gap is limited to the higher-risk constructor, fixture, snapshot, and matcher-style helpers. GitHub: *@jtenner*
 - **docs: record the shipped hint and constraint contract** Update the ABI, guest-runtime, and host-runner contract docs so the current wire layout, host-owned hint semantics, and `start()` planning behavior now explicitly include `preferredRunnerMode`, `preferredFailurePolicy`, and the binding `sequenceMode` / dependency constraint model; also clear the completed docs blocker from the live backlog. GitHub: *@jtenner*

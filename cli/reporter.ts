@@ -225,6 +225,8 @@ function formatIssueLabel(type: string) {
 			return "missing prerequisite";
 		case "dependency-cycle":
 			return "dependency cycle";
+		case "ignored-hint":
+			return "ignored hint";
 		default:
 			return type;
 	}
@@ -245,6 +247,13 @@ function formatPlanIssueMessage(issue: HarnessPlanIssue) {
 		typeof issue.issueLabel === "string" && issue.issueLabel.length > 0
 			? issue.issueLabel
 			: formatIssueLabel(issue.type);
+	if (
+		typeof issue.hintName === "string" &&
+		issue.hintName.length > 0 &&
+		typeof issue.hintValue === "number"
+	) {
+		return `  issue: ${label} (${issue.targetIdentityKey}, ${issue.hintName}=${issue.hintValue})`;
+	}
 	return issue.dependencyIdentityKey.length > 0
 		? `  issue: ${label} (${issue.targetIdentityKey} <- ${issue.dependencyIdentityKey})`
 		: `  issue: ${label} (${issue.targetIdentityKey})`;
@@ -317,5 +326,9 @@ export const defaultRunReporter: RunReporter = {
 		logger.info(
 			`PASS ${report.passedTestCount} passed, ${report.failedTestCount} failed, ${report.discoveredTestCount} discovered with ${harnessName}.`,
 		);
+
+		for (const issue of report.planIssues) {
+			logger.info(formatPlanIssueMessage(issue));
+		}
 	},
 };

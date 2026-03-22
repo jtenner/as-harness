@@ -21,6 +21,9 @@ it with
   executes through targeted `run()` replay on staged `NodeIndex` paths
 - the guest may declare scheduling metadata through discovery facts, but the
   host still owns final planning and execution decisions
+- unsupported hint values still surface through discovery metadata, but the
+  current host only treats them as informational `ignored-hint` planner issues
+  instead of binding execution policy
 - adding scheduler-step entrypoints later would require an ABI update, host
   parity proof, and a backlog update across the docs
 
@@ -106,6 +109,8 @@ Forbidden decisions:
 - no durable attempt-local failure state
 - no host-owned scheduling policy
 - no host-facing decision about whether a declared hint is honored or ignored
+  beyond preserving unsupported values so the host can surface
+  informational `ignored-hint` planner issues
 
 ## `traversal`
 
@@ -139,6 +144,8 @@ Forbidden decisions:
 - no report-tree aggregation
 - no host-facing byte decoding
 - no host-owned decision about whether a hint changes execution policy
+  beyond preserving unsupported values so the host can report
+  `ignored-hint` metadata
 
 Current contract details:
 

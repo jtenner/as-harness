@@ -16,6 +16,9 @@ const {
 const {
 	createHarness: createBailStartHarness,
 } = require("./fixtures/bail-start-harness.cjs");
+const {
+	createHarness: createIgnoredHintHarness,
+} = require("./fixtures/ignored-hint-harness.cjs");
 
 const dependencyStartHarnessModulePath = path.join(
 	__dirname,
@@ -36,6 +39,11 @@ const bailStartHarnessModulePath = path.join(
 	__dirname,
 	"fixtures",
 	"bail-start-harness.cjs",
+);
+const ignoredHintHarnessModulePath = path.join(
+	__dirname,
+	"fixtures",
+	"ignored-hint-harness.cjs",
 );
 
 function registerSharedStartPlannerSmokeSuite(options) {
@@ -246,6 +254,53 @@ function registerSharedStartPlannerSmokeSuite(options) {
 				]),
 			),
 			[[["failing bail child", false]], [["plain ready child", true]]],
+		);
+
+		harness.close();
+	});
+
+	test("start() surfaces ignored unsupported hints as informational metadata", async () => {
+		const harness = decorateHarness(createIgnoredHintHarness(), {
+			bytes: Buffer.alloc(0),
+			createLocalHarness: createIgnoredHintHarness,
+			runInBand,
+			workerModulePath: ignoredHintHarnessModulePath,
+		});
+
+		const result = await harness.start();
+		const expectedWorkerCount = 1;
+
+		assert.equal(result.discoveryOk, true);
+		assert.equal(result.planningOk, true);
+		assert.equal(result.ok, true);
+		assert.equal(result.workerCount, expectedWorkerCount);
+		assert.deepEqual(result.planIssues, [
+			{
+				type: "ignored-hint",
+				issueLabel: "ignored hint",
+				targetIdentityKey: "id:1",
+				dependencyIdentityKey: "",
+				hintName: "preferredRunnerMode",
+				hintValue: 9,
+			},
+			{
+				type: "ignored-hint",
+				issueLabel: "ignored hint",
+				targetIdentityKey: "id:1/id:2",
+				dependencyIdentityKey: "",
+				hintName: "preferredFailurePolicy",
+				hintValue: 7,
+			},
+		]);
+		assert.deepEqual(result.blocked, []);
+		assert.deepEqual(
+			result.branches.map((branch) =>
+				branch.executions.map((execution) => [
+					execution.node.name,
+					execution.ok,
+				]),
+			),
+			[[["ignored hint child", true]]],
 		);
 
 		harness.close();

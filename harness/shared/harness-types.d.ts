@@ -128,6 +128,7 @@ export type HarnessIssueType =
 	| "missing-dependency"
 	| "blocked-dependency"
 	| "dependency-cycle"
+	| "ignored-hint"
 	| (string & {});
 
 export interface HarnessPlanIssue {
@@ -135,6 +136,8 @@ export interface HarnessPlanIssue {
 	issueLabel: string;
 	targetIdentityKey: string;
 	dependencyIdentityKey: string;
+	hintName?: string;
+	hintValue?: number;
 }
 
 export interface HarnessBlockedNode {

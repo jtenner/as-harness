@@ -164,9 +164,11 @@ Hint policy:
 - `preferredFailurePolicy = bail` blocks the remaining nearest hinted scope
   after the first unsatisfied execution inside it
 - `preferredFailurePolicy = continue` opts a scope out of an inherited `bail`
+- unsupported hint values still stay visible in discovery metadata, but the
+  current shipped host surfaces them as informational `ignored-hint`
+  `planIssues` instead of treating them as blocking planner failures
 - these fields remain host-owned planning hints rather than binding
-  correctness constraints, so the host may still ignore unsupported future
-  hint values without changing the discovery contract
+  correctness constraints
 
 Targeted discovery detail:
 
@@ -223,8 +225,9 @@ The current parity proof for this contract is:
   and [harness/shared/start.test.cjs](../harness/shared/start.test.cjs),
   including declaration-order tie-breaking, duplicate-edge collapse, cycle
   detection, expected-failure prerequisite satisfaction, skip/todo/only-filtered
-  missing-prerequisite coverage, in-band metadata snapshot detachment, and
-  nearest-scope `bail` / `continue` hint evaluation
+  missing-prerequisite coverage, in-band metadata snapshot detachment,
+  ignored-hint informational reporting, and nearest-scope `bail` /
+  `continue` hint evaluation
 - CLI run coverage in
   [cli/run.test.ts](../cli/run.test.ts), including guest-declared dependency
   success, blocked, and missing-dependency reporting through the shipped

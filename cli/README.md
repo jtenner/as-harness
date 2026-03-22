@@ -35,6 +35,7 @@ Default reporting summarizes:
 - counts, passes/failures, and diagnostics
 - planner status from `discoveryOk`, `planningOk`, and `workerCount`
 - blocked runs rendered as `missing prerequisite`, `blocked by prerequisite`, `dependency cycle`, and `stopped after failure`
+- unsupported hint values rendered as informational `ignored hint` planner issues without changing pass/fail status
 - shared run metadata is a required `start()` snapshot that mirrors the top-level summary fields and keeps the underlying planner code plus the concise issue label on `planIssues` and `blocked`
 - coverage after execution (when enabled)
 
@@ -46,7 +47,7 @@ Default reporting summarizes:
 - `jasmine`: sync declarations, focus/exclude aliases, core hooks, `fail(...)`, and a narrow shared matcher slice.
 - `jest`: thin sync declarations + shared assertion set (containment, length/size, numeric, `toThrow`, strict equality helpers).
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks for diagnostics and assertions.
-- `vitest`: sync declarations, low-risk `sequential` aliases, `fails`, `skipIf` / `runIf`, `assertType(...)`, and the same shared matcher set.
+- `vitest`: sync declarations, low-risk scheduling controls, `fails`, `skipIf` / `runIf`, `assertType(...)`, and the same shared matcher set.
 - `node:test`: sync declarations, hooks, `dependsOn(...)`, and the same host-owned planning hints.
 
 See their interface docs:

@@ -15,11 +15,6 @@
   scheduling if the ABI grows new scheduler entrypoints instead of staying on
   discovery metadata plus host-owned `start()`.
 
-### Runtime: Shared Guest Hints
-
-- decide whether ignored hints should stay silent or surface as informational
-  metadata once more adapters start lowering into the shared hint model.
-
 ### Runtime: Shared Guest Constraints
 
 - keep `sequenceMode` and `dependencyNodeIds` as the authoritative shared

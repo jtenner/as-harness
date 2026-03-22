@@ -49,6 +49,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `expectFailure` satisfies dependents only when it fails as intended.
 - `bail` stops the remaining nearest hinted scope after the first unsatisfied execution while leaving unrelated work runnable.
 - `inBand` keeps the nearest hinted scope on the main-thread execution lane while unrelated ready work can still use worker fanout.
+- unsupported hint values stay visible in discovery metadata and surface as informational `ignored hint` planner issues instead of blocking execution.
 - dependency cycles block all cycle members with `dependency-cycle` diagnostics.
 - CLI reports blocked outcomes as concise `blocked by prerequisite`, `missing prerequisite`, `dependency cycle`, and `stopped after failure` messages.
 - shared `start()` results always include a required `metadata` snapshot that mirrors the top-level summary fields and preserves both machine-readable planner codes and concise issue labels on `planIssues` and `blocked`.
@@ -65,7 +66,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `jest`: sync declarations, core hooks, matcher slice.
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks.
 - `jasmine`: sync declarations, focus/exclude aliases, core hooks, `fail(...)`, and a narrow matcher slice backed by the shared expectation core.
-- `vitest`: sync declarations, low-risk `sequential` aliases, and the same matcher slice.
+- `vitest`: sync declarations, low-risk scheduling controls, and the same matcher slice.
 
 See:
 
