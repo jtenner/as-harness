@@ -63,12 +63,12 @@
   `suite(...)`, suite-builder `.test(...)`, `.only(...)`, `.skip(...)`,
   `.before(...)`, `.after(...)`, `.beforeEach(...)`, `.afterEach(...)`,
   `.run()`, and `exec(...)`.
-- decide whether `uvu` should expose any new host-readable orchestration hints
-  in this cycle, while keeping `.run()` and `exec(...)` as host-owned
-  compatibility no-ops.
-- decide whether strict upstream callable-suite compatibility is worth a
-  transform-backed rewrite layer or whether the current builder-object
-  divergence should be frozen as the permanent contract.
+- add host-readable `inBand(...)`, `bail(...)`, and
+  `continueOnFailure(...)` hint helpers to top-level `test` and `UvuSuite`.
+- reinterpret `exec(bail?)` as root-level shared `bail` hint lowering while
+  keeping `.run()` and `exec(...)` host-owned and non-executing.
+- freeze the current builder-object divergence as the permanent `uvu` contract
+  unless the repo later adopts a transform-backed rewrite policy.
 - add richer `uvu/assert` helpers that fit the current shared assertion and
   failure model before attempting async or upstream error-object parity.
 - keep crumb/context callback parity and async behavior deferred until the
@@ -76,6 +76,7 @@
 
 ### Proof
 
+- add shared smoke and CLI proof for `uvu`-authored `bail` / `in-band` hints.
 - add CLI proof for guest-authored `bail` / `in-band` hints through a
   user-facing compile-and-run path instead of only shared planner and host
   smoke fixtures.

@@ -3,9 +3,10 @@
 This note answers what `uvu` and `uvu/assert` support is now shipped in
 `as-harness`, what the exact exported contract is, where it intentionally
 diverges from upstream `uvu`, and which remaining compatibility gaps are still
-worth tracking across `assembly/`, `cli/`, and `harness/`. The recommendation
-after implementation is to keep the shipped sync `uvu` slice, document the
-callable-suite divergence plainly, and defer any attempt at strict upstream
+worth tracking across `assembly/`, `cli/`, and `harness/`. The current
+recommendation is now explicit: keep the shipped sync `uvu` builder contract as
+the permanent source shape, add host-readable orchestration hints on top of
+that builder surface in this cycle, and defer any attempt at strict upstream
 call-signature compatibility until the project is willing to add a transform or
 some broader source-rewrite policy.
 
@@ -24,8 +25,13 @@ Checked on 2026-03-22 against:
 ## Current Repo Recommendation
 
 - keep the shipped sync `uvu` slice as the supported contract
-- treat `.run()` and `exec()` as explicit compatibility no-ops under
-  host-owned `start()`
+- freeze the builder-object divergence as the permanent contract unless the
+  repo later adopts a source transform
+- keep `.run()` as an explicit compatibility no-op under host-owned `start()`
+- add host-readable `inBand(...)`, `bail(...)`, and `continueOnFailure(...)`
+  hint APIs to the shipped `uvu` singleton and suite builder surfaces
+- reinterpret `exec(true)` as a root-level `bail` hint declaration and
+  `exec(false)` as an explicit revert to inherited failure policy
 - keep the shared `TestContext` callback model instead of promising upstream
   crumb/context parity
 - keep `uvu/assert` on the low-risk shared assertion subset
@@ -49,6 +55,9 @@ Shipped:
 - `test(name, callback)`
 - `test.only(name, callback)`
 - `test.skip(name?, callback?)`
+- `test.inBand(shouldRunInBand?)`
+- `test.bail(shouldBail?)`
+- `test.continueOnFailure(shouldContinue?)`
 - `test.before(hook)`
 - `test.before.each(hook)`
 - `test.after(hook)`
@@ -58,6 +67,7 @@ Shipped:
 Behavior:
 
 - top-level hook registration maps directly into the shared root hook tree
+- top-level hint helpers lower to shared root-level host-owned planning hints
 - `test.run()` is a compatibility no-op
 - callbacks receive shared `TestContext`
 
@@ -77,6 +87,9 @@ Shipped builder methods:
 - `.test(name, callback)`
 - `.only(name, callback)`
 - `.skip(name?, callback?)`
+- `.inBand(shouldRunInBand?)`
+- `.bail(shouldBail?)`
+- `.continueOnFailure(shouldContinue?)`
 - `.before(hook)`
 - `.after(hook)`
 - `.beforeEach(hook)`
@@ -90,6 +103,7 @@ Behavior:
 - `suite(...)` creates a real suite node in the shared declaration tree
 - builder methods temporarily register children and hooks against that suite
   node
+- suite hint helpers lower to shared suite-local host-owned planning hints
 - `.run()` is a compatibility no-op
 - `.context` stores the supplied suite-local payload for user code that wants
   to keep explicit state near the builder
@@ -104,8 +118,9 @@ Shipped:
 
 Behavior:
 
-- compatibility no-op
-- the `bail` flag is accepted but ignored
+- `exec(true)` lowers to a root-level shared `bail` hint
+- `exec(false)` explicitly restores inherited failure policy on the root scope
+- execution still remains fully host-owned and `exec(...)` does not start work
 
 ### `uvu/assert`
 
@@ -190,10 +205,16 @@ Reason:
 
 ### 4. `exec(bail?)` And `.run()` Do Not Start Execution
 
-They are explicit no-ops because:
+They do not start execution because:
 
 - the host owns execution through `start()`
 - guest-side runner control would create overlapping orchestration surfaces
+
+Current policy:
+
+- `.run()` remains a compatibility no-op
+- `exec(...)` may declare host-readable hints, but it still does not start
+  execution
 
 ### 5. Async Is Still Unsupported
 
@@ -255,6 +276,34 @@ Game plan used:
 
 Status: Shipped as no-op.
 
+### `test.inBand(shouldRunInBand?)`
+
+Status: Selected for this cycle.
+
+Game plan:
+
+- lower onto the shared root-level `preferredRunnerMode` hint
+- keep the API declarative only; it must not change execution immediately
+
+### `test.bail(shouldBail?)`
+
+Status: Selected for this cycle.
+
+Game plan:
+
+- lower onto the shared root-level `preferredFailurePolicy` hint
+- treat `false` as restore-to-inherit rather than as guest-owned scheduler
+  control
+
+### `test.continueOnFailure(shouldContinue?)`
+
+Status: Selected for this cycle.
+
+Game plan:
+
+- lower onto the shared root-level explicit continue policy so nested suites can
+  override an inherited `bail`
+
 ### `suite(name?, context?)`
 
 Status: Shipped with documented divergence.
@@ -291,6 +340,33 @@ Game plan used:
 
 - same as `.test(...)`, but set skipped declaration mode
 
+### `UvuSuite.inBand(shouldRunInBand?)`
+
+Status: Selected for this cycle.
+
+Game plan:
+
+- set shared suite-local `preferredRunnerMode`
+- let descendants inherit that hint through the host planner
+
+### `UvuSuite.bail(shouldBail?)`
+
+Status: Selected for this cycle.
+
+Game plan:
+
+- set shared suite-local `preferredFailurePolicy = bail`
+- rely on the host planner's nearest-scope bail semantics
+
+### `UvuSuite.continueOnFailure(shouldContinue?)`
+
+Status: Selected for this cycle.
+
+Game plan:
+
+- set shared suite-local explicit continue policy
+- use it to opt out of an inherited enclosing `bail`
+
 ### `UvuSuite.before(hook)` / `UvuSuite.after(hook)`
 
 Status: Shipped.
@@ -315,7 +391,13 @@ Status: Shipped as no-op.
 
 ### `exec(bail?)`
 
-Status: Shipped as no-op.
+Status: Selected for reinterpretation in this cycle.
+
+Game plan:
+
+- `exec(true)` sets the shared root-level `bail` hint
+- `exec(false)` restores inherited failure policy
+- keep execution host-owned and do not let `exec(...)` trigger scheduling
 
 ### `uvu/assert`
 
@@ -346,15 +428,16 @@ Deferred:
 
 ### 1. Callable Suite Objects
 
-The remaining strict source-compatibility gap is the inability to represent the
-upstream returned callable object cleanly in AssemblyScript source.
+Decision:
 
-If revisited later, realistic options are:
+- freeze the shipped builder-object divergence as the permanent `uvu` contract
+  for now
 
-1. add a source transform that rewrites upstream `suite()` usage into the
-   shipped builder form
-2. keep the current builder divergence and stop aiming at exact upstream source
-   parity
+Reason:
+
+- the project now prefers spending compatibility budget on host-readable hint
+  lowering and richer assertion support rather than on a transform-backed
+  callable-suite emulation layer
 
 ### 2. Crumb/Context Callback Parity
 
@@ -376,14 +459,23 @@ The repo still does not support:
 Helpers like `throws`, `match`, and constructor-aware checks still do not fit
 the current failure boundary cleanly.
 
+## Selected This Cycle
+
+1. keep the current builder contract as the permanent `uvu` source shape
+2. add host-readable `inBand(...)`, `bail(...)`, and
+   `continueOnFailure(...)` helpers to top-level `test` and `UvuSuite`
+3. reinterpret `exec(bail?)` as root-level `bail` hint lowering only
+4. keep `.run()` as a compatibility no-op
+5. revisit richer `uvu/assert` helpers after the hint surface ships
+
 ## Suggested Future Order
 
-1. decide whether exact callable-suite source compatibility is worth a transform
-2. if yes, prototype rewrite-based `suite()` call-shape preservation
-3. if not, freeze the current builder contract as the permanent `uvu` policy
-4. revisit crumb/context parity only after that decision
-5. keep async and richer `uvu/assert` helpers deferred until the project-wide
-   runtime contract changes
+1. ship the selected hint helpers and `exec(bail?)` lowering
+2. add CLI and shared smoke proof for guest-authored `uvu` hints
+3. revisit richer `uvu/assert` helpers that fit the current shared failure model
+4. revisit crumb/context parity only if the callback-model divergence becomes a
+   practical blocker
+5. keep async behavior deferred until the project-wide runtime contract changes
 
 ## Sources
 
