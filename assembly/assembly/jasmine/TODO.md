@@ -1,6 +1,6 @@
 # `jasmine` Adapter TODO
 
-Status: planned, not in `v0.1.0`.
+Status: planned for the `v0.4.0` slice after `mocha`.
 
 First slice:
 
@@ -13,3 +13,4 @@ Current non-goals:
 
 - spies and call-tracking assertions
 - async/Promise completion helpers
+- custom matcher registration

@@ -1,6 +1,6 @@
 # `uvu` Adapter TODO
 
-Status: planned, not in `v0.1.0`.
+Status: planned later, explicitly deferred from the committed `v0.4.0` slice.
 
 First slice:
 
