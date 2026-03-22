@@ -6,6 +6,14 @@ import { expect, test } from "bun:test";
 import { resolveRunEntrypointBaseDirectory } from "./run";
 
 const cliEntrypointPath = join(import.meta.dir, "index.ts");
+const wazeroAddonPath = join(
+	import.meta.dir,
+	"..",
+	"harness",
+	"wazero",
+	"dist",
+	"wazero.node",
+);
 const wasmtimeAddonPath = join(
 	import.meta.dir,
 	"..",
@@ -23,7 +31,7 @@ type CliRunResult = {
 
 const dependencyCliHarnesses = [
 	"js",
-	"wazero",
+	...(existsSync(wazeroAddonPath) ? ["wazero"] : []),
 	...(existsSync(wasmtimeAddonPath) ? ["wasmtime"] : []),
 ] as const;
 

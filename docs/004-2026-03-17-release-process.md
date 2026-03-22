@@ -16,8 +16,6 @@ Operational flow for shipping `as-harness` through GitHub:
 - `wasmtime` is source-only
 - explicit Node.js 22 baseline
 - Bun `1.3.11` build baseline for packaged artifacts and CI
-- Linux `wazero` packaged verification currently runs the host in-band by
-  default for stability unless `AS_HARNESS_WAZERO_PARALLEL=1` is set
 
 ## Targets
 

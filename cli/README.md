@@ -36,8 +36,6 @@ Default reporting summarizes:
 - shared run metadata is a required `start()` snapshot that mirrors the top-level summary fields and keeps the underlying planner code plus the concise issue label on `planIssues` and `blocked`
 - coverage after execution (when enabled)
 
-Linux `wazero` defaults to in-band `start()` execution because the native worker-thread path has been flaky on hosted runners. Set `AS_HARNESS_WAZERO_PARALLEL=1` to re-enable worker-thread execution when you need to probe that path explicitly.
-
 ## Bundled Libraries
 
 - `as-harness`: native scheduler-aware declarations, `sequential(...)` groups, chainable `dependsOn(...)` handles, and shared `TestContext.assert`.
