@@ -27,6 +27,9 @@ const { decorateHarness } = sharedStartModule as {
 	decorateHarness(harness: Harness, options: DecorateHarnessOptions): Harness;
 };
 const runtimeModulePath = fileURLToPath(import.meta.url);
+const sourceWorkerModulePath = fileURLToPath(
+	new URL("./wazero-source-worker.cjs", import.meta.url),
+);
 let cachedHarnessModule: WazeroHarnessModule | null = null;
 let bundledAddonTempDirectory: string | null = null;
 
@@ -154,18 +157,8 @@ function createSourceWazeroHarness(wasmBytes: Uint8Array) {
 			return nativeHarnessModule.createHarness(Buffer.from(localBytes));
 		},
 		runInBand: false,
-		workerModulePath: runtimeModulePath,
+		workerModulePath: sourceWorkerModulePath,
 	});
-}
-
-export function createHarness(wasmBytes: Uint8Array) {
-	if (typeof WAZERO_TARGET === "undefined") {
-		traceWazero("resolving source wazero harness module");
-		return createSourceWazeroHarness(wasmBytes);
-	}
-
-	traceWazero("resolving bundled wazero harness module");
-	return createBundledWazeroHarness(wasmBytes);
 }
 
 export const wazeroRuntime: Runtime = {
@@ -173,5 +166,13 @@ export const wazeroRuntime: Runtime = {
 	mutateCompilerArguments(compilerArguments) {
 		setCompilerOptionValue(compilerArguments, "--exportStart", "__start");
 	},
-	createHarness,
+	createHarness(wasmBytes) {
+		if (typeof WAZERO_TARGET === "undefined") {
+			traceWazero("resolving source wazero harness module");
+			return createSourceWazeroHarness(wasmBytes);
+		}
+
+		traceWazero("resolving bundled wazero harness module");
+		return createBundledWazeroHarness(wasmBytes);
+	},
 };
