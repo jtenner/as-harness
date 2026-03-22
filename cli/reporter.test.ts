@@ -16,6 +16,8 @@ function createNode(name: string, declarationOrder = 0, expectFailure = false) {
 		parentNodeId: 0,
 		declarationOrder,
 		sequenceMode: 0,
+		preferredRunnerMode: 0,
+		preferredFailurePolicy: 0,
 		only: false,
 		expectFailure,
 		kind: 1,
@@ -261,6 +263,70 @@ test("defaultRunReporter uses concise copy for cycle and missing-prerequisite ou
 	expect(messages.error).toContain("  issue: dependency cycle (id:1)");
 	expect(messages.error).toContain(
 		"  issue: missing prerequisite (id:2 <- nodeId:7)",
+	);
+});
+
+test("defaultRunReporter renders bail policy blocks with the shipped concise label", () => {
+	const messages = {
+		error: [] as string[],
+		info: [] as string[],
+	};
+	const logger: ReporterLogger = {
+		error(message) {
+			messages.error.push(message);
+		},
+		info(message) {
+			messages.info.push(message);
+		},
+	};
+	const report = createHarnessRunReport(
+		createStartResult({
+			ok: false,
+			discoveryOk: true,
+			planningOk: true,
+			discoveredTestCount: 2,
+			topLevelNodes: [createNode("root", 0)],
+			workerCount: 2,
+			branches: [
+				{
+					root: createNode("root", 0),
+					discovery: {
+						ok: true,
+						nodes: [createNode("root", 0)],
+						testCount: 0,
+					},
+					executions: [],
+					ok: false,
+				},
+			],
+			planIssues: [
+				{
+					type: "bailed",
+					issueLabel: "stopped after failure",
+					targetIdentityKey: "id:4",
+					dependencyIdentityKey: "id:3",
+				},
+			],
+			blocked: [
+				{
+					node: createNode("bailed test", 1),
+					issueType: "bailed",
+					issueLabel: "stopped after failure",
+					dependencyIdentityKey: "id:3",
+				},
+			],
+			coverage: null,
+		}),
+	);
+
+	defaultRunReporter.accept(report, {
+		harnessName: "js",
+		logger,
+	});
+
+	expect(messages.error).toContain("  blocked: stopped after failure (id:3)");
+	expect(messages.error).toContain(
+		"  issue: stopped after failure (id:4 <- id:3)",
 	);
 });
 

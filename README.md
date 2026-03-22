@@ -6,10 +6,10 @@
 
 Implemented:
 
-- Native `as-harness` declarations with sequential groups and chainable `dependsOn(...)` handles.
+- Native `as-harness` declarations with sequential groups, chainable `dependsOn(...)` handles, and host-owned `inBand(...)` / `bail(...)` / `continueOnFailure(...)` hints.
 - `as-harness list` for discovering test entry files.
 - `as-harness run` for compile + execute.
-- Synchronous `node:test` declarations with `dependsOn(...)` chains.
+- Synchronous `node:test` declarations with `dependsOn(...)` chains and the same host-owned planning hints.
 - `node:assert` / `node:assert/strict` bridge support.
 - Built-in thin adapters for `jest`, `mocha`, `jasmine`, and `vitest`.
 - Built-in `uvu` adapter plus the shared `uvu/assert` subset.
@@ -47,16 +47,18 @@ The runtime enforces scheduler semantics from discovered metadata:
 - duplicate dependency edges collapse.
 - `skip`, `todo`, `only`-filtered, and failing prerequisites block dependents transitively.
 - `expectFailure` satisfies dependents only when it fails as intended.
+- `bail` stops the remaining nearest hinted scope after the first unsatisfied execution while leaving unrelated work runnable.
+- `inBand` keeps the nearest hinted scope on the main-thread execution lane while unrelated ready work can still use worker fanout.
 - dependency cycles block all cycle members with `dependency-cycle` diagnostics.
-- CLI reports blocked outcomes as concise `blocked by prerequisite`, `missing prerequisite`, and `dependency cycle` messages.
+- CLI reports blocked outcomes as concise `blocked by prerequisite`, `missing prerequisite`, `dependency cycle`, and `stopped after failure` messages.
 - shared `start()` results always include a required `metadata` snapshot that mirrors the top-level summary fields and preserves both machine-readable planner codes and concise issue labels on `planIssues` and `blocked`.
 - when multiple runnable tests are ready, declaration order is the stable tie-breaker.
 - the shipped `start()` scheduler is deterministic for ordering and uses same-machine worker slots for ready work when available.
 
 ## API Surface
 
-- `as-harness`: native scheduler-aware declarations, `sequential(...)` groups, chainable handles, and shared `TestContext.assert`.
-- `node:test`: core declarations, hooks, sync contexts, and assertion binding.
+- `as-harness`: native scheduler-aware declarations, `sequential(...)` groups, chainable handles, host-owned `inBand(...)` / `bail(...)` / `continueOnFailure(...)` hints, and shared `TestContext.assert`.
+- `node:test`: core declarations, hooks, sync contexts, assertion binding, and the same host-owned planning hints.
 - `node:assert`, `node:assert/strict`: synchronous assertions and strict-bridge tests.
 - `uvu`: sync top-level `test` hooks, `suite(...)` builder objects, `.run()` / `exec()` compatibility no-ops, and the shared `TestContext` callback model.
 - `uvu/assert`: shared assertion subset: `ok`, `is`, `equal`, `not`, `is.not`, `not.equal`, and `unreachable`.

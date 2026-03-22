@@ -13,6 +13,9 @@ const DECLARATION_MODE_NORMAL = 1;
 const NODE_IDENTITY_KEY = Symbol("nodeIdentityKey");
 const NODE_PARENT_IDENTITY_KEY = Symbol("nodeParentIdentityKey");
 const SEQUENCE_MODE_SEQUENTIAL = 1;
+const RUNNER_MODE_IN_BAND = 1;
+const FAILURE_POLICY_CONTINUE = 1;
+const FAILURE_POLICY_BAIL = 2;
 const EVENT_TYPES = [
 	["onNodeFound", "nodeFound"],
 	["onNodeStart", "nodeStart"],
@@ -504,30 +507,79 @@ function runBranchTaskInBand(options, task) {
 	}
 }
 
-async function runExecutionTasks(options, tasks, workerCount = 1) {
-	if (tasks.length === 0) {
-		return [];
-	}
-
-	if (options.runInBand === true || workerCount <= 1) {
-		return tasks.map((task) => runBranchTaskInBand(options, task));
-	}
-
-	return runTasksInWorkerPool(
-		options.workerModulePath,
-		options.bytes,
-		"runBranch",
-		tasks,
-		workerCount,
+function createExecutionTarget(
+	branchIndex,
+	executionIndex,
+	node,
+	nodesByIdentity,
+) {
+	const runnerModeHint = resolveNearestHint(
+		node,
+		nodesByIdentity,
+		"preferredRunnerMode",
+		0,
 	);
-}
+	const failurePolicyHint = resolveNearestHint(
+		node,
+		nodesByIdentity,
+		"preferredFailurePolicy",
+		0,
+	);
 
-function createExecutionTarget(branchIndex, executionIndex, node) {
 	return {
 		branchIndex,
 		executionIndex,
 		identityKey: getNodeIdentityKey(node),
 		node,
+		preferredRunnerMode: runnerModeHint.value,
+		preferredRunnerModeScopeIdentityKey: runnerModeHint.scopeIdentityKey,
+		preferredFailurePolicy: failurePolicyHint.value,
+		preferredFailurePolicyScopeIdentityKey: failurePolicyHint.scopeIdentityKey,
+	};
+}
+
+function createBranchNodeIdentityMap(branch) {
+	const nodesByIdentity = new Map();
+
+	for (const node of Array.isArray(branch?.discovery?.nodes)
+		? branch.discovery.nodes
+		: []) {
+		nodesByIdentity.set(getNodeIdentityKey(node), node);
+	}
+
+	return nodesByIdentity;
+}
+
+function resolveNearestHint(
+	node,
+	nodesByIdentity,
+	fieldName,
+	inheritValue = 0,
+) {
+	let cursor = node || null;
+
+	while (cursor !== null) {
+		const value =
+			typeof cursor?.[fieldName] === "number"
+				? cursor[fieldName] >>> 0
+				: inheritValue;
+		if (value !== inheritValue) {
+			return {
+				value,
+				scopeIdentityKey: getNodeIdentityKey(cursor),
+			};
+		}
+
+		const parentIdentityKey = getNodeParentIdentityKey(cursor);
+		cursor =
+			parentIdentityKey.length > 0
+				? nodesByIdentity.get(parentIdentityKey) || null
+				: null;
+	}
+
+	return {
+		value: inheritValue,
+		scopeIdentityKey: "",
 	};
 }
 
@@ -649,12 +701,18 @@ function createExecutionTargetMap(branches) {
 
 	for (const branch of branches) {
 		const runnableTests = listRunnableTests(branch.discovery.nodes);
+		const nodesByIdentity = createBranchNodeIdentityMap(branch);
 		branch.executions = new Array(runnableTests.length);
 		const branchTargets = [];
 
 		for (let index = 0; index < runnableTests.length; index += 1) {
 			const node = runnableTests[index];
-			const target = createExecutionTarget(branch.index, index, node);
+			const target = createExecutionTarget(
+				branch.index,
+				index,
+				node,
+				nodesByIdentity,
+			);
 			targets.push(target);
 			targetsByIdentity.set(target.identityKey, target);
 			if (typeof node?.nodeId === "number" && node.nodeId > 0) {
@@ -777,6 +835,8 @@ function createPlanIssue(type, targetIdentityKey, dependencyIdentityKey = "") {
 
 function formatIssueLabel(type) {
 	switch (type) {
+		case "bailed":
+			return "stopped after failure";
 		case "blocked-dependency":
 			return "blocked by prerequisite";
 		case "missing-dependency":
@@ -786,6 +846,29 @@ function formatIssueLabel(type) {
 		default:
 			return type;
 	}
+}
+
+function isPlanningIssueType(type) {
+	return type !== "bailed";
+}
+
+function appendBlockedTarget(
+	blockedTargets,
+	blockedKeys,
+	outcomesByIdentity,
+	issues,
+	target,
+	type,
+	dependencyIdentityKey = "",
+) {
+	if (!target || blockedKeys.has(target.identityKey)) {
+		return;
+	}
+
+	blockedTargets.push(target);
+	blockedKeys.add(target.identityKey);
+	outcomesByIdentity.set(target.identityKey, "blocked");
+	issues.push(createPlanIssue(type, target.identityKey, dependencyIdentityKey));
 }
 
 function propagateBlockedTargets(initialBlockedKeys, adjacency) {
@@ -917,6 +1000,204 @@ function createPlanSuccessorMap(adjacency, blockedTargets) {
 	return successorsByIdentity;
 }
 
+function createStageExecutionBatch(
+	stageTargets,
+	blockedKeys,
+	outcomesByIdentity,
+) {
+	const batch = [];
+	const activeBailScopes = new Set();
+
+	for (const target of stageTargets) {
+		if (
+			!target ||
+			blockedKeys.has(target.identityKey) ||
+			outcomesByIdentity.has(target.identityKey)
+		) {
+			continue;
+		}
+
+		if (
+			target.preferredFailurePolicy === FAILURE_POLICY_BAIL &&
+			typeof target.preferredFailurePolicyScopeIdentityKey === "string" &&
+			target.preferredFailurePolicyScopeIdentityKey.length > 0
+		) {
+			if (activeBailScopes.has(target.preferredFailurePolicyScopeIdentityKey)) {
+				continue;
+			}
+
+			activeBailScopes.add(target.preferredFailurePolicyScopeIdentityKey);
+		}
+
+		batch.push(target);
+	}
+
+	return batch;
+}
+
+function runSingleTargetInBand(options, target) {
+	return runBranchTaskInBand(options, {
+		runTargets: [target.node],
+	});
+}
+
+async function runExecutionBatch(options, stageTargets) {
+	if (stageTargets.length === 0) {
+		return {
+			results: [],
+			workerCount: 0,
+		};
+	}
+
+	if (options.runInBand === true) {
+		return {
+			results: stageTargets.map((target) =>
+				runSingleTargetInBand(options, target),
+			),
+			workerCount: 1,
+		};
+	}
+
+	const workerTargets = [];
+	const workerIndexes = [];
+	const inBandTargets = [];
+	const inBandIndexes = [];
+
+	for (let index = 0; index < stageTargets.length; index += 1) {
+		const target = stageTargets[index];
+		if (target.preferredRunnerMode === RUNNER_MODE_IN_BAND) {
+			inBandTargets.push(target);
+			inBandIndexes.push(index);
+			continue;
+		}
+
+		workerTargets.push(target);
+		workerIndexes.push(index);
+	}
+
+	const workerPoolCount = getParallelWorkerCount(workerTargets.length);
+	if (workerTargets.length === 0) {
+		return {
+			results: stageTargets.map((target) =>
+				runSingleTargetInBand(options, target),
+			),
+			workerCount: 1,
+		};
+	}
+
+	if (inBandTargets.length === 0 && workerPoolCount <= 1) {
+		return {
+			results: stageTargets.map((target) =>
+				runSingleTargetInBand(options, target),
+			),
+			workerCount: 1,
+		};
+	}
+
+	const results = new Array(stageTargets.length);
+	const workerPromise =
+		workerTargets.length > 0
+			? runTasksInWorkerPool(
+					options.workerModulePath,
+					options.bytes,
+					"runBranch",
+					workerTargets.map((target) => ({
+						runTargets: [target.node],
+					})),
+					workerPoolCount,
+				)
+			: Promise.resolve([]);
+
+	for (let index = 0; index < inBandTargets.length; index += 1) {
+		results[inBandIndexes[index]] = runSingleTargetInBand(
+			options,
+			inBandTargets[index],
+		);
+	}
+
+	const workerResults = await workerPromise;
+	for (let index = 0; index < workerResults.length; index += 1) {
+		results[workerIndexes[index]] = workerResults[index];
+	}
+
+	return {
+		results,
+		workerCount: workerPoolCount + (inBandTargets.length > 0 ? 1 : 0),
+	};
+}
+
+function blockDependentTargets(
+	sourceTarget,
+	successorsByIdentity,
+	targetsByIdentity,
+	blockedTargets,
+	blockedKeys,
+	outcomesByIdentity,
+	issues,
+) {
+	const queue = [...(successorsByIdentity.get(sourceTarget.identityKey) || [])];
+	while (queue.length > 0) {
+		const successorIdentityKey = queue.shift();
+		if (!successorIdentityKey || blockedKeys.has(successorIdentityKey)) {
+			continue;
+		}
+
+		const successorTarget = targetsByIdentity.get(successorIdentityKey) || null;
+		if (successorTarget !== null) {
+			appendBlockedTarget(
+				blockedTargets,
+				blockedKeys,
+				outcomesByIdentity,
+				issues,
+				successorTarget,
+				"blocked-dependency",
+				sourceTarget.identityKey,
+			);
+		}
+		queue.push(...(successorsByIdentity.get(successorIdentityKey) || []));
+	}
+}
+
+function blockBailedTargets(
+	sourceTarget,
+	targetsByIdentity,
+	blockedTargets,
+	blockedKeys,
+	outcomesByIdentity,
+	issues,
+) {
+	if (
+		sourceTarget.preferredFailurePolicy !== FAILURE_POLICY_BAIL ||
+		typeof sourceTarget.preferredFailurePolicyScopeIdentityKey !== "string" ||
+		sourceTarget.preferredFailurePolicyScopeIdentityKey.length === 0
+	) {
+		return;
+	}
+
+	for (const candidateTarget of targetsByIdentity.values()) {
+		if (
+			candidateTarget.identityKey === sourceTarget.identityKey ||
+			blockedKeys.has(candidateTarget.identityKey) ||
+			outcomesByIdentity.has(candidateTarget.identityKey) ||
+			candidateTarget.preferredFailurePolicy !== FAILURE_POLICY_BAIL ||
+			candidateTarget.preferredFailurePolicyScopeIdentityKey !==
+				sourceTarget.preferredFailurePolicyScopeIdentityKey
+		) {
+			continue;
+		}
+
+		appendBlockedTarget(
+			blockedTargets,
+			blockedKeys,
+			outcomesByIdentity,
+			issues,
+			candidateTarget,
+			"bailed",
+			sourceTarget.identityKey,
+		);
+	}
+}
+
 function planExecutionStages(branches) {
 	const {
 		targets,
@@ -990,6 +1271,7 @@ function planExecutionStages(branches) {
 			adjacency,
 			targets.filter((target) => blockedKeys.has(target.identityKey)),
 		),
+		targets,
 		targetsByIdentity,
 		targetCount: targets.length,
 	};
@@ -1022,44 +1304,45 @@ function evaluatePlannedExecution(plan, executionsByIdentity = new Map()) {
 		plan?.successorsByIdentity instanceof Map
 			? plan.successorsByIdentity
 			: new Map();
+	const targetsByIdentity =
+		plan?.targetsByIdentity instanceof Map ? plan.targetsByIdentity : new Map();
 
 	for (const stage of stages) {
-		for (const target of stage) {
-			if (blockedKeys.has(target.identityKey)) {
-				continue;
+		while (true) {
+			const batchTargets = createStageExecutionBatch(
+				stage,
+				blockedKeys,
+				outcomesByIdentity,
+			);
+			if (batchTargets.length === 0) {
+				break;
 			}
 
-			const execution = executionsByIdentity.get(target.identityKey) || null;
-			const outcome = classifyDependencyOutcome(target, execution);
-			outcomesByIdentity.set(target.identityKey, outcome);
-			if (outcome === "satisfied") {
-				continue;
-			}
-
-			const queue = [...(successorsByIdentity.get(target.identityKey) || [])];
-			while (queue.length > 0) {
-				const successorIdentityKey = queue.shift();
-				if (!successorIdentityKey || blockedKeys.has(successorIdentityKey)) {
+			for (const target of batchTargets) {
+				const execution = executionsByIdentity.get(target.identityKey) || null;
+				const outcome = classifyDependencyOutcome(target, execution);
+				outcomesByIdentity.set(target.identityKey, outcome);
+				if (outcome === "satisfied") {
 					continue;
 				}
 
-				const successorTarget =
-					plan?.targetsByIdentity instanceof Map
-						? plan.targetsByIdentity.get(successorIdentityKey) || null
-						: null;
-				if (successorTarget !== null) {
-					blockedTargets.push(successorTarget);
-				}
-				blockedKeys.add(successorIdentityKey);
-				outcomesByIdentity.set(successorIdentityKey, "blocked");
-				issues.push(
-					createPlanIssue(
-						"blocked-dependency",
-						successorIdentityKey,
-						target.identityKey,
-					),
+				blockDependentTargets(
+					target,
+					successorsByIdentity,
+					targetsByIdentity,
+					blockedTargets,
+					blockedKeys,
+					outcomesByIdentity,
+					issues,
 				);
-				queue.push(...(successorsByIdentity.get(successorIdentityKey) || []));
+				blockBailedTargets(
+					target,
+					targetsByIdentity,
+					blockedTargets,
+					blockedKeys,
+					outcomesByIdentity,
+					issues,
+				);
 			}
 		}
 	}
@@ -1154,66 +1437,53 @@ async function executePlannedStages(options, branches, plan) {
 	}
 
 	for (const stage of Array.isArray(plan?.stages) ? plan.stages : []) {
-		const stageTargets = stage.filter(
-			(target) => !blockedKeys.has(target.identityKey),
-		);
-		if (stageTargets.length === 0) {
-			continue;
-		}
-
-		const stageWorkerCount =
-			options.runInBand === true
-				? 1
-				: getParallelWorkerCount(stageTargets.length);
-
-		const executionGroups = await runExecutionTasks(
-			options,
-			stageTargets.map((target) => ({
-				runTargets: [target.node],
-			})),
-			stageWorkerCount,
-		);
-		workerCount = Math.max(workerCount, stageWorkerCount);
-
-		for (let index = 0; index < stageTargets.length; index += 1) {
-			const target = stageTargets[index];
-			const executionGroup = executionGroups[index] || null;
-			const branch = branches[target.branchIndex];
-			const execution = executionGroup?.executions?.[0] || null;
-			branch.executions[target.executionIndex] = execution;
-			if (executionGroup?.coverage) {
-				branch.coverageSnapshots = branch.coverageSnapshots || [];
-				branch.coverageSnapshots.push(executionGroup.coverage);
+		while (true) {
+			const batchTargets = createStageExecutionBatch(
+				stage,
+				blockedKeys,
+				outcomesByIdentity,
+			);
+			if (batchTargets.length === 0) {
+				break;
 			}
 
-			const outcome = classifyDependencyOutcome(target, execution);
-			outcomesByIdentity.set(target.identityKey, outcome);
-			if (outcome === "satisfied") {
-				continue;
-			}
+			const batchExecution = await runExecutionBatch(options, batchTargets);
+			workerCount = Math.max(workerCount, batchExecution.workerCount);
 
-			const queue = [...(successorsByIdentity.get(target.identityKey) || [])];
-			while (queue.length > 0) {
-				const successorIdentityKey = queue.shift();
-				if (!successorIdentityKey || blockedKeys.has(successorIdentityKey)) {
+			for (let index = 0; index < batchTargets.length; index += 1) {
+				const target = batchTargets[index];
+				const executionGroup = batchExecution.results[index] || null;
+				const branch = branches[target.branchIndex];
+				const execution = executionGroup?.executions?.[0] || null;
+				branch.executions[target.executionIndex] = execution;
+				if (executionGroup?.coverage) {
+					branch.coverageSnapshots = branch.coverageSnapshots || [];
+					branch.coverageSnapshots.push(executionGroup.coverage);
+				}
+
+				const outcome = classifyDependencyOutcome(target, execution);
+				outcomesByIdentity.set(target.identityKey, outcome);
+				if (outcome === "satisfied") {
 					continue;
 				}
 
-				const successorTarget =
-					targetsByIdentity.get(successorIdentityKey) || null;
-				if (successorTarget !== null) {
-					blockedTargets.push(successorTarget);
-				}
-				blockedKeys.add(successorIdentityKey);
-				outcomesByIdentity.set(successorIdentityKey, "blocked");
-				issues.push(
-					createPlanIssue(
-						"blocked-dependency",
-						successorIdentityKey,
-						target.identityKey,
-					),
+				blockDependentTargets(
+					target,
+					successorsByIdentity,
+					targetsByIdentity,
+					blockedTargets,
+					blockedKeys,
+					outcomesByIdentity,
+					issues,
 				);
-				queue.push(...(successorsByIdentity.get(successorIdentityKey) || []));
+				blockBailedTargets(
+					target,
+					targetsByIdentity,
+					blockedTargets,
+					blockedKeys,
+					outcomesByIdentity,
+					issues,
+				);
 			}
 		}
 	}
@@ -1289,7 +1559,9 @@ async function startHarness(options) {
 	const blocked = evaluatedExecution.blockedTargets.map((target) =>
 		toBlockedNode(target, blockedIssueMap.get(target.identityKey) || null),
 	);
-	const planningOk = evaluatedExecution.issues.length === 0;
+	const planningOk = evaluatedExecution.issues.every(
+		(issue) => !isPlanningIssueType(issue?.type || ""),
+	);
 	if (!planningOk || blocked.length > 0) {
 		ok = false;
 	}

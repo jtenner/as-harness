@@ -34,19 +34,20 @@ Default reporting summarizes:
 
 - counts, passes/failures, and diagnostics
 - planner status from `discoveryOk`, `planningOk`, and `workerCount`
-- blocked runs rendered as `missing prerequisite`, `blocked by prerequisite`, and `dependency cycle`
+- blocked runs rendered as `missing prerequisite`, `blocked by prerequisite`, `dependency cycle`, and `stopped after failure`
 - shared run metadata is a required `start()` snapshot that mirrors the top-level summary fields and keeps the underlying planner code plus the concise issue label on `planIssues` and `blocked`
 - coverage after execution (when enabled)
 
 ## Bundled Libraries
 
-- `as-harness`: native scheduler-aware declarations, `sequential(...)` groups, chainable `dependsOn(...)` handles, and shared `TestContext.assert`.
+- `as-harness`: native scheduler-aware declarations, `sequential(...)` groups, chainable `dependsOn(...)` handles, host-owned `inBand(...)` / `bail(...)` / `continueOnFailure(...)` hints, and shared `TestContext.assert`.
 - `uvu`: sync top-level `test` hooks, `suite(...)` builder objects, `.run()` / `exec()` no-ops under host-owned execution, and shared `TestContext` callbacks.
 - `uvu/assert`: shared assertion subset: `ok`, `is`, `equal`, `not`, `is.not`, `not.equal`, and `unreachable`.
 - `jasmine`: sync declarations, focus/exclude aliases, core hooks, `fail(...)`, and a narrow shared matcher slice.
 - `jest`: thin sync declarations + shared assertion set (containment, length/size, numeric, `toThrow`, strict equality helpers).
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks for diagnostics and assertions.
 - `vitest`: sync declarations, low-risk `sequential` aliases, `fails`, `skipIf` / `runIf`, `assertType(...)`, and the same shared matcher set.
+- `node:test`: sync declarations, hooks, `dependsOn(...)`, and the same host-owned planning hints.
 
 See their interface docs:
 

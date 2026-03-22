@@ -22,8 +22,10 @@ Host owns scheduling, aggregation, and reporting.
 
 ## Scope
 
-- native `as-harness` declarations, sequential groups, and chainable handles
-- synchronous `node:test`, chainable declarations, core hooks
+- native `as-harness` declarations, sequential groups, chainable handles, and
+  host-owned `inBand(...)` / `bail(...)` / `continueOnFailure(...)` hints
+- synchronous `node:test`, chainable declarations, core hooks, and the same
+  host-owned planning hints
 - thin `jest`, `mocha`, `jasmine`, `uvu`, and `vitest` adapters
 - shared `uvu/assert` subset for assertion reuse
 - `node:assert` / `node:assert/strict` bridge + trampoline trap observation

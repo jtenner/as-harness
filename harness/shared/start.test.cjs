@@ -755,6 +755,114 @@ test("evaluatePlannedExecution keeps unrelated work satisfied while blocking onl
 	);
 });
 
+test("evaluatePlannedExecution applies bail only within the nearest hinted scope", () => {
+	const root = createPlannerNode({
+		identityKey: "id:130",
+		nodeId: 130,
+		declarationOrder: 0,
+		kind: 2,
+		name: "root suite",
+	});
+	const bailSuite = createPlannerNode({
+		identityKey: "id:130/id:131",
+		parentIdentityKey: "id:130",
+		nodeId: 131,
+		parentNodeId: 130,
+		declarationOrder: 1,
+		kind: 2,
+		preferredFailurePolicy: 2,
+		name: "bail suite",
+	});
+	const failingLeaf = createPlannerNode({
+		identityKey: "id:130/id:131/id:132",
+		parentIdentityKey: "id:130/id:131",
+		nodeId: 132,
+		parentNodeId: 131,
+		declarationOrder: 2,
+		name: "failing leaf",
+	});
+	const bailedSibling = createPlannerNode({
+		identityKey: "id:130/id:131/id:133",
+		parentIdentityKey: "id:130/id:131",
+		nodeId: 133,
+		parentNodeId: 131,
+		declarationOrder: 3,
+		name: "bailed sibling",
+	});
+	const continueSuite = createPlannerNode({
+		identityKey: "id:130/id:131/id:134",
+		parentIdentityKey: "id:130/id:131",
+		nodeId: 134,
+		parentNodeId: 131,
+		declarationOrder: 4,
+		kind: 2,
+		preferredFailurePolicy: 1,
+		name: "continue suite",
+	});
+	const continuedLeaf = createPlannerNode({
+		identityKey: "id:130/id:131/id:134/id:135",
+		parentIdentityKey: "id:130/id:131/id:134",
+		nodeId: 135,
+		parentNodeId: 134,
+		declarationOrder: 5,
+		name: "continued leaf",
+	});
+	const unrelatedLeaf = createPlannerNode({
+		identityKey: "id:130/id:136",
+		parentIdentityKey: "id:130",
+		nodeId: 136,
+		parentNodeId: 130,
+		declarationOrder: 6,
+		name: "unrelated leaf",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [
+			root,
+			bailSuite,
+			failingLeaf,
+			bailedSibling,
+			continueSuite,
+			continuedLeaf,
+			unrelatedLeaf,
+		]),
+	]);
+	const evaluated = evaluatePlannedExecution(
+		plan,
+		new Map([
+			["id:130/id:131/id:132", { ok: false }],
+			["id:130/id:131/id:133", { ok: true }],
+			["id:130/id:131/id:134/id:135", { ok: true }],
+			["id:130/id:136", { ok: true }],
+		]),
+	);
+
+	assert.equal(
+		evaluated.outcomesByIdentity.get("id:130/id:131/id:132"),
+		"unsatisfied",
+	);
+	assert.equal(
+		evaluated.outcomesByIdentity.get("id:130/id:131/id:133"),
+		"blocked",
+	);
+	assert.equal(
+		evaluated.outcomesByIdentity.get("id:130/id:131/id:134/id:135"),
+		"satisfied",
+	);
+	assert.equal(evaluated.outcomesByIdentity.get("id:130/id:136"), "satisfied");
+	assert.deepEqual(
+		evaluated.issues.filter((issue) => issue.type === "bailed"),
+		[
+			{
+				type: "bailed",
+				issueLabel: "stopped after failure",
+				targetIdentityKey: "id:130/id:131/id:133",
+				dependencyIdentityKey: "id:130/id:131/id:132",
+			},
+		],
+	);
+});
+
 test("evaluatePlannedExecution blocks downstream dependents after an unsatisfied prerequisite", () => {
 	const root = createPlannerNode({
 		identityKey: "id:40",

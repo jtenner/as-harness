@@ -4,9 +4,9 @@
 
 ### Blockers
 
-- decide the first supported host-owned hint scopes for `bail` and `in-band`
-  execution so planner behavior is deterministic across `js`, `wazero`, and
-  `wasmtime`.
+- update the ABI and runtime-contract docs for the now-shipped
+  `preferredFailurePolicy` and `preferredRunnerMode` semantics before adapters
+  grow more lowering on top of them.
 
 ### Risks
 
@@ -25,9 +25,8 @@
 
 - update the guest/runtime/host ABI docs so hint ownership boundaries are
   explicit and stable.
-- implement first-pass host fallback and scope semantics for
-  `preferredFailurePolicy` and `preferredRunnerMode` now that the shared
-  metadata fields ship end to end through discovery.
+- decide whether ignored hints should stay silent or surface as informational
+  metadata once more adapters start lowering into the shared hint model.
 
 ### Runtime: Shared Guest Constraints
 
@@ -39,18 +38,6 @@
   silently ignoring them.
 - preserve declaration-order tie-breaking and same-machine ready-work fanout
   after constraint lowering.
-
-### Runtime: Host Planner
-
-- teach `harness/shared/start.cjs` to read guest hints while keeping the host
-  as the sole planner and execution orchestrator.
-- implement first-pass host handling for `bail` hints with a clearly scoped
-  subtree or branch boundary.
-- implement first-pass host handling for `in-band` hints so selected work stays
-  off worker fanout while unrelated ready work can still parallelize when safe.
-- document deterministic fallback behavior when unsupported hints are ignored.
-- keep `start().metadata`, blocked reporting, and plan issue semantics coherent
-  after hint-aware planning lands.
 
 ### Runtime: Native Guest APIs
 
@@ -89,14 +76,11 @@
 
 ### Proof
 
-- add shared planner tests for hint honoring, hint fallback, and invalid
-  constraint diagnostics.
-- add shared smoke proof showing guest-declared constraints still run through
-  host-owned scheduling and worker-slot planning.
-- add CLI proof for any user-visible hint or constraint effects on execution
-  order, blocked runs, or failure summarization.
-- keep `js`, `wazero`, and `wasmtime` parity proof in place for all new
-  planner behavior.
+- add CLI proof for guest-authored `bail` / `in-band` hints through a
+  user-facing compile-and-run path instead of only shared planner and host
+  smoke fixtures.
+- keep `js`, `wazero`, and `wasmtime` parity proof in place as adapters start
+  lowering framework-shaped controls onto the shared hint model.
 
 ### Docs
 
