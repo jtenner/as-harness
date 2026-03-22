@@ -72,10 +72,6 @@
 
 ### Proof
 
-- add shared smoke and CLI proof for `uvu`-authored `bail` / `in-band` hints.
-- add CLI proof for guest-authored `bail` / `in-band` hints through a
-  user-facing compile-and-run path instead of only shared planner and host
-  smoke fixtures.
 - keep `js`, `wazero`, and `wasmtime` parity proof in place as adapters start
   lowering framework-shaped controls onto the shared hint model.
 

@@ -471,11 +471,10 @@ the current failure boundary cleanly.
 
 ## Suggested Future Order
 
-1. add CLI and shared smoke proof for guest-authored `uvu` hints
-2. revisit richer `uvu/assert` helpers that fit the current shared failure model
-3. revisit crumb/context parity only if the callback-model divergence becomes a
+1. revisit richer `uvu/assert` helpers that fit the current shared failure model
+2. revisit crumb/context parity only if the callback-model divergence becomes a
    practical blocker
-4. keep async behavior deferred until the project-wide runtime contract changes
+3. keep async behavior deferred until the project-wide runtime contract changes
 
 ## Sources
 

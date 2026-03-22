@@ -621,6 +621,11 @@ function compileSmokeFixtures(options) {
 			"assembly/test/uvu-smoke.ts",
 			path.join(options.cacheDir, "uvu-smoke.wasm"),
 		),
+		compiledUvuHintsWasm: compileFixture(
+			assemblyDir,
+			"assembly/test/uvu-hints-smoke.ts",
+			path.join(options.cacheDir, "uvu-hints-smoke.wasm"),
+		),
 		compiledNodeTestWasm: compileFixture(
 			assemblyDir,
 			"assembly/test/node-test-smoke.ts",
@@ -710,6 +715,7 @@ function registerHarnessSmokeSuite(options) {
 		compiledExportsWasm,
 		compiledJasmineWasm,
 		compiledMochaWasm,
+		compiledUvuHintsWasm,
 		compiledUvuWasm,
 		compiledNodeTestWasm,
 		compiledVitestWasm,
@@ -1309,8 +1315,8 @@ function registerHarnessSmokeSuite(options) {
 				kind: 2,
 				declarationMode: 1,
 				sequenceMode: 0,
-				preferredRunnerMode: 0,
-				preferredFailurePolicy: 0,
+				preferredRunnerMode: 1,
+				preferredFailurePolicy: 1,
 				dependencyNodeIds: [],
 				only: false,
 				expectFailure: false,
@@ -1326,10 +1332,120 @@ function registerHarnessSmokeSuite(options) {
 				node.kind,
 				node.declarationMode,
 				node.only,
+				node.preferredRunnerMode,
+				node.preferredFailurePolicy,
 			]),
 			[
-				["uvu adapter", 2, 1, false],
-				["focused child", 1, 1, true],
+				["uvu adapter", 2, 1, false, 1, 1],
+				["focused child", 1, 1, true, 0, 0],
+			],
+		);
+
+		closeHarness(harness);
+	});
+
+	test("start() preserves uvu-authored hint metadata and bail blocking", async () => {
+		const harness = createHarness(compiledUvuHintsWasm);
+
+		const result = await harness.start();
+		const branchesByName = new Map(
+			result.branches.map((branch) => [branch.root.name, branch]),
+		);
+
+		assert.equal(result.discoveryOk, true);
+		assert.equal(result.planningOk, true);
+		assert.equal(result.ok, false);
+		assert.equal(result.topLevelNodes.length, 2);
+		assert(result.workerCount >= 1);
+		assert.deepEqual(
+			result.topLevelNodes.map((node) => [
+				node.name,
+				node.kind,
+				node.preferredRunnerMode,
+				node.preferredFailurePolicy,
+			]),
+			[
+				["uvu hinted bail suite", 2, 1, 2],
+				["uvu continue suite", 2, 1, 1],
+			],
+		);
+		assert.deepEqual(
+			result.planIssues.map((issue) => ({
+				type: issue.type,
+				issueLabel: issue.issueLabel,
+				targetIdentityKey: issue.targetIdentityKey,
+				dependencyIdentityKey: issue.dependencyIdentityKey,
+			})),
+			[
+				{
+					type: "bailed",
+					issueLabel: "stopped after failure",
+					targetIdentityKey: "id:1/id:3",
+					dependencyIdentityKey: "id:1/id:2",
+				},
+			],
+		);
+		assert.deepEqual(
+			result.blocked.map((blocked) => ({
+				name: blocked.node.name,
+				preferredRunnerMode: blocked.node.preferredRunnerMode,
+				preferredFailurePolicy: blocked.node.preferredFailurePolicy,
+				issueType: blocked.issueType,
+				issueLabel: blocked.issueLabel,
+				dependencyIdentityKey: blocked.dependencyIdentityKey,
+			})),
+			[
+				{
+					name: "bail blocked child",
+					preferredRunnerMode: 0,
+					preferredFailurePolicy: 0,
+					issueType: "bailed",
+					issueLabel: "stopped after failure",
+					dependencyIdentityKey: "id:1/id:2",
+				},
+			],
+		);
+		assert.deepEqual(
+			branchesByName
+				.get("uvu hinted bail suite")
+				.discovery.nodes.map((node) => [
+					node.name,
+					node.preferredRunnerMode,
+					node.preferredFailurePolicy,
+				]),
+			[
+				["uvu hinted bail suite", 1, 2],
+				["bail failing child", 0, 0],
+				["bail blocked child", 0, 0],
+			],
+		);
+		assert.deepEqual(
+			branchesByName
+				.get("uvu hinted bail suite")
+				.executions.map((execution) => [execution.node.name, execution.ok]),
+			[["bail failing child", false]],
+		);
+		assert.deepEqual(
+			branchesByName
+				.get("uvu continue suite")
+				.discovery.nodes.map((node) => [
+					node.name,
+					node.preferredRunnerMode,
+					node.preferredFailurePolicy,
+				]),
+			[
+				["uvu continue suite", 1, 1],
+				["continue failing child", 0, 0],
+				["continue passing child", 0, 0],
+			],
+		);
+		assert.deepEqual(
+			branchesByName
+				.get("uvu continue suite")
+				.executions.map((execution) => [execution.node.name, execution.ok]),
+			[
+				["continue failing child", false],
+				["continue passing child", true],
 			],
 		);
 
@@ -2024,8 +2140,13 @@ function registerHarnessSmokeSuite(options) {
 		assert.deepEqual(result.planIssues, []);
 		assert.deepEqual(result.blocked, []);
 		assert.deepEqual(
-			result.topLevelNodes.map((node) => [node.name, node.kind]),
-			[["uvu adapter", 2]],
+			result.topLevelNodes.map((node) => [
+				node.name,
+				node.kind,
+				node.preferredRunnerMode,
+				node.preferredFailurePolicy,
+			]),
+			[["uvu adapter", 2, 1, 1]],
 		);
 		assert.deepEqual(
 			branch.discovery.nodes.map((node) => [
@@ -2033,10 +2154,12 @@ function registerHarnessSmokeSuite(options) {
 				node.kind,
 				node.declarationMode,
 				node.only,
+				node.preferredRunnerMode,
+				node.preferredFailurePolicy,
 			]),
 			[
-				["uvu adapter", 2, 1, false],
-				["focused child", 1, 1, true],
+				["uvu adapter", 2, 1, false, 1, 1],
+				["focused child", 1, 1, true, 0, 0],
 			],
 		);
 		assert.deepEqual(

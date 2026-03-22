@@ -1012,7 +1012,16 @@ test.after.each((_context: TestContext): void => {
 
 test.after((_context: TestContext): void => {});
 
+test.inBand();
+test.inBand(false);
+test.bail();
+test.continueOnFailure();
+exec(false);
+
 const adapterSuite = suite("uvu adapter");
+adapterSuite.inBand();
+adapterSuite.bail();
+adapterSuite.continueOnFailure();
 
 adapterSuite.before((_context: TestContext): void => {
   suiteBeforeCount += 1;
@@ -1052,7 +1061,7 @@ adapterSuite.only("focused child", (context: TestContext): void => {
 });
 
 adapterSuite.run();
-exec();
+exec(false);
 `,
 		async (entryFile, cwd) => {
 			const result = await runCliWithArguments(
