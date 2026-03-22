@@ -8,6 +8,7 @@ import {
 	strictEqual,
 	throws as assertThrows,
 } from "../node_assert/shared";
+import { assertCondition, isPartialMatch } from "../internal/assert-bridge";
 import { TrapCallback } from "../internal/trampoline";
 
 function typeNameFor<T>(value: T): string {
@@ -60,6 +61,17 @@ export function equal<T>(
 	deepStrictEqual(actual, expected, message);
 }
 
+export function match<Actual, Expected>(
+	actual: Actual,
+	expected: Expected,
+	message: string | null = null,
+): void {
+	assertCondition(
+		isPartialMatch(actual, expected),
+		message === null ? "uvu assert match mismatch" : message,
+	);
+}
+
 export function type<T>(
 	value: T,
 	expected: string,
@@ -98,6 +110,17 @@ export namespace not {
 			typeNameFor(value),
 			expected,
 			message === null ? "uvu assert not.type mismatch" : message,
+		);
+	}
+
+	export function match<Actual, Expected>(
+		actual: Actual,
+		expected: Expected,
+		message: string | null = null,
+	): void {
+		assertCondition(
+			!isPartialMatch(actual, expected),
+			message === null ? "uvu assert not.match mismatch" : message,
 		);
 	}
 

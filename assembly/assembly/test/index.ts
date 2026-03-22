@@ -10,6 +10,7 @@ import "./internal/jasmine";
 import "./internal/mocha";
 import "./internal/node";
 import "./internal/node-test";
+import "./internal/partial-match";
 import "./internal/reflected-value";
 import "./internal/strict-equality";
 import "./internal/traversal";

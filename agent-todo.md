@@ -30,8 +30,8 @@
 
 ### Adapter: `uvu`
 
-- reopen the low-risk `uvu/assert` helpers that fit the current runtime:
-  `match(...)`, `not.match(...)`, `instance(...)`, and `not.instance(...)`.
+- finish the remaining low-risk `uvu/assert` runtime-type helper:
+  `instance(...)` and `not.instance(...)`.
 - keep the shipped sync `uvu` builder surface stable:
   `test(...)`, top-level `test.before.each(...)` / `test.after.each(...)`,
   `suite(...)`, suite-builder `.test(...)`, `.only(...)`, `.skip(...)`,

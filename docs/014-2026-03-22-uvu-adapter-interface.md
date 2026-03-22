@@ -51,6 +51,7 @@ import { exec, suite, test, TestContext, UvuSuite } from "uvu";
 import {
   equal,
   is,
+  match,
   not,
   ok,
   throws,
@@ -140,11 +141,13 @@ Shipped:
 - `ok`
 - `is`
 - `equal`
+- `match`
 - `type`
 - `throws`
 - `not`
 - `is.not`
 - `not.equal`
+- `not.match`
 - `not.type`
 - `not.throws`
 - `unreachable`
@@ -154,10 +157,14 @@ Mappings:
 - `ok` -> shared truthy assertion
 - `is` -> strict equality
 - `equal` -> deep strict equality
+- `match` -> shared partial-match semantics with substring matching for strings,
+  prefix-by-index matching for arraylikes, subset matching for sets and maps,
+  and keyed subset matching for reflected managed classes
 - `type` -> shared primitive-type comparison on the current AssemblyScript value category
 - `throws` -> shared trap-boundary throw assertion
 - `not` / `is.not` -> strict inequality
 - `not.equal` -> deep strict inequality
+- `not.match` -> negated shared partial-match semantics
 - `not.type` -> negated shared primitive-type comparison
 - `not.throws` -> shared trap-boundary does-not-throw assertion
 - `unreachable` -> shared `fail(...)`
@@ -427,11 +434,13 @@ Shipped:
 - `ok`
 - `is`
 - `equal`
+- `match`
 - `type`
 - `throws`
 - `not`
 - `is.not`
 - `not.equal`
+- `not.match`
 - `not.type`
 - `not.throws`
 - `unreachable`
@@ -441,7 +450,6 @@ Deferred:
 - `instance`
 - `snapshot`
 - `fixture`
-- `match`
 - negated forms that depend on those helpers
 - `Assertion`
 

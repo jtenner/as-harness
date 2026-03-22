@@ -1,5 +1,6 @@
 import { failMessage } from "./events";
 import { setActiveErrorMessage, setActiveFailureKind } from "./failure-state";
+import { isPartialMatch as matchesPartialShape } from "./partial-match";
 import {
 	compareStrictEqualityValue,
 	resetStrictEqualityReferencePairTracking,
@@ -228,6 +229,13 @@ export function isDeepStrictlyEqual<T>(actual: T, expected: T): bool {
 	const result = compareStrictEqualityValue(actual, expected);
 	resetStrictEqualityReferencePairTracking();
 	return result != StrictEqualityResult.Fail;
+}
+
+export function isPartialMatch<Actual, Expected>(
+	actual: Actual,
+	expected: Expected,
+): bool {
+	return matchesPartialShape(actual, expected);
 }
 
 export function isStrictlyEqual<T>(actual: T, expected: T): bool {
