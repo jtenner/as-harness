@@ -811,12 +811,12 @@ function registerHarnessSmokeSuite(options) {
 			{
 				nodeIndex: [0],
 				message:
-					"depth=1 kind=3 nodeKind=2 hookKind=2 name=artifact suite file= line=0 column=0 index=[0]",
+					"depth=1 kind=3 nodeKind=2 hookKind=2 name=artifact suite file=assembly/test/artifact-frame-smoke.ts line=15 column=2 index=[0]",
 			},
 			{
 				nodeIndex: [0, 0],
 				message:
-					"depth=1 kind=2 nodeKind=1 hookKind=0 name=artifact test file= line=0 column=0 index=[0,0]",
+					"depth=1 kind=2 nodeKind=1 hookKind=0 name=artifact test file=assembly/test/artifact-frame-smoke.ts line=20 column=2 index=[0,0]",
 			},
 		]);
 

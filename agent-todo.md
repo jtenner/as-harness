@@ -61,9 +61,6 @@
 
 - keep `js`, `wazero`, and `wasmtime` parity proof in place as adapters start
   lowering framework-shaped controls onto the shared hint model.
-- `ss-010`: add shared runtime proof for snapshot stack push/pop discipline.
-  Prove descriptor frames survive normal execution, nested helper calls, and
-  trapped callbacks without leaking stale stack state into later targeted runs.
 - `ss-011`: add shared and CLI proof for snapshot preload and stale-entry
   failure semantics.
   Cover missing, matched, mismatched, unmatched, and update-mode flows through
