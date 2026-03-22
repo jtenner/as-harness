@@ -14,7 +14,7 @@ Host owns scheduling, aggregation, and reporting.
 - `assembly/assembly/jasmine/`: thin sync Jasmine-shaped surface.
 - `assembly/assembly/jest/`: thin sync Jest-shaped surface.
 - `assembly/assembly/mocha/`: thin sync Mocha BDD-shaped surface.
-- `assembly/assembly/uvu/`: sync `uvu`-shaped declarations plus the shared `uvu/assert` subset.
+- `assembly/assembly/uvu/`: sync `uvu`-shaped declarations, host-owned hint helpers, plus the shared `uvu/assert` subset.
 - `assembly/assembly/vitest/`: thin sync Vitest-shaped surface.
 - `assembly/assembly/node_assert/`: assertion adapters.
 - `assembly/assembly/test/`: guest fixtures and bootstrap tests.

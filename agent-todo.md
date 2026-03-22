@@ -63,10 +63,6 @@
   `suite(...)`, suite-builder `.test(...)`, `.only(...)`, `.skip(...)`,
   `.before(...)`, `.after(...)`, `.beforeEach(...)`, `.afterEach(...)`,
   `.run()`, and `exec(...)`.
-- add host-readable `inBand(...)`, `bail(...)`, and
-  `continueOnFailure(...)` hint helpers to top-level `test` and `UvuSuite`.
-- reinterpret `exec(bail?)` as root-level shared `bail` hint lowering while
-  keeping `.run()` and `exec(...)` host-owned and non-executing.
 - freeze the current builder-object divergence as the permanent `uvu` contract
   unless the repo later adopts a transform-backed rewrite policy.
 - add richer `uvu/assert` helpers that fit the current shared assertion and

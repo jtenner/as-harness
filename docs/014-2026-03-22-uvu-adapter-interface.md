@@ -28,10 +28,11 @@ Checked on 2026-03-22 against:
 - freeze the builder-object divergence as the permanent contract unless the
   repo later adopts a source transform
 - keep `.run()` as an explicit compatibility no-op under host-owned `start()`
-- add host-readable `inBand(...)`, `bail(...)`, and `continueOnFailure(...)`
-  hint APIs to the shipped `uvu` singleton and suite builder surfaces
-- reinterpret `exec(true)` as a root-level `bail` hint declaration and
-  `exec(false)` as an explicit revert to inherited failure policy
+- ship host-readable `inBand(...)`, `bail(...)`, and
+  `continueOnFailure(...)` hint APIs on the `uvu` singleton and suite builder
+  surfaces
+- ship `exec(true)` as a root-level `bail` hint declaration and `exec(false)`
+  as an explicit revert to inherited failure policy
 - keep the shared `TestContext` callback model instead of promising upstream
   crumb/context parity
 - keep `uvu/assert` on the low-risk shared assertion subset
@@ -278,7 +279,7 @@ Status: Shipped as no-op.
 
 ### `test.inBand(shouldRunInBand?)`
 
-Status: Selected for this cycle.
+Status: Shipped.
 
 Game plan:
 
@@ -287,7 +288,7 @@ Game plan:
 
 ### `test.bail(shouldBail?)`
 
-Status: Selected for this cycle.
+Status: Shipped.
 
 Game plan:
 
@@ -297,7 +298,7 @@ Game plan:
 
 ### `test.continueOnFailure(shouldContinue?)`
 
-Status: Selected for this cycle.
+Status: Shipped.
 
 Game plan:
 
@@ -342,7 +343,7 @@ Game plan used:
 
 ### `UvuSuite.inBand(shouldRunInBand?)`
 
-Status: Selected for this cycle.
+Status: Shipped.
 
 Game plan:
 
@@ -351,7 +352,7 @@ Game plan:
 
 ### `UvuSuite.bail(shouldBail?)`
 
-Status: Selected for this cycle.
+Status: Shipped.
 
 Game plan:
 
@@ -360,7 +361,7 @@ Game plan:
 
 ### `UvuSuite.continueOnFailure(shouldContinue?)`
 
-Status: Selected for this cycle.
+Status: Shipped.
 
 Game plan:
 
@@ -391,7 +392,7 @@ Status: Shipped as no-op.
 
 ### `exec(bail?)`
 
-Status: Selected for reinterpretation in this cycle.
+Status: Shipped.
 
 Game plan:
 
@@ -462,20 +463,19 @@ the current failure boundary cleanly.
 ## Selected This Cycle
 
 1. keep the current builder contract as the permanent `uvu` source shape
-2. add host-readable `inBand(...)`, `bail(...)`, and
-   `continueOnFailure(...)` helpers to top-level `test` and `UvuSuite`
-3. reinterpret `exec(bail?)` as root-level `bail` hint lowering only
+2. ship host-readable `inBand(...)`, `bail(...)`, and
+   `continueOnFailure(...)` helpers on top-level `test` and `UvuSuite`
+3. ship `exec(bail?)` as root-level `bail` hint lowering only
 4. keep `.run()` as a compatibility no-op
 5. revisit richer `uvu/assert` helpers after the hint surface ships
 
 ## Suggested Future Order
 
-1. ship the selected hint helpers and `exec(bail?)` lowering
-2. add CLI and shared smoke proof for guest-authored `uvu` hints
-3. revisit richer `uvu/assert` helpers that fit the current shared failure model
-4. revisit crumb/context parity only if the callback-model divergence becomes a
+1. add CLI and shared smoke proof for guest-authored `uvu` hints
+2. revisit richer `uvu/assert` helpers that fit the current shared failure model
+3. revisit crumb/context parity only if the callback-model divergence becomes a
    practical blocker
-5. keep async behavior deferred until the project-wide runtime contract changes
+4. keep async behavior deferred until the project-wide runtime contract changes
 
 ## Sources
 

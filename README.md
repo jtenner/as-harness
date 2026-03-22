@@ -60,7 +60,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `as-harness`: native scheduler-aware declarations, `sequential(...)` groups, chainable handles, host-owned `inBand(...)` / `bail(...)` / `continueOnFailure(...)` hints, and shared `TestContext.assert`.
 - `node:test`: core declarations, hooks, sync contexts, assertion binding, and the same host-owned planning hints.
 - `node:assert`, `node:assert/strict`: synchronous assertions and strict-bridge tests.
-- `uvu`: sync top-level `test` hooks, `suite(...)` builder objects, `.run()` / `exec()` compatibility no-ops, and the shared `TestContext` callback model.
+- `uvu`: sync top-level `test` hooks, root and suite-local host-owned `inBand(...)` / `bail(...)` / `continueOnFailure(...)` hints, `suite(...)` builder objects, `exec(bail?)` root hint lowering, `.run()` compatibility no-op, and the shared `TestContext` callback model.
 - `uvu/assert`: shared assertion subset: `ok`, `is`, `equal`, `not`, `is.not`, `not.equal`, and `unreachable`.
 - `jest`: sync declarations, core hooks, matcher slice.
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks.

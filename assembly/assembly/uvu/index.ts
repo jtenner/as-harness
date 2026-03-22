@@ -1,5 +1,10 @@
 import { currentNode, Node, setCurrentNode } from "../internal/node";
-import { DeclarationMode, HookKind } from "../internal/imports";
+import {
+	DeclarationMode,
+	FailurePolicyHint,
+	HookKind,
+	RunnerModeHint,
+} from "../internal/imports";
 import {
 	declareHook,
 	declareModifiedSuite,
@@ -9,6 +14,60 @@ import {
 import { HookFn, TestFn } from "./types";
 
 export * from "./types";
+
+function declareTestOnNode(
+	node: Node,
+	name: string = "",
+	callback: TestFn | null = null,
+): void {
+	const previousNode = currentNode;
+	setCurrentNode(node);
+	declareTest(name, callback);
+	setCurrentNode(previousNode);
+}
+
+function declareModifiedTestOnNode(
+	node: Node,
+	name: string = "",
+	callback: TestFn | null = null,
+	mode: DeclarationMode = DeclarationMode.Normal,
+	only: bool = false,
+): void {
+	const previousNode = currentNode;
+	setCurrentNode(node);
+	declareModifiedTest(name, callback, mode, only);
+	setCurrentNode(previousNode);
+}
+
+function declareHookOnNode(
+	node: Node,
+	kind: HookKind,
+	callback: HookFn | null = null,
+): void {
+	const previousNode = currentNode;
+	setCurrentNode(node);
+	declareHook(kind, callback);
+	setCurrentNode(previousNode);
+}
+
+function getRootDeclarationNode(node: Node): Node {
+	let cursor = node.getDeclarationSlotSource();
+	while (cursor.parent !== null) {
+		cursor = changetype<Node>(cursor.parent);
+	}
+
+	return cursor;
+}
+
+function setRunnerModeHint(node: Node, shouldRunInBand: bool = true): void {
+	node.setPreferredRunnerMode(
+		shouldRunInBand ? RunnerModeHint.InBand : RunnerModeHint.Default,
+	);
+}
+
+function setFailurePolicyHint(node: Node, hint: FailurePolicyHint): void {
+	node.setPreferredFailurePolicy(hint);
+}
 
 export class UvuSuite<T = usize> {
 	private readonly node: Node;
@@ -24,52 +83,55 @@ export class UvuSuite<T = usize> {
 	}
 
 	test(name: string = "", callback: TestFn | null = null): void {
-		const previousNode = currentNode;
-		setCurrentNode(this.node);
-		declareTest(name, callback);
-		setCurrentNode(previousNode);
+		declareTestOnNode(this.node, name, callback);
 	}
 
 	only(name: string = "", callback: TestFn | null = null): void {
-		const previousNode = currentNode;
-		setCurrentNode(this.node);
-		declareModifiedTest(name, callback, DeclarationMode.Normal, true);
-		setCurrentNode(previousNode);
+		declareModifiedTestOnNode(
+			this.node,
+			name,
+			callback,
+			DeclarationMode.Normal,
+			true,
+		);
 	}
 
 	skip(name: string = "", callback: TestFn | null = null): void {
-		const previousNode = currentNode;
-		setCurrentNode(this.node);
-		declareModifiedTest(name, callback, DeclarationMode.Skip);
-		setCurrentNode(previousNode);
+		declareModifiedTestOnNode(this.node, name, callback, DeclarationMode.Skip);
+	}
+
+	inBand(shouldRunInBand: bool = true): void {
+		setRunnerModeHint(this.node, shouldRunInBand);
+	}
+
+	bail(shouldBail: bool = true): void {
+		setFailurePolicyHint(
+			this.node,
+			shouldBail ? FailurePolicyHint.Bail : FailurePolicyHint.Inherit,
+		);
+	}
+
+	continueOnFailure(shouldContinue: bool = true): void {
+		setFailurePolicyHint(
+			this.node,
+			shouldContinue ? FailurePolicyHint.Continue : FailurePolicyHint.Inherit,
+		);
 	}
 
 	before(callback: HookFn | null = null): void {
-		const previousNode = currentNode;
-		setCurrentNode(this.node);
-		declareHook(HookKind.BeforeAll, callback);
-		setCurrentNode(previousNode);
+		declareHookOnNode(this.node, HookKind.BeforeAll, callback);
 	}
 
 	after(callback: HookFn | null = null): void {
-		const previousNode = currentNode;
-		setCurrentNode(this.node);
-		declareHook(HookKind.AfterAll, callback);
-		setCurrentNode(previousNode);
+		declareHookOnNode(this.node, HookKind.AfterAll, callback);
 	}
 
 	beforeEach(callback: HookFn | null = null): void {
-		const previousNode = currentNode;
-		setCurrentNode(this.node);
-		declareHook(HookKind.BeforeEach, callback);
-		setCurrentNode(previousNode);
+		declareHookOnNode(this.node, HookKind.BeforeEach, callback);
 	}
 
 	afterEach(callback: HookFn | null = null): void {
-		const previousNode = currentNode;
-		setCurrentNode(this.node);
-		declareHook(HookKind.AfterEach, callback);
-		setCurrentNode(previousNode);
+		declareHookOnNode(this.node, HookKind.AfterEach, callback);
 	}
 
 	run(): void {}
@@ -101,6 +163,24 @@ export namespace test {
 		declareModifiedTest(name, callback, DeclarationMode.Skip);
 	}
 
+	export function inBand(shouldRunInBand: bool = true): void {
+		setRunnerModeHint(getRootDeclarationNode(currentNode), shouldRunInBand);
+	}
+
+	export function bail(shouldBail: bool = true): void {
+		setFailurePolicyHint(
+			getRootDeclarationNode(currentNode),
+			shouldBail ? FailurePolicyHint.Bail : FailurePolicyHint.Inherit,
+		);
+	}
+
+	export function continueOnFailure(shouldContinue: bool = true): void {
+		setFailurePolicyHint(
+			getRootDeclarationNode(currentNode),
+			shouldContinue ? FailurePolicyHint.Continue : FailurePolicyHint.Inherit,
+		);
+	}
+
 	export function before(callback: HookFn | null = null): void {
 		declareHook(HookKind.BeforeAll, callback);
 	}
@@ -124,4 +204,6 @@ export namespace test {
 	export function run(): void {}
 }
 
-export function exec(_bail: bool = false): void {}
+export function exec(bail: bool = false): void {
+	test.bail(bail);
+}

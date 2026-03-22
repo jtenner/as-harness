@@ -1,4 +1,10 @@
-import { DeclarationMode, HookKind, NodeKind } from "../../internal/imports";
+import {
+	DeclarationMode,
+	FailurePolicyHint,
+	HookKind,
+	NodeKind,
+	RunnerModeHint,
+} from "../../internal/imports";
 import { Node, resetCurrentNode, setCurrentNode } from "../../internal/node";
 import { exec, suite, test, TestContext, UvuSuite } from "../../uvu";
 
@@ -14,6 +20,8 @@ function testUvuDeclarationRegistration(): void {
 	test.before.each(noopHook);
 	test.after.each(noopHook);
 	test.after(noopHook);
+	test.inBand();
+	test.continueOnFailure();
 
 	test("top-level test", noopTest);
 	test.only("top-level focused", noopTest);
@@ -23,6 +31,9 @@ function testUvuDeclarationRegistration(): void {
 	assert(localSuite.name == "uvu suite");
 	assert(localSuite.context == 0);
 
+	localSuite.inBand();
+	localSuite.bail();
+	localSuite.continueOnFailure();
 	localSuite.before(noopHook);
 	localSuite.beforeEach(noopHook);
 	localSuite.afterEach(noopHook);
@@ -34,9 +45,11 @@ function testUvuDeclarationRegistration(): void {
 
 	const contextSuite = suite<Array<i32>>("context suite", [1, 2, 3]);
 	assert(contextSuite.context.length == 3);
+	contextSuite.bail();
+	contextSuite.continueOnFailure(false);
 	contextSuite.test("context child", noopTest);
 
-	exec();
+	exec(true);
 
 	const beforeAllHooks = localRoot.getHooks(HookKind.BeforeAll);
 	const beforeEachHooks = localRoot.getHooks(HookKind.BeforeEach);
@@ -47,6 +60,8 @@ function testUvuDeclarationRegistration(): void {
 	assert(beforeEachHooks.length == 1);
 	assert(afterEachHooks.length == 1);
 	assert(afterAllHooks.length == 1);
+	assert(localRoot.preferredRunnerMode == RunnerModeHint.InBand);
+	assert(localRoot.preferredFailurePolicy == FailurePolicyHint.Bail);
 
 	const children = localRoot.getChildren();
 	assert(children.length == 5);
@@ -69,6 +84,8 @@ function testUvuDeclarationRegistration(): void {
 	assert(suiteBeforeEachHooks.length == 1);
 	assert(suiteAfterEachHooks.length == 1);
 	assert(suiteAfterAllHooks.length == 1);
+	assert(suiteNode.preferredRunnerMode == RunnerModeHint.InBand);
+	assert(suiteNode.preferredFailurePolicy == FailurePolicyHint.Continue);
 	assert(suiteChildren.length == 3);
 	assert(unchecked(suiteChildren[0]).name == "suite child");
 	assert(unchecked(suiteChildren[1]).only);
@@ -76,6 +93,7 @@ function testUvuDeclarationRegistration(): void {
 
 	const contextSuiteNode = unchecked(children[4]);
 	const contextSuiteChildren = contextSuiteNode.getChildren();
+	assert(contextSuiteNode.preferredFailurePolicy == FailurePolicyHint.Inherit);
 	assert(contextSuiteChildren.length == 1);
 	assert(unchecked(contextSuiteChildren[0]).name == "context child");
 
