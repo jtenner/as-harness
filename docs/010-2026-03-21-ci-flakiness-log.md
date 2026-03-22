@@ -73,8 +73,9 @@ This note answers which CI failures and flaky behaviors were encountered while s
 
 - Symptom: the Windows Node 25 source-host matrix reported three `wazero` smoke failures after successful CLI execution because `rmSync(..., { recursive: true, force: true })` raised `EPERM` on the test temp directory.
 - Root cause: GitHub Windows could leave short-lived handles on spawned-process temp trees after the child process had exited.
-- Fix: the native host smoke suites now remove temp directories with explicit recursive retry semantics (`maxRetries` plus `retryDelay`) instead of assuming immediate handle release.
-- Status: fixed locally; this is the current CI fix being pushed and re-verified.
+- First fix: the native host smoke suites switched to explicit recursive retry semantics (`maxRetries` plus `retryDelay`) instead of assuming immediate handle release.
+- Follow-up: hosted Windows still outlived the initial retry window, so the retry budget was widened to a 10 second total envelope shared by both native source-host smoke suites.
+- Status: fixed locally and queued for re-verification in CI.
 
 ## Remaining Open Risk
 

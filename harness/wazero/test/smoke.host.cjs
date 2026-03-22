@@ -25,9 +25,9 @@ function removeTempDirectory(tempDirectory) {
 	// Windows can hold short-lived handles on spawned-process temp trees briefly.
 	rmSync(tempDirectory, {
 		force: true,
-		maxRetries: 10,
+		maxRetries: 40,
 		recursive: true,
-		retryDelay: 50,
+		retryDelay: 250,
 	});
 }
 
