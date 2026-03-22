@@ -94,14 +94,14 @@ GitHub Actions run `23404563889` on 2026-03-22.
 - Status: fixed in CI. The source-host matrix now stays on the Node-targeted
   bundle path for native-host CLI smoke.
 
-## Remaining Open Risk
+## Runtime Policy Closure
 
-### Bundled Linux `wazero` still forces the interpreter engine
+### Bundled Linux `wazero` now stays on an explicit interpreter-engine policy
 
 - Symptom: packaged Linux `wazero` historically hung in hosted CI during bundled native harness creation when using the compiler engine path.
-- Current mitigation: [`cli/runtime/wazero.ts`](/home/jtenner/Projects/as-harness/cli/runtime/wazero.ts) still forces the interpreter engine for bundled Linux builds.
-- Why this is still open: the interpreter fallback preserves the bundled feature and keeps packaged verification green, but it is not the final desired `wazero` runtime policy.
-- Tracking: this remains explicitly listed in [`agent-todo.md`](/home/jtenner/Projects/as-harness/agent-todo.md).
+- Current policy: [`cli/runtime/wazero.ts`](/home/jtenner/Projects/as-harness/cli/runtime/wazero.ts) deliberately keeps bundled Linux builds on the interpreter engine for this release line.
+- Proof refresh on 2026-03-22: local packaged verification passed through `bun run verify:packaged-cli -- --target bun-linux-x64`, and local source-host verification passed through `bun run verify:source-hosts -- --target linux-x64`, so the packaged/source-host runtime split is now a documented contract instead of an open backlog question.
+- Tracking: this no longer needs a live backlog item in [`agent-todo.md`](/home/jtenner/Projects/as-harness/agent-todo.md).
 
 ## Working Rules That Proved Useful
 

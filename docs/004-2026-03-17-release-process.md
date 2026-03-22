@@ -21,6 +21,8 @@ Operational flow for shipping `as-harness` through GitHub:
 - release packaging ships target-specific archives that preserve the inner
   executable basename while keeping `wazero` bundled inside the executable
 - packaged release assets stay archived instead of renaming the executable itself because current Bun standalone native-addon loading is sensitive to the compiled executable basename on Linux
+- packaged Linux `wazero` stays on the interpreter engine as the deliberate
+  stability policy for this release line
 - `wasmtime` is source-only
 - CI and release install toolchains from repo-local [`.mise.toml`](../.mise.toml)
   through `jdx/mise-action@v4`

@@ -37,8 +37,7 @@ npm test
 
 - Linux glibc is in scope for the current packaged release matrix; musl is not.
 - bundled Linux CLI builds still force the `wazero` interpreter engine for the
-  current packaged stability policy while the hosted compiler-engine hang
-  remains under investigation.
+  deliberate packaged stability policy for the current release line.
 - source CLI runs under Bun on Windows stage a private copy of `wazero.node`
   before loading the addon.
 - source-host CLI smoke proof builds a Node-targeted CLI bundle and runs that

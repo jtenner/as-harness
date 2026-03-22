@@ -36,8 +36,10 @@ area further.
 
 Primary target:
 
-- prove whether bundled Linux `wazero` can safely return to the compiler engine
-  instead of the current interpreter-only packaged fallback
+- make the packaged/source-host runtime split explicit and deliberate: bundled
+  Linux `wazero` stays on the interpreter engine for packaged stability, while
+  the Node-targeted source-host matrix continues to prove the repo-local source
+  runtime path separately
 
 Supporting work:
 

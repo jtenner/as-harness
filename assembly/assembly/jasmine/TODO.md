@@ -1,13 +1,17 @@
 # `jasmine` Adapter TODO
 
-Status: planned for the `v0.4.0` slice after `mocha`.
+Status: thin adapter shipped for the current `v0.4.0` line.
 
-First slice:
+Implemented:
 
-- `describe` and `it` family
-- skip/pending variants
-- core hooks
-- one traversal fixture
+- declarations: `describe`, `fdescribe`, `xdescribe`, `it`, `fit`, `xit`
+- hooks: `beforeAll`, `afterAll`, `beforeEach`, `afterEach`
+- matcher slice: `.not`, `toBe`, `toEqual`, `toBeDefined`, `toBeFalsy`,
+  `toBeTruthy`, `toBeNull`, `toBeUndefined`, `toContain`,
+  `toBeGreaterThan`, `toBeLessThan`, `toBeNaN`, and `toThrow`
+- `fail(...)` and callback-less pending specs
+- bundled CLI wiring and cross-host proof through `js`, `wazero`, and
+  `wasmtime`
 
 Current non-goals:
 

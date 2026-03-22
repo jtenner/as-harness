@@ -100,6 +100,8 @@ function resolveWazeroHarnessModule() {
 }
 
 function shouldUseBundledLinuxInterpreterEngine() {
+	// Packaged Linux builds stay on the interpreter engine as the deliberate
+	// stability policy for the current release line.
 	return typeof WAZERO_TARGET !== "undefined" && process.platform === "linux";
 }
 

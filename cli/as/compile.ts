@@ -120,6 +120,7 @@ const BUNDLED_HARNESS_LIBRARY_ENTRY_POINTS = new Set([
 	"node:test",
 	"node:assert",
 	"node:assert/strict",
+	"jasmine",
 	"jest",
 	"mocha",
 	"vitest",

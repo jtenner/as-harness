@@ -41,12 +41,14 @@ Default reporting summarizes:
 ## Bundled Libraries
 
 - `as-harness`: native scheduler-aware declarations, `sequential(...)` groups, chainable `dependsOn(...)` handles, and shared `TestContext.assert`.
+- `jasmine`: sync declarations, focus/exclude aliases, core hooks, `fail(...)`, and a narrow shared matcher slice.
 - `jest`: thin sync declarations + shared assertion set (containment, length/size, numeric, `toThrow`, strict equality helpers).
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks for diagnostics and assertions.
 - `vitest`: sync declarations, low-risk `sequential` aliases, `fails`, `skipIf` / `runIf`, `assertType(...)`, and the same shared matcher set.
 
 See their interface docs:
 
+- [docs/013-2026-03-22-jasmine-adapter-interface.md](../docs/013-2026-03-22-jasmine-adapter-interface.md)
 - [docs/005-2026-03-17-jest-adapter.md](../docs/005-2026-03-17-jest-adapter.md)
 - [docs/012-2026-03-22-mocha-adapter-interface.md](../docs/012-2026-03-22-mocha-adapter-interface.md)
 - [docs/008-2026-03-19-vitest-adapter.md](../docs/008-2026-03-19-vitest-adapter.md)
@@ -74,6 +76,10 @@ Source-host proof is a separate path: the source-host matrix builds a
 Node-targeted CLI bundle with Bun, executes that bundle under Node `25.8.1`,
 and uses `AS_HARNESS_SOURCE_CLI_REPO_DIR` so the bundled CLI still resolves the
 repo-local `wazero` and `wasmtime` host packages during CI smoke.
+
+Packaged Linux `wazero` intentionally stays on the interpreter engine for the
+current release line, while source-host proof keeps the repo-local runtime path
+separate and explicit.
 
 ## Commands
 

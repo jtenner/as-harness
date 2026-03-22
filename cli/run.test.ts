@@ -845,6 +845,108 @@ describe("mocha adapter", (_context): void => {
 	);
 });
 
+test('cli run executes a thin jasmine adapter entry from the bundled "jasmine" guest library', async () => {
+	await withTempEntryFile(
+		`
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  fail,
+  fdescribe,
+  fit,
+  it,
+  TestContext,
+  xdescribe,
+  xit,
+} from "jasmine";
+
+let suiteSetupCount = 0;
+let beforeEachCount = 0;
+let afterEachCount = 0;
+let afterAllCount = 0;
+
+function failImmediately(): void {
+  fail("jasmine fail trap");
+}
+
+beforeAll((_context: TestContext): void => {
+  suiteSetupCount = 1;
+});
+
+beforeEach((_context: TestContext): void => {
+  beforeEachCount += 1;
+});
+
+afterEach((_context: TestContext): void => {
+  afterEachCount += 1;
+});
+
+afterAll((_context: TestContext): void => {
+  afterAllCount = beforeEachCount;
+});
+
+describe("filtered suite", (_context): void => {
+  it("filtered child", (_context: TestContext): void => {
+    unreachable();
+  });
+});
+
+fdescribe("focused jasmine suite", (_context): void => {
+  xdescribe("xdescribe branch", (_nestedContext): void => {
+    it("nested xdescribe child", (_context: TestContext): void => {
+      unreachable();
+    });
+  });
+
+  xit("xit leaf", (_context: TestContext): void => {
+    unreachable();
+  });
+
+  it("implicit pending");
+  it("plain pass", (_context: TestContext): void => {});
+
+  it("runs hooks and matchers", (context: TestContext): void => {
+    const maybeNothing = <string | null>null;
+
+    expect<i32>(suiteSetupCount).toBe(1);
+    expect<i32>(beforeEachCount).toBeGreaterThan(0);
+    expect<i32>(afterEachCount + 1).toBe(beforeEachCount);
+    expect<i32>(afterAllCount).toBe(0);
+    expect<Array<i32>>([1, 2, 3]).toEqual([1, 2, 3]);
+    expect<Array<i32>>([1, 2, 3]).toContain(2);
+    expect<string | null>("value").toBeDefined();
+    expect<bool>(false).toBeFalsy();
+    expect<bool>(true).toBeTruthy();
+    expect<string | null>(maybeNothing).toBeNull();
+    expect<string | null>(maybeNothing).toBeUndefined();
+    expect<i32>(5).toBeGreaterThan(4);
+    expect<i32>(4).toBeLessThan(5);
+    expect<f64>(NaN).toBeNaN();
+    expect<() => void>(failImmediately).toThrow();
+    expect<() => void>(((): void => {})).not.toThrow();
+    context.diagnostic("jasmine adapter diagnostic");
+  });
+});
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 2 passed, 0 failed, 4 discovered with js.",
+			);
+		},
+	);
+});
+
 test('cli run executes a thin vitest adapter entry from the bundled "vitest" guest library', async () => {
 	await withTempEntryFile(
 		`

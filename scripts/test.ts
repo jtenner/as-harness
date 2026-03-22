@@ -9,6 +9,8 @@ const assemblyDir = `${rootDir}/assembly`;
 const outputFile = "build/test-debug.wasm";
 const legacyAssertSmokeFile = "build/assert-bridge-node-assert.wasm";
 const strictAssertSmokeFile = "build/assert-bridge-node-assert-strict.wasm";
+const jasmineSmokeFile = "build/jasmine-smoke.wasm";
+const mochaSmokeFile = "build/mocha-smoke.wasm";
 const vitestSmokeFile = "build/vitest-smoke.wasm";
 
 async function runCommand(command: string[], cwd: string) {
@@ -54,6 +56,18 @@ await $`npx asc assembly/test/node-assert-smoke.ts --debug --exportStart __start
 console.log("Compiling node:assert/strict bridge smoke fixture...");
 
 await $`npx asc assembly/test/node-assert-strict-smoke.ts --debug --exportStart __start --outFile ${strictAssertSmokeFile}`.cwd(
+	assemblyDir,
+);
+
+console.log("Compiling jasmine adapter smoke fixture...");
+
+await $`npx asc assembly/test/jasmine-smoke.ts --debug --exportStart __start --outFile ${jasmineSmokeFile}`.cwd(
+	assemblyDir,
+);
+
+console.log("Compiling mocha adapter smoke fixture...");
+
+await $`npx asc assembly/test/mocha-smoke.ts --debug --exportStart __start --outFile ${mochaSmokeFile}`.cwd(
 	assemblyDir,
 );
 

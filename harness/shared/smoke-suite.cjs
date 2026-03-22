@@ -602,6 +602,16 @@ function compileSmokeFixtures(options) {
 			"assembly/exports.ts",
 			path.join(options.cacheDir, "exports-smoke.wasm"),
 		),
+		compiledJasmineWasm: compileFixture(
+			assemblyDir,
+			"assembly/test/jasmine-smoke.ts",
+			path.join(options.cacheDir, "jasmine-smoke.wasm"),
+		),
+		compiledMochaWasm: compileFixture(
+			assemblyDir,
+			"assembly/test/mocha-smoke.ts",
+			path.join(options.cacheDir, "mocha-smoke.wasm"),
+		),
 		compiledNodeTestWasm: compileFixture(
 			assemblyDir,
 			"assembly/test/node-test-smoke.ts",
@@ -683,6 +693,8 @@ function registerHarnessSmokeSuite(options) {
 		addon,
 		assert,
 		compiledExportsWasm,
+		compiledJasmineWasm,
+		compiledMochaWasm,
 		compiledNodeTestWasm,
 		compiledVitestWasm,
 		compiledTrampolineWasm,
@@ -1167,6 +1179,93 @@ function registerHarnessSmokeSuite(options) {
 				},
 			],
 		);
+		closeHarness(harness);
+	});
+
+	test("discover(nodeIndex) preserves mocha declaration shape with pending and skipped nodes", () => {
+		const harness = createHarness(compiledMochaWasm);
+		const found = [];
+
+		harness.onNodeFound((event) => {
+			found.push(event);
+		});
+
+		assert.equal(harness.discover([]), true);
+		assert.deepEqual(found, [
+			{
+				nodeIndex: [0],
+				nodeId: 1,
+				parentNodeId: 0,
+				declarationOrder: 0,
+				kind: 2,
+				declarationMode: 1,
+				sequenceMode: 0,
+				dependencyNodeIds: [],
+				only: false,
+				expectFailure: false,
+				name: "mocha adapter",
+			},
+		]);
+
+		found.length = 0;
+		assert.equal(harness.discover([0]), true);
+		assert.deepEqual(
+			found.map((node) => [node.name, node.kind, node.declarationMode]),
+			[
+				["mocha adapter", 2, 1],
+				["xdescribe branch", 2, 2],
+				["xcontext branch", 2, 2],
+				["xit leaf", 1, 2],
+				["xspecify leaf", 1, 2],
+				["context alias", 2, 1],
+				["top-level pass", 1, 1],
+				["implicit pending", 1, 3],
+				["runs hooks and assertions", 1, 1],
+			],
+		);
+
+		closeHarness(harness);
+	});
+
+	test("discover(nodeIndex) preserves jasmine matcher surface and pending/skipped nodes", () => {
+		const harness = createHarness(compiledJasmineWasm);
+		const found = [];
+
+		harness.onNodeFound((event) => {
+			found.push(event);
+		});
+
+		assert.equal(harness.discover([]), true);
+		assert.deepEqual(found, [
+			{
+				nodeIndex: [0],
+				nodeId: 1,
+				parentNodeId: 0,
+				declarationOrder: 0,
+				kind: 2,
+				declarationMode: 1,
+				sequenceMode: 0,
+				dependencyNodeIds: [],
+				only: false,
+				expectFailure: false,
+				name: "jasmine adapter",
+			},
+		]);
+
+		found.length = 0;
+		assert.equal(harness.discover([0]), true);
+		assert.deepEqual(
+			found.map((node) => [node.name, node.kind, node.declarationMode]),
+			[
+				["jasmine adapter", 2, 1],
+				["xdescribe branch", 2, 2],
+				["xit leaf", 1, 2],
+				["implicit pending", 1, 3],
+				["plain pass", 1, 1],
+				["runs hooks and matchers", 1, 1],
+			],
+		);
+
 		closeHarness(harness);
 	});
 
@@ -1754,6 +1853,92 @@ function registerHarnessSmokeSuite(options) {
 			],
 		);
 		assert(branch.executions.every((execution) => execution.ok));
+
+		closeHarness(harness);
+	});
+
+	test("start() preserves mocha declarations through shared graph execution", async () => {
+		const harness = createHarness(compiledMochaWasm);
+
+		const result = await harness.start();
+		const branch = result.branches[0];
+
+		assert.equal(result.discoveryOk, true);
+		assert.equal(result.planningOk, true);
+		assert.equal(result.ok, true);
+		assert.equal(result.discoveredTestCount, 6);
+		assert.equal(result.topLevelNodes.length, 1);
+		assert(result.workerCount >= 1);
+		assert.deepEqual(result.planIssues, []);
+		assert.deepEqual(result.blocked, []);
+		assert.deepEqual(
+			result.topLevelNodes.map((node) => [node.name, node.kind]),
+			[["mocha adapter", 2]],
+		);
+		assert.deepEqual(
+			branch.discovery.nodes.map((node) => [
+				node.name,
+				node.kind,
+				node.declarationMode,
+			]),
+			[
+				["mocha adapter", 2, 1],
+				["xdescribe branch", 2, 2],
+				["xcontext branch", 2, 2],
+				["xit leaf", 1, 2],
+				["xspecify leaf", 1, 2],
+				["context alias", 2, 1],
+				["top-level pass", 1, 1],
+				["implicit pending", 1, 3],
+				["runs hooks and assertions", 1, 1],
+				["nested context child", 1, 1],
+			],
+		);
+		assert.deepEqual(
+			branch.executions.map((execution) => execution.node.name),
+			["top-level pass", "runs hooks and assertions", "nested context child"],
+		);
+
+		closeHarness(harness);
+	});
+
+	test("start() preserves jasmine declarations and matcher slice through shared graph execution", async () => {
+		const harness = createHarness(compiledJasmineWasm);
+
+		const result = await harness.start();
+		const branch = result.branches[0];
+
+		assert.equal(result.discoveryOk, true);
+		assert.equal(result.planningOk, true);
+		assert.equal(result.ok, true);
+		assert.equal(result.discoveredTestCount, 4);
+		assert.equal(result.topLevelNodes.length, 1);
+		assert(result.workerCount >= 1);
+		assert.deepEqual(result.planIssues, []);
+		assert.deepEqual(result.blocked, []);
+		assert.deepEqual(
+			result.topLevelNodes.map((node) => [node.name, node.kind]),
+			[["jasmine adapter", 2]],
+		);
+		assert.deepEqual(
+			branch.discovery.nodes.map((node) => [
+				node.name,
+				node.kind,
+				node.declarationMode,
+			]),
+			[
+				["jasmine adapter", 2, 1],
+				["xdescribe branch", 2, 2],
+				["xit leaf", 1, 2],
+				["implicit pending", 1, 3],
+				["plain pass", 1, 1],
+				["runs hooks and matchers", 1, 1],
+			],
+		);
+		assert.deepEqual(
+			branch.executions.map((execution) => execution.node.name),
+			["plain pass", "runs hooks and matchers"],
+		);
 
 		closeHarness(harness);
 	});

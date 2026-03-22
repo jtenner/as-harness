@@ -243,3 +243,101 @@ test("cli run executes a thin vitest adapter entry through the wazero harness", 
 		removeTempDirectory(tempDirectory);
 	}
 });
+
+test("cli run executes a thin mocha adapter entry through the wazero harness", () => {
+	const tempDirectory = mkdtempSync(
+		path.join(tmpdir(), "as-harness-wazero-mocha-"),
+	);
+
+	try {
+		const entryFile = path.join(tempDirectory, "suite.test.ts");
+		writeFileSync(
+			entryFile,
+			[
+				'import { context, describe, it, specify, TestContext, xit } from "mocha";',
+				"",
+				'describe("mocha adapter", (_context): void => {',
+				'\txit("skipped leaf", (_context: TestContext): void => {});',
+				'\tcontext("context alias", (_nestedContext): void => {',
+				'\t\tit("nested context child", (_context: TestContext): void => {});',
+				"\t});",
+				'\tit("plain pass", (_context: TestContext): void => {});',
+				'\tspecify("asserted pass", (context: TestContext): void => {',
+				'\t\tcontext.assert.strictEqual<i32>(11, 11, "mocha host mismatch");',
+				"\t});",
+				"});",
+				"",
+			].join("\n"),
+			"utf8",
+		);
+
+		const result = spawnSync(
+			process.execPath,
+			[cliEntrypointPath, "run", "--harness", "wazero", entryFile],
+			{
+				cwd: tempDirectory,
+				encoding: "utf8",
+				env: createCliEnvironment(),
+			},
+		);
+
+		assertSuccessfulCliRun(result);
+		assert.match(
+			result.stdout,
+			/PASS 3 passed, 0 failed, 4 discovered with wazero\./,
+		);
+	} finally {
+		removeTempDirectory(tempDirectory);
+	}
+});
+
+test("cli run executes a thin jasmine adapter entry through the wazero harness", () => {
+	const tempDirectory = mkdtempSync(
+		path.join(tmpdir(), "as-harness-wazero-jasmine-"),
+	);
+
+	try {
+		const entryFile = path.join(tempDirectory, "suite.test.ts");
+		writeFileSync(
+			entryFile,
+			[
+				'import { describe, expect, fail, it, TestContext, xit } from "jasmine";',
+				"",
+				"function failImmediately(): void {",
+				'\tfail("jasmine fail trap");',
+				"}",
+				"",
+				'describe("jasmine adapter", (_context): void => {',
+				'\txit("skipped leaf", (_context: TestContext): void => {});',
+				'\tit("implicit pending");',
+				'\tit("plain pass", (_context: TestContext): void => {});',
+				'\tit("matcher pass", (context: TestContext): void => {',
+				"\t\texpect<i32>(5).toBeGreaterThan(4);",
+				"\t\texpect<() => void>(failImmediately).toThrow();",
+				'\t\tcontext.diagnostic("jasmine host diagnostic");',
+				"\t});",
+				"});",
+				"",
+			].join("\n"),
+			"utf8",
+		);
+
+		const result = spawnSync(
+			process.execPath,
+			[cliEntrypointPath, "run", "--harness", "wazero", entryFile],
+			{
+				cwd: tempDirectory,
+				encoding: "utf8",
+				env: createCliEnvironment(),
+			},
+		);
+
+		assertSuccessfulCliRun(result);
+		assert.match(
+			result.stdout,
+			/PASS 2 passed, 0 failed, 4 discovered with wazero\./,
+		);
+	} finally {
+		removeTempDirectory(tempDirectory);
+	}
+});

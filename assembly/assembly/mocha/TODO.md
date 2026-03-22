@@ -1,6 +1,6 @@
 # `mocha` Adapter TODO
 
-Status: declaration surface implemented for the current `v0.4.0` line.
+Status: thin adapter shipped for the current `v0.4.0` line.
 
 Implemented:
 
@@ -8,10 +8,11 @@ Implemented:
 - `only`, `skip`, and `x*` aliases
 - `before`, `after`, `beforeEach`, `afterEach`
 - callback-less pending tests
-- bundled CLI wiring and JS-host smoke proof
+- bundled CLI wiring and cross-host proof through `js`, `wazero`, and
+  `wasmtime`
 
-Remaining:
+Current non-goals:
 
-- keep async `done`, returned `Promise`, and callback `this` APIs out of scope
-- extend proof beyond bundled JS-host smoke into the remaining host matrix
-- keep assertion guidance on shared `node:assert` and optional `TestContext`
+- async `done`, returned `Promise`, and callback `this` APIs
+- chainable declaration modifiers such as `.timeout(...)`
+- bundled Chai parity beyond shared `node:assert` and optional `TestContext`

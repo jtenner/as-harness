@@ -11,7 +11,7 @@ Implemented:
 - `as-harness run` for compile + execute.
 - Synchronous `node:test` declarations with `dependsOn(...)` chains.
 - `node:assert` / `node:assert/strict` bridge support.
-- Built-in thin adapters for `jest`, `mocha`, and `vitest`.
+- Built-in thin adapters for `jest`, `mocha`, `jasmine`, and `vitest`.
 - Stable start-reporting pipeline with branch, execution, planning, and blocked-outcome details.
 - `js`, `wazero`, `wasmtime` source-host runtime support.
 - Coverage output in `text`, `json`, `yaml`, `csv`, `lcov`, `cobertura`.
@@ -59,6 +59,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `node:assert`, `node:assert/strict`: synchronous assertions and strict-bridge tests.
 - `jest`: sync declarations, core hooks, matcher slice.
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks.
+- `jasmine`: sync declarations, focus/exclude aliases, core hooks, `fail(...)`, and a narrow matcher slice backed by the shared expectation core.
 - `vitest`: sync declarations, low-risk `sequential` aliases, and the same matcher slice.
 
 See:
@@ -68,6 +69,7 @@ See:
 - [docs/006-2026-03-17-guest-runtime-contracts.md](./docs/006-2026-03-17-guest-runtime-contracts.md)
 - [docs/007-2026-03-17-host-runner-contract.md](./docs/007-2026-03-17-host-runner-contract.md)
 - [docs/008-2026-03-19-vitest-adapter.md](./docs/008-2026-03-19-vitest-adapter.md)
+- [docs/013-2026-03-22-jasmine-adapter-interface.md](./docs/013-2026-03-22-jasmine-adapter-interface.md)
 - [docs/012-2026-03-22-mocha-adapter-interface.md](./docs/012-2026-03-22-mocha-adapter-interface.md)
 - [docs/009-2026-03-19-vitest-scheduling-and-test-graph-strategy.md](./docs/009-2026-03-19-vitest-scheduling-and-test-graph-strategy.md)
 
@@ -111,6 +113,11 @@ Each archive preserves the inner executable name as `as-harness` (or
 `as-harness.exe` on Windows), and `wazero` targets keep the native addon
 bundled inside that executable so extraction does not rename the compiled
 binary away from Bun's working embedded-addon path.
+
+Bundled Linux `wazero` now stays on the interpreter engine as the deliberate
+packaged stability policy for this release line, while source-host verification
+continues to prove the repo-local `wazero` and `wasmtime` paths separately
+through the Node-targeted CLI bundle.
 
 `wasmtime` remains source-only, and the source-host matrix now validates the
 native hosts through the Bun-built Node-targeted CLI bundle rather than direct

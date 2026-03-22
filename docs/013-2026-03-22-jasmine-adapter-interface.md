@@ -27,6 +27,10 @@ Checked on 2026-03-22 against:
 - ship a `jasmine` module with `describe`, `fdescribe`, `xdescribe`, `it`,
   `fit`, `xit`, `beforeAll`, `afterAll`, `beforeEach`, `afterEach`, `expect`,
   and `fail`
+- keep the exported callback types compatible with the repo's explicit
+  `TestContext` / `SuiteContext` model so users can still opt into shared
+  diagnostics and assertions while zero-arg Jasmine-style callbacks remain
+  valid
 - treat `pending()` as a later runtime feature rather than pretending it is
   identical to declaration-time `todo`
 - reuse the current shared matcher core for a narrow first matcher slice
@@ -81,13 +85,15 @@ import {
 Recommended first-slice callback signatures:
 
 ```ts
-type JasmineSpecFn = () => void;
-type JasmineSuiteFn = () => void;
-type JasmineHookFn = () => void;
+type JasmineSpecFn = (context: TestContext) => void;
+type JasmineSuiteFn = (context: SuiteContext) => void;
+type JasmineHookFn = (context: TestContext) => void;
 ```
 
 The upstream global API also accepts async work and timeouts. The first
-`as-harness` slice should not.
+`as-harness` slice should not. The explicit shared contexts keep existing
+assertion and diagnostic helpers available, while AssemblyScript still accepts
+zero-arg callbacks where a wider callback type is expected.
 
 ## Function-By-Function Plan
 
@@ -457,9 +463,9 @@ metadata, but the project does not currently promise full timeout enforcement.
 ## Exact Recommended Export Contract
 
 ```ts
-export type JasmineSuiteFn = () => void;
-export type JasmineSpecFn = () => void;
-export type JasmineHookFn = () => void;
+export type JasmineSuiteFn = (context: SuiteContext) => void;
+export type JasmineSpecFn = (context: TestContext) => void;
+export type JasmineHookFn = (context: TestContext) => void;
 
 export interface SuiteDeclaration {
   (description: string, callback?: JasmineSuiteFn | null): void;
@@ -511,7 +517,7 @@ export function beforeEach(callback?: JasmineHookFn | null): void;
 export function afterEach(callback?: JasmineHookFn | null): void;
 
 export function expect<T>(actual: T): Matchers<T>;
-export function fail(error?: string | Error | null): void;
+export function fail(message?: string | null): void;
 ```
 
 ## Suggested Implementation Order
