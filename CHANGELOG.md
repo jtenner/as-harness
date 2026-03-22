@@ -2,6 +2,7 @@
 
 ## 2026-03-22
 
+- **docs: align snapshot slices with the as-pect file format** Update the live snapshot backlog so the planned `.snap` grammar now explicitly reuses the `as-pect` export-map file shape where it fits, while keeping the stricter host-owned stack metadata, grouped preload state, and explicit update-mode work already scoped for `v0.4.0`. GitHub: *@jtenner*
 - **docs: rescope `uvu` snapshots into `v0.4.0`** Update the live backlog so artifact-backed `uvu/assert` `snapshot(...)` / `fixture(...)` work is now explicitly in scope for `v0.4.0`, while upstream `Assertion` object parity stays deferred behind a future adapter-local error-object contract. GitHub: *@jtenner*
 - **proof: add host smoke for mixed sequential and dependency constraints** Add a synthetic shared `start()` fixture that combines an external prerequisite, a sequential subtree, a downstream dependent, and unrelated ready work, then prove through host-level smoke that the constrained path stays serialized while unrelated work still runs in the first ready wave. GitHub: *@jtenner*
 - **proof: add direct mixed sequential-plus-dependency planner coverage** Extend the shared planner suite with a deterministic mixed-constraint case where an external prerequisite, a sequential subtree, unrelated ready work, and a downstream dependent all compose into the expected stage order, and refresh the host-runner proof note to mention that coverage explicitly. GitHub: *@jtenner*

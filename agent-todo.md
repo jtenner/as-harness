@@ -2,6 +2,14 @@
 
 ## v0.4.0
 
+### Blockers
+
+- freeze the persisted snapshot and fixture artifact contract before shipping
+  any `uvu/assert` artifact helpers.
+- freeze the on-disk `.snap` grammar for this cycle.
+  Reuse the `as-pect`-style export-map format where it fits so snapshot files
+  stay easy to parse, diff, and regenerate.
+
 ### Risks
 
 - shipped `uvu` intentionally diverges from upstream callable returned suite
@@ -18,10 +26,50 @@
   scheduling if the ABI grows new scheduler entrypoints instead of staying on
   discovery metadata plus host-owned `start()`.
 
-### Runtime: Shared Guest Constraints
+### Runtime: Snapshot Artifacts
 
-- keep `sequenceMode` and `dependencyNodeIds` as the authoritative shared
-  constraint model.
+- `ss-001`: freeze artifact identity and path rules.
+  Persist snapshots under `project/__snapshots__/path/to/file.snap` using the
+  declaring source file path, not the runtime node label, as the owning file
+  identity, and keep the file contents compatible with the `as-pect` export-map
+  shape:
+  `exports[\`key\`] = \`value\`;`.
+- `ss-002`: add guest execution-frame artifact metadata.
+  Keep a guest-global stack of pushed and popped artifact descriptors so helper
+  functions can resolve against the active declaration file even when
+  `snapshot(...)` or `fixture(...)` is declared in another module than the
+  current test node.
+- `ss-003`: add a host-readable artifact metadata ABI.
+  Expose the current top-of-stack descriptor through a stable wire contract so
+  `js`, `wazero`, and `wasmtime` can resolve the active artifact file and
+  related callsite metadata without depending on AssemblyScript object layout.
+- `ss-004`: add host snapshot manifest loading.
+  Preload each `.snap` file into a grouped in-memory manifest keyed by source
+  file and `name~(number)` entry identity using an `as-pect`-compatible parser,
+  with every entry starting in an unmatched state before execution begins.
+- `ss-005`: add host snapshot match and finalize semantics.
+  When `snapshot(...)` resolves an entry, compare and mark it matched; after
+  execution, any still-unmatched entries in a touched snapshot file must fail
+  the run as stale expectations.
+- `ss-006`: add an explicit snapshot update mode.
+  Ship a CLI flag such as `--update-snapshots` so missing or mismatched entries
+  can be rewritten intentionally using the same export-map serializer, while
+  ordinary runs stay read-only and fail on drift.
+
+### Adapter: `uvu` Snapshot Helpers
+
+- `ss-007`: add a transform-backed declaration file marker.
+  Inject a lightweight helper call that records the declaring source file for
+  test, suite, and hook execution frames so artifact helpers always resolve
+  against the active stack descriptor rather than process cwd.
+- `ss-008`: ship `uvu/assert` `snapshot(...)` on top of the shared artifact
+  runtime.
+  Start with reflected-value serialization plus host-side snapshot matching and
+  update support.
+- `ss-009`: ship `uvu/assert` `fixture(...)` on top of the same artifact
+  runtime.
+  Resolve fixture paths through the active descriptor and reject path escapes
+  outside the project-owned artifact roots.
 
 ### Adapter: `uvu`
 
@@ -34,8 +82,6 @@
   unless the repo later adopts a transform-backed rewrite policy.
 - keep crumb/context callback parity and async behavior deferred until the
   higher-level compatibility decision is settled.
-- take artifact-backed `snapshot(...)` / `fixture(...)` into `v0.4.0` once the
-  repo ships an explicit persisted-artifact contract.
 - keep upstream `Assertion` object parity deferred until the repo ships an
   adapter-local error-object contract.
 
@@ -43,3 +89,10 @@
 
 - keep `js`, `wazero`, and `wasmtime` parity proof in place as adapters start
   lowering framework-shaped controls onto the shared hint model.
+- `ss-010`: add shared runtime proof for snapshot stack push/pop discipline.
+  Prove descriptor frames survive normal execution, nested helper calls, and
+  trapped callbacks without leaking stale stack state into later targeted runs.
+- `ss-011`: add shared and CLI proof for snapshot preload and stale-entry
+  failure semantics.
+  Cover missing, matched, mismatched, unmatched, and update-mode flows through
+  the shipped reporter and all three hosts.
