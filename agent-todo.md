@@ -4,8 +4,8 @@
 
 ### Blockers
 
-- ship host-side snapshot manifest loading before exposing public `uvu/assert`
-  artifact helpers.
+- ship host-side snapshot match and finalize semantics before exposing public
+  `uvu/assert` artifact helpers.
 
 ### Risks
 
@@ -25,10 +25,6 @@
 
 ### Runtime: Snapshot Artifacts
 
-- `ss-004`: add host snapshot manifest loading.
-  Preload each `.snap` file into a grouped in-memory manifest keyed by source
-  file and `name~(number)` entry identity using an `as-pect`-compatible parser,
-  with every entry starting in an unmatched state before execution begins.
 - `ss-005`: add host snapshot match and finalize semantics.
   When `snapshot(...)` resolves an entry, compare and mark it matched; after
   execution, any still-unmatched entries in a touched snapshot file must fail
