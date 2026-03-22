@@ -195,6 +195,26 @@ Files likely affected:
 - `assembly/assembly/node_test/`
 - `assembly/assembly/internal/context.ts`
 
+Status:
+
+- complete for this dev cycle without further API growth
+
+Decision:
+
+- keep the shipped native surface as the contract:
+  chainable declaration handles for `dependsOn(...)`, `inBand(...)`,
+  `bail(...)`, and `continueOnFailure(...)`; explicit `sequential(...)`
+  declarations; and `SuiteContext` / `TestContext` hint setters
+- do not add a second native helper family that tries to mirror scheduler
+  operations directly
+
+Reason:
+
+- the existing surface already lowers cleanly into shared metadata
+- adding more helpers now would duplicate declaration pathways without adding
+  host-owned planning power
+- leaving the surface narrow keeps adapters converging on one metadata model
+
 ### Slice 4: Adapter Lowering For Framework-Shaped Constraints
 
 Goal:
@@ -311,7 +331,7 @@ This dev cycle should try to complete:
 
 1. shared hint/constraint metadata contract
 2. host planner support for at least `bail` and `in-band` hints
-3. guest-facing APIs for declaring those hints in native surfaces
+3. freeze the current guest-facing native APIs for those hints and constraints
 4. adapter lowering for `vitest` sequential-style constraints and any selected
    `uvu` hint surface
 5. shared proof and updated docs
@@ -321,4 +341,3 @@ This dev cycle should not try to complete:
 - guest-owned scheduler entrypoints
 - async execution
 - full upstream `uvu` callable-suite compatibility
-

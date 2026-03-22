@@ -28,12 +28,6 @@
 - preserve declaration-order tie-breaking and same-machine ready-work fanout
   after constraint lowering.
 
-### Runtime: Native Guest APIs
-
-- decide whether any additional native declaration helpers are needed beyond
-  the shipped chainable handle methods plus `SuiteContext` / `TestContext`
-  `inBand(...)`, `bail(...)`, and `continueOnFailure(...)`.
-
 ### Adapter: `uvu`
 
 - keep the shipped sync `uvu` builder surface stable:

@@ -21,6 +21,10 @@ it with
   executes through targeted `run()` replay on staged `NodeIndex` paths
 - the guest may declare scheduling metadata through discovery facts, but the
   host still owns final planning and execution decisions
+- the shipped native declaration API boundary for this cycle is explicit:
+  chainable declaration handles for dependencies and hints, `sequential(...)`
+  declarations, and `SuiteContext` / `TestContext` hint setters; no broader
+  scheduler-shaped native helper family is planned this cycle
 - unsupported hint values still surface through discovery metadata, but the
   current host only treats them as informational `ignored-hint` planner issues
   instead of binding execution policy
