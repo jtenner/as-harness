@@ -14,4 +14,5 @@ import "./internal/reflected-value";
 import "./internal/strict-equality";
 import "./internal/traversal";
 import "./internal/uvu-assert";
+import "./internal/uvu";
 import "./internal/vitest";

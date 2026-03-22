@@ -41,7 +41,8 @@ Default reporting summarizes:
 ## Bundled Libraries
 
 - `as-harness`: native scheduler-aware declarations, `sequential(...)` groups, chainable `dependsOn(...)` handles, and shared `TestContext.assert`.
-- `uvu/assert`: low-risk assertion subset: `ok`, `is`, `equal`, `not`, `is.not`, `not.equal`, and `unreachable`.
+- `uvu`: sync top-level `test` hooks, `suite(...)` builder objects, `.run()` / `exec()` no-ops under host-owned execution, and shared `TestContext` callbacks.
+- `uvu/assert`: shared assertion subset: `ok`, `is`, `equal`, `not`, `is.not`, `not.equal`, and `unreachable`.
 - `jasmine`: sync declarations, focus/exclude aliases, core hooks, `fail(...)`, and a narrow shared matcher slice.
 - `jest`: thin sync declarations + shared assertion set (containment, length/size, numeric, `toThrow`, strict equality helpers).
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks for diagnostics and assertions.

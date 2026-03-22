@@ -12,7 +12,7 @@ Implemented:
 - Synchronous `node:test` declarations with `dependsOn(...)` chains.
 - `node:assert` / `node:assert/strict` bridge support.
 - Built-in thin adapters for `jest`, `mocha`, `jasmine`, and `vitest`.
-- Built-in low-risk `uvu/assert` subset.
+- Built-in `uvu` adapter plus the shared `uvu/assert` subset.
 - Stable start-reporting pipeline with branch, execution, planning, and blocked-outcome details.
 - `js`, `wazero`, `wasmtime` source-host runtime support.
 - Coverage output in `text`, `json`, `yaml`, `csv`, `lcov`, `cobertura`.
@@ -58,7 +58,8 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `as-harness`: native scheduler-aware declarations, `sequential(...)` groups, chainable handles, and shared `TestContext.assert`.
 - `node:test`: core declarations, hooks, sync contexts, and assertion binding.
 - `node:assert`, `node:assert/strict`: synchronous assertions and strict-bridge tests.
-- `uvu/assert`: low-risk assertion subset for use with other supported runner surfaces.
+- `uvu`: sync top-level `test` hooks, `suite(...)` builder objects, `.run()` / `exec()` compatibility no-ops, and the shared `TestContext` callback model.
+- `uvu/assert`: shared assertion subset: `ok`, `is`, `equal`, `not`, `is.not`, `not.equal`, and `unreachable`.
 - `jest`: sync declarations, core hooks, matcher slice.
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks.
 - `jasmine`: sync declarations, focus/exclude aliases, core hooks, `fail(...)`, and a narrow matcher slice backed by the shared expectation core.

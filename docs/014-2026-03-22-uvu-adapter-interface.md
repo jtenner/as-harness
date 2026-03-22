@@ -1,14 +1,13 @@
 # uvu Adapter Interface
 
-This note answers which `uvu` and `uvu/assert` functions are realistic for
-`as-harness`, recommends a deferred but well-defined adapter strategy, and
-covers the affected guest adapter, shared runtime, and assertion surface in
-`assembly/`, `harness/`, and `cli/`. The recommendation is to defer `uvu` from
-the full runner slice for now, but to preserve a concrete design: support
-`suite(...)`, the returned test object, and a carefully chosen `uvu/assert`
-subset. The repo now ships the low-risk `uvu/assert` subset while keeping the
-full `uvu` runner surface deferred until the project decides how much
-guest-side runner control it is willing to emulate.
+This note answers what `uvu` and `uvu/assert` support is now shipped in
+`as-harness`, what the exact exported contract is, where it intentionally
+diverges from upstream `uvu`, and which remaining compatibility gaps are still
+worth tracking across `assembly/`, `cli/`, and `harness/`. The recommendation
+after implementation is to keep the shipped sync `uvu` slice, document the
+callable-suite divergence plainly, and defer any attempt at strict upstream
+call-signature compatibility until the project is willing to add a transform or
+some broader source-rewrite policy.
 
 ## Research Basis
 
@@ -20,462 +19,371 @@ Checked on 2026-03-22 against:
 - published `dist/index.mjs`
 - published `assert/index.mjs`
 - the package README
-- current `as-harness` runtime and assertion design
+- current `as-harness` runtime and shipped adapter code
 
-## Short Recommendation
+## Current Repo Recommendation
 
-- do not ship the full `uvu` runner surface in the current release line
-- ship the low-risk `uvu/assert` subset independently because it does not
-  conflict with host-owned `start()`
-- if implemented later, support `suite(title?, context?)` and the returned
-  suite/test object before attempting the broader runner surface
-- keep `exec(...)` out of scope because it conflicts with host-owned `start()`
-- treat `test.run()` as the central design question: either adapt it as a
-  declaration finalizer/no-op or do not ship `uvu`
-- keep the full `uvu` runner surface deferred until the suite API is settled
+- keep the shipped sync `uvu` slice as the supported contract
+- treat `.run()` and `exec()` as explicit compatibility no-ops under
+  host-owned `start()`
+- keep the shared `TestContext` callback model instead of promising upstream
+  crumb/context parity
+- keep `uvu/assert` on the low-risk shared assertion subset
+- do not claim full upstream source compatibility because AssemblyScript cannot
+  model a callable object with attached methods the way upstream `suite()`
+  expects
 
-## Why `uvu` Is Different From `mocha` And `jasmine`
+## Shipped Public Shape
 
-`uvu` is not just a different declaration vocabulary. It also brings a more
-runner-shaped in-guest API:
+Current import shape:
 
-- top-level `test` is already a suite-like object
-- `suite()` returns a callable test-registration object with hooks and `.run()`
-- `exec()` is a runner control function
-- `uvu/assert` assumes thrown `Error`-shaped failures
+```ts
+import { exec, suite, test, TestContext, UvuSuite } from "uvu";
+import { equal, is, not, ok, unreachable } from "uvu/assert";
+```
 
-That means `uvu` is a less direct "thin naming adapter" than `mocha` or
-`jasmine`, even though its surface is smaller.
+### Top-Level `test`
 
-## Upstream Surface Summary
+Shipped:
 
-From `uvu`:
+- `test(name, callback)`
+- `test.only(name, callback)`
+- `test.skip(name?, callback?)`
+- `test.before(hook)`
+- `test.before.each(hook)`
+- `test.after(hook)`
+- `test.after.each(hook)`
+- `test.run()`
 
-- `test`
-- `suite(title?, context?)`
+Behavior:
+
+- top-level hook registration maps directly into the shared root hook tree
+- `test.run()` is a compatibility no-op
+- callbacks receive shared `TestContext`
+
+### `suite(...)`
+
+Shipped shape:
+
+```ts
+export function suite<T = usize>(
+  name?: string,
+  context?: T,
+): UvuSuite<T>;
+```
+
+Shipped builder methods:
+
+- `.test(name, callback)`
+- `.only(name, callback)`
+- `.skip(name?, callback?)`
+- `.before(hook)`
+- `.after(hook)`
+- `.beforeEach(hook)`
+- `.afterEach(hook)`
+- `.run()`
+- `.name`
+- `.context`
+
+Behavior:
+
+- `suite(...)` creates a real suite node in the shared declaration tree
+- builder methods temporarily register children and hooks against that suite
+  node
+- `.run()` is a compatibility no-op
+- `.context` stores the supplied suite-local payload for user code that wants
+  to keep explicit state near the builder
+- callbacks still receive shared `TestContext`, not upstream crumb/context
+  objects
+
+### `exec(...)`
+
+Shipped:
+
 - `exec(bail?)`
 
-From the returned `Test<T>` object:
+Behavior:
 
-- call signature `(name, test)`
-- `.only(name, test)`
-- `.skip(name?, test?)`
-- `.before(hook)`
-- `.before.each(hook)`
-- `.after(hook)`
-- `.after.each(hook)`
-- `.run()`
+- compatibility no-op
+- the `bail` flag is accepted but ignored
 
-From `uvu/assert`:
+### `uvu/assert`
+
+Shipped:
 
 - `ok`
 - `is`
 - `equal`
+- `not`
+- `is.not`
+- `not.equal`
+- `unreachable`
+
+Mappings:
+
+- `ok` -> shared truthy assertion
+- `is` -> strict equality
+- `equal` -> deep strict equality
+- `not` / `is.not` -> strict inequality
+- `not.equal` -> deep strict inequality
+- `unreachable` -> shared `fail(...)`
+
+## Exact Compatibility Differences
+
+### 1. `suite()` Is Not A Callable Returned Object
+
+Upstream `uvu` returns a callable object:
+
+- `const math = suite("math");`
+- `math("adds", fn);`
+- `math.before.each(fn);`
+
+The shipped `as-harness` contract cannot do that exactly because current
+AssemblyScript cannot represent a callable object with attached methods in a
+way that preserves upstream source shape.
+
+Shipped replacement:
+
+```ts
+const math = suite("math");
+math.test("adds", (context: TestContext): void => {});
+math.beforeEach((context: TestContext): void => {});
+math.run();
+```
+
+Recommendation:
+
+- document this as an intentional divergence, not as hidden emulation
+
+### 2. Callback Context Is `TestContext`, Not Upstream Crumbs
+
+Upstream `uvu` callbacks receive a context object that may include:
+
+- `__suite__`
+- `__test__`
+
+Shipped `as-harness` callbacks receive:
+
+- shared `TestContext`
+
+Reason:
+
+- it reuses the already-shipped diagnostics and assertion bridge
+- it avoids introducing a one-off callback-shape contract in only one adapter
+
+### 3. `.before.each` / `.after.each` Are Exact Only On Top-Level `test`
+
+The shipped top-level singleton supports:
+
+- `test.before.each(...)`
+- `test.after.each(...)`
+
+The shipped suite-builder methods use:
+
+- `.beforeEach(...)`
+- `.afterEach(...)`
+
+Reason:
+
+- the callable-object limitation also blocks method-namespace parity on the
+  returned builder object
+
+### 4. `exec(bail?)` And `.run()` Do Not Start Execution
+
+They are explicit no-ops because:
+
+- the host owns execution through `start()`
+- guest-side runner control would create overlapping orchestration surfaces
+
+### 5. Async Is Still Unsupported
+
+Deferred:
+
+- Promise-returning tests
+- Promise-returning hooks
+- upstream async `exec()` behavior
+
+## Function-By-Function Status
+
+### `test(name, callback)`
+
+Status: Shipped.
+
+Game plan used:
+
+- map directly to shared test declaration registration
+
+### `test.only(name, callback)`
+
+Status: Shipped.
+
+Game plan used:
+
+- map to shared `only = true` metadata
+
+### `test.skip(name?, callback?)`
+
+Status: Shipped.
+
+Game plan used:
+
+- map to skipped declaration mode
+
+Compatibility note:
+
+- when `only` filtering is active within the same scope, skipped siblings are
+  filtered out by the shared traversal rules just like other non-`only`
+  siblings
+
+### `test.before(hook)` / `test.after(hook)`
+
+Status: Shipped.
+
+Game plan used:
+
+- map to root `beforeAll` / `afterAll`
+
+### `test.before.each(hook)` / `test.after.each(hook)`
+
+Status: Shipped.
+
+Game plan used:
+
+- map to root `beforeEach` / `afterEach`
+
+### `test.run()`
+
+Status: Shipped as no-op.
+
+### `suite(name?, context?)`
+
+Status: Shipped with documented divergence.
+
+Game plan used:
+
+- create a suite node immediately
+- return a suite-builder object that can register tests and hooks onto that
+  node
+- keep the supplied context payload on the builder as `.context`
+
+### `UvuSuite.test(name, callback)`
+
+Status: Shipped.
+
+Game plan used:
+
+- temporarily switch the active declaration node to the suite node
+- register a normal child test
+
+### `UvuSuite.only(name, callback)`
+
+Status: Shipped.
+
+Game plan used:
+
+- same as `.test(...)`, but set shared `only = true`
+
+### `UvuSuite.skip(name?, callback?)`
+
+Status: Shipped.
+
+Game plan used:
+
+- same as `.test(...)`, but set skipped declaration mode
+
+### `UvuSuite.before(hook)` / `UvuSuite.after(hook)`
+
+Status: Shipped.
+
+Game plan used:
+
+- temporarily switch the active declaration node and register suite-local
+  `beforeAll` / `afterAll`
+
+### `UvuSuite.beforeEach(hook)` / `UvuSuite.afterEach(hook)`
+
+Status: Shipped.
+
+Game plan used:
+
+- temporarily switch the active declaration node and register suite-local
+  `beforeEach` / `afterEach`
+
+### `UvuSuite.run()`
+
+Status: Shipped as no-op.
+
+### `exec(bail?)`
+
+Status: Shipped as no-op.
+
+### `uvu/assert`
+
+Status: Partially shipped.
+
+Shipped:
+
+- `ok`
+- `is`
+- `equal`
+- `not`
+- `is.not`
+- `not.equal`
+- `unreachable`
+
+Deferred:
+
 - `type`
 - `instance`
 - `snapshot`
 - `fixture`
 - `match`
 - `throws`
-- `not`
-- `unreachable`
-- `is.not`
-- `not.ok`
-- `not.equal`
-- `not.type`
-- `not.instance`
-- `not.snapshot`
-- `not.fixture`
-- `not.match`
-- `not.throws`
+- negated forms that depend on those helpers
 - `Assertion`
 
-Current shipped subset:
+## Primary Remaining Blockers
 
-- `ok`
-- `is`
-- `equal`
-- `not`
-- `is.not`
-- `not.equal`
-- `unreachable`
+### 1. Callable Suite Objects
 
-## Current `as-harness` Constraints That Matter
+The remaining strict source-compatibility gap is the inability to represent the
+upstream returned callable object cleanly in AssemblyScript source.
 
-- the host owns execution start through `start()`
-- declarations are tree-shaped and replay-driven
-- there is no guest-owned notion of "finish registration, then run now"
-- execution is synchronous
-- Promise-returning tests and hooks are out of scope
-- thrown-value inspection is still intentionally narrow
-- adapters generally expose direct declarations, not builder objects with their
-  own run loop
+If revisited later, realistic options are:
 
-## Current Repo Shape
+1. add a source transform that rewrites upstream `suite()` usage into the
+   shipped builder form
+2. keep the current builder divergence and stop aiming at exact upstream source
+   parity
 
-The repo now ships a `uvu/assert` subpath only:
+### 2. Crumb/Context Callback Parity
 
-```ts
-import { equal, is, not, ok, unreachable } from "uvu/assert";
-```
+Matching upstream `__suite__` / `__test__` crumbs would require either:
 
-Shipped subset:
+- a new adapter-local callback context type
+- or a broader shared callback-model decision across adapters
 
-- `ok`
-- `is`
-- `equal`
-- `not`
-- `is.not`
-- `not.equal`
-- `unreachable`
+### 3. Async Runner Semantics
 
-Reasoning:
+The repo still does not support:
 
-- these helpers fit the existing shared assertion bridge directly
-- they do not require guest-owned runner control, suite builders, or `.run()`
-- they remain useful alongside the already-shipped `node:test`, `mocha`,
-  `jasmine`, and `vitest` runner surfaces
+- Promise hooks
+- Promise tests
+- guest-owned execution finalization
 
-## Recommended Eventual Public Shape
+### 4. Rich `uvu/assert` Error Matching
 
-If `uvu` is implemented later, the recommended import shape is:
+Helpers like `throws`, `match`, and constructor-aware checks still do not fit
+the current failure boundary cleanly.
 
-```ts
-import { suite, test } from "uvu";
-import * as assert from "uvu/assert";
-```
+## Suggested Future Order
 
-But that should happen only after the `.run()` decision is explicit.
-
-## Function-By-Function Plan: `uvu`
-
-### `suite<T = Context>(title?: string, context?: T): Test<T>`
-
-Status: Later, but this is the right starting point.
-
-Game plan:
-
-- map `suite(title, context)` to a suite declaration builder layered over the
-  shared tree
-- treat `title` as the suite name
-- treat `context` as a mutable suite-local state object only if the runtime is
-  willing to pass a stable explicit context object into hooks and tests
-
-Primary blocker:
-
-- the current adapters do not expose a builder object with suite-local mutable
-  state
-
-### `test`
-
-Upstream status:
-
-- `test` is a pre-created unnamed suite object with the same shape as the
-  return value of `suite()`
-
-Status: Later.
-
-Game plan:
-
-- implement as `suite("")`-style top-level singleton only after `suite()` and
-  `.run()` semantics are solved
-
-### `exec(bail?: boolean): Promise<void>`
-
-Status: Skip.
-
-Reason:
-
-- `exec()` is a guest-side runner entrypoint
-- `as-harness` already has a host-owned runner contract
-- emulating both would introduce overlapping orchestration surfaces
-
-## Function-By-Function Plan: Returned `Test<T>` Object
-
-### Callable test registration `(name: string, test: Callback<T>)`
-
-Status: Later, plausible.
-
-Game plan:
-
-- each invocation registers a child test under the current `suite(...)`
-- the callback receives a suite/test-local context object if the adapter adopts
-  one
-
-Compatibility blocker:
-
-- current adapters do not pass object context with `__suite__` and `__test__`
-  crumb fields
-
-### `.only(name, test)`
-
-Status: Later, plausible.
-
-Game plan:
-
-- map to shared `only = true` metadata
-
-### `.skip(name?, test?)`
-
-Status: Later, plausible.
-
-Game plan:
-
-- if a callback is supplied, register a skipped test node
-- if only a name is supplied, register a skipped placeholder node
-
-Compatibility note:
-
-- exact upstream behavior is lightweight because `uvu` treats skips largely as
-  registration-time runner filtering; the shared skip semantics would still need
-  explicit documentation
-
-### `.before(hook)`
-
-Status: Later, plausible.
-
-Game plan:
-
-- map to suite-level `beforeAll`
-
-### `.after(hook)`
-
-Status: Later, plausible.
-
-Game plan:
-
-- map to suite-level `afterAll`
-
-### `.before.each(hook)`
-
-Status: Later, plausible.
-
-Game plan:
-
-- map to suite-level `beforeEach`
-
-### `.after.each(hook)`
-
-Status: Later, plausible.
-
-Game plan:
-
-- map to suite-level `afterEach`
-
-### `.run()`
-
-Status: The main design blocker.
-
-Possible strategies:
-
-1. Treat `.run()` as required declaration finalization and make it a no-op from
-   the host's perspective.
-2. Auto-run suites at module end and still provide `.run()` as a compatibility
-   no-op.
-3. Reject `uvu` entirely unless the project is willing to expose a meaningful
-   guest-side finalization concept.
-
-Recommendation:
-
-- if `uvu` is ever implemented, choose option 1 and document `.run()` as
-  required for source compatibility but semantically redundant under
-  host-owned `start()`
-
-Risk:
-
-- a no-op `.run()` is a semantic divergence and must be documented plainly
-
-## Callback Model And Context Plan
-
-Upstream `uvu` callbacks receive a context object plus crumb fields:
-
-- `__suite__`
-- `__test__`
-
-Status: Later.
-
-Options:
-
-- preserve this shape exactly and make it the first adapter that passes a
-  mutable context object into callbacks
-- provide a narrower context object and omit crumb fields
-
-Recommendation:
-
-- if `uvu` lands, preserve the upstream crumb fields because they are a visible
-  part of the published type surface
-
-Blocker:
-
-- this would be a new callback-shape pattern in the repo and should be designed
-  deliberately rather than slipped into one adapter
-
-## Async Behavior
-
-Upstream `uvu` supports `async` / `await` tests and hooks.
-
-Status: Skip for the first adapter slice.
-
-Blocker:
-
-- same project-wide Promise/runtime limitation as the other deferred async
-  adapters
-
-## `uvu/assert` Plan
-
-`uvu/assert` is optional upstream, but if the adapter lands it is worth
-providing a meaningful subset because many examples rely on it.
-
-### Ship-Later-But-Good-Fit Functions
-
-- `ok(actual, msg?)`
-- `is(actual, expects, msg?)`
-- `equal(actual, expects, msg?)`
-- `unreachable(msg?)`
-- `not(actual, msg?)`
-- `is.not(actual, expects, msg?)`
-- `not.equal(actual, expects, msg?)`
-
-Why these fit:
-
-- they map onto truthiness, strict equality, deep equality, and negation that
-  the shared assertion core already handles
-
-### Plausible Later Functions
-
-- `type(actual, expects, msg?)`
-- `snapshot(actual, expects, msg?)`
-- `fixture(actual, expects, msg?)`
-- `not.type(...)`
-- `not.snapshot(...)`
-- `not.fixture(...)`
-
-Why only later:
-
-- `type(...)` assumes JavaScript `typeof` categories rather than
-  AssemblyScript-native type behavior
-- `snapshot` and `fixture` are really string-comparison helpers and are
-  feasible, but the naming suggests a broader snapshot workflow than the
-  adapter would actually provide
-
-### Blocked Or Poor-Fit Functions
-
-- `instance(actual, expects, msg?)`
-- `match(actual, expects, msg?)`
-- `throws(fn, expects?, msg?)`
-- `not.instance(...)`
-- `not.match(...)`
-- `not.throws(...)`
-- `Assertion`
-
-Primary blockers:
-
-- `instance` depends on constructor and `instanceof` semantics that the guest
-  runtime should not casually promise
-- `match` depends on `RegExp`-style behavior that is not a reliable
-  AssemblyScript-first target
-- `throws` expects rich thrown values, regex matching against error messages, or
-  predicate functions; the current runtime mostly observes traps and fail
-  messages rather than JavaScript exception objects
-- exposing the upstream `Assertion` class shape implies a richer error-object
-  contract than the current guest assertions provide
-
-## Primary Compatibility Blockers
-
-### 1. `.run()` Conflicts With Host-Owned Execution
-
-This is the core adapter design risk. `uvu` expects the guest test file to
-finalize and run suites explicitly. `as-harness` expects the host to discover
-and execute through `start()`.
-
-### 2. Builder-Object API Shape
-
-`suite()` returning a callable object with attached hook methods is a different
-adapter shape from the repo's current direct-function declarations.
-
-### 3. Context Object Semantics
-
-`uvu` exposes suite/test crumb metadata in callback context. The repo has not
-yet committed to that style as a shared adapter pattern.
-
-### 4. Async Hooks And Tests
-
-Upstream `uvu` assumes `async` support broadly. The current runtime does not.
-
-### 5. `uvu/assert` Error Model
-
-The assertion helpers rely on thrown `Assertion` errors and, for some helpers,
-regex or constructor matching against thrown values. The current runtime uses a
-different failure boundary.
-
-## Exact Recommended Future Export Contract
-
-If the project revisits `uvu`, the honest future contract is:
-
-```ts
-export type UvuCallback<T> = (context: T & UvuCrumbs) => void;
-
-export interface UvuCrumbs {
-  __suite__: string;
-  __test__: string;
-}
-
-export interface UvuHook<T> {
-  (hook: UvuCallback<T>): void;
-  each(hook: UvuCallback<T>): void;
-}
-
-export interface UvuTest<T> {
-  (name: string, test: UvuCallback<T>): void;
-  only(name: string, test: UvuCallback<T>): void;
-  skip(name?: string, test?: UvuCallback<T>): void;
-  before: UvuHook<T>;
-  after: UvuHook<T>;
-  run(): void;
-}
-
-export function suite<T = Record<string, unknown>>(
-  title?: string,
-  context?: T,
-): UvuTest<T>;
-
-export const test: UvuTest<Record<string, unknown>>;
-```
-
-And a first practical `uvu/assert` subset should be:
-
-```ts
-export function ok(actual: unknown, msg?: string | null): void;
-export function is(actual: unknown, expects: unknown, msg?: string | null): void;
-export function equal(actual: unknown, expects: unknown, msg?: string | null): void;
-export function unreachable(msg?: string | null): void;
-export namespace is {
-  function not(
-    actual: unknown,
-    expects: unknown,
-    msg?: string | null,
-  ): void;
-}
-export function not(actual: unknown, msg?: string | null): void;
-export namespace not {
-  function equal(
-    actual: unknown,
-    expects: unknown,
-    msg?: string | null,
-  ): void;
-}
-```
-
-## Suggested Implementation Order If Revisited
-
-1. decide whether `.run()` is a compatibility no-op or a release blocker
-2. decide whether `uvu` gets a context-object callback pattern distinct from the
-   other adapters
-3. add `suite()` and returned object mechanics
-4. add the top-level `test` singleton
-5. add the smallest `uvu/assert` subset
-6. add compile and smoke proof for `.only`, `.skip`, hooks, and `.run()`
-7. document every semantic divergence explicitly before release
+1. decide whether exact callable-suite source compatibility is worth a transform
+2. if yes, prototype rewrite-based `suite()` call-shape preservation
+3. if not, freeze the current builder contract as the permanent `uvu` policy
+4. revisit crumb/context parity only after that decision
+5. keep async and richer `uvu/assert` helpers deferred until the project-wide
+   runtime contract changes
 
 ## Sources
 

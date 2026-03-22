@@ -1,24 +1,26 @@
 # Harness Todo
 
-## v0.5.0
-
-### Blockers
-
-- decide whether full `uvu` compatibility is acceptable with `.run()` as a
-  required compatibility no-op under the host-owned `start()` model.
+## v0.6.0
 
 ### Risks
 
-- `uvu` wants a callable suite-builder object with guest-owned runner
-  finalization, which still maps less directly onto the current shared runtime
-  than the shipped `mocha` and `jasmine` adapter lines.
+- shipped `uvu` intentionally diverges from upstream callable returned suite
+  objects because current AssemblyScript cannot model a callable object with
+  attached methods cleanly; closing that gap would require a transform or some
+  broader source-rewrite policy.
+- shipped `uvu` callbacks still use shared `TestContext` rather than upstream
+  crumb/context objects, so strict source parity remains incomplete even though
+  the sync declaration slice now ships.
 
 ### Adapter: `uvu`
 
-- keep the shipped `uvu/assert` subset stable while the full `uvu` runner
-  surface remains deferred.
-- if `uvu` resumes, start with `suite(...)`, the top-level `test` singleton,
-  hook registration, `only` / `skip`, and an explicit `.run()` no-op policy.
-- keep `exec(...)`, richer assertion helpers, and broader thrown-error or
-  snapshot-flavored helpers deferred until the suite-builder contract is
-  actually settled.
+- keep the shipped sync `uvu` builder surface stable:
+  `test(...)`, top-level `test.before.each(...)` / `test.after.each(...)`,
+  `suite(...)`, suite-builder `.test(...)`, `.only(...)`, `.skip(...)`,
+  `.before(...)`, `.after(...)`, `.beforeEach(...)`, `.afterEach(...)`,
+  `.run()`, and `exec(...)`.
+- decide whether strict upstream callable-suite compatibility is worth a
+  transform-backed rewrite layer or whether the current builder-object
+  divergence should be frozen as the permanent contract.
+- keep richer `uvu/assert` helpers, crumb/context callback parity, and async
+  behavior deferred until that higher-level compatibility decision is settled.

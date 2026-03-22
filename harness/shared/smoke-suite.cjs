@@ -612,6 +612,11 @@ function compileSmokeFixtures(options) {
 			"assembly/test/mocha-smoke.ts",
 			path.join(options.cacheDir, "mocha-smoke.wasm"),
 		),
+		compiledUvuWasm: compileFixture(
+			assemblyDir,
+			"assembly/test/uvu-smoke.ts",
+			path.join(options.cacheDir, "uvu-smoke.wasm"),
+		),
 		compiledNodeTestWasm: compileFixture(
 			assemblyDir,
 			"assembly/test/node-test-smoke.ts",
@@ -695,6 +700,7 @@ function registerHarnessSmokeSuite(options) {
 		compiledExportsWasm,
 		compiledJasmineWasm,
 		compiledMochaWasm,
+		compiledUvuWasm,
 		compiledNodeTestWasm,
 		compiledVitestWasm,
 		compiledTrampolineWasm,
@@ -1263,6 +1269,49 @@ function registerHarnessSmokeSuite(options) {
 				["implicit pending", 1, 3],
 				["plain pass", 1, 1],
 				["runs hooks and matchers", 1, 1],
+			],
+		);
+
+		closeHarness(harness);
+	});
+
+	test("discover(nodeIndex) preserves the uvu suite-builder declaration shape", () => {
+		const harness = createHarness(compiledUvuWasm);
+		const found = [];
+
+		harness.onNodeFound((event) => {
+			found.push(event);
+		});
+
+		assert.equal(harness.discover([]), true);
+		assert.deepEqual(found, [
+			{
+				nodeIndex: [0],
+				nodeId: 1,
+				parentNodeId: 0,
+				declarationOrder: 0,
+				kind: 2,
+				declarationMode: 1,
+				sequenceMode: 0,
+				dependencyNodeIds: [],
+				only: false,
+				expectFailure: false,
+				name: "uvu adapter",
+			},
+		]);
+
+		found.length = 0;
+		assert.equal(harness.discover([0]), true);
+		assert.deepEqual(
+			found.map((node) => [
+				node.name,
+				node.kind,
+				node.declarationMode,
+				node.only,
+			]),
+			[
+				["uvu adapter", 2, 1, false],
+				["focused child", 1, 1, true],
 			],
 		);
 
@@ -1938,6 +1987,43 @@ function registerHarnessSmokeSuite(options) {
 		assert.deepEqual(
 			branch.executions.map((execution) => execution.node.name),
 			["plain pass", "runs hooks and matchers"],
+		);
+
+		closeHarness(harness);
+	});
+
+	test("start() preserves the uvu suite-builder surface through shared graph execution", async () => {
+		const harness = createHarness(compiledUvuWasm);
+
+		const result = await harness.start();
+		const branch = result.branches[0];
+
+		assert.equal(result.discoveryOk, true);
+		assert.equal(result.planningOk, true);
+		assert.equal(result.ok, true);
+		assert.equal(result.topLevelNodes.length, 1);
+		assert(result.workerCount >= 1);
+		assert.deepEqual(result.planIssues, []);
+		assert.deepEqual(result.blocked, []);
+		assert.deepEqual(
+			result.topLevelNodes.map((node) => [node.name, node.kind]),
+			[["uvu adapter", 2]],
+		);
+		assert.deepEqual(
+			branch.discovery.nodes.map((node) => [
+				node.name,
+				node.kind,
+				node.declarationMode,
+				node.only,
+			]),
+			[
+				["uvu adapter", 2, 1, false],
+				["focused child", 1, 1, true],
+			],
+		);
+		assert.deepEqual(
+			branch.executions.map((execution) => execution.node.name),
+			["focused child"],
 		);
 
 		closeHarness(harness);

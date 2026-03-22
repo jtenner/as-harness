@@ -14,7 +14,7 @@ Host owns scheduling, aggregation, and reporting.
 - `assembly/assembly/jasmine/`: thin sync Jasmine-shaped surface.
 - `assembly/assembly/jest/`: thin sync Jest-shaped surface.
 - `assembly/assembly/mocha/`: thin sync Mocha BDD-shaped surface.
-- `assembly/assembly/uvu/`: deferred `uvu` runner surface plus the shipped low-risk `uvu/assert` subset.
+- `assembly/assembly/uvu/`: sync `uvu`-shaped declarations plus the shared `uvu/assert` subset.
 - `assembly/assembly/vitest/`: thin sync Vitest-shaped surface.
 - `assembly/assembly/node_assert/`: assertion adapters.
 - `assembly/assembly/test/`: guest fixtures and bootstrap tests.
@@ -24,8 +24,8 @@ Host owns scheduling, aggregation, and reporting.
 
 - native `as-harness` declarations, sequential groups, and chainable handles
 - synchronous `node:test`, chainable declarations, core hooks
-- thin `jest`, `mocha`, `jasmine`, and `vitest` adapters
-- low-risk `uvu/assert` subset for shared assertion reuse
+- thin `jest`, `mocha`, `jasmine`, `uvu`, and `vitest` adapters
+- shared `uvu/assert` subset for assertion reuse
 - `node:assert` / `node:assert/strict` bridge + trampoline trap observation
 - shared event ABI, `NodeIndex` discovery/run model, and coverage declarations
 
