@@ -2,6 +2,7 @@
 
 ## 2026-03-21
 
+- **ci: point Go cache setup at the real wazero module and drop secondary report-upload noise** Tell `actions/setup-go` to cache against `harness/wazero/go.mod` instead of the repo root, switch packaged-report artifact uploads to ignore missing files when the verifier dies early, and record the still-open bundled Linux `wazero` hang in the live backlog. GitHub: *@jtenner*
 - **ci: pin native workflow toolchains to current Go and Rust stable releases** Move CI and release native-host setup onto Go `1.26.1` and Rust `1.94.0`, document those baselines in the release process and native-host READMEs, and note the remaining upstream-toolchain rollover risk in the live backlog so packaged verification keeps matching the repo's native host requirements. GitHub: *@jtenner*
 - **ci: stop assuming a prebuilt source `wazero` addon in root CLI tests** Keep the shipped `wazero` runtime on its normal worker-slot path, make the root Bun CLI coverage include `wazero` only when the local source addon has actually been built, and move CI and release workflows onto Node 24-compatible GitHub Action majors plus Bun `1.3.11` to match the stable packaged verification environment. GitHub: *@jtenner*
 - **docs: retire the stale graph-aware scheduling blocker list** Clear the remaining shipped graph-scheduler bullets from `agent-todo.md`, mark the Vitest scheduling strategy note as historical guidance for the now-landed `v0.3.0` planner slice, and keep the live backlog focused only on real unreleased work. GitHub: *@jtenner*

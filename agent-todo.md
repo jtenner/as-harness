@@ -4,7 +4,8 @@
 
 ### Blockers
 
-- None currently tracked.
+- packaged `bun-linux-x64` verification still hangs in the bundled `wazero`
+  createHarness path on GitHub Ubuntu after toolchain setup succeeds.
 
 ### Risks
 

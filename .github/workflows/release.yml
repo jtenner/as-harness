@@ -52,6 +52,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: "1.26.1"
+          cache-dependency-path: harness/wazero/go.mod
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -76,7 +77,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          if-no-files-found: error
+          if-no-files-found: ignore
           name: packaged-cli-report-${{ matrix.compileTarget }}
           path: ./dist/packaged-cli-reports/*
 
