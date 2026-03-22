@@ -1309,6 +1309,77 @@ test("planExecutionStages rejects malformed dependency metadata as invalid const
 	]);
 });
 
+test("planExecutionStages rejects unsupported sequence scopes as invalid constraints", () => {
+	const invalidSuite = createPlannerNode({
+		identityKey: "id:160",
+		nodeId: 160,
+		declarationOrder: 0,
+		kind: 2,
+		sequenceMode: 9,
+		name: "invalid suite",
+	});
+	const blockedChildA = createPlannerNode({
+		identityKey: "id:160/id:161",
+		parentIdentityKey: "id:160",
+		nodeId: 161,
+		parentNodeId: 160,
+		declarationOrder: 1,
+		name: "blocked child a",
+	});
+	const blockedChildB = createPlannerNode({
+		identityKey: "id:160/id:162",
+		parentIdentityKey: "id:160",
+		nodeId: 162,
+		parentNodeId: 160,
+		declarationOrder: 2,
+		name: "blocked child b",
+	});
+	const plainRoot = createPlannerNode({
+		identityKey: "id:170",
+		nodeId: 170,
+		declarationOrder: 3,
+		kind: 2,
+		name: "plain root",
+	});
+	const readyChild = createPlannerNode({
+		identityKey: "id:170/id:171",
+		parentIdentityKey: "id:170",
+		nodeId: 171,
+		parentNodeId: 170,
+		declarationOrder: 4,
+		name: "plain ready child",
+	});
+
+	const plan = planExecutionStages([
+		createPlannerBranch(0, [invalidSuite, blockedChildA, blockedChildB]),
+		createPlannerBranch(1, [plainRoot, readyChild]),
+	]);
+
+	assert.equal(plan.complete, false);
+	assert.deepEqual(
+		plan.stages.map((stage) => stage.map((target) => target.node.name)),
+		[["plain ready child"]],
+	);
+	assert.deepEqual(
+		plan.blockedTargets.map((target) => target.node.name),
+		["blocked child a", "blocked child b"],
+	);
+	assert.deepEqual(plan.issues, [
+		{
+			type: "invalid-constraint",
+			issueLabel: "invalid constraint",
+			targetIdentityKey: "id:160/id:161",
+			dependencyIdentityKey: "",
+		},
+		{
+			type: "invalid-constraint",
+			issueLabel: "invalid constraint",
+			targetIdentityKey: "id:160/id:162",
+			dependencyIdentityKey: "",
+		},
+	]);
+});
+
 test("evaluatePlannedExecution keeps pre-blocked targets blocked even with execution results", () => {
 	const root = createPlannerNode({
 		identityKey: "id:80",

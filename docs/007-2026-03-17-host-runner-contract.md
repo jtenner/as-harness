@@ -116,6 +116,8 @@ Field-level contract:
 - `planIssues` contains ordered planning or blocked-dependency diagnostics,
   including the machine-readable `type`, the concise `issueLabel`, and the
   target/dependency identity fields
+- malformed dependency metadata and unsupported binding constraint values are
+  hard `invalid-constraint` planner issues rather than silently ignored
 - `blocked` contains planner-blocked tests together with their primary issue
   code, concise `issueLabel`, and dependency identity
 - `workerCount` reports the number of execution slots actually used by the

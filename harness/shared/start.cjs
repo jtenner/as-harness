@@ -792,6 +792,49 @@ function collectSequentialScopeTargets(branch, branchTargets) {
 	return scopeTargets;
 }
 
+function isSupportedSequenceMode(value) {
+	return value === 0 || value === SEQUENCE_MODE_SEQUENTIAL;
+}
+
+function collectInvalidSequenceConstraintIssues(
+	branches,
+	targetsByBranchIndex,
+) {
+	const issues = [];
+	const blockedKeys = new Set();
+
+	for (const branch of Array.isArray(branches) ? branches : []) {
+		const branchTargets = targetsByBranchIndex.get(branch.index) || [];
+		for (const node of Array.isArray(branch?.discovery?.nodes)
+			? branch.discovery.nodes
+			: []) {
+			const sequenceMode =
+				typeof node?.sequenceMode === "number" ? node.sequenceMode >>> 0 : 0;
+			if (isSupportedSequenceMode(sequenceMode)) {
+				continue;
+			}
+
+			const scopeIdentityKey = getNodeIdentityKey(node);
+			for (const target of branchTargets) {
+				if (!isIdentityWithinScope(target.identityKey, scopeIdentityKey)) {
+					continue;
+				}
+				if (blockedKeys.has(target.identityKey)) {
+					continue;
+				}
+
+				blockedKeys.add(target.identityKey);
+				issues.push(createPlanIssue("invalid-constraint", target.identityKey));
+			}
+		}
+	}
+
+	return {
+		blockedKeys,
+		issues: issues.sort(comparePlanIssues),
+	};
+}
+
 function addExecutionDependency(adjacency, prereqCounts, fromTarget, toTarget) {
 	if (
 		!fromTarget ||
@@ -1339,6 +1382,13 @@ function planExecutionStages(branches) {
 			targetsByScopeAndNodeId,
 			targetsByBranchIndex,
 		);
+	const invalidSequenceConstraints = collectInvalidSequenceConstraintIssues(
+		branches,
+		targetsByBranchIndex,
+	);
+	for (const blockedKey of invalidSequenceConstraints.blockedKeys) {
+		blockedKeys.add(blockedKey);
+	}
 	const runnableTargets = targets.filter(
 		(target) => !blockedKeys.has(target.identityKey),
 	);
@@ -1393,6 +1443,7 @@ function planExecutionStages(branches) {
 			.sort(compareExecutionTargets),
 		complete: completedTargetCount === targets.length,
 		issues: issues
+			.concat(invalidSequenceConstraints.issues)
 			.concat(collectIgnoredHintIssues(branches))
 			.sort(comparePlanIssues),
 		stages: plannedStages,
