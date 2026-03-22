@@ -16,6 +16,8 @@ Operational flow for shipping `as-harness` through GitHub:
 - `wasmtime` is source-only
 - explicit Node.js 22 baseline
 - Bun `1.3.11` build baseline for packaged artifacts and CI
+- Go `1.26.1` baseline for `wazero` source verification and packaged verification
+- Rust `1.94.0` baseline for `wasmtime` source verification and packaged native build prerequisites
 
 ## Targets
 

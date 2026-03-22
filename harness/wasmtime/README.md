@@ -17,6 +17,8 @@ Rust/Node-API host implementation built on `wasmtime`.
 
 ## Build and Test
 
+Build requirement: Rust `1.94.0` stable or newer.
+
 ```bash
 cd harness/wasmtime
 node ./scripts/build.mjs

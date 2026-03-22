@@ -21,7 +21,7 @@ Proves the ABI is not tied to one runtime language by implementing the same shar
 
 ## Build Requirements
 
-- Go toolchain
+- Go `1.26.1` or newer toolchain
 - Node headers
 - Windows `node.lib` (auto-download path supported)
 
