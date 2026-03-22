@@ -2,6 +2,7 @@
 
 ## 2026-03-22
 
+- **docs: define pre-v1 release bump expectations** Clarify in the root README and release-process guide that `0.x` minor releases are the expected lane for breaking API or behavior changes, `patch` remains the non-breaking lane within a minor line, and `1.0.0` is the stabilization boundary. GitHub: *@jtenner*
 - **docs: align release, runtime, and CI guidance with the current 0.3.0 repo state** Refresh the root and package READMEs, release/process notes, host-contract proof references, Vitest adapter status framing, generated release-note text, and the March CI flakiness log so they consistently describe the current packaged matrix, the Node-targeted source-host verification path, and the remaining bundled Linux `wazero` interpreter-engine risk. GitHub: *@jtenner*
 
 ## 2026-03-21

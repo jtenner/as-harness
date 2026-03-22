@@ -116,6 +116,16 @@ native hosts through the Bun-built Node-targeted CLI bundle rather than direct
 
 `npm` publication is not the current distribution channel.
 
+## Versioning Policy
+
+The project is still pre-`v1`, so release communication follows the common
+`0.x` convention:
+
+- `0.minor.0` releases may include breaking API or behavior changes
+- `0.x.patch` releases are for non-breaking fixes and small corrections within
+  that current minor line
+- `1.0.0` is the point where the public API is expected to stabilize
+
 ## License and Legal
 
 - MIT project license: [LICENSE](./LICENSE)

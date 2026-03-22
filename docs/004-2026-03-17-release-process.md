@@ -12,6 +12,9 @@ Operational flow for shipping `as-harness` through GitHub:
 
 - official distribution: packaged Bun executables
 - no current `npm` publication
+- while the project is still `0.x`, treat a `minor` bump as the normal vehicle
+  for breaking public API or behavior changes; reserve `patch` for
+  non-breaking fixes within the current minor line
 - packaged targets include `js` everywhere and `wazero` on `bun-darwin-arm64`,
   `bun-darwin-x64`, and `bun-linux-x64`; `bun-linux-arm64` and
   `bun-windows-x64` stay `js`-only
@@ -86,6 +89,13 @@ bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-hos
 
 Release workflows trigger on `v*` tags.
 Tag must match `cli/package.json` version.
+
+Pre-`v1` release semantics:
+
+- `patch`: non-breaking fixes within the current `0.x` minor line
+- `minor`: the expected pre-`v1` breaking-release lane
+- `major`: reserve for the eventual `1.0.0` stabilization line or a deliberate
+  post-`v1` semver major
 
 ## Failure triage
 
