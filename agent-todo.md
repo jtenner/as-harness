@@ -32,17 +32,6 @@
   the shipped chainable handle methods plus `SuiteContext` / `TestContext`
   `inBand(...)`, `bail(...)`, and `continueOnFailure(...)`.
 
-### Adapter: `vitest`
-
-- map `vitest` scheduling-shaped controls onto the shared host constraint and
-  hint model rather than adapter-local execution.
-- keep `sequential` lowering aligned with the existing shared sequential
-  constraint semantics.
-- decide whether any current or future `vitest` controls should become shared
-  hints rather than hard constraints in this cycle.
-- extend `vitest` internal coverage and shared smoke proof for the selected
-  constraint and hint slices.
-
 ### Adapter: `uvu`
 
 - keep the shipped sync `uvu` builder surface stable:

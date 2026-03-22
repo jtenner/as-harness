@@ -1088,7 +1088,7 @@ function registerHarnessSmokeSuite(options) {
 		closeHarness(harness);
 	});
 
-	test("discover(nodeIndex) preserves vitest sequential metadata and nested suite shape", () => {
+	test("discover(nodeIndex) preserves vitest scheduling metadata and nested suite shape", () => {
 		const harness = createHarness(compiledVitestWasm);
 		const found = [];
 
@@ -1176,16 +1176,48 @@ function registerHarnessSmokeSuite(options) {
 					expectFailure: false,
 				},
 				{
-					name: "sequential suite alias",
+					name: "concurrent pass",
 					nodeIndex: [0, 5],
+					kind: 1,
+					declarationMode: 1,
+					sequenceMode: 0,
+					expectFailure: false,
+				},
+				{
+					name: "concurrent it pass",
+					nodeIndex: [0, 6],
+					kind: 1,
+					declarationMode: 1,
+					sequenceMode: 0,
+					expectFailure: false,
+				},
+				{
+					name: "concurrent suite alias",
+					nodeIndex: [0, 7],
+					kind: 2,
+					declarationMode: 1,
+					sequenceMode: 0,
+					expectFailure: false,
+				},
+				{
+					name: "sequential suite alias",
+					nodeIndex: [0, 8],
 					kind: 2,
 					declarationMode: 1,
 					sequenceMode: 1,
 					expectFailure: false,
 				},
 				{
+					name: "concurrent suite",
+					nodeIndex: [0, 9],
+					kind: 2,
+					declarationMode: 1,
+					sequenceMode: 0,
+					expectFailure: false,
+				},
+				{
 					name: "sequential suite",
-					nodeIndex: [0, 6],
+					nodeIndex: [0, 10],
 					kind: 2,
 					declarationMode: 1,
 					sequenceMode: 1,
@@ -1193,7 +1225,7 @@ function registerHarnessSmokeSuite(options) {
 				},
 				{
 					name: "conditional pass",
-					nodeIndex: [0, 7],
+					nodeIndex: [0, 11],
 					kind: 1,
 					declarationMode: 1,
 					sequenceMode: 0,
@@ -1201,7 +1233,7 @@ function registerHarnessSmokeSuite(options) {
 				},
 				{
 					name: "runs hooks and assertions",
-					nodeIndex: [0, 8],
+					nodeIndex: [0, 12],
 					kind: 1,
 					declarationMode: 1,
 					sequenceMode: 0,
@@ -1985,7 +2017,7 @@ function registerHarnessSmokeSuite(options) {
 		closeHarness(harness);
 	});
 
-	test("start() preserves vitest sequential declarations through shared graph execution", async () => {
+	test("start() preserves vitest scheduling declarations through shared graph execution", async () => {
 		const harness = createHarness(compiledVitestWasm);
 
 		const result = await harness.start();
@@ -1994,7 +2026,7 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(result.discoveryOk, true);
 		assert.equal(result.planningOk, true);
 		assert.equal(result.ok, true);
-		assert.equal(result.discoveredTestCount, 8);
+		assert.equal(result.discoveredTestCount, 13);
 		assert.equal(result.topLevelNodes.length, 1);
 		assert(result.workerCount >= 1);
 		assert.deepEqual(result.planIssues, []);
@@ -2021,12 +2053,19 @@ function registerHarnessSmokeSuite(options) {
 				["implicit todo metadata", 0, 3, false],
 				["sequential pass", 1, 1, false],
 				["sequential it pass", 1, 1, false],
+				["concurrent pass", 0, 1, false],
+				["concurrent it pass", 0, 1, false],
+				["concurrent suite alias", 0, 1, false],
 				["sequential suite alias", 1, 1, false],
+				["concurrent suite", 0, 1, false],
 				["sequential suite", 1, 1, false],
 				["conditional pass", 0, 1, false],
 				["runs hooks and assertions", 0, 1, false],
+				["nested concurrent suite alias child", 0, 1, false],
 				["nested suite alias child", 0, 1, false],
-				["nested sequential child", 0, 1, false],
+				["nested concurrent child", 0, 1, false],
+				["nested sequential concurrent child a", 0, 1, false],
+				["nested sequential concurrent child b", 0, 1, false],
 			],
 		);
 		assert.deepEqual(
@@ -2035,10 +2074,15 @@ function registerHarnessSmokeSuite(options) {
 				"expected failure metadata",
 				"sequential pass",
 				"sequential it pass",
+				"concurrent pass",
+				"concurrent it pass",
 				"conditional pass",
 				"runs hooks and assertions",
+				"nested concurrent suite alias child",
 				"nested suite alias child",
-				"nested sequential child",
+				"nested concurrent child",
+				"nested sequential concurrent child a",
+				"nested sequential concurrent child b",
 			],
 		);
 		assert(branch.executions.every((execution) => execution.ok));

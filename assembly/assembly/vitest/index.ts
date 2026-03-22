@@ -92,6 +92,13 @@ export namespace test {
 		);
 	}
 
+	export function concurrent(
+		name: string = "",
+		callback: TestFn | null = null,
+	): void {
+		declareBaseTest(name, callback);
+	}
+
 	export function skipIf(condition: bool): TestDeclaration {
 		return condition ? test.skip : test;
 	}
@@ -160,6 +167,13 @@ export namespace it {
 		);
 	}
 
+	export function concurrent(
+		name: string = "",
+		callback: TestFn | null = null,
+	): void {
+		declareBaseTest(name, callback);
+	}
+
 	export function skipIf(condition: bool): TestDeclaration {
 		return condition ? it.skip : it;
 	}
@@ -212,6 +226,13 @@ export namespace describe {
 		);
 	}
 
+	export function concurrent(
+		name: string = "",
+		callback: SuiteFn | null = null,
+	): void {
+		declareBaseSuite(name, callback);
+	}
+
 	export function skipIf(condition: bool): SuiteDeclaration {
 		return condition ? describe.skip : describe;
 	}
@@ -262,6 +283,13 @@ export namespace suite {
 			false,
 			SequenceMode.Sequential,
 		);
+	}
+
+	export function concurrent(
+		name: string = "",
+		callback: SuiteFn | null = null,
+	): void {
+		declareBaseSuite(name, callback);
 	}
 
 	export function skipIf(condition: bool): SuiteDeclaration {

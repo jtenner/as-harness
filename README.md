@@ -66,7 +66,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `jest`: sync declarations, core hooks, matcher slice.
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks.
 - `jasmine`: sync declarations, focus/exclude aliases, core hooks, `fail(...)`, and a narrow matcher slice backed by the shared expectation core.
-- `vitest`: sync declarations, low-risk scheduling controls, and the same matcher slice.
+- `vitest`: sync declarations, shared `sequential` constraints, host-default `concurrent` aliases, and the same matcher slice.
 
 See:
 

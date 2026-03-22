@@ -1141,13 +1141,21 @@ describe("vitest adapter", (_context): void => {
   });
   test("implicit todo metadata");
   test.sequential("sequential pass", (_context: TestContext): void => {});
-
   it.sequential("sequential it pass", (_context: TestContext): void => {});
+  test.concurrent("concurrent pass", (_context: TestContext): void => {});
+  it.concurrent("concurrent it pass", (_context: TestContext): void => {});
+  suite.concurrent("concurrent suite alias", (_nestedContext): void => {
+    test("nested concurrent suite alias child", (_context: TestContext): void => {});
+  });
   suite.sequential("sequential suite alias", (_nestedContext): void => {
     test("nested suite alias child", (_context: TestContext): void => {});
   });
+  describe.concurrent("concurrent suite", (_nestedContext): void => {
+    test("nested concurrent child", (_context: TestContext): void => {});
+  });
   describe.sequential("sequential suite", (_nestedContext): void => {
-    test("nested sequential child", (_context: TestContext): void => {});
+    test.concurrent("nested sequential concurrent child a", (_context: TestContext): void => {});
+    test.concurrent("nested sequential concurrent child b", (_context: TestContext): void => {});
   });
   test.skipIf(false)("conditional pass", (_context: TestContext): void => {});
 
@@ -1175,7 +1183,7 @@ describe("vitest adapter", (_context): void => {
 			expect(result.exitCode).toBe(0);
 			expect(result.stderr).toBe("");
 			expect(result.stdout).toContain(
-				"PASS 7 passed, 0 failed, 8 discovered with js.",
+				"PASS 12 passed, 0 failed, 13 discovered with js.",
 			);
 		},
 	);

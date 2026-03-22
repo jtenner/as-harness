@@ -7,7 +7,7 @@ First slice (implemented):
 
 - `test`, `it`, `describe`, `suite`
 - `skip`, `todo`, `only`, `fails`
-- low-risk `sequential`
+- shared `sequential` constraints and host-default `concurrent` aliases
 - `skipIf` / `runIf`
 - `assertType(...)`
 - shared `jest` matcher surface

@@ -26,7 +26,8 @@ Host owns scheduling, aggregation, and reporting.
   host-owned `inBand(...)` / `bail(...)` / `continueOnFailure(...)` hints
 - synchronous `node:test`, chainable declarations, core hooks, and the same
   host-owned planning hints
-- thin `jest`, `mocha`, `jasmine`, `uvu`, and `vitest` adapters
+- thin `jest`, `mocha`, `jasmine`, `uvu`, and `vitest` adapters, including the
+  shipped Vitest scheduling subset
 - shared `uvu/assert` subset for assertion reuse
 - `node:assert` / `node:assert/strict` bridge + trampoline trap observation
 - shared event ABI, `NodeIndex` discovery/run model, and coverage declarations

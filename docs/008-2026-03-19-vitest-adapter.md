@@ -4,9 +4,12 @@ Design and status note for the shipped thin sync `"vitest"` guest library in
 `as-harness`.
 
 This document captured the implementation target for the first `v0.3.0`
-adapter slice. The repo now ships that intentionally thin synchronous surface;
-the `Later` and `Skip` classifications below remain the current boundary for
-future expansion.
+adapter slice. The repo now ships that intentionally thin synchronous surface
+plus the current `v0.6.0` scheduling clarification: `sequential` lowers to the
+shared binding sequence constraint, while `concurrent` is now a supported
+explicit alias for the host's default parallel-ready state rather than a
+promise of strict upstream Vitest worker semantics. The `Later` and `Skip`
+classifications below are updated to match that boundary.
 
 Research basis:
 
@@ -298,32 +301,41 @@ Recommended status:
 
 Reasoning:
 
-- the current runner is already sequential
-- exporting `test.sequential` now is an honest semantic alias of normal test
-  declaration in the current runner
-- it adds useful named surface compatibility without claiming concurrent
-  scheduling support
+- the shared host planner now has a real sequence constraint model
+- `test.sequential` can honestly lower onto the existing binding
+  `sequenceMode = sequential` metadata
+- that gives Vitest-shaped source a real constraint instead of an adapter-only
+  name
 
 Current shipped behavior:
 
-- `test.sequential(...)` aliases `test(...)`
-- `it.sequential(...)` aliases `it(...)`
+- `test.sequential(...)` lowers to the shared binding sequential constraint
+- `it.sequential(...)` mirrors that behavior
 
 ### `test.concurrent`
 
 Recommended status:
 
-- `Skip` for now
+- `Ship now`, with an explicit compatibility note
 
 Reasoning:
 
-- upstream Vitest uses real runner concurrency
-- concurrent snapshots and local-context `expect` semantics are runner features,
-  not adapter-only sugar
-- the current runtime stores `concurrency` metadata but does not provide
-  faithful concurrent execution
+- upstream Vitest uses richer runner-local concurrency semantics than this repo
+  currently implements
+- the shared host planner already treats unconstrained runnable work as
+  parallel-ready across same-machine worker slots
+- shipping `test.concurrent(...)` as an explicit alias for the shared default
+  scheduling state is now honest as long as the docs do not over-claim exact
+  upstream worker semantics
 
-This should not be exposed until the runner can honor it.
+Current shipped behavior:
+
+- `test.concurrent(...)` lowers to the same shared default scheduling state as
+  `test(...)`
+- `it.concurrent(...)` mirrors that behavior
+- inherited `describe.sequential(...)` or `suite.sequential(...)` constraints
+  still win over nested `test.concurrent(...)` declarations because sequence is
+  a binding shared planner constraint rather than a local adapter hint
 
 ### `timeout`
 
@@ -500,28 +512,35 @@ Recommended status:
 
 Reasoning:
 
-- like `test.sequential`, this is an honest alias in the current always-
-  sequential runner
-- it improves named Vitest surface compatibility without promising any broader
-  scheduler behavior
+- like `test.sequential`, this now lowers onto the shared binding sequential
+  constraint model
+- descendants under that scope are serialized by the host planner
 
 Current shipped behavior:
 
-- `describe.sequential(...)` aliases `describe(...)`
-- `suite.sequential(...)` aliases `suite(...)`
+- `describe.sequential(...)` lowers to the shared sequential scope constraint
+- `suite.sequential(...)` mirrors that behavior
 
 ### `describe.concurrent`
 
 Recommended status:
 
-- `Skip` for now
+- `Ship now`, with an explicit compatibility note
 
 Reasoning:
 
-- real parallel suite execution is runner behavior
-- the upstream API changes expectation routing for local-context assertions and
-  snapshots
-- shipping the name without the behavior would be misleading
+- real upstream Vitest suite concurrency still includes richer runner behavior
+  than this repo currently implements
+- the shared host planner already treats unconstrained work as parallel-ready
+- shipping `describe.concurrent(...)` and `suite.concurrent(...)` as explicit
+  aliases for the shared default scheduling state is now honest once the docs
+  note that inherited sequential scopes still override them
+
+Current shipped behavior:
+
+- `describe.concurrent(...)` lowers to the same shared default scheduling state
+  as `describe(...)`
+- `suite.concurrent(...)` mirrors that behavior
 
 ### `describe.shuffle`
 
@@ -919,6 +938,7 @@ The recommended first implementation contract for `"vitest"` is:
 - `test.todo(name?: string, callback?: TestFn | null): void`
 - `test.fails(name?: string, callback?: TestFn | null): void`
 - `test.sequential(name?: string, callback?: TestFn | null): void`
+- `test.concurrent(name?: string, callback?: TestFn | null): void`
 - `test.skipIf(condition: bool): typeof test`
 - `test.runIf(condition: bool): typeof test`
 - `it(...)` with the same family as `test(...)`
@@ -927,6 +947,7 @@ The recommended first implementation contract for `"vitest"` is:
 - `describe.skip(name?: string, callback?: SuiteFn | null): void`
 - `describe.todo(name?: string, callback?: SuiteFn | null): void`
 - `describe.sequential(name?: string, callback?: SuiteFn | null): void`
+- `describe.concurrent(name?: string, callback?: SuiteFn | null): void`
 - `describe.skipIf(condition: bool): typeof describe`
 - `describe.runIf(condition: bool): typeof describe`
 - `suite(...)` with the same family as `describe(...)`

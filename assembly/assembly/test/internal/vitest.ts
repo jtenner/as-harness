@@ -51,9 +51,13 @@ function testVitestDeclarationRegistration(): void {
 	test.skipIf(true)("skipIf test", noopTest);
 	test.runIf(false)("runIf test", noopTest);
 	it.sequential("sequential it", noopTest);
+	test.concurrent("concurrent test", noopTest);
+	it.concurrent("concurrent it", noopTest);
 	describe.only("focused suite", declareNestedSuite);
 	describe.sequential("sequential suite", noopSuite);
 	suite.sequential("sequential suite alias", noopSuite);
+	describe.concurrent("concurrent suite", noopSuite);
+	suite.concurrent("concurrent suite alias", noopSuite);
 	describe.skipIf(true)("skipped suite", noopSuite);
 	suite.runIf(false)("runIf suite", noopSuite);
 	suite.todo("todo suite", noopSuite);
@@ -71,7 +75,7 @@ function testVitestDeclarationRegistration(): void {
 	assert(afterEachHooks.length == 1);
 
 	const children = localRoot.getChildren();
-	assert(children.length == 13);
+	assert(children.length == 17);
 
 	assert(unchecked(children[0]).kind == NodeKind.Test);
 	assert(unchecked(children[0]).declarationMode == DeclarationMode.Normal);
@@ -83,16 +87,24 @@ function testVitestDeclarationRegistration(): void {
 	assert(unchecked(children[5]).declarationMode == DeclarationMode.Skip);
 	assert(unchecked(children[6]).declarationMode == DeclarationMode.Normal);
 	assert(unchecked(children[6]).sequenceMode == SequenceMode.Sequential);
-	assert(unchecked(children[7]).only);
+	assert(unchecked(children[7]).declarationMode == DeclarationMode.Normal);
+	assert(unchecked(children[7]).sequenceMode == SequenceMode.Inherit);
 	assert(unchecked(children[8]).declarationMode == DeclarationMode.Normal);
-	assert(unchecked(children[8]).sequenceMode == SequenceMode.Sequential);
-	assert(unchecked(children[9]).declarationMode == DeclarationMode.Normal);
-	assert(unchecked(children[9]).sequenceMode == SequenceMode.Sequential);
-	assert(unchecked(children[10]).declarationMode == DeclarationMode.Skip);
-	assert(unchecked(children[11]).declarationMode == DeclarationMode.Skip);
-	assert(unchecked(children[12]).declarationMode == DeclarationMode.Todo);
+	assert(unchecked(children[8]).sequenceMode == SequenceMode.Inherit);
+	assert(unchecked(children[9]).only);
+	assert(unchecked(children[10]).declarationMode == DeclarationMode.Normal);
+	assert(unchecked(children[10]).sequenceMode == SequenceMode.Sequential);
+	assert(unchecked(children[11]).declarationMode == DeclarationMode.Normal);
+	assert(unchecked(children[11]).sequenceMode == SequenceMode.Sequential);
+	assert(unchecked(children[12]).declarationMode == DeclarationMode.Normal);
+	assert(unchecked(children[12]).sequenceMode == SequenceMode.Inherit);
+	assert(unchecked(children[13]).declarationMode == DeclarationMode.Normal);
+	assert(unchecked(children[13]).sequenceMode == SequenceMode.Inherit);
+	assert(unchecked(children[14]).declarationMode == DeclarationMode.Skip);
+	assert(unchecked(children[15]).declarationMode == DeclarationMode.Skip);
+	assert(unchecked(children[16]).declarationMode == DeclarationMode.Todo);
 
-	const focusedSuite = unchecked(children[7]);
+	const focusedSuite = unchecked(children[9]);
 	const nestedChildren = focusedSuite.getChildren();
 	assert(nestedChildren.length == 2);
 	assert(unchecked(nestedChildren[0]).expectFailure);

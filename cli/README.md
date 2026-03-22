@@ -47,7 +47,7 @@ Default reporting summarizes:
 - `jasmine`: sync declarations, focus/exclude aliases, core hooks, `fail(...)`, and a narrow shared matcher slice.
 - `jest`: thin sync declarations + shared assertion set (containment, length/size, numeric, `toThrow`, strict equality helpers).
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks for diagnostics and assertions.
-- `vitest`: sync declarations, low-risk scheduling controls, `fails`, `skipIf` / `runIf`, `assertType(...)`, and the same shared matcher set.
+- `vitest`: sync declarations, shared `sequential` constraints, host-default `concurrent` aliases, `fails`, `skipIf` / `runIf`, `assertType(...)`, and the same shared matcher set.
 - `node:test`: sync declarations, hooks, `dependsOn(...)`, and the same host-owned planning hints.
 
 See their interface docs:
