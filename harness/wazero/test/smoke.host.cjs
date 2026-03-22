@@ -21,6 +21,16 @@ const {
 const repoDir = path.resolve(__dirname, "..", "..", "..");
 const cliEntrypointPath = path.join(repoDir, "cli", "index.ts");
 
+function removeTempDirectory(tempDirectory) {
+	// Windows can hold short-lived handles on spawned-process temp trees briefly.
+	rmSync(tempDirectory, {
+		force: true,
+		maxRetries: 10,
+		recursive: true,
+		retryDelay: 50,
+	});
+}
+
 const fixtures = compileSmokeFixtures({
 	cacheDir: path.join(repoDir, "harness", "wazero", ".cache"),
 	repoDir,
@@ -110,7 +120,7 @@ test("cli run executes tests through the wazero harness", () => {
 			/PASS 1 passed, 0 failed, 1 discovered with wazero\./,
 		);
 	} finally {
-		rmSync(tempDirectory, { force: true, recursive: true });
+		removeTempDirectory(tempDirectory);
 	}
 });
 
@@ -164,7 +174,7 @@ test("cli run emits coverage through the wazero harness", () => {
 		assert.match(result.stdout, /Coverage:/);
 		assert.match(result.stdout, /suite\.test\.ts/);
 	} finally {
-		rmSync(tempDirectory, { force: true, recursive: true });
+		removeTempDirectory(tempDirectory);
 	}
 });
 
@@ -213,6 +223,6 @@ test("cli run executes a thin vitest adapter entry through the wazero harness", 
 			/PASS 6 passed, 0 failed, 6 discovered with wazero\./,
 		);
 	} finally {
-		rmSync(tempDirectory, { force: true, recursive: true });
+		removeTempDirectory(tempDirectory);
 	}
 });
