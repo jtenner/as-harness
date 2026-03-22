@@ -557,13 +557,27 @@ const PASSING_BRANCH_EVENTS = [
 	{ type: "nodePass", data: { nodeIndex: [0], nodeId: 1 } },
 ];
 
+function resolveAscCommand(assemblyDir) {
+	const ascEntrypoint = path.join(
+		assemblyDir,
+		"node_modules",
+		"assemblyscript",
+		"bin",
+		"asc.js",
+	);
+	return {
+		command: process.execPath,
+		ascEntrypoint,
+	};
+}
+
 function compileFixture(assemblyDir, entryFile, outputPath) {
 	mkdirSync(path.dirname(outputPath), { recursive: true });
-	const ascCommand = process.platform === "win32" ? "npx.cmd" : "npx";
+	const { command, ascEntrypoint } = resolveAscCommand(assemblyDir);
 	execFileSync(
-		ascCommand,
+		command,
 		[
-			"asc",
+			ascEntrypoint,
 			entryFile,
 			"--debug",
 			"--exportStart",
@@ -1787,4 +1801,5 @@ function registerHarnessSmokeSuite(options) {
 module.exports = {
 	compileSmokeFixtures,
 	registerHarnessSmokeSuite,
+	resolveAscCommand,
 };
