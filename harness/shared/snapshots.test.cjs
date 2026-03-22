@@ -5,12 +5,42 @@ const path = require("node:path");
 const test = require("node:test");
 
 const {
+	finalizeSnapshotManifest,
 	loadSnapshotManifest,
+	matchSnapshotEntry,
 	parseSnapshotFile,
 	renderSnapshotFile,
+	resolveSnapshotFileState,
 	resolveSnapshotPath,
 	resolveSnapshotRelativePath,
 } = require("./snapshots.cjs");
+
+function createSnapshotProject() {
+	const projectRoot = mkdtempSync(path.join(tmpdir(), "as-harness-snapshots-"));
+	const nestedDirectory = path.join(
+		projectRoot,
+		"__snapshots__",
+		"tests",
+		"math",
+	);
+	mkdirSync(nestedDirectory, { recursive: true });
+	writeFileSync(
+		path.join(projectRoot, "__snapshots__", "root.test.snap"),
+		"exports[`root~(0)`] = `root value`;\n",
+		"utf8",
+	);
+	writeFileSync(
+		path.join(nestedDirectory, "add.test.snap"),
+		[
+			"exports[`adds~(0)`] = `1 + 1 = 2`;",
+			"",
+			"exports[`adds~(1)`] = `2 + 2 = 4`;",
+			"",
+		].join("\n"),
+		"utf8",
+	);
+	return projectRoot;
+}
 
 test("resolveSnapshotRelativePath mirrors the source tree under __snapshots__", () => {
 	assert.equal(
@@ -99,32 +129,9 @@ test("parseSnapshotFile rejects duplicate keys", () => {
 });
 
 test("loadSnapshotManifest recursively groups snapshot files by relative path", () => {
-	const projectRoot = mkdtempSync(path.join(tmpdir(), "as-harness-snapshots-"));
+	const projectRoot = createSnapshotProject();
 
 	try {
-		const nestedDirectory = path.join(
-			projectRoot,
-			"__snapshots__",
-			"tests",
-			"math",
-		);
-		mkdirSync(nestedDirectory, { recursive: true });
-		writeFileSync(
-			path.join(projectRoot, "__snapshots__", "root.test.snap"),
-			"exports[`root~(0)`] = `root value`;\n",
-			"utf8",
-		);
-		writeFileSync(
-			path.join(nestedDirectory, "add.test.snap"),
-			[
-				"exports[`adds~(0)`] = `1 + 1 = 2`;",
-				"",
-				"exports[`adds~(1)`] = `2 + 2 = 4`;",
-				"",
-			].join("\n"),
-			"utf8",
-		);
-
 		const manifest = loadSnapshotManifest(projectRoot);
 
 		assert.deepEqual(
@@ -143,6 +150,157 @@ test("loadSnapshotManifest recursively groups snapshot files by relative path", 
 				.entriesByKey.get("adds~(1)").matched,
 			false,
 		);
+	} finally {
+		rmSync(projectRoot, { force: true, recursive: true });
+	}
+});
+
+test("resolveSnapshotFileState finds preloaded files by source file path", () => {
+	const projectRoot = createSnapshotProject();
+
+	try {
+		const manifest = loadSnapshotManifest(projectRoot);
+		assert.equal(
+			resolveSnapshotFileState(manifest, "tests/math/add.test.ts")
+				.relativeSnapshotPath,
+			"tests/math/add.test.snap",
+		);
+		assert.equal(resolveSnapshotFileState(manifest, "missing.test.ts"), null);
+	} finally {
+		rmSync(projectRoot, { force: true, recursive: true });
+	}
+});
+
+test("matchSnapshotEntry confirms exact matches and untouched files stay out of finalize failures", () => {
+	const projectRoot = createSnapshotProject();
+
+	try {
+		const manifest = loadSnapshotManifest(projectRoot);
+		assert.deepEqual(
+			matchSnapshotEntry(
+				manifest,
+				"tests/math/add.test.ts",
+				"adds~(0)",
+				"1 + 1 = 2",
+			),
+			{
+				ok: true,
+				outcome: "match",
+				relativeSnapshotPath: "tests/math/add.test.snap",
+				key: "adds~(0)",
+				expectedValue: "1 + 1 = 2",
+			},
+		);
+		assert.deepEqual(
+			matchSnapshotEntry(
+				manifest,
+				"tests/math/add.test.ts",
+				"adds~(1)",
+				"2 + 2 = 4",
+			),
+			{
+				ok: true,
+				outcome: "match",
+				relativeSnapshotPath: "tests/math/add.test.snap",
+				key: "adds~(1)",
+				expectedValue: "2 + 2 = 4",
+			},
+		);
+		assert.deepEqual(finalizeSnapshotManifest(manifest), {
+			ok: true,
+			staleEntries: [],
+		});
+	} finally {
+		rmSync(projectRoot, { force: true, recursive: true });
+	}
+});
+
+test("matchSnapshotEntry reports missing files and entries without inventing synthetic matches", () => {
+	const projectRoot = createSnapshotProject();
+
+	try {
+		const manifest = loadSnapshotManifest(projectRoot);
+		assert.deepEqual(
+			matchSnapshotEntry(
+				manifest,
+				"tests/missing/source.test.ts",
+				"missing~(0)",
+				"value",
+			),
+			{
+				ok: false,
+				outcome: "missing-snapshot-file",
+				relativeSnapshotPath: "tests/missing/source.test.snap",
+				key: "missing~(0)",
+				actualValue: "value",
+			},
+		);
+		assert.deepEqual(
+			matchSnapshotEntry(
+				manifest,
+				"tests/math/add.test.ts",
+				"missing~(0)",
+				"value",
+			),
+			{
+				ok: false,
+				outcome: "missing-snapshot-entry",
+				relativeSnapshotPath: "tests/math/add.test.snap",
+				key: "missing~(0)",
+				actualValue: "value",
+			},
+		);
+		assert.deepEqual(finalizeSnapshotManifest(manifest), {
+			ok: false,
+			staleEntries: [
+				{
+					relativeSnapshotPath: "tests/math/add.test.snap",
+					key: "adds~(0)",
+					expectedValue: "1 + 1 = 2",
+				},
+				{
+					relativeSnapshotPath: "tests/math/add.test.snap",
+					key: "adds~(1)",
+					expectedValue: "2 + 2 = 4",
+				},
+			],
+		});
+	} finally {
+		rmSync(projectRoot, { force: true, recursive: true });
+	}
+});
+
+test("matchSnapshotEntry treats mismatched entries as consumed so finalize only reports truly untouched entries", () => {
+	const projectRoot = createSnapshotProject();
+
+	try {
+		const manifest = loadSnapshotManifest(projectRoot);
+		assert.deepEqual(
+			matchSnapshotEntry(
+				manifest,
+				"tests/math/add.test.ts",
+				"adds~(0)",
+				"wrong value",
+			),
+			{
+				ok: false,
+				outcome: "mismatch",
+				relativeSnapshotPath: "tests/math/add.test.snap",
+				key: "adds~(0)",
+				expectedValue: "1 + 1 = 2",
+				actualValue: "wrong value",
+			},
+		);
+		assert.deepEqual(finalizeSnapshotManifest(manifest), {
+			ok: false,
+			staleEntries: [
+				{
+					relativeSnapshotPath: "tests/math/add.test.snap",
+					key: "adds~(1)",
+					expectedValue: "2 + 2 = 4",
+				},
+			],
+		});
 	} finally {
 		rmSync(projectRoot, { force: true, recursive: true });
 	}

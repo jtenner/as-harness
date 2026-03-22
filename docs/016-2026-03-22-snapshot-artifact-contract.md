@@ -74,8 +74,9 @@ Reasons:
 Normal compare mode:
 
 - every entry in the loaded manifest starts unmatched
-- each runtime snapshot assertion must either match an existing entry or fail
-- once matched, the entry is marked matched
+- each runtime snapshot assertion must either resolve an existing entry or fail
+- once an existing entry is resolved, it is marked matched even if the value
+  mismatches, so finalize only reports truly untouched stale expectations
 - after execution, any still-unmatched entry in a touched snapshot file fails
   the run as stale
 

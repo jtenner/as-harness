@@ -4,8 +4,8 @@
 
 ### Blockers
 
-- ship host-side snapshot match and finalize semantics before exposing public
-  `uvu/assert` artifact helpers.
+- ship explicit snapshot update mode plus transform-backed declaration file
+  markers before exposing public `uvu/assert` artifact helpers.
 
 ### Risks
 
@@ -25,10 +25,6 @@
 
 ### Runtime: Snapshot Artifacts
 
-- `ss-005`: add host snapshot match and finalize semantics.
-  When `snapshot(...)` resolves an entry, compare and mark it matched; after
-  execution, any still-unmatched entries in a touched snapshot file must fail
-  the run as stale expectations.
 - `ss-006`: add an explicit snapshot update mode.
   Ship a CLI flag such as `--update-snapshots` so missing or mismatched entries
   can be rewritten intentionally using the same export-map serializer, while

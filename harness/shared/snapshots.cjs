@@ -282,12 +282,114 @@ function loadSnapshotManifest(projectRoot) {
 	};
 }
 
+function resolveSnapshotFileState(manifest, sourceFilePath) {
+	if (!manifest || !(manifest.filesByRelativePath instanceof Map)) {
+		throw new TypeError("expected a loaded snapshot manifest");
+	}
+
+	return (
+		manifest.filesByRelativePath.get(
+			resolveSnapshotRelativePath(sourceFilePath),
+		) ?? null
+	);
+}
+
+function matchSnapshotEntry(manifest, sourceFilePath, key, actualValue) {
+	if (typeof key !== "string" || key.length === 0) {
+		throw new TypeError("expected a non-empty snapshot key");
+	}
+	if (typeof actualValue !== "string") {
+		throw new TypeError("expected a string snapshot value");
+	}
+
+	const relativeSnapshotPath = resolveSnapshotRelativePath(sourceFilePath);
+	const fileState = resolveSnapshotFileState(manifest, sourceFilePath);
+	if (fileState === null) {
+		return {
+			ok: false,
+			outcome: "missing-snapshot-file",
+			relativeSnapshotPath,
+			key,
+			actualValue,
+		};
+	}
+
+	fileState.touched = true;
+	const entry = fileState.entriesByKey.get(key) ?? null;
+	if (entry === null) {
+		return {
+			ok: false,
+			outcome: "missing-snapshot-entry",
+			relativeSnapshotPath,
+			key,
+			actualValue,
+		};
+	}
+
+	entry.matched = true;
+	if (entry.value === actualValue) {
+		return {
+			ok: true,
+			outcome: "match",
+			relativeSnapshotPath,
+			key,
+			expectedValue: entry.value,
+		};
+	}
+
+	return {
+		ok: false,
+		outcome: "mismatch",
+		relativeSnapshotPath,
+		key,
+		expectedValue: entry.value,
+		actualValue,
+	};
+}
+
+function finalizeSnapshotManifest(manifest) {
+	if (!manifest || !Array.isArray(manifest.files)) {
+		throw new TypeError("expected a loaded snapshot manifest");
+	}
+
+	const staleEntries = [];
+	for (const fileState of manifest.files) {
+		if (
+			!fileState ||
+			fileState.touched !== true ||
+			!Array.isArray(fileState.entries)
+		) {
+			continue;
+		}
+
+		for (const entry of fileState.entries) {
+			if (!entry || entry.matched === true) {
+				continue;
+			}
+
+			staleEntries.push({
+				relativeSnapshotPath: fileState.relativeSnapshotPath,
+				key: entry.key,
+				expectedValue: entry.value,
+			});
+		}
+	}
+
+	return {
+		ok: staleEntries.length === 0,
+		staleEntries,
+	};
+}
+
 module.exports = {
+	finalizeSnapshotManifest,
+	matchSnapshotEntry,
 	SNAPSHOT_FILE_EXTENSION,
 	SNAPSHOT_ROOT_DIRECTORY,
 	loadSnapshotManifest,
 	parseSnapshotFile,
 	renderSnapshotFile,
+	resolveSnapshotFileState,
 	resolveSnapshotPath,
 	resolveSnapshotRelativePath,
 };
