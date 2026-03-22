@@ -28,4 +28,6 @@ npm test
 ## Notes
 
 - native package source verification remains in CI source-host matrix.
+- source-host CLI smoke proof builds a Node-targeted CLI bundle and runs that
+  bundle under Node instead of invoking `bun run ./cli/index.ts` directly.
 - Linux/Windows/ARM cross-target packaging is not currently part of release artifacts.

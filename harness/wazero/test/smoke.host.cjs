@@ -18,11 +18,14 @@ const {
 	removeTempDirectory,
 } = require("../../shared/remove-temp-directory.cjs");
 const {
+	resolveSourceCliBundlePath,
+} = require("../../shared/source-cli-bundle.cjs");
+const {
 	createHarness: createParallelReadyHarness,
 } = require("../../shared/fixtures/parallel-ready-harness.cjs");
 
 const repoDir = path.resolve(__dirname, "..", "..", "..");
-const cliEntrypointPath = path.join(repoDir, "cli", "index.ts");
+const cliEntrypointPath = resolveSourceCliBundlePath(repoDir);
 
 const fixtures = compileSmokeFixtures({
 	cacheDir: path.join(repoDir, "harness", "wazero", ".cache"),
@@ -54,6 +57,13 @@ function assertSuccessfulCliRun(result) {
 
 	assert.equal(result.status, 0, diagnostic);
 	assert.equal(result.stderr, "", diagnostic);
+}
+
+function createCliEnvironment() {
+	return {
+		...process.env,
+		AS_HARNESS_SOURCE_CLI_REPO_DIR: repoDir,
+	};
 }
 
 test("start() runs a larger ready stage through parallel worker slots when available", async () => {
@@ -113,11 +123,12 @@ test("cli run executes tests through the wazero harness", () => {
 		);
 
 		const result = spawnSync(
-			"bun",
-			["run", cliEntrypointPath, "run", "--harness", "wazero", entryFile],
+			process.execPath,
+			[cliEntrypointPath, "run", "--harness", "wazero", entryFile],
 			{
 				cwd: tempDirectory,
 				encoding: "utf8",
+				env: createCliEnvironment(),
 			},
 		);
 
@@ -160,9 +171,8 @@ test("cli run emits coverage through the wazero harness", () => {
 		);
 
 		const result = spawnSync(
-			"bun",
+			process.execPath,
 			[
-				"run",
 				cliEntrypointPath,
 				"run",
 				"--harness",
@@ -173,6 +183,7 @@ test("cli run emits coverage through the wazero harness", () => {
 			{
 				cwd: tempDirectory,
 				encoding: "utf8",
+				env: createCliEnvironment(),
 			},
 		);
 
@@ -214,11 +225,12 @@ test("cli run executes a thin vitest adapter entry through the wazero harness", 
 		);
 
 		const result = spawnSync(
-			"bun",
-			["run", cliEntrypointPath, "run", "--harness", "wazero", entryFile],
+			process.execPath,
+			[cliEntrypointPath, "run", "--harness", "wazero", entryFile],
 			{
 				cwd: tempDirectory,
 				encoding: "utf8",
+				env: createCliEnvironment(),
 			},
 		);
 

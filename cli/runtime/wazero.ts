@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharedStartModule from "../../harness/shared/start.cjs";
 import type { Harness } from "../../harness/shared/harness-types";
@@ -27,9 +27,11 @@ const { decorateHarness } = sharedStartModule as {
 	decorateHarness(harness: Harness, options: DecorateHarnessOptions): Harness;
 };
 const runtimeModulePath = fileURLToPath(import.meta.url);
-const sourceHarnessModulePath = fileURLToPath(
-	new URL("./wazero-source-worker.cjs", import.meta.url),
-);
+const sourceCliRepoDir = process.env.AS_HARNESS_SOURCE_CLI_REPO_DIR ?? "";
+const sourceHarnessModulePath =
+	sourceCliRepoDir.length > 0
+		? resolve(sourceCliRepoDir, "cli", "runtime", "wazero-source-worker.cjs")
+		: fileURLToPath(new URL("./wazero-source-worker.cjs", import.meta.url));
 let cachedHarnessModule: WazeroHarnessModule | null = null;
 let bundledAddonTempDirectory: string | null = null;
 

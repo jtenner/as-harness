@@ -18,11 +18,14 @@ const {
 	removeTempDirectory,
 } = require("../../shared/remove-temp-directory.cjs");
 const {
+	resolveSourceCliBundlePath,
+} = require("../../shared/source-cli-bundle.cjs");
+const {
 	createHarness: createParallelReadyHarness,
 } = require("../../shared/fixtures/parallel-ready-harness.cjs");
 
 const repoDir = path.resolve(__dirname, "..", "..", "..");
-const cliEntrypointPath = path.join(repoDir, "cli", "index.ts");
+const cliEntrypointPath = resolveSourceCliBundlePath(repoDir);
 
 const fixtures = compileSmokeFixtures({
 	cacheDir: path.join(repoDir, "harness", "wasmtime", ".cache"),
@@ -40,6 +43,13 @@ registerSharedStartPlannerSmokeSuite({
 	test,
 	runInBand: false,
 });
+
+function createCliEnvironment() {
+	return {
+		...process.env,
+		AS_HARNESS_SOURCE_CLI_REPO_DIR: repoDir,
+	};
+}
 
 test("start() runs a larger ready stage through parallel worker slots when available", async () => {
 	const decorated = decorateHarness(createParallelReadyHarness(), {
@@ -98,11 +108,12 @@ test("cli run executes tests through the wasmtime harness", () => {
 		);
 
 		const result = spawnSync(
-			"bun",
-			["run", cliEntrypointPath, "run", "--harness", "wasmtime", entryFile],
+			process.execPath,
+			[cliEntrypointPath, "run", "--harness", "wasmtime", entryFile],
 			{
 				cwd: tempDirectory,
 				encoding: "utf8",
+				env: createCliEnvironment(),
 			},
 		);
 
@@ -146,9 +157,8 @@ test("cli run emits coverage through the wasmtime harness", () => {
 		);
 
 		const result = spawnSync(
-			"bun",
+			process.execPath,
 			[
-				"run",
 				cliEntrypointPath,
 				"run",
 				"--harness",
@@ -159,6 +169,7 @@ test("cli run emits coverage through the wasmtime harness", () => {
 			{
 				cwd: tempDirectory,
 				encoding: "utf8",
+				env: createCliEnvironment(),
 			},
 		);
 
@@ -201,11 +212,12 @@ test("cli run executes a thin vitest adapter entry through the wasmtime harness"
 		);
 
 		const result = spawnSync(
-			"bun",
-			["run", cliEntrypointPath, "run", "--harness", "wasmtime", entryFile],
+			process.execPath,
+			[cliEntrypointPath, "run", "--harness", "wasmtime", entryFile],
 			{
 				cwd: tempDirectory,
 				encoding: "utf8",
+				env: createCliEnvironment(),
 			},
 		);
 

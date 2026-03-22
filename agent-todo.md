@@ -18,6 +18,10 @@
   Bun on Windows, while packaged mode keeps the bundled extraction path, so
   future refactors need hosted Windows and packaged Linux proof before trying
   to unify them.
+- source-host CLI proof now runs a Bun-built Node-targeted bundle under the
+  Node 25 matrix because Bun still has open Windows native-addon crash issues
+  on direct source CLI execution; future tooling changes should preserve that
+  distinction until the upstream runtime bug is actually gone.
 - bundled Linux `wazero` now forces the interpreter engine to avoid the hosted
   packaged createHarness hang, so future work should confirm whether the compiler
   engine can be restored safely.

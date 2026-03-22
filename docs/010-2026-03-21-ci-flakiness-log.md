@@ -78,12 +78,14 @@ This note answers which CI failures and flaky behaviors were encountered while s
 - Follow-up: hosted Windows still outlived both the initial retry window and Node's built-in `rmSync(..., { maxRetries, retryDelay })` behavior, so cleanup moved to a repo-owned retry loop that explicitly catches retryable temp-tree removal errors and sleeps between attempts.
 - Status: fixed locally and queued for CI re-verification.
 
-### 10. Windows source-host `wazero` CLI still failed under Bun after cleanup was fixed
+### 10. Windows source-host native-host CLI smoke still failed under Bun after cleanup was fixed
 
 - Symptom: after the temp-directory cleanup race was removed, the Windows Node 25 source-host matrix still failed three `wazero` CLI smoke assertions with exit code `3` while the same native host passed all in-process harness checks.
 - Root cause: the CLI source runtime was still depending on Bun to resolve the source native addon from repo-relative specifiers, leaving a Windows-specific Bun boundary distinct from both the packaged path and the in-process Node smoke path.
 - First fix: the source `wazero` runtime started routing both the main thread and worker-thread path through a shared absolute-path CJS harness module in [`cli/runtime/wazero-source-worker.cjs`](/home/jtenner/Projects/as-harness/cli/runtime/wazero-source-worker.cjs), and the native smoke suite now prints spawned CLI stdout and stderr whenever a future assertion fails so the next hosted failure is directly diagnosable from the report artifact.
 - Final fix: Bun on GitHub Windows was still crashing when that shared source harness module loaded the repo-built [`harness/wazero/dist/wazero.node`](/home/jtenner/Projects/as-harness/harness/wazero/dist/wazero.node) directly, so the source loader now stages a private temporary copy of the addon before `require(...)` whenever the CLI is running under Bun on Windows. That keeps worker-thread support intact while avoiding the direct repo-path native-addon boundary that was still segfaulting.
+- Follow-up: that still left the broader Bun-on-Windows native-addon crash class open for source CLI execution itself. The stable repo-level mitigation was to keep packaged verification on real Bun executables, but change source-host verification to build a Node-targeted source CLI bundle with Bun and execute that bundle under the same Node 25 runtime the source-host matrix already provisions. The native source runtimes now honor `AS_HARNESS_SOURCE_CLI_REPO_DIR` so the bundled Node CLI can still resolve the repo-local `wasmtime` and `wazero` hosts.
+- Upstream context: Bun still has open Windows native-addon crash reports in this area, including [`oven-sh/bun#13566`](https://github.com/oven-sh/bun/issues/13566) and [`oven-sh/bun#15551`](https://github.com/oven-sh/bun/issues/15551).
 - Status: fixed locally and queued for CI re-verification.
 
 ## Remaining Open Risk

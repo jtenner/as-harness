@@ -1,16 +1,18 @@
 #!/usr/bin/env bun
 
-import { stat } from "node:fs/promises";
+import type { Dirent } from "node:fs";
+import { readdir, stat } from "node:fs/promises";
 import {
 	basename,
 	dirname,
 	isAbsolute,
+	matchesGlob,
 	relative,
 	resolve,
 	sep,
 } from "node:path";
 import type { CompilerOptions } from "./as/compile";
-import packageJson from "./package.json";
+import packageJson from "./package.json" with { type: "json" };
 import { runEntryFiles } from "./run";
 
 const CLI_NAME = "as-harness";
@@ -142,8 +144,7 @@ function isOption(token: string) {
 }
 
 function matchesGlobPattern(candidatePath: string, pattern: string) {
-	const glob = new Bun.Glob(pattern);
-	return glob.match(candidatePath);
+	return matchesGlob(candidatePath, pattern);
 }
 
 function displayPath(absolutePath: string, cwd: string) {
@@ -181,11 +182,38 @@ function splitGlobPattern(pattern: string, cwd: string) {
 
 async function expandGlob(pattern: string, cwd: string) {
 	const { scanCwd, scanPattern } = splitGlobPattern(pattern, cwd);
-	const glob = new Bun.Glob(scanPattern);
 	const matches: string[] = [];
+	const queue = [scanCwd];
 
-	for await (const matchedPath of glob.scan({ cwd: scanCwd })) {
-		matches.push(resolve(scanCwd, matchedPath));
+	while (queue.length > 0) {
+		const directory = queue.shift();
+		if (!directory) {
+			continue;
+		}
+
+		let entries: Dirent[];
+		try {
+			entries = await readdir(directory, { withFileTypes: true });
+		} catch {
+			continue;
+		}
+
+		for (const entry of entries) {
+			const absolutePath = resolve(directory, entry.name);
+			if (entry.isDirectory()) {
+				queue.push(absolutePath);
+				continue;
+			}
+
+			if (!entry.isFile()) {
+				continue;
+			}
+
+			const relativePath = toPosixPath(relative(scanCwd, absolutePath));
+			if (matchesGlobPattern(relativePath, scanPattern)) {
+				matches.push(absolutePath);
+			}
+		}
 	}
 
 	return matches;
