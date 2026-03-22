@@ -1,6 +1,6 @@
 # Harness Todo
 
-## v0.6.0
+## v0.4.0
 
 ### Risks
 
@@ -11,10 +11,9 @@
 - shipped `uvu` callbacks still use shared `TestContext` rather than upstream
   crumb/context objects, so strict source parity remains incomplete even though
   the sync declaration slice now ships.
-- the remaining upstream `uvu/assert` helpers stay intentionally out of this
-  cycle because they need host-backed artifact I/O or richer adapter-local
-  error object contracts that the current guest/runtime model does not
-  provide.
+- shipping artifact-backed `uvu/assert` `snapshot(...)` / `fixture(...)`
+  inside `v0.4.0` needs an explicit persisted-artifact contract that stays
+  host-owned across `js`, `wazero`, and `wasmtime`.
 - guest-provided orchestration metadata can easily blur into guest-owned
   scheduling if the ABI grows new scheduler entrypoints instead of staying on
   discovery metadata plus host-owned `start()`.
@@ -35,9 +34,10 @@
   unless the repo later adopts a transform-backed rewrite policy.
 - keep crumb/context callback parity and async behavior deferred until the
   higher-level compatibility decision is settled.
-- keep artifact-backed `snapshot(...)` / `fixture(...)` and upstream
-  `Assertion` object parity deferred until the repo ships explicit persisted
-  artifact or adapter-local error-object contracts.
+- take artifact-backed `snapshot(...)` / `fixture(...)` into `v0.4.0` once the
+  repo ships an explicit persisted-artifact contract.
+- keep upstream `Assertion` object parity deferred until the repo ships an
+  adapter-local error-object contract.
 
 ### Proof
 
