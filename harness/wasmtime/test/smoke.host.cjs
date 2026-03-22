@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const { spawnSync } = require("node:child_process");
-const { mkdtempSync, rmSync, writeFileSync } = require("node:fs");
+const { mkdtempSync, writeFileSync } = require("node:fs");
 const { availableParallelism, tmpdir } = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
@@ -15,21 +15,14 @@ const {
 	registerSharedStartPlannerSmokeSuite,
 } = require("../../shared/start-planner-smoke.cjs");
 const {
+	removeTempDirectory,
+} = require("../../shared/remove-temp-directory.cjs");
+const {
 	createHarness: createParallelReadyHarness,
 } = require("../../shared/fixtures/parallel-ready-harness.cjs");
 
 const repoDir = path.resolve(__dirname, "..", "..", "..");
 const cliEntrypointPath = path.join(repoDir, "cli", "index.ts");
-
-function removeTempDirectory(tempDirectory) {
-	// Windows can hold short-lived handles on spawned-process temp trees briefly.
-	rmSync(tempDirectory, {
-		force: true,
-		maxRetries: 40,
-		recursive: true,
-		retryDelay: 250,
-	});
-}
 
 const fixtures = compileSmokeFixtures({
 	cacheDir: path.join(repoDir, "harness", "wasmtime", ".cache"),
