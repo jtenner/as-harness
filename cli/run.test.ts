@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "bun:test";
+import { compileEntrypoints } from "./as/compile";
 import type {
 	Harness,
 	HarnessCreateOptions,
@@ -153,6 +154,42 @@ function parseCoverageJSONFromStdout(stdout: string) {
 	}
 
 	return JSON.parse(stdout.slice(jsonStart)) as Record<string, unknown>;
+}
+
+function encodeUtf16LE(value: string): Uint8Array {
+	const bytes = new Uint8Array(value.length * 2);
+	for (let index = 0; index < value.length; index += 1) {
+		const codeUnit = value.charCodeAt(index);
+		bytes[index * 2] = codeUnit & 0xff;
+		bytes[index * 2 + 1] = codeUnit >>> 8;
+	}
+
+	return bytes;
+}
+
+function includesByteSequence(
+	haystack: Uint8Array,
+	needle: Uint8Array,
+): boolean {
+	if (needle.length === 0) {
+		return true;
+	}
+
+	for (let offset = 0; offset <= haystack.length - needle.length; offset += 1) {
+		let matched = true;
+		for (let index = 0; index < needle.length; index += 1) {
+			if (haystack[offset + index] !== needle[index]) {
+				matched = false;
+				break;
+			}
+		}
+
+		if (matched) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 test("resolveRunEntrypointBaseDirectory keeps Windows temp wrappers on the entry drive", () => {
@@ -699,6 +736,68 @@ test("dependency only parent", (context: TestContext): void => {
 		);
 	});
 }
+
+test("the bundled compile path stamps artifact-frame source metadata into emitted modules", async () => {
+	await withTempEntryFile(
+		`
+import { beforeEach, describe, it, TestContext } from "mocha";
+import { hasActiveArtifactFrame } from "~/.as-harness/exports";
+import { captureActiveArtifactFrame } from "~/.as-harness/internal/imports";
+
+function captureWhenActive(): void {
+  if (!hasActiveArtifactFrame()) {
+    return;
+  }
+
+  captureActiveArtifactFrame();
+}
+
+describe("artifact suite", (_context): void => {
+  beforeEach((_hookContext: TestContext): void => {
+    captureWhenActive();
+  });
+
+  it("artifact test", (_context: TestContext): void => {
+    captureWhenActive();
+  });
+});
+`,
+		async (_entryFile, cwd) => {
+			const wrapperPath = join(cwd, "entry.ts");
+			await writeFile(
+				wrapperPath,
+				[
+					'export { allocateNodeIndexBuffer, discover, invoke, run } from "~/.as-harness/exports";',
+					'import "./suite.test.ts";',
+					"",
+				].join("\n"),
+				"utf8",
+			);
+			const artifacts = await compileEntrypoints(
+				[wrapperPath],
+				{
+					baseDir: cwd,
+					lib: ["node:test", "node:assert", "node:assert/strict"],
+				},
+				jsRuntime,
+			);
+			const wasmArtifact = artifacts.find((artifact) =>
+				artifact.path.endsWith(".wasm"),
+			);
+			if (!wasmArtifact) {
+				throw new Error(
+					"Compilation completed without emitting a wasm artifact.",
+				);
+			}
+			expect(
+				includesByteSequence(
+					wasmArtifact.contents,
+					encodeUtf16LE("suite.test.ts"),
+				),
+			).toBe(true);
+		},
+	);
+});
 
 for (const harnessName of dependencyCliHarnesses) {
 	test(`cli run executes the bundled "as-harness" guest library through the ${harnessName} host`, async () => {

@@ -13,9 +13,9 @@ class ArtifactFrame {
 	readonly nodeKind: NodeKind;
 	readonly hookKind: HookKind;
 	readonly name: string;
-	readonly sourceFile: string;
-	readonly sourceLine: i32;
-	readonly sourceColumn: i32;
+	sourceFile: string;
+	sourceLine: i32;
+	sourceColumn: i32;
 	private readonly nodeIndexValue: StaticArray<u32>;
 
 	constructor(
@@ -44,6 +44,12 @@ class ArtifactFrame {
 
 	getNodeIndexElement(index: i32): u32 {
 		return unchecked(this.nodeIndexValue[index]);
+	}
+
+	setSource(sourceFile: string, sourceLine: i32, sourceColumn: i32): void {
+		this.sourceFile = sourceFile;
+		this.sourceLine = sourceLine;
+		this.sourceColumn = sourceColumn;
 	}
 }
 
@@ -120,6 +126,19 @@ export function popArtifactFrame(): void {
 
 export function hasActiveArtifactFrame(): bool {
 	return currentArtifactFrame() !== null;
+}
+
+export function recordActiveArtifactFrameSource(
+	sourceFile: string,
+	sourceLine: i32 = 0,
+	sourceColumn: i32 = 0,
+): void {
+	const frame = currentArtifactFrame();
+	if (frame === null) {
+		return;
+	}
+
+	frame.setSource(sourceFile, sourceLine, sourceColumn);
 }
 
 export function getActiveArtifactFrameDepth(): i32 {

@@ -4,8 +4,9 @@
 
 ### Blockers
 
-- ship transform-backed declaration file markers before exposing public
-  `uvu/assert` artifact helpers.
+- ship public `uvu/assert` `snapshot(...)` before `fixture(...)` so the first
+  artifact helper closes the shared persisted-snapshot contract end to end
+  before path-reading helpers depend on it.
 
 ### Risks
 
@@ -31,10 +32,6 @@
 
 ### Adapter: `uvu` Snapshot Helpers
 
-- `ss-007`: add a transform-backed declaration file marker.
-  Inject a lightweight helper call that records the declaring source file for
-  test, suite, and hook execution frames so artifact helpers always resolve
-  against the active stack descriptor rather than process cwd.
 - `ss-008`: ship `uvu/assert` `snapshot(...)` on top of the shared artifact
   runtime.
   Start with reflected-value serialization plus host-side snapshot matching and

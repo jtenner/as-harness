@@ -25,7 +25,10 @@ import {
 import assemblyscriptRuntimeDeclarations from "../node_modules/assemblyscript/std/assembly/rt/index.d.ts" with {
 	type: "text",
 };
-import BundledStrictEqualityTransform from "../transform/src/index.ts";
+import BundledStrictEqualityTransform, {
+	resetArtifactFrameTransformOptions,
+	setArtifactFrameTransformOptions,
+} from "../transform/src/index.ts";
 import BundledCoverageTransform, {
 	resetCoverageTransformOptions,
 	setCoverageTransformOptions,
@@ -483,6 +486,12 @@ async function prepareCompilerOptions(
 				normalizeVirtualPath(transformPath) ===
 				normalizeVirtualPath(BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH)
 			) {
+				setArtifactFrameTransformOptions({
+					baseDir: compilerOptions.baseDir,
+				});
+				cleanupTasks.push(async () => {
+					resetArtifactFrameTransformOptions();
+				});
 				transforms.push(BundledStrictEqualityTransform);
 				continue;
 			}
