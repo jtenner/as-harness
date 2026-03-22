@@ -34,12 +34,14 @@
 
 - `ss-008`: ship `uvu/assert` `snapshot(...)` on top of the shared artifact
   runtime.
-  Start with reflected-value serialization plus host-side snapshot matching and
-  update support.
+  Finish the public helper wiring on top of the shared snapshot compare, path,
+  and upsert support with reflected-value serialization plus host-side status
+  reporting.
 - `ss-009`: ship `uvu/assert` `fixture(...)` on top of the same artifact
   runtime.
-  Resolve fixture paths through the active descriptor and reject path escapes
-  outside the project-owned artifact roots.
+  Finish the public helper wiring on top of the shared fixture path rules and a
+  host-backed UTF-8 read ABI while still rejecting path escapes outside the
+  project-owned artifact roots.
 
 ### Adapter: `uvu`
 

@@ -1,18 +1,28 @@
 const assert = require("node:assert/strict");
-const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = require("node:fs");
+const {
+	mkdtempSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} = require("node:fs");
 const { tmpdir } = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
 
 const {
+	FIXTURE_ROOT_DIRECTORY,
 	finalizeSnapshotManifest,
 	loadSnapshotManifest,
 	matchSnapshotEntry,
 	parseSnapshotFile,
 	renderSnapshotFile,
+	resolveFixturePath,
+	resolveFixtureRelativePath,
 	resolveSnapshotFileState,
 	resolveSnapshotPath,
 	resolveSnapshotRelativePath,
+	upsertSnapshotEntry,
 } = require("./snapshots.cjs");
 
 function createSnapshotProject() {
@@ -66,6 +76,28 @@ test("resolveSnapshotPath anchors snapshots under the project root", () => {
 	);
 });
 
+test("resolveFixtureRelativePath mirrors the source tree under __fixtures__", () => {
+	assert.equal(
+		resolveFixtureRelativePath("tests/math/add.test.ts", "cases/alpha.txt"),
+		"tests/math/cases/alpha.txt",
+	);
+	assert.equal(
+		resolveFixturePath(
+			"/workspace/project",
+			"nested\\windows\\suite.spec.ts",
+			"fixtures\\alpha.txt",
+		),
+		path.join(
+			"/workspace/project",
+			FIXTURE_ROOT_DIRECTORY,
+			"nested",
+			"windows",
+			"fixtures",
+			"alpha.txt",
+		),
+	);
+});
+
 test("resolveSnapshotRelativePath rejects absolute and escaping paths", () => {
 	assert.throws(
 		() => resolveSnapshotRelativePath("../outside.test.ts"),
@@ -77,6 +109,14 @@ test("resolveSnapshotRelativePath rejects absolute and escaping paths", () => {
 	);
 	assert.throws(
 		() => resolveSnapshotRelativePath("C:/workspace/outside.test.ts"),
+		/artifact paths must stay within the project root/,
+	);
+	assert.throws(
+		() =>
+			resolveFixtureRelativePath(
+				"tests/math/add.test.ts",
+				"../outside/alpha.txt",
+			),
 		/artifact paths must stay within the project root/,
 	);
 });
@@ -315,6 +355,78 @@ test("loadSnapshotManifest tolerates projects without snapshot files", () => {
 		const manifest = loadSnapshotManifest(projectRoot);
 		assert.deepEqual(manifest.files, []);
 		assert.equal(manifest.filesByRelativePath.size, 0);
+	} finally {
+		rmSync(projectRoot, { force: true, recursive: true });
+	}
+});
+
+test("upsertSnapshotEntry creates missing snapshot files and persists new entries", () => {
+	const projectRoot = mkdtempSync(path.join(tmpdir(), "as-harness-snapshots-"));
+
+	try {
+		const manifest = loadSnapshotManifest(projectRoot);
+		assert.deepEqual(
+			upsertSnapshotEntry(
+				manifest,
+				"tests/new/suite.test.ts",
+				"new snapshot~(0)",
+				"value",
+			),
+			{
+				ok: true,
+				outcome: "created",
+				relativeSnapshotPath: "tests/new/suite.test.snap",
+				key: "new snapshot~(0)",
+				actualValue: "value",
+			},
+		);
+		assert.equal(
+			readFileSync(
+				path.join(
+					projectRoot,
+					"__snapshots__",
+					"tests",
+					"new",
+					"suite.test.snap",
+				),
+				"utf8",
+			),
+			"exports[`new snapshot~(0)`] = `value`;\n",
+		);
+	} finally {
+		rmSync(projectRoot, { force: true, recursive: true });
+	}
+});
+
+test("upsertSnapshotEntry updates existing snapshot entries in place", () => {
+	const projectRoot = createSnapshotProject();
+
+	try {
+		const manifest = loadSnapshotManifest(projectRoot);
+		assert.deepEqual(
+			upsertSnapshotEntry(
+				manifest,
+				"tests/math/add.test.ts",
+				"adds~(0)",
+				"1 + 1 still = 2",
+			).outcome,
+			"updated",
+		);
+		assert.equal(
+			parseSnapshotFile(
+				readFileSync(
+					path.join(
+						projectRoot,
+						"__snapshots__",
+						"tests",
+						"math",
+						"add.test.snap",
+					),
+					"utf8",
+				),
+			)[0].value,
+			"1 + 1 still = 2",
+		);
 	} finally {
 		rmSync(projectRoot, { force: true, recursive: true });
 	}

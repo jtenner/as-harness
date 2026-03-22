@@ -1,8 +1,14 @@
 "use strict";
 
-const { readFileSync, readdirSync } = require("node:fs");
+const {
+	mkdirSync,
+	readFileSync,
+	readdirSync,
+	writeFileSync,
+} = require("node:fs");
 const path = require("node:path");
 
+const FIXTURE_ROOT_DIRECTORY = "__fixtures__";
 const SNAPSHOT_ROOT_DIRECTORY = "__snapshots__";
 const SNAPSHOT_FILE_EXTENSION = ".snap";
 
@@ -45,6 +51,24 @@ function resolveSnapshotPath(projectRoot, sourceFilePath) {
 		projectRoot,
 		SNAPSHOT_ROOT_DIRECTORY,
 		resolveSnapshotRelativePath(sourceFilePath),
+	);
+}
+
+function resolveFixtureRelativePath(sourceFilePath, fixturePath) {
+	const normalizedSourcePath = normalizeRelativeArtifactPath(sourceFilePath);
+	const normalizedFixturePath = normalizeRelativeArtifactPath(fixturePath);
+	const sourceDirectory = path.posix.dirname(normalizedSourcePath);
+
+	return sourceDirectory && sourceDirectory !== "."
+		? path.posix.join(sourceDirectory, normalizedFixturePath)
+		: normalizedFixturePath;
+}
+
+function resolveFixturePath(projectRoot, sourceFilePath, fixturePath) {
+	return path.join(
+		projectRoot,
+		FIXTURE_ROOT_DIRECTORY,
+		resolveFixtureRelativePath(sourceFilePath, fixturePath),
 	);
 }
 
@@ -294,6 +318,98 @@ function resolveSnapshotFileState(manifest, sourceFilePath) {
 	);
 }
 
+function createSnapshotFileStateForSource(projectRoot, sourceFilePath) {
+	const relativeSnapshotPath = resolveSnapshotRelativePath(sourceFilePath);
+	const snapshotPath = path.join(
+		projectRoot,
+		SNAPSHOT_ROOT_DIRECTORY,
+		relativeSnapshotPath,
+	);
+
+	return {
+		projectRoot,
+		snapshotPath,
+		relativeSnapshotPath,
+		entries: [],
+		entriesByKey: new Map(),
+		touched: false,
+	};
+}
+
+function persistSnapshotFileState(fileState) {
+	if (!fileState || typeof fileState.snapshotPath !== "string") {
+		throw new TypeError("expected a snapshot file state");
+	}
+
+	mkdirSync(path.dirname(fileState.snapshotPath), { recursive: true });
+	writeFileSync(
+		fileState.snapshotPath,
+		renderSnapshotFile(
+			fileState.entries.map((entry) => ({
+				key: entry.key,
+				value: entry.value,
+			})),
+		),
+		"utf8",
+	);
+}
+
+function upsertSnapshotEntry(manifest, sourceFilePath, key, value) {
+	if (typeof key !== "string" || key.length === 0) {
+		throw new TypeError("expected a non-empty snapshot key");
+	}
+	if (typeof value !== "string") {
+		throw new TypeError("expected a string snapshot value");
+	}
+	if (!manifest || !(manifest.filesByRelativePath instanceof Map)) {
+		throw new TypeError("expected a loaded snapshot manifest");
+	}
+
+	let fileState = resolveSnapshotFileState(manifest, sourceFilePath);
+	let outcome = "updated";
+
+	if (fileState === null) {
+		fileState = createSnapshotFileStateForSource(
+			manifest.projectRoot,
+			sourceFilePath,
+		);
+		manifest.files.push(fileState);
+		manifest.files.sort((left, right) =>
+			left.relativeSnapshotPath.localeCompare(right.relativeSnapshotPath),
+		);
+		manifest.filesByRelativePath.set(fileState.relativeSnapshotPath, fileState);
+		outcome = "created";
+	}
+
+	fileState.touched = true;
+	const existingEntry = fileState.entriesByKey.get(key) ?? null;
+	if (existingEntry === null) {
+		const entry = {
+			key,
+			value,
+			matched: true,
+		};
+		fileState.entries.push(entry);
+		fileState.entriesByKey.set(key, entry);
+		if (outcome !== "created") {
+			outcome = "added-entry";
+		}
+	} else {
+		existingEntry.value = value;
+		existingEntry.matched = true;
+	}
+
+	persistSnapshotFileState(fileState);
+
+	return {
+		ok: true,
+		outcome,
+		relativeSnapshotPath: fileState.relativeSnapshotPath,
+		key,
+		actualValue: value,
+	};
+}
+
 function matchSnapshotEntry(manifest, sourceFilePath, key, actualValue) {
 	if (typeof key !== "string" || key.length === 0) {
 		throw new TypeError("expected a non-empty snapshot key");
@@ -382,6 +498,7 @@ function finalizeSnapshotManifest(manifest) {
 }
 
 module.exports = {
+	FIXTURE_ROOT_DIRECTORY,
 	finalizeSnapshotManifest,
 	matchSnapshotEntry,
 	SNAPSHOT_FILE_EXTENSION,
@@ -389,7 +506,10 @@ module.exports = {
 	loadSnapshotManifest,
 	parseSnapshotFile,
 	renderSnapshotFile,
+	resolveFixturePath,
+	resolveFixtureRelativePath,
 	resolveSnapshotFileState,
 	resolveSnapshotPath,
 	resolveSnapshotRelativePath,
+	upsertSnapshotEntry,
 };
