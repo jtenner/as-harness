@@ -39,11 +39,11 @@ export type HostValidationTarget = {
 	sourceHarnesses: SourceHarness[];
 };
 
-// Node 22 is the explicit first supported source-host baseline. If the project
-// later broadens Node support, expand this constant and the host-validation
-// matrix together instead of implicitly relying on whichever Node version the
-// CI runners happen to install.
-export const SOURCE_HOST_NODE_BASELINE = "22";
+// Node 25 is the explicit current source-host baseline. If the project later
+// broadens Node support, expand this constant and the host-validation matrix
+// together instead of implicitly relying on whichever Node version the CI
+// runners happen to install.
+export const SOURCE_HOST_NODE_BASELINE = "25";
 
 // These are the first release artifacts we actually intend to ship and smoke on
 // matching GitHub-hosted runners.

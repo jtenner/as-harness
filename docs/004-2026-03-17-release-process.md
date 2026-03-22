@@ -15,8 +15,10 @@ Operational flow for shipping `as-harness` through GitHub:
 - packaged targets include `js` and `wazero` (release matrix varies by platform), and the release workflow now ships target-specific archives that preserve the inner executable basename while keeping `wazero` bundled inside the executable
 - packaged release assets stay archived instead of renaming the executable itself because current Bun standalone native-addon loading is sensitive to the compiled executable basename on Linux
 - `wasmtime` is source-only
-- explicit Node.js 22 baseline
-- Bun `1.3.11` build baseline for packaged artifacts and CI
+- CI and release install toolchains from repo-local [`.mise.toml`](../.mise.toml)
+  through `jdx/mise-action@v3`
+- Node.js `25.8.1` baseline
+- Bun `1.3.11` baseline for packaged artifacts and repo automation
 - Go `1.26.1` baseline for `wazero` source verification and packaged verification
 - Rust `1.94.0` baseline for `wasmtime` source verification and packaged native build prerequisites
 
@@ -28,6 +30,8 @@ Operational flow for shipping `as-harness` through GitHub:
 ## Preflight
 
 ```bash
+mise trust
+mise install
 bun validate
 bun test
 cd harness/js && npm test
@@ -40,6 +44,8 @@ bun run verify:packaged-cli -- --target bun-linux-x64 --report-dir ./dist/packag
 Inspect lists locally:
 
 ```bash
+mise trust
+mise install
 cd cli
 bun run build:list-release-targets
 bun run host:matrix

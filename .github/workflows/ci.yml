@@ -16,15 +16,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v5
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Set up mise toolchain
+        uses: jdx/mise-action@v3
         with:
-          bun-version: 1.3.11
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: 22
+          install_args: bun node
 
       - name: Install CLI dependencies
         working-directory: ./cli
@@ -44,10 +39,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v5
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Set up mise toolchain
+        uses: jdx/mise-action@v3
         with:
-          bun-version: 1.3.11
+          install_args: bun
 
       - name: Emit host validation matrix
         id: host-validation-matrix
@@ -66,26 +61,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v5
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Set up mise toolchain
+        uses: jdx/mise-action@v3
         with:
-          bun-version: 1.3.11
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: ${{ matrix.nodeVersion }}
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: "1.26.1"
-          cache-dependency-path: harness/wazero/go.mod
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: "1.94.0"
+          install_args: bun node go rust
 
       - name: Install CLI dependencies
         working-directory: ./cli
@@ -114,10 +93,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v5
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Set up mise toolchain
+        uses: jdx/mise-action@v3
         with:
-          bun-version: 1.3.11
+          install_args: bun
 
       - name: Emit release matrix
         id: release-matrix
@@ -135,26 +114,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v5
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Set up mise toolchain
+        uses: jdx/mise-action@v3
         with:
-          bun-version: 1.3.11
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: 22
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: "1.26.1"
-          cache-dependency-path: harness/wazero/go.mod
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: "1.94.0"
+          install_args: bun node go rust
 
       - name: Install CLI dependencies
         working-directory: ./cli

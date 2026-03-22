@@ -64,6 +64,11 @@ See:
 
 ## Validation
 
+The repo pins Bun `1.3.11`, Node `25.8.1`, Go `1.26.1`, and Rust `1.94.0` in
+[`.mise.toml`](./.mise.toml), and CI installs from the same file. Run `mise trust`
+once for the repo and then `mise install` before the validation suite if you use
+`mise`.
+
 ```bash
 bun format
 bun validate
