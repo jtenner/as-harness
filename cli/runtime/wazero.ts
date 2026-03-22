@@ -1,11 +1,14 @@
 import { createRequire } from "node:module";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharedStartModule from "../../harness/shared/start.cjs";
 import type { Harness } from "../../harness/shared/harness-types";
 import { setCompilerOptionValue, type Runtime } from "./types";
 
 declare const WAZERO_TARGET: string | undefined;
-declare const WAZERO_NODE_PATH: string | null | undefined;
+declare const WAZERO_EMBEDDED_MODULE_PATH: string | null | undefined;
 
 type WazeroHarnessModule = {
 	createHarness(bytes: Uint8Array, engine?: string): Harness;
@@ -25,6 +28,7 @@ const { decorateHarness } = sharedStartModule as {
 };
 const runtimeModulePath = fileURLToPath(import.meta.url);
 let cachedHarnessModule: WazeroHarnessModule | null = null;
+let bundledAddonTempDirectory: string | null = null;
 
 function traceWazero(message: string) {
 	if (process.env.AS_HARNESS_TRACE_WAZERO === "1") {
@@ -44,15 +48,47 @@ function loadBundledWazeroHarnessModule(): WazeroHarnessModule {
 		return loadSourceWazeroHarnessModule();
 	}
 
-	if (WAZERO_TARGET === "unavailable" || WAZERO_NODE_PATH == null) {
+	if (WAZERO_TARGET === "unavailable" || WAZERO_EMBEDDED_MODULE_PATH == null) {
 		throw new Error(
 			"The wazero harness was not bundled for this build target.",
 		);
 	}
 
-	// Bun folds the build-time-defined string into a single require("./addon.node")
-	// call, which allows the executable bundler to embed only the selected addon.
-	return require(WAZERO_NODE_PATH) as WazeroHarnessModule;
+	traceWazero("loading embedded wazero addon payload module");
+	const payloadModule = require(WAZERO_EMBEDDED_MODULE_PATH) as
+		| { default?: string }
+		| string;
+	const encodedAddon =
+		typeof payloadModule === "string" ? payloadModule : payloadModule.default;
+	if (typeof encodedAddon !== "string" || encodedAddon.length === 0) {
+		throw new Error("The bundled wazero addon payload is missing.");
+	}
+
+	traceWazero("extracting bundled wazero addon payload");
+	const addonDirectory = mkdtempSync(
+		join(tmpdir(), "as-harness-wazero-addon-"),
+	);
+	const addonPath = join(addonDirectory, "wazero.node");
+	writeFileSync(addonPath, Buffer.from(encodedAddon, "base64"));
+	bundledAddonTempDirectory = addonDirectory;
+
+	process.once("exit", () => {
+		if (bundledAddonTempDirectory === null) {
+			return;
+		}
+
+		try {
+			rmSync(bundledAddonTempDirectory, { force: true, recursive: true });
+		} catch {}
+	});
+
+	traceWazero("loading extracted bundled wazero addon");
+	const moduleRecord = {
+		exports: {} as WazeroHarnessModule,
+	};
+	process.dlopen(moduleRecord as NodeJS.Module, addonPath);
+	traceWazero("loaded extracted bundled wazero addon");
+	return moduleRecord.exports;
 }
 
 function resolveWazeroHarnessModule() {
