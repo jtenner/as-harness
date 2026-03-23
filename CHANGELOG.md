@@ -2,6 +2,7 @@
 
 ## 2026-03-22
 
+- **docs: plan the AVA adapter slices** Add the dedicated AVA interface research note, point the assembly roadmap and AVA TODO at that note, and expand the live backlog with concrete `ava-001` through `ava-004` implementation slices plus the order in which the adapter work should land. GitHub: *@jtenner*
 - **docs: refresh roadmap and adapter status notes** Recast the `v0.4.0` adapter roadmap as shipped history, align the assembly adapter TODO files with the live bundled surface instead of old `v0.1.0` planning language, and reorganize `agent-todo.md` into the required version/blocker/risk layout while keeping only the remaining `uvu` parity item. GitHub: *@jtenner*
 - **release: prepare the repository metadata for `v0.4.0`** Bump `cli/package.json` to `0.4.0`, refresh the Node-targeted CLI version proof, and keep the live backlog focused only on post-`v0.4.0` work before tagging the release. GitHub: *@jtenner*
 - **contract: lock the flat guest execution surface in compile-path proof** Add compile coverage that inspects a real generated Wasm module and proves the shipped wrapper only exports `allocateNodeIndexBuffer`, `discover`, `invoke`, `run`, `memory`, and `__start`, update the ABI and host-runner docs to record that flat host-owned surface explicitly, and remove the now-closed guest-scheduling drift risk from the live backlog. GitHub: *@jtenner*
