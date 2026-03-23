@@ -75,6 +75,48 @@ function testTapeExecutionShell(): void {
 	resetCurrentNode();
 }
 
+function testTapeAssertionSurface(): void {
+	const localRoot = new Node(NodeKind.Root, "local root");
+	setCurrentNode(localRoot);
+
+	test("assertion surface", (context: TestContext): void => {
+		context.plan(24);
+		context.pass();
+		context.ok<bool>(true);
+		context.assert<bool>(true);
+		context.true<bool>(true);
+		context.notOk<i32>(0);
+		context.false<i32>(0);
+		context.notok<i32>(0);
+		context.error<string | null>(null);
+		context.ifError<string | null>(null);
+		context.equal<i32>(11, 11);
+		context.strictEqual<i32>(11, 11);
+		context.is<i32>(11, 11);
+		context.notEqual<i32>(11, 12);
+		context.not<i32>(11, 12);
+		context.looseEqual<string, i32>("11", 11);
+		context.notLooseEqual<string, i32>("11", 12);
+		context.deepEqual<Array<i32>>([1, 2], [1, 2]);
+		context.same<Array<i32>>([1, 2], [1, 2]);
+		context.notDeepEqual<Array<i32>>([1, 2], [1, 3]);
+		context.notSame<Array<i32>>([1, 2], [1, 3]);
+		context.throws((): void => {
+			unreachable();
+		});
+		context.doesNotThrow((): void => {});
+		context.skip("soft skip");
+		context.end();
+	});
+
+	const children = localRoot.getChildren();
+	assert(children.length == 1);
+	assert(executeNode(unchecked(children[0])));
+
+	resetCurrentNode();
+}
+
 testTapeDeclarationRegistration();
 testTapeNestedDeclarations();
 testTapeExecutionShell();
+testTapeAssertionSurface();

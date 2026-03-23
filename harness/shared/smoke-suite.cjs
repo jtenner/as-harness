@@ -616,6 +616,11 @@ function compileSmokeFixtures(options) {
 			"assembly/test/mocha-smoke.ts",
 			path.join(options.cacheDir, "mocha-smoke.wasm"),
 		),
+		compiledTapeWasm: compileFixture(
+			assemblyDir,
+			"assembly/test/tape-smoke.ts",
+			path.join(options.cacheDir, "tape-smoke.wasm"),
+		),
 		compiledArtifactFrameWasm: compileFixture(
 			assemblyDir,
 			"assembly/test/artifact-frame-smoke.ts",
@@ -732,6 +737,7 @@ function registerHarnessSmokeSuite(options) {
 		compiledExportsWasm,
 		compiledJasmineWasm,
 		compiledMochaWasm,
+		compiledTapeWasm,
 		compiledUvuAssertWasm,
 		compiledUvuHintsWasm,
 		compiledUvuWasm,
@@ -1322,6 +1328,36 @@ function registerHarnessSmokeSuite(options) {
 				["top-level pass", 1, 1],
 				["implicit pending", 1, 3],
 				["runs hooks and assertions", 1, 1],
+			],
+		);
+
+		closeHarness(harness);
+	});
+
+	test("discover(nodeIndex) preserves tape declaration shape with skip and nested subtests", () => {
+		const harness = createHarness(compiledTapeWasm);
+		const found = [];
+
+		harness.onNodeFound((event) => {
+			found.push(event);
+		});
+
+		assert.equal(harness.discover([]), true);
+		assert.deepEqual(
+			found.map((node) => [node.name, node.kind, node.declarationMode]),
+			[
+				["skipped test", 1, 2],
+				["tape parent", 1, 1],
+			],
+		);
+
+		found.length = 0;
+		assert.equal(harness.discover([1]), true);
+		assert.deepEqual(
+			found.map((node) => [node.name, node.kind, node.declarationMode]),
+			[
+				["tape parent", 1, 1],
+				["nested child", 1, 1],
 			],
 		);
 
@@ -2197,6 +2233,36 @@ function registerHarnessSmokeSuite(options) {
 			branch.executions.map((execution) => execution.node.name),
 			["top-level pass", "runs hooks and assertions", "nested context child"],
 		);
+
+		closeHarness(harness);
+	});
+
+	test("start() preserves tape declarations through shared graph execution", async () => {
+		const harness = createHarness(compiledTapeWasm);
+
+		const result = await harness.start();
+		const executionNames = result.branches
+			.flatMap((branch) =>
+				branch.executions.map((execution) => execution.node.name),
+			)
+			.sort();
+
+		assert.equal(result.discoveryOk, true);
+		assert.equal(result.planningOk, true);
+		assert.equal(result.ok, true);
+		assert.equal(result.discoveredTestCount, 3);
+		assert.equal(result.topLevelNodes.length, 2);
+		assert(result.workerCount >= 1);
+		assert.deepEqual(result.planIssues, []);
+		assert.deepEqual(result.blocked, []);
+		assert.deepEqual(
+			result.topLevelNodes.map((node) => [node.name, node.declarationMode]),
+			[
+				["skipped test", 2],
+				["tape parent", 1],
+			],
+		);
+		assert.deepEqual(executionNames, ["nested child", "tape parent"]);
 
 		closeHarness(harness);
 	});

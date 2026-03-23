@@ -23,18 +23,14 @@
 
 ### Adapter: `tape`
 
-- `tape-001`: add the interface note, replace the placeholder TODO, and commit
-  the live implementation slices.
-- `tape-003`: add the shipped assertion subset and aliases, plus one cross-host
-  smoke fixture covering nested subtests, plan, teardown, comments, and the
-  shared assertion mapping.
 - `tape-004`: wire `tape` into bundled CLI compile rewriting and direct CLI
   proof, then mark the adapter shipped in docs.
-- implementation plan: land the declaration/context shell first, then add the
-  assertion surface, then bundle the adapter through the CLI. Keep async,
-  options-object overloads, timeout control, reporter APIs, regex helpers,
-  deep-loose comparison, and capture/intercept APIs explicitly deferred unless
-  the shared runtime grows those semantics.
+- implementation plan: declaration/context and assertion slices are done; the
+  remaining work is to bundle `tape` through CLI compile rewriting, direct CLI
+  proof, and shipped-surface docs. Keep async, options-object overloads,
+  timeout control, reporter APIs, regex helpers, deep-loose comparison, and
+  capture/intercept APIs explicitly deferred unless the shared runtime grows
+  those semantics.
 
 ### Adapter: `uvu`
 
