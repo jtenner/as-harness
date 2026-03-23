@@ -127,6 +127,7 @@ const BUNDLED_HARNESS_LIBRARY_ENTRY_POINTS = new Set([
 	"jasmine",
 	"jest",
 	"mocha",
+	"qunit",
 	"tap",
 	"tape",
 	"uvu",

@@ -22,9 +22,9 @@ Tracked adapters: `as-harness`, `node:test`, `node:assert`, `jest`, `vitest`, `m
 
 Active surface today: `as-harness`, `node:test`, `node:assert`,
 `node:assert/strict`, `jest`, `vitest`, `mocha`, `jasmine`, `ava`, `tap`,
-`tape`, `uvu`, and `uvu/assert`.
+`tape`, `qunit`, `uvu`, and `uvu/assert`.
 
-Planned-only workstreams today: `qunit`.
+Planned-only workstreams today: none currently.
 
 For each adapter workstream, start from the doc + TODO pair:
 

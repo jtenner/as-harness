@@ -1485,6 +1485,64 @@ test("passes through tape adapter", (context: TestContext): void => {
 	);
 });
 
+test('cli run executes a thin qunit adapter entry from the bundled "qunit" guest library', async () => {
+	await withTempEntryFile(
+		`
+import QUnit from "qunit";
+import { Assert, NestedHooks } from "qunit";
+import { module as qunitModule, test as qunitTest } from "qunit";
+
+let rootBeforeEachCount = 0;
+let rootAfterEachCount = 0;
+
+QUnit.hooks.beforeEach((assert: Assert): void => {
+  rootBeforeEachCount += 1;
+  assert.step("root beforeEach");
+});
+
+QUnit.hooks.afterEach((_assert: Assert): void => {
+  rootAfterEachCount += 1;
+});
+
+QUnit.skip("skipped qunit test");
+qunitTest.todo("todo qunit test");
+
+QUnit.module("qunit adapter", (hooks: NestedHooks): void => {
+  hooks.beforeEach((assert: Assert): void => {
+    assert.step("module beforeEach");
+  });
+
+  QUnit.test("passes through qunit", (assert: Assert): void => {
+    assert.expect(6);
+    assert.strictEqual<i32>(rootBeforeEachCount, 1, "beforeEach count mismatch");
+    assert.strictEqual<i32>(rootAfterEachCount, 0, "afterEach ran too early");
+    assert.step("body");
+    assert.verifySteps(["root beforeEach", "module beforeEach", "body"]);
+  });
+});
+
+qunitModule.todo("todo qunit module", (_hooks: NestedHooks): void => {
+  QUnit.test("expected failure", (assert: Assert): void => {
+    assert.expect(2);
+    assert.strictEqual<i32>(11, 12, "qunit todo mismatch");
+  });
+});
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 2 passed, 0 failed, 4 discovered with js.",
+			);
+		},
+	);
+});
+
 test('cli run executes the bundled "uvu/assert" guest library through the js host', async () => {
 	await withTempEntryFile(
 		`

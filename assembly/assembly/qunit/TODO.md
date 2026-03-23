@@ -1,6 +1,6 @@
 # `qunit` Adapter TODO
 
-Status: declaration, module, hook, and assertion slices landed.
+Status: bundled thin synchronous adapter shipped.
 Current surface plan is documented in [docs/020-2026-03-23-qunit-adapter-interface.md](../../../docs/020-2026-03-23-qunit-adapter-interface.md).
 
 Implemented so far:
@@ -10,8 +10,10 @@ Implemented so far:
 - `qunit-002`: ship the declaration, module, and hook shell plus internal proof
 - `qunit-003`: add the shipped `Assert` surface plus one cross-host smoke
   fixture
-- `qunit-004`: wire `qunit` into the bundled CLI surface, compile rewriting,
-  and direct CLI proof, then mark the adapter shipped
+- wire the shipped sync slice into the bundled CLI library set, compile
+  rewriting, and direct CLI proof
+- add internal declaration plus assertion proof and one cross-host smoke
+  fixture that executes the QUnit slice through the shared hosts
 
 Constraint: keep the adapter honest about current runtime limits; async
 assertions, Promise-returning tests and hooks, `test.each(...)`, options-object

@@ -49,6 +49,7 @@ Default reporting summarizes:
 - `jasmine`: sync declarations, focus/exclude aliases, core hooks, `fail(...)`, and a narrow shared matcher slice.
 - `jest`: thin sync declarations + shared assertion set (containment, length/size, numeric, `toThrow`, strict equality helpers).
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks for diagnostics and assertions.
+- `qunit`: sync default-exported `QUnit` root methods plus named `test` / `module` modifier exports, root and module hooks, runnable `todo(...)` lowering, and the shipped `Assert` subset with step verification.
 - `tap`: sync default-exported root declarations and hooks, named root helpers, nested `t.test(...)` subtests, per-test hooks, `plan(...)`, `end()`, `comment(...)`, `teardown(...)`, and the shipped assertion subset.
 - `tape`: sync default-exported `test(...)` declarations with `only` / `skip`, nested `t.test(...)`, `plan(...)`, `end()`, `teardown(...)`, `comment(...)`, and the shipped alias-heavy assertion subset.
 - `vitest`: sync declarations, shared `sequential` constraints, host-default `concurrent` aliases, `fails`, `skipIf` / `runIf`, `assertType(...)`, and the same shared matcher set.
@@ -60,6 +61,7 @@ See their interface docs:
 - [docs/005-2026-03-17-jest-adapter.md](../docs/005-2026-03-17-jest-adapter.md)
 - [docs/012-2026-03-22-mocha-adapter-interface.md](../docs/012-2026-03-22-mocha-adapter-interface.md)
 - [docs/017-2026-03-22-ava-adapter-interface.md](../docs/017-2026-03-22-ava-adapter-interface.md)
+- [docs/020-2026-03-23-qunit-adapter-interface.md](../docs/020-2026-03-23-qunit-adapter-interface.md)
 - [docs/019-2026-03-23-tap-adapter-interface.md](../docs/019-2026-03-23-tap-adapter-interface.md)
 - [docs/018-2026-03-22-tape-adapter-interface.md](../docs/018-2026-03-22-tape-adapter-interface.md)
 - [docs/014-2026-03-22-uvu-adapter-interface.md](../docs/014-2026-03-22-uvu-adapter-interface.md)

@@ -15,6 +15,7 @@ Host owns scheduling, aggregation, and reporting.
 - `assembly/assembly/jasmine/`: thin sync Jasmine-shaped surface.
 - `assembly/assembly/jest/`: thin sync Jest-shaped surface.
 - `assembly/assembly/mocha/`: thin sync Mocha BDD-shaped surface.
+- `assembly/assembly/qunit/`: thin sync QUnit-shaped declaration and assertion surface.
 - `assembly/assembly/tap/`: thin sync Tap-shaped declaration, hook, and assertion surface.
 - `assembly/assembly/tape/`: thin sync Tape-shaped declaration and assertion surface.
 - `assembly/assembly/uvu/`: sync `uvu`-shaped declarations, host-owned hint helpers, plus the shared `uvu/assert` subset.
@@ -29,7 +30,7 @@ Host owns scheduling, aggregation, and reporting.
   host-owned `inBand(...)` / `bail(...)` / `continueOnFailure(...)` hints
 - synchronous `node:test`, chainable declarations, core hooks, and the same
   host-owned planning hints
-- thin `jest`, `mocha`, `jasmine`, `ava`, `tap`, `tape`, `uvu`, and `vitest` adapters,
+- thin `jest`, `mocha`, `jasmine`, `ava`, `tap`, `tape`, `qunit`, `uvu`, and `vitest` adapters,
   including the shipped Vitest scheduling subset
 - shared `uvu/assert` subset for assertion reuse, including structural
   `match(...)`, runtime-type `instance(...)`, and host-backed `snapshot(...)` /

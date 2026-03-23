@@ -11,7 +11,7 @@ Implemented:
 - `as-harness run` for compile + execute.
 - Synchronous `node:test` declarations with `dependsOn(...)` chains and the same host-owned planning hints.
 - `node:assert` / `node:assert/strict` bridge support.
-- Built-in thin adapters for `jest`, `mocha`, `jasmine`, `ava`, `tap`, `tape`, and `vitest`.
+- Built-in thin adapters for `jest`, `mocha`, `jasmine`, `ava`, `tap`, `tape`, `qunit`, and `vitest`.
 - Built-in `uvu` adapter plus the shared `uvu/assert` subset.
 - Stable start-reporting pipeline with branch, execution, planning, and blocked-outcome details.
 - `js`, `wazero`, `wasmtime` source-host runtime support.
@@ -71,6 +71,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `jasmine`: sync declarations, focus/exclude aliases, core hooks, `fail(...)`, and a narrow matcher slice backed by the shared expectation core.
 - `tap`: sync default-exported root declarations and hooks, named root helpers, nested `t.test(...)` subtests, per-test hooks, `plan(...)`, `end()`, `comment(...)`, `teardown(...)`, and the shipped assertion subset.
 - `tape`: sync default-exported `test(...)` declarations with `only` / `skip`, nested `t.test(...)`, `plan(...)`, `end()`, `teardown(...)`, `comment(...)`, and the shipped alias-heavy assertion subset.
+- `qunit`: sync default-exported `QUnit` root methods plus named `test` / `module` modifier exports, root and module hooks, runnable `todo(...)` lowering, and the shipped `Assert` subset with step verification.
 - `vitest`: sync declarations, shared `sequential` constraints, host-default `concurrent` aliases, and the same matcher slice.
 
 See:
@@ -85,6 +86,7 @@ See:
 - [docs/012-2026-03-22-mocha-adapter-interface.md](./docs/012-2026-03-22-mocha-adapter-interface.md)
 - [docs/019-2026-03-23-tap-adapter-interface.md](./docs/019-2026-03-23-tap-adapter-interface.md)
 - [docs/018-2026-03-22-tape-adapter-interface.md](./docs/018-2026-03-22-tape-adapter-interface.md)
+- [docs/020-2026-03-23-qunit-adapter-interface.md](./docs/020-2026-03-23-qunit-adapter-interface.md)
 - [docs/014-2026-03-22-uvu-adapter-interface.md](./docs/014-2026-03-22-uvu-adapter-interface.md)
 - [docs/009-2026-03-19-vitest-scheduling-and-test-graph-strategy.md](./docs/009-2026-03-19-vitest-scheduling-and-test-graph-strategy.md)
 
