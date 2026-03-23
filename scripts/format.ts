@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 const rootDir = path.resolve(import.meta.dir, "..");
@@ -98,10 +99,13 @@ async function listRepoFiles(): Promise<string[]> {
 
 const checkMode = Bun.argv.includes("--check");
 const allRepoFiles = await listRepoFiles();
-const biomeFiles = allRepoFiles
+const existingRepoFiles = allRepoFiles.filter((filePath) =>
+	existsSync(path.join(rootDir, filePath)),
+);
+const biomeFiles = existingRepoFiles
 	.filter(shouldFormatWithBiome)
 	.map(toCliBiomePath);
-const goFiles = allRepoFiles
+const goFiles = existingRepoFiles
 	.filter((filePath) => filePath.endsWith(".go"))
 	.map((filePath) => path.join(rootDir, filePath));
 

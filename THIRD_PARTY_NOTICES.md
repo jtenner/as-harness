@@ -3,53 +3,19 @@
 # Third-Party Notices
 
 This file identifies the third-party software redistributed in the current
-packaged `as-harness` release line.
+public npm package line for `as-harness`.
 
-This file covers packaged release artifacts only:
+This file covers public npm package artifacts only:
 
-- Bun-built packaged CLI archives
-- the packaged AssemblyScript compiler closure used by the CLI
-- the packaged `wazero` host on targets that ship it
+- the `wazero` native host packages
+- the `wasmtime` native host packages
 
-This file does not describe every source-only dependency used by contributor
-tooling or the source-only `wasmtime` host. The project itself remains MIT
-licensed under [LICENSE](./LICENSE).
+`@as-harness/cli` now expects `assemblyscript` to be installed by the
+consumer as a peer dependency, so the CLI package does not redistribute the
+AssemblyScript compiler closure itself. The project remains MIT licensed
+under [LICENSE](./LICENSE).
 
-## Packaged Components
-
-### AssemblyScript
-
-- Project: `assemblyscript`
-- Version: `0.28.10`
-- License: `Apache-2.0`
-- Included texts:
-  - [licenses/assemblyscript/LICENSE](./licenses/assemblyscript/LICENSE)
-  - [licenses/assemblyscript/NOTICE](./licenses/assemblyscript/NOTICE)
-- Repository: <https://github.com/AssemblyScript/assemblyscript>
-- Release scope: packaged CLI archives
-
-### Binaryen
-
-- Project: `binaryen`
-- Version: `123.0.0-nightly.20250530`
-- License: `Apache-2.0`
-- Included texts:
-  - [licenses/binaryen/LICENSE](./licenses/binaryen/LICENSE)
-  - [licenses/binaryen/FP16-LICENSE](./licenses/binaryen/FP16-LICENSE)
-- Repository: <https://github.com/WebAssembly/binaryen>
-- Release scope: packaged CLI archives through the locked `assemblyscript` npm
-  dependency closure
-
-### long
-
-- Project: `long`
-- Version: `5.3.2`
-- License: `Apache-2.0`
-- Included text:
-  - [licenses/long/LICENSE](./licenses/long/LICENSE)
-- Repository: <https://github.com/dcodeIO/long.js>
-- Release scope: packaged CLI archives through the locked `assemblyscript` npm
-  dependency closure
+## Public Npm Components
 
 ### wazero
 
@@ -60,7 +26,7 @@ licensed under [LICENSE](./LICENSE).
   - [licenses/wazero/LICENSE](./licenses/wazero/LICENSE)
   - [licenses/wazero/NOTICE](./licenses/wazero/NOTICE)
 - Repository: <https://github.com/tetratelabs/wazero>
-- Release scope: packaged release targets that bundle the `wazero` host
+- Release scope: per-platform `@as-harness/wazero-*` npm packages
 
 ### golang.org/x/sys
 
@@ -70,39 +36,34 @@ licensed under [LICENSE](./LICENSE).
 - Included text:
   - [licenses/golang.org-x-sys/LICENSE](./licenses/golang.org-x-sys/LICENSE)
 - Repository: <https://go.googlesource.com/sys>
-- Release scope: packaged release targets that bundle the `wazero` host
+- Release scope: per-platform `@as-harness/wazero-*` npm packages
 
-### Bun Runtime
+### wasmtime
 
-- Project: `bun`
-- Version: `1.3.11`
-- License: Bun is MIT-licensed and its official licensing page also documents
-  the additional third-party licensing and static-link redistribution guidance
-  relevant to Bun-produced standalone executables.
-- Official licensing guidance:
-  - <https://bun.sh/docs/project/license>
-- Release scope: every packaged CLI archive
+- Project: `wasmtime`
+- Version: `34.0.2`
+- License: `Apache-2.0 WITH LLVM-exception`
+- Repository: <https://github.com/bytecodealliance/wasmtime>
+- Release scope: per-platform `@as-harness/wasmtime-*` npm packages
+- Dependency inventory:
+  [licenses/wasmtime/THIRD_PARTY_INVENTORY.md](./licenses/wasmtime/THIRD_PARTY_INVENTORY.md)
+  is staged with the npm package legal bundle for the public release line.
 
-## Packaged Archive Layout
+## Public Npm Package Layout
 
-Each packaged CLI archive includes:
+Each staged npm package includes the project `LICENSE`, this notice file,
+and the tracked `wasmtime` inventory file.
 
-- the packaged executable
-- `legal/LICENSE`
-- `legal/THIRD_PARTY_NOTICES.md`
-- the tracked third-party license texts for the packaged release line
+The native host packages additionally carry the tracked upstream license texts
+for the code they redistribute.
 
-The same legal files are also uploaded as sidecar release assets to make review
-and diffing easier outside the archive itself.
+## Source-Only Components Not Bundled In Public Npm Packages
 
-## Source-Only Components Not Bundled In Packaged Releases
+The following repo components are not bundled into the public npm packages
+described above:
 
-The following repo components are not currently bundled into packaged release
-archives and therefore are not listed above as packaged artifacts:
-
-- the Rust `wasmtime` host in [harness/wasmtime](./harness/wasmtime)
+- consumer-installed `assemblyscript` and its dependency closure
 - development-only tooling such as `@biomejs/biome` and `@types/bun`
 
-Those components still need their own source-build inventory and compliance
-handling, but they are not part of the packaged release artifacts described in
-this file.
+Those components may still need their own inventory and compliance handling,
+but they are not part of the public npm artifacts described in this file.

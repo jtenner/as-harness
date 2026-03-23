@@ -9,6 +9,8 @@ stores a guest-side assertion record, and `uvu/assert` reconstructs
 adapter-local `Assertion` objects inside trap observers instead of pretending
 the current Wasm boundary can preserve arbitrary thrown JS objects.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 ## Research Basis
 
 Checked on 2026-03-23 against:

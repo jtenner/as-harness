@@ -11,6 +11,8 @@ source-location metadata where available, and treat host engine stacks as
 best-effort enrichment instead of pretending that the guest can recover a
 portable function-by-function stack trace after a Wasm trap.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 ## Research Basis
 
 Checked on 2026-03-23 against:

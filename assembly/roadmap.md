@@ -2,6 +2,8 @@
 
 Adapter-level intent for guest runtime work.
 
+Repository policy note as of 2026-03-23: `assembly/` remains repo-internal rather than a separately published npm package. Public installation is npm-only via `@as-harness/*`, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 ## Current priorities
 
 - keep shipped adapter docs and TODOs aligned with the released surface

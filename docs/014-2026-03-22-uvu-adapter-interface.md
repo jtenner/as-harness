@@ -12,6 +12,8 @@ some broader source-rewrite policy, and keep async behavior out of scope until
 AssemblyScript itself grows meaningful async support that the shared runtime can
 honestly target.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 ## Research Basis
 
 Checked on 2026-03-22 against:

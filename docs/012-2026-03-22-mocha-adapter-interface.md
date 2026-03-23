@@ -9,6 +9,8 @@ to expose only the synchronous BDD declaration and hook family first, keep
 and treat suite-skip behavior plus callback-context behavior as the primary
 compatibility risks.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 ## Research Basis
 
 Checked on 2026-03-22 against:

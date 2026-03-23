@@ -38,26 +38,19 @@ npm test
 
 ## Packaging Notes
 
-- Linux glibc is in scope for the current packaged release matrix; musl is not.
-- bundled Linux CLI builds still force the `wazero` interpreter engine for the
-  deliberate packaged stability policy for the current release line.
+- published as `@as-harness/wazero` plus per-platform optional binary packages
+- Linux glibc is in scope for the current public npm lane; musl is not.
 - source worker execution under Bun on Windows stages a private copy of `wazero.node`
   before loading the addon.
 - source-host CLI smoke proof builds a Node-targeted CLI bundle and runs that
   bundle under Node `25.8.1` instead of invoking `bun run ./cli/index.ts`
   directly.
 - source Linux arm64 and Windows builds can be produced locally.
-- packaged release coverage currently ships on `bun-darwin-arm64`,
-  `bun-darwin-x64`, and `bun-linux-x64`; `bun-linux-arm64` and
-  `bun-windows-x64` remain `js`-only.
-- source and bundled `wazero` CLI loading intentionally diverge today:
-  source mode keeps the repo-local source-host path working across the Node 25
-  matrix, while packaged mode keeps the bundled extracted-addon path working
-  inside the compiled executable.
+- source-host verification and npm package install-smoke are now the maintained
+  proof paths.
 
 ## Related Docs
 
-- [cli/n-api/README.md](../../cli/n-api/README.md)
 - [docs/003-2026-03-17-harness-abi.md](../../docs/003-2026-03-17-harness-abi.md)
 - [docs/007-2026-03-17-host-runner-contract.md](../../docs/007-2026-03-17-host-runner-contract.md)
 - [docs/022-2026-03-23-abort-trace-debug-payload-contract.md](../../docs/022-2026-03-23-abort-trace-debug-payload-contract.md)

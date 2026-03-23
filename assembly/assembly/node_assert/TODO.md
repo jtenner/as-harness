@@ -2,6 +2,8 @@
 
 Status: shipped bridge surface kept intentionally narrow.
 
+Repository policy note as of 2026-03-23: adapter work in `assembly/` remains repo-internal rather than a separately published npm package. Public installation is npm-only via `@as-harness/cli`, which expects a consumer-installed `assemblyscript` peer.
+
 Implemented:
 
 - sync `node:assert`

@@ -3,6 +3,8 @@
 Status: shipped sync adapter surface.
 Current surface plan is documented in [docs/018-2026-03-22-tape-adapter-interface.md](../../../docs/018-2026-03-22-tape-adapter-interface.md).
 
+Repository policy note as of 2026-03-23: adapter work in `assembly/` remains repo-internal rather than a separately published npm package. Public installation is npm-only via `@as-harness/cli`, which expects a consumer-installed `assemblyscript` peer.
+
 Implemented so far:
 
 - `tape-002`: ship `test(...)`, `test.only(...)`, `test.skip(...)`, adapter-local

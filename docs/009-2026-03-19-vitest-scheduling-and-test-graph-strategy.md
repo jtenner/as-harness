@@ -4,6 +4,8 @@ This document captured the March 19, 2026 planning work for the thin
 `"vitest"` adapter and the shared host scheduling work that later shipped as
 the native `"as-harness"` constraint model.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 The short version is:
 
 - upstream Vitest schedules mostly with file-level parallelism plus in-file

@@ -9,6 +9,8 @@ metadata to the shared runtime, and let adapters such as `uvu` and `vitest`
 lower framework-shaped controls into that shared metadata rather than running
 their own scheduler in guest code.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 ## Short Recommendation
 
 - keep scheduling on the host

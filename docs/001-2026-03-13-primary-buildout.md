@@ -2,6 +2,8 @@
 
 This is the guest/runtime versus host split for `as-harness`.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 ## Core Principle
 
 - guest: declare, traverse, execute callbacks, emit normalized events

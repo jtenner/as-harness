@@ -9,6 +9,8 @@ deliberately small `expect(...)` matcher subset first, while explicitly
 deferring async expectations, spy APIs, custom matcher registration, property
 bags, and most of the mutable `jasmine` namespace.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 ## Research Basis
 
 Checked on 2026-03-22 against:

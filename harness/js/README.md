@@ -7,6 +7,7 @@ Portable JavaScript host for the shared runtime contract.
 - no native addon
 - no per-platform binary artifact
 - easiest starting point for ABI validation and implementation reference
+- published as `@as-harness/js` and used directly by `@as-harness/cli`
 
 ## Surface
 

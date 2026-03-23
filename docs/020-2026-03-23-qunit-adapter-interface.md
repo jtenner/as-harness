@@ -6,6 +6,8 @@ defines the slice plan for `assembly/assembly/qunit/`, bundled CLI wiring, and
 proof coverage. It also corrects the older repo placeholder name `qnit` to the
 real package name `qunit`.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 ## Question
 
 What QUnit API surface should `as-harness` implement next, and how should that

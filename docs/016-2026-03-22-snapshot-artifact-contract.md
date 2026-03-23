@@ -6,6 +6,8 @@ artifact model with a project-root snapshot tree plus `as-pect`-compatible
 `.snap` file contents, and identifies the affected work across `assembly/`,
 `harness/`, and `cli/`.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 ## Recommendation
 
 - keep snapshot and fixture I/O host-owned

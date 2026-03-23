@@ -5,14 +5,17 @@ import type {
 	HarnessStartResult,
 } from "../harness/shared/harness-types";
 import { stringifyCoverage } from "../harness/shared/covers.cjs";
-import { compileEntrypoints, type CompilerOptions } from "./as/compile";
+import type {
+	compileEntrypoints as compileEntrypointsType,
+	CompilerOptions,
+	withBundledCoverageTransform as withBundledCoverageTransformType,
+} from "./as/compile";
 import type { CoverageTransformPointTypeName } from "./transform/src/covers";
 import {
 	createHarnessRunReport,
 	defaultRunReporter,
 	type RunReporter,
 } from "./reporter";
-import { withBundledCoverageTransform } from "./as/compile";
 import { jsRuntime } from "./runtime/js";
 import { assertSupportedRuntime, resolveRuntime } from "./runtime/resolve";
 import type { Runtime } from "./runtime/types";
@@ -53,6 +56,11 @@ const DEFAULT_RUN_LIBRARIES = [
 ] as const;
 const TEMP_RUN_ENTRY_PREFIX = ".as-harness-run-";
 const TEMP_RUN_ENTRY_BASENAME = "entry.ts";
+
+type CompilerModule = {
+	compileEntrypoints: typeof compileEntrypointsType;
+	withBundledCoverageTransform: typeof withBundledCoverageTransformType;
+};
 
 function createRunCompilerOptions(cwd: string): CompilerOptions {
 	return {
@@ -148,7 +156,7 @@ async function createRunEntrypoint(
 }
 
 function getWasmArtifactBytes(
-	wasmArtifacts: Awaited<ReturnType<typeof compileEntrypoints>>,
+	wasmArtifacts: Awaited<ReturnType<CompilerModule["compileEntrypoints"]>>,
 ) {
 	const wasmArtifact = wasmArtifacts.find((artifact) =>
 		artifact.path.endsWith(".wasm"),
@@ -158,6 +166,39 @@ function getWasmArtifactBytes(
 	}
 
 	return wasmArtifact.contents;
+}
+
+function normalizeCompilerLoadError(error: unknown) {
+	if (!(error instanceof Error)) {
+		return error;
+	}
+
+	const code =
+		typeof (error as NodeJS.ErrnoException).code === "string"
+			? (error as NodeJS.ErrnoException).code
+			: null;
+	const message = error.message;
+	if (
+		(code === "ERR_MODULE_NOT_FOUND" || code === "MODULE_NOT_FOUND") &&
+		message.includes("assemblyscript")
+	) {
+		return new Error(
+			[
+				"AssemblyScript is required to compile tests with @as-harness/cli.",
+				"Install `assemblyscript` in the consuming project alongside `@as-harness/cli`.",
+			].join(" "),
+		);
+	}
+
+	return error;
+}
+
+async function loadCompilerModule(): Promise<CompilerModule> {
+	try {
+		return (await import("./as/compile")) as CompilerModule;
+	} catch (error) {
+		throw normalizeCompilerLoadError(error);
+	}
 }
 
 export async function runEntryFiles(
@@ -191,9 +232,10 @@ export async function runEntryFiles(
 	}
 
 	try {
-		const artifacts = await compileEntrypoints(
+		const compilerModule = await loadCompilerModule();
+		const artifacts = await compilerModule.compileEntrypoints(
 			[temporaryEntrypoint.path],
-			withBundledCoverageTransform(
+			compilerModule.withBundledCoverageTransform(
 				mergeRunCompilerOptions(cwd, compilerOptions),
 				coverageOptions.enabled
 					? {

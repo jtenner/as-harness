@@ -3,6 +3,8 @@
 Status: bundled thin synchronous adapter shipped.
 Current surface is documented in [docs/017-2026-03-22-ava-adapter-interface.md](../../../docs/017-2026-03-22-ava-adapter-interface.md).
 
+Repository policy note as of 2026-03-23: adapter work in `assembly/` remains repo-internal rather than a separately published npm package. Public installation is npm-only via `@as-harness/cli`, which expects a consumer-installed `assemblyscript` peer.
+
 Implemented so far:
 
 - define a flat sync declaration surface around `test(...)`, modifiers, hooks,

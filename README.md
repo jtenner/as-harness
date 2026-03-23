@@ -23,8 +23,7 @@ Limits:
 
 - async/Promise-based APIs are intentionally unsupported.
 - thin adapters are intentionally narrow.
-- packaged Bun releases stay `js` + `wazero` only; the staged npm package set
-  now includes `@as-harness/wasmtime`.
+- public installable distribution is npm-only.
 
 ## Quick Start
 
@@ -36,13 +35,20 @@ bun run ./cli/index.ts run --harness js --coverage ./example.test.ts
 bun run ./cli/index.ts run --update-snapshots ./example.test.ts
 ```
 
-For contributor validation and release packaging, the repo now uses two
-distinct execution proofs:
+Public npm install:
+
+```bash
+npm install -D assemblyscript @as-harness/cli
+npx as-harness run ./example.test.ts
+```
+
+For contributor validation, the repo now uses two distinct execution proofs:
 
 - source-host verification builds a Node-targeted CLI bundle with Bun and runs
   that bundle under the Node baseline from [`.mise.toml`](./.mise.toml)
-- packaged verification stages the real compiled Bun executable from its
-  release archive under a sanitized runtime environment
+- npm package verification stages the publishable package set, inspects the
+  staged tarballs, and smoke-tests clean temp-project installs under Node and
+  Bun
 
 The repo also now stages npm package payloads locally and proves them with:
 
@@ -129,50 +135,17 @@ Helpful checks:
 ```bash
 bun run host:matrix
 bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-host-reports
-cd cli && bun run build:list-release-targets
-cd cli && bun run build:release
-bun run verify:packaged-cli -- --target bun-linux-x64 --report-dir ./dist/packaged-cli-reports
 ```
 
 ## Release Packaging
 
-Public packaged Bun releases are currently gated pending a documented Bun
-standalone redistribution path. The repo still keeps the packaged build and
-verification flow live for engineering proof, but the tag-driven GitHub release
-workflow now fails closed by default before publishing those artifacts.
+Public installable distribution is now npm-only.
 
-Current packaged release archives:
-
-- `bun-darwin-arm64`: `js`, `wazero`
-- `bun-darwin-x64`: `js`, `wazero`
-- `bun-linux-arm64`: `js`
-- `bun-linux-x64`: `js`, `wazero`
-- `bun-windows-x64`: `js`
-
-Each archive preserves the inner executable name as `as-harness` (or
-`as-harness.exe` on Windows), and `wazero` targets keep the native addon
-bundled inside that executable so extraction does not rename the compiled
-binary away from Bun's working embedded-addon path.
-
-Each packaged archive also includes a `legal/` directory with the project
-`LICENSE`, [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md), and the tracked
-third-party license texts for the packaged release line.
-
-Bundled Linux `wazero` now stays on the interpreter engine as the deliberate
-packaged stability policy for this release line, while source-host verification
-continues to prove the repo-local `wazero` and `wasmtime` paths separately
-through the Node-targeted CLI bundle.
-
-Packaged Bun releases still exclude `wasmtime`, and the source-host matrix now
-validates the native hosts through the Bun-built Node-targeted CLI bundle
-rather than direct `bun run ./cli/index.ts` execution. The staged npm package
-lane now includes `@as-harness/wasmtime` plus the current-platform binary
-package shape for local pack/install proof.
-
-The npm release lane now publishes the staged lockstep package set through the
-tag workflow after cross-platform pack and install-smoke verification, while
-the packaged Bun executable lane remains separately gated by Bun standalone
-redistribution compliance.
+The tag workflow publishes the staged lockstep npm package set after
+cross-platform pack and install-smoke verification, then creates or updates a
+notes-only GitHub release page from the annotated tag contents. The staged npm
+lane includes `@as-harness/wasmtime` plus the current-platform binary package
+shape for local pack/install proof.
 
 ## Versioning Policy
 
@@ -190,5 +163,5 @@ The project is still pre-`v1`, so release communication follows the common
 - Third-party notices: [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)
 - Source-build `wasmtime` inventory:
   [licenses/wasmtime/THIRD_PARTY_INVENTORY.md](./licenses/wasmtime/THIRD_PARTY_INVENTORY.md)
-- Packaged Bun executables are also subject to Bun's official licensing and
-  redistribution guidance: <https://bun.sh/docs/project/license>
+- Public npm installs require a consumer-installed `assemblyscript` peer for
+  `@as-harness/cli`.

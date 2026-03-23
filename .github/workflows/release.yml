@@ -9,20 +9,6 @@ permissions:
   contents: write
 
 jobs:
-  release-policy:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Set up mise toolchain
-        uses: jdx/mise-action@v4
-        with:
-          install_args: bun
-
-      - name: Enforce Bun standalone release policy
-        run: bun run ./scripts/assert-bun-release-policy.ts
-
   npm-matrix:
     runs-on: ubuntu-24.04
     outputs:
@@ -39,65 +25,6 @@ jobs:
       - name: Emit npm matrix
         id: npm-matrix
         run: printf 'matrix=%s\n' "$(bun run ./scripts/host-validation-matrix.ts)" >> "$GITHUB_OUTPUT"
-
-  release-matrix:
-    needs:
-      - release-policy
-    runs-on: ubuntu-24.04
-    outputs:
-      matrix: ${{ steps.release-matrix.outputs.matrix }}
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Set up mise toolchain
-        uses: jdx/mise-action@v4
-        with:
-          install_args: bun
-
-      - name: Emit release matrix
-        id: release-matrix
-        run: printf 'matrix=%s\n' "$(bun run ./scripts/release-matrix.ts)" >> "$GITHUB_OUTPUT"
-
-  build-release-assets:
-    name: Build release asset (${{ matrix.compileTarget }})
-    needs:
-      - release-policy
-      - release-matrix
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.release-matrix.outputs.matrix) }}
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Set up mise toolchain
-        uses: jdx/mise-action@v4
-        with:
-          install_args: bun node go rust
-
-      - name: Install CLI dependencies
-        working-directory: ./cli
-        run: bun install --frozen-lockfile
-
-      - name: Build and verify packaged release artifact
-        run: bun run ./scripts/verify-packaged-cli.ts --target "${{ matrix.compileTarget }}" --asset-dir ./dist/release-assets --report-dir ./dist/packaged-cli-reports
-
-      - name: Upload release asset
-        uses: actions/upload-artifact@v6
-        with:
-          if-no-files-found: error
-          name: ${{ matrix.artifactName }}
-          path: ./dist/release-assets/*
-
-      - name: Upload packaged CLI verification report
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          if-no-files-found: ignore
-          name: packaged-cli-report-${{ matrix.compileTarget }}
-          path: ./dist/packaged-cli-reports/*
 
   build-npm-packages:
     name: Build npm package artifacts (${{ matrix.label }})
@@ -205,42 +132,30 @@ jobs:
       - name: Publish npm packages in dependency order
         run: bun run npm:publish-release -- --artifact-dir ./dist/npm-release-artifacts --tag latest
 
-  publish-release:
-    name: Publish GitHub release
+  publish-github-release:
+    name: Publish GitHub release page
     needs:
-      - release-policy
-      - build-release-assets
       - publish-npm
     runs-on: ubuntu-24.04
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
-
-      - name: Set up mise toolchain
-        uses: jdx/mise-action@v4
         with:
-          install_args: bun
+          fetch-depth: 0
 
-      - name: Download built release assets
-        uses: actions/download-artifact@v5
-        with:
-          merge-multiple: true
-          path: ./dist/release-assets
-
-      - name: Stage release legal files
-        run: bun run ./scripts/stage-release-legal.ts --asset-dir ./dist/release-assets
-
-      - name: Generate release manifest and notes
-        run: bun run ./scripts/release-manifest.ts --tag "$GITHUB_REF_NAME" --asset-dir ./dist/release-assets --notes-file ./dist/release-notes.md
-
-      - name: Publish release assets
+      - name: Create or update the GitHub release page
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          tag="${GITHUB_REF_NAME}"
-          if gh release view "$tag" >/dev/null 2>&1; then
-            gh release edit "$tag" --title "$tag" --notes-file ./dist/release-notes.md
-            gh release upload "$tag" ./dist/release-assets/* --clobber
+          NOTES_FILE="$(mktemp)"
+          trap 'rm -f "${NOTES_FILE}"' EXIT
+          git tag -l --format='%(contents)' "${GITHUB_REF_NAME}" > "${NOTES_FILE}"
+          if [ ! -s "${NOTES_FILE}" ]; then
+            echo "Missing annotated tag contents for ${GITHUB_REF_NAME}."
+            exit 1
+          fi
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release edit "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --notes-file "${NOTES_FILE}"
           else
-            gh release create "$tag" ./dist/release-assets/* --notes-file ./dist/release-notes.md --title "$tag"
+            gh release create "${GITHUB_REF_NAME}" --verify-tag --title "${GITHUB_REF_NAME}" --notes-file "${NOTES_FILE}"
           fi

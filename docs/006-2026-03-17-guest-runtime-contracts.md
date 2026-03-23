@@ -5,6 +5,8 @@ it with
 [003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md) and
 [007-2026-03-17-host-runner-contract.md](./007-2026-03-17-host-runner-contract.md):
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 - [003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md) defines the host-visible wire contract
 - [007-2026-03-17-host-runner-contract.md](./007-2026-03-17-host-runner-contract.md) defines the
   JavaScript-facing host object and runner orchestration contract

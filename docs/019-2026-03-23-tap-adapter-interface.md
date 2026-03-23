@@ -5,6 +5,8 @@ required to implement the `as-harness` adapter, records the shipped honest
 synchronous subset, and preserves the slice plan that landed across
 `assembly/assembly/tap/`, bundled CLI wiring, and proof coverage.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 ## Question
 
 What `tap` API surface should `as-harness` implement, and how should that

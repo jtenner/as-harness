@@ -9,18 +9,11 @@
 		"as-harness": "./index.ts"
 	},
 	"scripts": {
-		"dev": "bun run ./index.ts",
-		"clean": "bun run ./build.ts --clean",
-		"build": "bun run ./build.ts",
-		"build:list-targets": "bun run ./build.ts --list-targets",
-		"build:release": "bun run ./build.ts --release-targets",
-		"build:list-release-targets": "bun run ./build.ts --list-release-targets"
+		"dev": "bun run ./index.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.6",
-		"@types/bun": "latest"
-	},
-	"dependencies": {
+		"@types/bun": "latest",
 		"assemblyscript": "^0.28.10"
 	}
 }

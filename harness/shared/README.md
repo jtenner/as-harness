@@ -2,6 +2,8 @@
 
 Shared host-runtime substrate for the published `as-harness` runtime packages.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and the published CLI expects a consumer-installed `assemblyscript` peer.
+
 ## Purpose
 
 - owns the shared `Harness` and coverage type declarations

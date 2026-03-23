@@ -4,6 +4,8 @@ Status: shipped sync `uvu` slice with top-level `test` hooks, `suite(...)`
 builder objects, `.run()` / `exec()` no-op compatibility, and the shared
 `uvu/assert` surface.
 
+Repository policy note as of 2026-03-23: adapter work in `assembly/` remains repo-internal rather than a separately published npm package. Public installation is npm-only via `@as-harness/cli`, which expects a consumer-installed `assemblyscript` peer.
+
 Shipped:
 
 - `uvu`: top-level `test(...)`, `test.only(...)`, `test.skip(...)`,

@@ -11,7 +11,7 @@ Rust/Node-API host implementation built on `wasmtime`.
 
 ## Scope
 
-- source-host execution only (not packaged in release artifacts yet)
+- published as `@as-harness/wasmtime` plus per-platform binary packages
 - same shared contract and callback suite as `js` and `wazero`
 - supports coverage declaration/imports, merged coverage snapshots, and
   host-owned `uvu/assert` fixture / snapshot artifacts
@@ -36,7 +36,8 @@ npm test
   directly.
 - the bundled source CLI uses `AS_HARNESS_SOURCE_CLI_REPO_DIR` during CI smoke
   so the Node-targeted bundle can still resolve the repo-local host package.
-- Linux/Windows/ARM cross-target packaging is not currently part of release artifacts.
+- public npm publication ships the per-platform binary packages that the
+  `@as-harness/wasmtime` meta package resolves through `optionalDependencies`.
 - the tracked source-build dependency inventory lives in
   [licenses/wasmtime/THIRD_PARTY_INVENTORY.md](../../licenses/wasmtime/THIRD_PARTY_INVENTORY.md)
   and is generated from `cargo metadata --format-version 1 --locked`.

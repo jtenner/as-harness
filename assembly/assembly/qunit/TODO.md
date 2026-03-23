@@ -3,6 +3,8 @@
 Status: bundled thin synchronous adapter shipped.
 Current surface plan is documented in [docs/020-2026-03-23-qunit-adapter-interface.md](../../../docs/020-2026-03-23-qunit-adapter-interface.md).
 
+Repository policy note as of 2026-03-23: adapter work in `assembly/` remains repo-internal rather than a separately published npm package. Public installation is npm-only via `@as-harness/cli`, which expects a consumer-installed `assemblyscript` peer.
+
 Implemented so far:
 
 - `qunit-001`: add the interface note, replace the old `qnit` placeholder, and

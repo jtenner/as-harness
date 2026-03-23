@@ -13,6 +13,15 @@ artifacts for drift. The repo now also gates tag-driven packaged Bun releases
 closed by default until that redistribution path exists. The remaining open item
 from this audit is therefore the substantive Bun standalone redistribution
 implementation itself rather than whether the repo acknowledges the problem.
+The later npm-only transition in
+[docs/026-2026-03-23-npm-only-public-release-transition.md](./026-2026-03-23-npm-only-public-release-transition.md)
+also means the packaged Bun lane discussed here is no longer a public release
+path; the findings now apply to internal packaged-proof tooling and any future
+archive-based distribution design.
+The later cleanup also removed those packaged-proof scripts from the live repo
+and moved `assemblyscript` to a consumer-installed peer dependency for the npm
+CLI, so references to the deleted standalone-packaging files remain historical
+record only.
 
 ## Scope
 
@@ -38,7 +47,7 @@ The current repo already does some useful work:
 - the root project is explicitly MIT-licensed in [LICENSE](../LICENSE)
 - package manifests declare `MIT`
 - the repo tracks license texts for AssemblyScript, wazero, and `golang.org/x/sys`
-- the release workflow stages a legal sidecar bundle via [scripts/stage-release-legal.ts](../scripts/stage-release-legal.ts)
+- the release workflow stages a legal sidecar bundle via `scripts/stage-release-legal.ts` (historical, removed in the npm-only cleanup)
 
 That is not enough.
 
@@ -51,7 +60,7 @@ The concrete gaps are:
    The CLI imports `assemblyscript/asc` and `assemblyscript/dist/assemblyscript.js` directly from [cli/as/compile.ts](../cli/as/compile.ts), and the lockfiles show `assemblyscript@0.28.10` depends on `binaryen@123.0.0-nightly.20250530` and `long@5.3.2`. Those are not currently listed or tracked under `licenses/`.
 
 3. Packaged archives do not include legal files inside the archive.
-   [scripts/verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts) creates each `tar.gz` from an `install/` directory that only contains the executable. The legal files are staged later as sibling release assets by [scripts/stage-release-legal.ts](../scripts/stage-release-legal.ts). That means a user can download an archive without receiving the applicable license texts and notices in the archive itself.
+   `scripts/verify-packaged-cli.ts` (historical, removed in the npm-only cleanup) creates each `tar.gz` from an `install/` directory that only contains the executable. The legal files are staged later as sibling release assets by `scripts/stage-release-legal.ts` (historical, removed in the npm-only cleanup). That means a user can download an archive without receiving the applicable license texts and notices in the archive itself.
 
 4. Bun is treated as an informational footnote instead of a compliance requirement.
    The current notice file says Bun licensing "should be reviewed." That is too weak for packaged executables built with Bun. Bun's own license page explicitly documents LGPL-style static-linking obligations around JavaScriptCore/WebKit and lists additional statically linked libraries and embedded polyfills.
@@ -68,7 +77,7 @@ Understanding what is actually redistributed matters more than reading the depen
 
 ### Packaged release artifacts
 
-Current packaged release targets are defined in [cli/build-targets.ts](../cli/build-targets.ts):
+Current packaged release targets are defined in `cli/build-targets.ts` (historical, removed in the npm-only cleanup):
 
 - `bun-darwin-arm64`: `js`, `wazero`
 - `bun-darwin-x64`: `js`, `wazero`
@@ -76,9 +85,9 @@ Current packaged release targets are defined in [cli/build-targets.ts](../cli/bu
 - `bun-linux-x64`: `js`, `wazero`
 - `bun-windows-x64`: `js`
 
-The packaged archives are produced by [scripts/verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts), which:
+The packaged archives are produced by `scripts/verify-packaged-cli.ts` (historical, removed in the npm-only cleanup), which:
 
-- builds a Bun standalone executable through [cli/build.ts](../cli/build.ts)
+- builds a Bun standalone executable through `cli/build.ts` (historical, removed in the npm-only cleanup)
 - copies that executable into a temporary `install/` directory
 - archives the `install/` directory as `as-harness-<target>.tar.gz`
 
@@ -89,7 +98,7 @@ Important consequence:
 - the archive does not contain `THIRD_PARTY_NOTICES.md`
 - the archive does not contain third-party license texts
 
-Legal files are only added later as separate release assets by [scripts/stage-release-legal.ts](../scripts/stage-release-legal.ts). That is a material compliance weakness because the archive itself is the primary redistributable artifact.
+Legal files are only added later as separate release assets by `scripts/stage-release-legal.ts` (historical, removed in the npm-only cleanup). That is a material compliance weakness because the archive itself is the primary redistributable artifact.
 
 ### Source-host-only artifacts
 
@@ -128,7 +137,7 @@ The repo currently tracks:
 - [licenses/wazero/NOTICE](../licenses/wazero/NOTICE)
 - [licenses/golang.org-x-sys/LICENSE](../licenses/golang.org-x-sys/LICENSE)
 
-Those are staged by [scripts/stage-release-legal.ts](../scripts/stage-release-legal.ts) as:
+Those are staged by `scripts/stage-release-legal.ts` (historical, removed in the npm-only cleanup) as:
 
 - `LICENSE`
 - `THIRD_PARTY_NOTICES.md`
@@ -228,7 +237,7 @@ Before the next packaged release, add:
 Then update:
 
 - [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)
-- [scripts/stage-release-legal.ts](../scripts/stage-release-legal.ts)
+- `scripts/stage-release-legal.ts` (historical, removed in the npm-only cleanup)
 
 Recommended notice structure for this section:
 
@@ -268,7 +277,7 @@ This is the one area the repo already handles reasonably well:
 - tracked `wazero` `LICENSE`
 - tracked `wazero` `NOTICE`
 - tracked `golang.org/x/sys` `LICENSE`
-- staged into release assets by [scripts/stage-release-legal.ts](../scripts/stage-release-legal.ts)
+- staged into release assets by `scripts/stage-release-legal.ts` (historical, removed in the npm-only cleanup)
 
 ### Remaining issue
 
@@ -286,7 +295,7 @@ This is the highest-risk part of the current release model.
 
 ### What the repo does
 
-The release process creates Bun standalone executables through [cli/build.ts](../cli/build.ts), then publishes those executables as the main public distribution artifacts.
+The release process creates Bun standalone executables through `cli/build.ts` (historical, removed in the npm-only cleanup), then publishes those executables as the main public distribution artifacts.
 
 ### What the current notice file says
 
@@ -490,7 +499,7 @@ Required change:
 
 ## 3. Release archive lacks legal contents
 
-Current archive behavior from [scripts/verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts):
+Current archive behavior from `scripts/verify-packaged-cli.ts` (historical, removed in the npm-only cleanup):
 
 - archive `install/` directory
 - `install/` only contains the executable
@@ -536,14 +545,14 @@ If the project decides to fix this properly, these are the files that need to ch
   - replace Bun "review later" language with an explicit compliance statement
   - distinguish packaged components from source-only components
 
-- [scripts/stage-release-legal.ts](../scripts/stage-release-legal.ts)
+- `scripts/stage-release-legal.ts` (historical, removed in the npm-only cleanup)
   - stage `binaryen` and `long`
   - likely stage a Bun-specific legal bundle or at least Bun-specific documentation
 
-- [scripts/verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts)
+- `scripts/verify-packaged-cli.ts` (historical, removed in the npm-only cleanup)
   - include legal files inside each archive, not only as sibling assets
 
-- [scripts/release-manifest.ts](../scripts/release-manifest.ts)
+- `scripts/release-manifest.ts` (historical, removed in the npm-only cleanup)
   - stop describing the legal bundle as generically "included" if it is only a sidecar
   - reflect the final archive/legal layout accurately
 
@@ -655,10 +664,10 @@ Repo sources used:
 - [cli/package.json](../cli/package.json)
 - [cli/bun.lock](../cli/bun.lock)
 - [cli/as/compile.ts](../cli/as/compile.ts)
-- [cli/build.ts](../cli/build.ts)
-- [cli/build-targets.ts](../cli/build-targets.ts)
-- [scripts/stage-release-legal.ts](../scripts/stage-release-legal.ts)
-- [scripts/verify-packaged-cli.ts](../scripts/verify-packaged-cli.ts)
+- `cli/build.ts` (historical, removed in the npm-only cleanup)
+- `cli/build-targets.ts` (historical, removed in the npm-only cleanup)
+- `scripts/stage-release-legal.ts` (historical, removed in the npm-only cleanup)
+- `scripts/verify-packaged-cli.ts` (historical, removed in the npm-only cleanup)
 - [harness/wazero/go.mod](../harness/wazero/go.mod)
 - [harness/wasmtime/Cargo.toml](../harness/wasmtime/Cargo.toml)
 - [harness/wasmtime/Cargo.lock](../harness/wasmtime/Cargo.lock)

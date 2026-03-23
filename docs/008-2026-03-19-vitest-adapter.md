@@ -3,6 +3,8 @@
 Design and status note for the shipped thin sync `"vitest"` guest library in
 `as-harness`.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 This document captured the implementation target for the first `v0.3.0`
 adapter slice. The repo now ships that intentionally thin synchronous surface
 plus the current `v0.6.0` scheduling clarification: `sequential` lowers to the

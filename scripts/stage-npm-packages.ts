@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import cliPackageJson from "../cli/package.json";
@@ -8,7 +8,11 @@ import cliPackageJson from "../cli/package.json";
 const REPO_DIR = join(import.meta.dir, "..");
 const DEFAULT_OUTPUT_DIR = join(REPO_DIR, "dist", "npm");
 const PACKAGE_VERSION = cliPackageJson.version;
-const MIT_LICENSE_FILES = ["LICENSE", "THIRD_PARTY_NOTICES.md"] as const;
+const LEGAL_FILES = [
+	"LICENSE",
+	"THIRD_PARTY_NOTICES.md",
+	join("licenses", "wasmtime", "THIRD_PARTY_INVENTORY.md"),
+] as const;
 export const SUPPORTED_NATIVE_TARGETS = [
 	{
 		cpu: "arm64",
@@ -62,6 +66,14 @@ type StagedPackage = {
 	directory: string;
 	name: SharedPackageName;
 };
+
+function assemblyscriptVersionRange() {
+	return (
+		cliPackageJson.devDependencies?.assemblyscript ??
+		cliPackageJson.dependencies?.assemblyscript ??
+		"^0.28.10"
+	);
+}
 
 function parseArguments(argv: string[]): ParsedArguments {
 	let outputDir = DEFAULT_OUTPUT_DIR;
@@ -119,7 +131,7 @@ async function copyRepoFile(
 }
 
 async function stageCommonLegalFiles(destinationDir: string) {
-	for (const filename of MIT_LICENSE_FILES) {
+	for (const filename of LEGAL_FILES) {
 		await copyRepoFile(filename, join(destinationDir, filename));
 	}
 }
@@ -191,23 +203,23 @@ function createNativeBinaryReadme(
 	].join("\n");
 }
 
-async function buildNodeTargetedCliBundle(outputPath: string) {
+async function buildNodeTargetedCliBundle(outputDir: string) {
+	await rm(outputDir, { force: true, recursive: true });
+	await mkdir(outputDir, { recursive: true });
+
 	const processHandle = Bun.spawn(
 		[
 			process.execPath,
 			"build",
 			"--target=node",
 			"--packages=external",
-			"--env=AS_HARNESS_NPM_*",
-			`--outfile=${outputPath}`,
+			"--splitting",
+			`--outdir=${outputDir}`,
 			"./cli/index.ts",
 		],
 		{
 			cwd: REPO_DIR,
-			env: {
-				...process.env,
-				AS_HARNESS_NPM_PACKAGE: "1",
-			},
+			env: process.env,
 			stdout: "pipe",
 			stderr: "pipe",
 		},
@@ -230,12 +242,35 @@ async function buildNodeTargetedCliBundle(outputPath: string) {
 		);
 	}
 
-	const bundleSource = await readFile(outputPath, "utf8");
-	const normalizedBundleSource = bundleSource.replace(
-		/^#!\/usr\/bin\/env bun/m,
-		"#!/usr/bin/env node",
+	const bundlePath = join(outputDir, "index.js");
+	const executablePath = join(outputDir, "as-harness.mjs");
+	const bundleFilenames = (await readdir(outputDir)).filter((filename) =>
+		filename.endsWith(".js"),
 	);
-	await writeFile(outputPath, normalizedBundleSource, "utf8");
+	await Promise.all(
+		bundleFilenames.map(async (filename) => {
+			const sourcePath = join(outputDir, filename);
+			const sourceText = await readFile(sourcePath, "utf8");
+			const normalizedSourceText = sourceText.replace(
+				'process.env.AS_HARNESS_NPM_PACKAGE === "1"',
+				"true",
+			);
+			if (filename === "index.js") {
+				await writeFile(
+					executablePath,
+					normalizedSourceText.replace(
+						/^#!\/usr\/bin\/env bun/m,
+						"#!/usr/bin/env node",
+					),
+					"utf8",
+				);
+				return;
+			}
+
+			await writeFile(sourcePath, normalizedSourceText, "utf8");
+		}),
+	);
+	await rm(bundlePath, { force: true });
 }
 
 async function stageSharedPackage(outputDir: string): Promise<StagedPackage> {
@@ -272,6 +307,7 @@ async function stageSharedPackage(outputDir: string): Promise<StagedPackage> {
 					"README.md",
 					"LICENSE",
 					"THIRD_PARTY_NOTICES.md",
+					"licenses/wasmtime/THIRD_PARTY_INVENTORY.md",
 					"covers-types.d.ts",
 					"covers.cjs",
 					"harness-types.d.ts",
@@ -334,6 +370,7 @@ async function stageJsPackage(outputDir: string): Promise<StagedPackage> {
 					"README.md",
 					"LICENSE",
 					"THIRD_PARTY_NOTICES.md",
+					"licenses/wasmtime/THIRD_PARTY_INVENTORY.md",
 					"index.cjs",
 					"index.d.ts",
 				],
@@ -360,10 +397,9 @@ async function stageJsPackage(outputDir: string): Promise<StagedPackage> {
 async function stageCliPackage(outputDir: string): Promise<StagedPackage> {
 	const destinationDir = packageDirectory(outputDir, "@as-harness/cli");
 	const bundleDirectory = join(destinationDir, "bin");
-	const bundlePath = join(bundleDirectory, "as-harness.mjs");
 
 	await mkdir(bundleDirectory, { recursive: true });
-	await buildNodeTargetedCliBundle(bundlePath);
+	await buildNodeTargetedCliBundle(bundleDirectory);
 	await Promise.all([
 		copyRepoFile(join("cli", "README.md"), join(destinationDir, "README.md")),
 		stageCommonLegalFiles(destinationDir),
@@ -383,12 +419,14 @@ async function stageCliPackage(outputDir: string): Promise<StagedPackage> {
 					"README.md",
 					"LICENSE",
 					"THIRD_PARTY_NOTICES.md",
-					"bin/as-harness.mjs",
+					"licenses/wasmtime/THIRD_PARTY_INVENTORY.md",
+					"bin/",
 				],
 				dependencies: {
 					"@as-harness/js": PACKAGE_VERSION,
-					assemblyscript:
-						cliPackageJson.dependencies?.assemblyscript ?? "^0.28.10",
+				},
+				peerDependencies: {
+					assemblyscript: assemblyscriptVersionRange(),
 				},
 				optionalDependencies: {
 					"@as-harness/wazero": PACKAGE_VERSION,
@@ -444,6 +482,7 @@ async function stageNativeMetaPackage(
 					"README.md",
 					"LICENSE",
 					"THIRD_PARTY_NOTICES.md",
+					"licenses/wasmtime/THIRD_PARTY_INVENTORY.md",
 					"index.cjs",
 					"index.d.ts",
 				],
@@ -504,6 +543,7 @@ export async function stageNativeBinaryPackage(
 					"README.md",
 					"LICENSE",
 					"THIRD_PARTY_NOTICES.md",
+					"licenses/wasmtime/THIRD_PARTY_INVENTORY.md",
 					binaryFilename,
 				],
 				os: [target.os],

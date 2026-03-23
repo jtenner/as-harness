@@ -5,10 +5,15 @@ This note answers which CI failures and flaky behaviors were encountered while s
 These mitigations correspond to the repo state that produced the fully green
 GitHub Actions run `23404563889` on 2026-03-22.
 
+Historical note: the later npm-only cleanup retired the packaged Bun
+verification scripts and CI jobs described below. The source-host findings
+remain relevant, but references to `verify-packaged-cli.ts` and the packaged
+CLI matrix are now historical record rather than active repo paths.
+
 ## Scope
 
 - CI workflow runs on GitHub-hosted Linux, macOS, and Windows runners
-- packaged CLI verification in [`scripts/verify-packaged-cli.ts`](/home/jtenner/Projects/as-harness/scripts/verify-packaged-cli.ts)
+- packaged CLI verification in `scripts/verify-packaged-cli.ts` (historical, removed in the npm-only cleanup)
 - source-host verification in [`scripts/verify-source-hosts.ts`](/home/jtenner/Projects/as-harness/scripts/verify-source-hosts.ts)
 - bundled `wazero` runtime loading in [`cli/runtime/wazero.ts`](/home/jtenner/Projects/as-harness/cli/runtime/wazero.ts)
 - package-local native host smoke suites in [`harness/wazero/test/smoke.host.cjs`](/home/jtenner/Projects/as-harness/harness/wazero/test/smoke.host.cjs) and [`harness/wasmtime/test/smoke.host.cjs`](/home/jtenner/Projects/as-harness/harness/wasmtime/test/smoke.host.cjs)

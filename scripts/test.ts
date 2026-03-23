@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { $ } from "bun";
-import type { SourceHarness } from "../cli/build-targets";
+import type { SourceHarness } from "../cli/source-host-targets";
 import { sourceHarnessSmokeCommands } from "./source-host-smoke";
 
 const rootDir = import.meta.dir + "/..";

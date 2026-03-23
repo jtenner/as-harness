@@ -2,6 +2,8 @@
 
 Status: shipped synchronous core kept intentionally narrow.
 
+Repository policy note as of 2026-03-23: adapter work in `assembly/` remains repo-internal rather than a separately published npm package. Public installation is npm-only via `@as-harness/cli`, which expects a consumer-installed `assemblyscript` peer.
+
 Implemented:
 
 - synchronous top-level `test` / `it` / `suite` / `describe`

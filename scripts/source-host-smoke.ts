@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { join } from "node:path";
-import type { SourceHarness } from "../cli/build-targets";
+import type { SourceHarness } from "../cli/source-host-targets";
 
 const REPO_DIR = join(import.meta.dir, "..");
 

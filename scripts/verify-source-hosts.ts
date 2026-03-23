@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
 	hostValidationTargetForLabel,
 	type SourceHarness,
-} from "../cli/build-targets";
+} from "../cli/source-host-targets";
 import { sourceHarnessSmokeCommands } from "./source-host-smoke";
 
 const REPO_DIR = join(import.meta.dir, "..");

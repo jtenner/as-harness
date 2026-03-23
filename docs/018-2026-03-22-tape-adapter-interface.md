@@ -5,6 +5,8 @@ implemented for `as-harness`, recommends the honest synchronous AssemblyScript
 surface to ship first, and defines the slice plan for
 `assembly/assembly/tape/`, bundled CLI wiring, and proof coverage.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 ## Question
 
 What `tape` API surface should `as-harness` implement next, and how should that

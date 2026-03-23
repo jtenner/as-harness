@@ -3,6 +3,8 @@
 Status: shipped sync `tap` subset is bundled through the CLI.
 Current surface plan is documented in [docs/019-2026-03-23-tap-adapter-interface.md](../../../docs/019-2026-03-23-tap-adapter-interface.md).
 
+Repository policy note as of 2026-03-23: adapter work in `assembly/` remains repo-internal rather than a separately published npm package. Public installation is npm-only via `@as-harness/cli`, which expects a consumer-installed `assemblyscript` peer.
+
 Implemented so far:
 
 - `tap-001`: add the interface note, replace this placeholder TODO, and commit

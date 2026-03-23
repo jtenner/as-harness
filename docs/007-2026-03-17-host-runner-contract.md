@@ -258,8 +258,8 @@ The current parity proof for this contract is:
   grow scheduler-step exports
 - package-local host tests in `harness/js`, `harness/wazero`, and
   `harness/wasmtime`
-- the CI source-host matrix and packaged verification flow described in
+- the CI source-host matrix and npm package verification flow described in
   [004-2026-03-17-release-process.md](./004-2026-03-17-release-process.md),
   including the Node-targeted source CLI bundle path for the Node 25
-  source-host matrix and the staged packaged Bun executable path for release
+  source-host matrix and the staged npm package install smoke path for release
   verification

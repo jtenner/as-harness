@@ -1,28 +1,36 @@
 # Dual-Channel Npm Release Contract
 
 This document answers: what package contract should `as-harness` use for the
-planned dual GitHub-release plus npm-release model? The recommendation is:
-publish a lockstep npm package set where each runtime unit is its own package,
-use `optionalDependencies` plus per-platform native binary packages for
-`wazero` and `wasmtime`, keep packaged Bun executables on GitHub releases, and
-keep `assembly/` internal instead of publishing it as a separate npm package.
-This affects package metadata, `dist/npm` staging, release automation, runtime
-import boundaries, and npm smoke verification.
+then-planned dual GitHub-release plus npm-release model? The recommendation at
+the time was: publish a lockstep npm package set where each runtime unit is its
+own package, use `optionalDependencies` plus per-platform native binary
+packages for `wazero` and `wasmtime`, keep packaged Bun executables on GitHub
+releases, and keep `assembly/` internal instead of publishing it as a separate
+npm package. This affects package metadata, `dist/npm` staging, release
+automation, runtime import boundaries, and npm smoke verification.
 
 This contract records the repo decision as of `2026-03-23`.
 
-## Decision Summary
+Historical note: this contract captured the repo state before the follow-up
+npm-only transition in
+[docs/026-2026-03-23-npm-only-public-release-transition.md](./026-2026-03-23-npm-only-public-release-transition.md).
+The package-boundary decisions here still apply, but packaged Bun executables
+are no longer an active public release channel.
+The later cleanup also made `assemblyscript` a consumer-installed peer
+dependency of `@as-harness/cli` instead of a bundled runtime dependency.
 
-- npm publication is a first-class distribution channel alongside GitHub
-  packaged executable releases
+## Historical Decision Summary
+
+- at the time of writing, npm publication was intended to be a first-class
+  distribution channel alongside GitHub packaged executable releases
 - every publishable runtime unit gets its own package boundary
 - package versions stay lockstep across the public npm package set
 - native npm distribution uses meta packages with `optionalDependencies` on
   per-platform binary packages rather than source-build installs
-- GitHub releases continue to own the packaged Bun executable archives,
-  checksums, release notes, and legal sidecar assets
-- npm continues to exclude the packaged Bun executable lane until the Bun
-  redistribution/compliance work is complete
+- at the time of writing, GitHub releases were intended to own the packaged
+  Bun executable archives, checksums, release notes, and legal sidecar assets
+- at the time of writing, npm continued to exclude the packaged Bun executable
+  lane until the Bun redistribution/compliance work was complete
 - `assembly/` stays internal and is not part of the public npm package set
 
 ## Lockstep Public Package Set
@@ -83,6 +91,8 @@ Internal-only package scope:
 
 - ships the installable JS CLI entrypoint for Node and Bun
 - depends on `@as-harness/js`
+- expects `assemblyscript` to be installed by the consuming project as a peer
+  dependency
 - treats `@as-harness/wazero` and `@as-harness/wasmtime` as optional runtime
   dependencies rather than bundling repo-local host paths
 - does not own the packaged Bun executable artifacts
@@ -136,23 +146,17 @@ The dependency order for npm publication is:
 The publish workflow must stop before `@as-harness/cli` if any upstream package
 fails staging, smoke, pack validation, or publication.
 
-## Artifact Ownership
+## Historical Artifact Ownership
 
-GitHub releases own:
-
-- packaged Bun executable archives
-- packaged CLI verification reports
-- release manifest, checksums, and release notes
-- bundled executable legal sidecar assets
+At the time of writing, GitHub releases were intended to own the packaged Bun
+executable lane. The later npm-only transition reduced GitHub releases to the
+annotated-tag notes page and moved all public installable artifacts to npm.
 
 npm owns:
 
 - package tarballs for the public package set
 - Node/Bun installable runtime entrypoints
 - per-platform native binary tarballs
-
-The same repo version bump drives both lanes, but the packaged Bun executable
-lane remains gated independently by Bun redistribution compliance.
 
 ## Rejected Model
 
@@ -173,8 +177,7 @@ Reasons:
 - `dist/npm/` becomes the canonical staging root for npm payloads
 - CLI and runtime import paths need staged package-name-based resolution instead
   of repo-relative host paths
-- release automation must publish npm packages in dependency order without
-  changing ownership of the GitHub packaged executable artifacts
+- release automation must publish npm packages in dependency order
 
 ## Related Files
 

@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -39,6 +39,8 @@ test("stageNpmPackages writes staged shared and js package payloads with package
 	const stagedSharedDir = join(outputDir, "@as-harness", "shared");
 	const stagedWazeroDir = join(outputDir, "@as-harness", "wazero");
 	const stagedWasmtimeDir = join(outputDir, "@as-harness", "wasmtime");
+	const cliBinDirectory = join(stagedCliDir, "bin");
+	const cliBinFilenames = (await readdir(cliBinDirectory)).sort();
 	const [
 		cliBundleText,
 		cliPackageJsonText,
@@ -50,7 +52,7 @@ test("stageNpmPackages writes staged shared and js package payloads with package
 		wazeroPackageJsonText,
 		wasmtimePackageJsonText,
 	] = await Promise.all([
-		readFile(join(stagedCliDir, "bin", "as-harness.mjs"), "utf8"),
+		readFile(join(cliBinDirectory, "as-harness.mjs"), "utf8"),
 		readFile(join(stagedCliDir, "package.json"), "utf8"),
 		readFile(join(stagedJsDir, "index.cjs"), "utf8"),
 		readFile(join(stagedJsDir, "index.d.ts"), "utf8"),
@@ -60,15 +62,25 @@ test("stageNpmPackages writes staged shared and js package payloads with package
 		readFile(join(stagedWazeroDir, "package.json"), "utf8"),
 		readFile(join(stagedWasmtimeDir, "package.json"), "utf8"),
 	]);
+	const cliBinContents = await Promise.all(
+		cliBinFilenames.map((filename) =>
+			readFile(join(cliBinDirectory, filename), "utf8"),
+		),
+	);
+	const combinedCliBundleText = cliBinContents.join("\n");
 
 	expect(jsIndexCjs).toContain('require("@as-harness/shared/covers")');
 	expect(jsIndexCjs).toContain('require("@as-harness/shared/start")');
 	expect(jsIndexCjs).toContain('require("@as-harness/shared/snapshots")');
 	expect(jsIndexDts).toContain("@as-harness/shared/harness-types");
 	expect(cliBundleText.startsWith("#!/usr/bin/env node")).toBe(true);
-	expect(cliBundleText).toContain("@as-harness/wazero");
-	expect(cliBundleText).toContain("@as-harness/wasmtime");
-	expect(cliBundleText).toContain("npmPackageMode = true");
+	expect(cliBinFilenames).toContain("as-harness.mjs");
+	expect(
+		cliBinFilenames.some((filename) => filename !== "as-harness.mjs"),
+	).toBe(true);
+	expect(combinedCliBundleText).toContain("@as-harness/wazero");
+	expect(combinedCliBundleText).toContain("@as-harness/wasmtime");
+	expect(combinedCliBundleText).toContain("npmPackageMode = true");
 	expect(wazeroIndexCjs).toContain("function loadNativeAddon()");
 	expect(wazeroIndexCjs).toContain("@as-harness/wazero-linux-x64-gnu");
 	expect(wazeroIndexCjs).not.toContain('require("./dist/wazero.node")');
@@ -78,6 +90,7 @@ test("stageNpmPackages writes staged shared and js package payloads with package
 		dependencies: Record<string, string>;
 		name: string;
 		optionalDependencies: Record<string, string>;
+		peerDependencies: Record<string, string>;
 	};
 	const jsPackageJson = JSON.parse(jsPackageJsonText) as {
 		dependencies: Record<string, string>;
@@ -99,6 +112,7 @@ test("stageNpmPackages writes staged shared and js package payloads with package
 	expect(cliPackageJson.name).toBe("@as-harness/cli");
 	expect(cliPackageJson.bin["as-harness"]).toBe("./bin/as-harness.mjs");
 	expect(cliPackageJson.dependencies["@as-harness/js"]).toMatch(/^0\./);
+	expect(cliPackageJson.peerDependencies.assemblyscript).toMatch(/^\^0\./);
 	expect(cliPackageJson.optionalDependencies).toHaveProperty(
 		"@as-harness/wazero",
 	);

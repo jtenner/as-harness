@@ -26,6 +26,10 @@ Host owns scheduling, aggregation, and reporting.
 
 ## Scope
 
+- repo-internal guest runtime package; it is not published separately
+- public npm CLI installs expect consumers to bring their own
+  `assemblyscript` dependency rather than receiving this repo's compiler
+  toolchain transitively
 - native `as-harness` declarations, sequential groups, chainable handles, and
   host-owned `inBand(...)` / `bail(...)` / `continueOnFailure(...)` hints
 - synchronous `node:test`, chainable declarations, core hooks, and the same

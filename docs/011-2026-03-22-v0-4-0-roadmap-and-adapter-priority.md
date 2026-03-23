@@ -11,6 +11,8 @@ object-parity gap, `ava` now ships as a thin synchronous bundled surface with
 its async / timeout / teardown / snapshot-directory semantics still deferred,
 and `tap`, `tape`, and `qnit` remain planned-only.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 ## Current Status
 
 Delivered from this roadmap:

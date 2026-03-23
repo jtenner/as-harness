@@ -2,6 +2,8 @@
 
 AssemblyScript AST transforms used by the CLI compiler wrapper.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, and the compiler path is consumed through `@as-harness/cli` with a consumer-installed `assemblyscript` peer rather than a separately published transform package.
+
 ## Purpose
 
 The transform phase generates helper code for:

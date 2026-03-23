@@ -12,6 +12,8 @@ explicitly deferring Promise / observable execution, `t.try(...)`, timeout
 control, teardown callbacks, and AVA's snapshot-directory contract until the
 shared runtime can represent them honestly.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 ## Research Basis
 
 Checked on 2026-03-22 against:

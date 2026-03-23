@@ -1,6 +1,6 @@
 # Project Structure
 
-- `cli/`: main Bun CLI package; entrypoint, compiler wrapper, runtime stubs, build script.
+- `cli/`: main Bun CLI package; entrypoint, compiler wrapper, runtime stubs.
 - `assembly/`: AssemblyScript package for Wasm-side work; config, roadmap, build/test scripts.
 - `harness/`: host-runtime packages; `js/`, `wazero/`, and `wasmtime/` are working hosts.
 - `docs/`: architecture, ABI, planning, and research docs named `[serial]-[YYYY-MM-DD]-[kebab-case-title].md`.
@@ -34,7 +34,8 @@
 - Commit all release-related changes using the normal repository commit strategy.
 - Create an annotated tag named `v#.#.#` with `git tag -a -F <temp file>`; do not use a lightweight tag.
 - Push the release commit and the tag.
-- Create or update the GitHub release for the same tag using the same changelog summary; do not create duplicate releases.
+- Public installable release artifacts are npm packages only; GitHub releases remain notes-only pages for annotated tags.
+- Create or update the GitHub release for the same tag using the same changelog summary; do not attach compiled standalone Bun executables.
 - Monitor CI until it passes.
 - Report the relevant commit, tag, release, and CI details.
 

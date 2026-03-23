@@ -2,6 +2,8 @@
 
 This document defines how `node:assert` gets structural comparison without overreaching AssemblyScript reflection.
 
+Repository policy note as of 2026-03-23: public installation is npm-only, annotated tags create notes-only GitHub release pages, and `@as-harness/cli` expects a consumer-installed `assemblyscript` peer.
+
 ## Goal
 
 Support strict-style assertion APIs with:
