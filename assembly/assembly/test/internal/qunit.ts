@@ -1,7 +1,9 @@
 import { DeclarationMode, HookKind, NodeKind } from "../../internal/imports";
 import { executeNode } from "../../internal/executor";
 import { Node, resetCurrentNode, setCurrentNode } from "../../internal/node";
-import QUnit, { Assert, ModuleFn, NestedHooks, TestFn } from "../../qunit";
+import QUnit from "../../qunit";
+import { Assert, ModuleFn, NestedHooks, TestFn } from "../../qunit";
+import { module as qunitModule, test as qunitTest } from "../../qunit";
 
 function noopTest(_assert: Assert): void {}
 
@@ -19,7 +21,7 @@ function testQUnitRootRegistration(): void {
 	QUnit.only("only alias", noopTest);
 	QUnit.skip("skipped alias");
 	QUnit.todo("todo placeholder");
-	QUnit.test.todo("todo execution", noopTest);
+	qunitTest.todo("todo execution", noopTest);
 
 	assert(localRoot.getHooks(HookKind.BeforeEach).length == 1);
 	assert(localRoot.getHooks(HookKind.AfterEach).length == 1);
@@ -47,15 +49,15 @@ function testQUnitModuleRegistration(): void {
 		QUnit.test("module child", noopTest);
 	});
 
-	QUnit.module.only("only module", (_hooks: NestedHooks): void => {
+	qunitModule.only("only module", (_hooks: NestedHooks): void => {
 		QUnit.test("only child", noopTest);
 	});
 
-	QUnit.module.skip("skipped module", (_hooks: NestedHooks): void => {
+	qunitModule.skip("skipped module", (_hooks: NestedHooks): void => {
 		QUnit.test("skipped child", noopTest);
 	});
 
-	QUnit.module.todo("todo module", (_hooks: NestedHooks): void => {
+	qunitModule.todo("todo module", (_hooks: NestedHooks): void => {
 		QUnit.test("todo child", noopTest);
 		QUnit.module("nested todo module", (_nestedHooks: NestedHooks): void => {
 			QUnit.test("nested todo child", noopTest);
@@ -139,6 +141,38 @@ function testQUnitExecutionShell(): void {
 	resetCurrentNode();
 }
 
+function testQUnitAssertionSurface(): void {
+	const localRoot = new Node(NodeKind.Root, "local root");
+	setCurrentNode(localRoot);
+
+	QUnit.test("assertion surface", (assert: Assert): void => {
+		assert.expect(14);
+		assert.ok<bool>(true);
+		assert.notOk<i32>(0);
+		assert.true<bool>(true);
+		assert.false<bool>(false);
+		assert.equal<string, i32>("11", 11);
+		assert.notEqual<string, i32>("11", 12);
+		assert.strictEqual<i32>(21, 21);
+		assert.notStrictEqual<i32>(21, 22);
+		assert.deepEqual<Array<i32>>([1, 2], [1, 2]);
+		assert.notDeepEqual<Array<i32>>([1, 2], [1, 3]);
+		assert.step("first");
+		assert.step("second");
+		assert.verifySteps(["first", "second"]);
+		assert.throws((): void => {
+			unreachable();
+		});
+	});
+
+	const children = localRoot.getChildren();
+	assert(children.length == 1);
+	assert(executeNode(unchecked(children[0])));
+
+	resetCurrentNode();
+}
+
 testQUnitRootRegistration();
 testQUnitModuleRegistration();
 testQUnitExecutionShell();
+testQUnitAssertionSurface();

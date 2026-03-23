@@ -1,6 +1,9 @@
-import { TestContext as InternalTestContext } from "../internal/context";
+import {
+	SuiteContext as InternalSuiteContext,
+	TestContext as InternalTestContext,
+} from "../internal/context";
 import { DeclarationMode } from "../internal/imports";
-import { currentNode } from "../internal/node";
+import { currentNode, Node } from "../internal/node";
 import {
 	declareModifiedSuite,
 	declareModifiedTest,
@@ -71,6 +74,8 @@ function createInheritedModuleDefaults(
 
 	if (defaults.mode == DeclarationMode.Skip || mode == DeclarationMode.Skip) {
 		defaults.mode = DeclarationMode.Skip;
+	} else if (mode == DeclarationMode.Todo) {
+		defaults.mode = DeclarationMode.Todo;
 	}
 
 	defaults.only = defaults.only || only;
@@ -79,7 +84,7 @@ function createInheritedModuleDefaults(
 	return defaults;
 }
 
-function invokeDeclaredModule(): void {
+function invokeDeclaredModule(_context: InternalSuiteContext): void {
 	const nodeId = currentNode.nodeId;
 	if (!moduleInvocations.has(nodeId)) {
 		unreachable();
@@ -108,7 +113,7 @@ function declareQUnitModule(
 		expectFailure,
 	);
 
-	let node;
+	let node: Node;
 	if (
 		inheritedDefaults.mode != DeclarationMode.Normal ||
 		inheritedDefaults.only
@@ -247,19 +252,25 @@ export namespace module {
 
 class QUnitRoot {
 	readonly hooks: GlobalHooks = sharedGlobalHooks;
-	readonly test: typeof test = test;
-	readonly module: typeof module = module;
+
+	test(name: string = "", callback: TestFn | null = null): void {
+		test(name, callback);
+	}
+
+	module(name: string = "", callback: ModuleFn | null = null): void {
+		module(name, callback);
+	}
 
 	only(name: string = "", callback: TestFn | null = null): void {
-		this.test.only(name, callback);
+		test.only(name, callback);
 	}
 
 	skip(name: string = "", callback: TestFn | null = null): void {
-		this.test.skip(name, callback);
+		test.skip(name, callback);
 	}
 
 	todo(name: string = "", callback: TestFn | null = null): void {
-		this.test.todo(name, callback);
+		test.todo(name, callback);
 	}
 }
 

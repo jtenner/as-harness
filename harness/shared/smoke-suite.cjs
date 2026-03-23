@@ -621,6 +621,11 @@ function compileSmokeFixtures(options) {
 			"assembly/test/tap-smoke.ts",
 			path.join(options.cacheDir, "tap-smoke.wasm"),
 		),
+		compiledQUnitWasm: compileFixture(
+			assemblyDir,
+			"assembly/test/qunit-smoke.ts",
+			path.join(options.cacheDir, "qunit-smoke.wasm"),
+		),
 		compiledTapeWasm: compileFixture(
 			assemblyDir,
 			"assembly/test/tape-smoke.ts",
@@ -742,6 +747,7 @@ function registerHarnessSmokeSuite(options) {
 		compiledExportsWasm,
 		compiledJasmineWasm,
 		compiledMochaWasm,
+		compiledQUnitWasm,
 		compiledTapWasm,
 		compiledTapeWasm,
 		compiledUvuAssertWasm,
@@ -1365,6 +1371,49 @@ function registerHarnessSmokeSuite(options) {
 			[
 				["tap parent", 1, 1],
 				["nested child", 1, 1],
+			],
+		);
+
+		closeHarness(harness);
+	});
+
+	test("discover(nodeIndex) preserves qunit module shape with placeholders and expected-failure todo descendants", () => {
+		const harness = createHarness(compiledQUnitWasm);
+		const found = [];
+
+		harness.onNodeFound((event) => {
+			found.push(event);
+		});
+
+		assert.equal(harness.discover([]), true);
+		assert.deepEqual(
+			found.map((node) => [
+				node.name,
+				node.kind,
+				node.declarationMode,
+				node.expectFailure,
+			]),
+			[
+				["skipped qunit placeholder", 1, 2, false],
+				["todo qunit placeholder", 1, 3, false],
+				["qunit parent", 2, 1, false],
+				["qunit todo module", 2, 1, false],
+			],
+		);
+
+		found.length = 0;
+		assert.equal(harness.discover([3]), true);
+		assert.deepEqual(
+			found.map((node) => [
+				node.name,
+				node.kind,
+				node.declarationMode,
+				node.expectFailure,
+			]),
+			[
+				["qunit todo module", 2, 1, false],
+				["expected failure leaf", 1, 1, true],
+				["nested todo suite", 2, 1, false],
 			],
 		);
 
@@ -2301,6 +2350,48 @@ function registerHarnessSmokeSuite(options) {
 			],
 		);
 		assert.deepEqual(executionNames, ["nested child", "tap parent"]);
+
+		closeHarness(harness);
+	});
+
+	test("start() preserves qunit declarations through shared graph execution", async () => {
+		const harness = createHarness(compiledQUnitWasm);
+
+		const result = await harness.start();
+		const executionNames = result.branches
+			.flatMap((branch) =>
+				branch.executions.map((execution) => execution.node.name),
+			)
+			.sort();
+
+		assert.equal(result.discoveryOk, true);
+		assert.equal(result.planningOk, true);
+		assert.equal(result.ok, true);
+		assert.equal(result.discoveredTestCount, 6);
+		assert.equal(result.topLevelNodes.length, 4);
+		assert(result.workerCount >= 1);
+		assert.deepEqual(result.planIssues, []);
+		assert.deepEqual(result.blocked, []);
+		assert.deepEqual(
+			result.topLevelNodes.map((node) => [
+				node.name,
+				node.kind,
+				node.declarationMode,
+				node.expectFailure,
+			]),
+			[
+				["skipped qunit placeholder", 1, 2, false],
+				["todo qunit placeholder", 1, 3, false],
+				["qunit parent", 2, 1, false],
+				["qunit todo module", 2, 1, false],
+			],
+		);
+		assert.deepEqual(executionNames, [
+			"expected failure leaf",
+			"nested expected failure",
+			"qunit passing test",
+			"qunit second test",
+		]);
 
 		closeHarness(harness);
 	});

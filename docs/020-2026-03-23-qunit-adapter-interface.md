@@ -18,7 +18,9 @@ Ship `qunit` as a thin synchronous adapter centered on:
 
 - a default-exported `QUnit` object
 - callback-style `QUnit.module(...)` declarations with nested module hooks
-- `QUnit.test(...)` plus `only`, `skip`, `todo`, and `if` modifiers
+- `QUnit.test(...)` plus root `only`, `skip`, and `todo` aliases
+- named `test(...)` and `module(...)` exports that carry the `only`, `skip`,
+  and `todo` modifier chains
 - root test aliases `QUnit.only(...)`, `QUnit.skip(...)`, and `QUnit.todo(...)`
 - global `QUnit.hooks.beforeEach(...)` and `QUnit.hooks.afterEach(...)`
 - an adapter-local `Assert` callback object with a focused synchronous
@@ -91,16 +93,19 @@ The published QUnit surface includes:
 Ship these on the default `QUnit` export:
 
 - `QUnit.module(name, nested)`
-- `QUnit.module.only(name, nested)`
-- `QUnit.module.skip(name, nested)`
-- `QUnit.module.todo(name, nested)`
 - `QUnit.test(name, callback)`
-- `QUnit.test.only(name, callback)`
-- `QUnit.test.skip(name, callback?)`
-- `QUnit.test.todo(name, callback?)`
 - `QUnit.only(name, callback)`
 - `QUnit.skip(name, callback?)`
 - `QUnit.todo(name, callback?)`
+
+Ship these as named exports:
+
+- `module.only(name, nested)`
+- `module.skip(name, nested)`
+- `module.todo(name, nested)`
+- `test.only(name, callback)`
+- `test.skip(name, callback?)`
+- `test.todo(name, callback?)`
 
 The shipped behavior should be:
 
@@ -130,7 +135,6 @@ Ship an adapter-local `Assert` object passed to tests and hooks with:
 
 - assertion planning and custom results:
   - `expect(count)`
-  - `pushResult({ result, actual, expected, message? })`
 - boolean and equality assertions:
   - `ok`
   - `notOk`
@@ -148,17 +152,28 @@ Ship an adapter-local `Assert` object passed to tests and hooks with:
   - `step`
   - `verifySteps`
 
+`step(...)` and `verifySteps(...)` should aggregate calls made from root hooks,
+module hooks, and the active test body within one execution attempt.
+
 ## Intentional Divergences
 
 These differences should be documented explicitly:
 
 - the adapter exports a default `QUnit` object plus adapter-local types; it does
   not attempt to reproduce every host-side event, reporter, or config API
+- the default `QUnit` export carries callable `test(...)` / `module(...)`
+  methods, but the modifier chains live on the named `test` and `module`
+  exports because AssemblyScript does not honestly support JS-style callable
+  nested object properties like `QUnit.test.only(...)`
 - `QUnit.module(...)` only ships the callback form; the options-object overload
   and open-ended “subsequent tests belong to this module” form stay deferred
 - `QUnit.module.if(...)` and `QUnit.test.if(...)` stay deferred because the
   chained keyword-property shape is not honest to expose through the current
   AssemblyScript-only surface without additional transform machinery
+- `assert.throws(...)` ships only the callback plus optional message form; the
+  upstream matcher overloads stay deferred
+- hook assertions count toward the active `assert.expect(...)` plan, matching
+  the shared assertion-scope model used during one test execution
 - `QUnit.todo(name, callback)` and `QUnit.test.todo(name, callback)` are
   represented as expected-failure tests instead of declaration-mode todo nodes,
   because the shared runtime's declaration-mode todo semantics intentionally
@@ -178,6 +193,8 @@ adapter cycle:
   - `assert.async()`
   - `assert.rejects()`
   - `assert.timeout()`
+- custom-result object helpers:
+  - `assert.pushResult(...)`
 - data-driven helpers:
   - `test.each(...)`
   - `only.each(...)`

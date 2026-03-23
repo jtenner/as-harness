@@ -23,17 +23,14 @@
 
 ### Adapter: `qunit`
 
-- `qunit-003`: add the shipped `Assert` surface and one cross-host smoke
-  fixture covering global hooks, module hooks, expected-failure todo behavior,
-  and ordered step verification.
 - `qunit-004`: wire `qunit` into bundled CLI compile rewriting and direct CLI
   proof, then mark the adapter shipped in docs.
-- implementation plan: the naming correction plus declaration/module shell are
-  done; next add the `Assert` and smoke slice, then the bundled CLI entry and
+- implementation plan: the naming correction plus declaration/module/assertion
+  slices are done; the remaining work is the bundled CLI entry and
   shipped-surface docs. Keep async helpers, `test.each(...)`, options-object
-  module overloads, dynamic `this` context, property assertion families, and
-  reporter/config APIs explicitly deferred unless the shared runtime grows
-  those semantics.
+  module overloads, dynamic `this` context, property assertion families,
+  `pushResult(...)`, and reporter/config APIs explicitly deferred unless the
+  shared runtime grows those semantics.
 
 ### Adapter: `uvu`
 
