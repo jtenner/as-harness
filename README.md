@@ -11,7 +11,7 @@ Implemented:
 - `as-harness run` for compile + execute.
 - Synchronous `node:test` declarations with `dependsOn(...)` chains and the same host-owned planning hints.
 - `node:assert` / `node:assert/strict` bridge support.
-- Built-in thin adapters for `jest`, `mocha`, `jasmine`, `ava`, and `vitest`.
+- Built-in thin adapters for `jest`, `mocha`, `jasmine`, `ava`, `tape`, and `vitest`.
 - Built-in `uvu` adapter plus the shared `uvu/assert` subset.
 - Stable start-reporting pipeline with branch, execution, planning, and blocked-outcome details.
 - `js`, `wazero`, `wasmtime` source-host runtime support.
@@ -69,6 +69,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `ava`: sync flat `test(...)` declarations, hooks, `test.macro(...)` plus explicit `use(...)` / `useNamed(...)` lowering helpers, adapter-local `ExecutionContext`, and `test.meta` placeholders.
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks.
 - `jasmine`: sync declarations, focus/exclude aliases, core hooks, `fail(...)`, and a narrow matcher slice backed by the shared expectation core.
+- `tape`: sync default-exported `test(...)` declarations with `only` / `skip`, nested `t.test(...)`, `plan(...)`, `end()`, `teardown(...)`, `comment(...)`, and the shipped alias-heavy assertion subset.
 - `vitest`: sync declarations, shared `sequential` constraints, host-default `concurrent` aliases, and the same matcher slice.
 
 See:
@@ -81,6 +82,7 @@ See:
 - [docs/017-2026-03-22-ava-adapter-interface.md](./docs/017-2026-03-22-ava-adapter-interface.md)
 - [docs/013-2026-03-22-jasmine-adapter-interface.md](./docs/013-2026-03-22-jasmine-adapter-interface.md)
 - [docs/012-2026-03-22-mocha-adapter-interface.md](./docs/012-2026-03-22-mocha-adapter-interface.md)
+- [docs/018-2026-03-22-tape-adapter-interface.md](./docs/018-2026-03-22-tape-adapter-interface.md)
 - [docs/014-2026-03-22-uvu-adapter-interface.md](./docs/014-2026-03-22-uvu-adapter-interface.md)
 - [docs/009-2026-03-19-vitest-scheduling-and-test-graph-strategy.md](./docs/009-2026-03-19-vitest-scheduling-and-test-graph-strategy.md)
 

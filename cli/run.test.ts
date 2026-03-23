@@ -1361,6 +1361,55 @@ test.serial.useNamed("macro title", titledMacro, "alpha", "beta");
 	);
 });
 
+test('cli run executes a thin tape adapter entry from the bundled "tape" guest library', async () => {
+	await withTempEntryFile(
+		`
+import test from "tape";
+import { TestContext } from "tape";
+
+let teardownCount = 0;
+
+test.skip("skipped tape test", (_context: TestContext): void => {});
+
+test("passes through tape adapter", (context: TestContext): void => {
+  context.plan(2);
+  context.comment("tape adapter diagnostic");
+  context.teardown((_teardownContext: TestContext): void => {
+    teardownCount += 1;
+  });
+  context.test("nested tape child", (child: TestContext): void => {
+    child.plan(7);
+    child.pass();
+    child.ok<bool>(true);
+    child.notOk<i32>(0);
+    child.equal<i32>(11, 11);
+    child.deepEqual<Array<i32>>([1, 2], [1, 2]);
+    child.throws((): void => {
+      unreachable();
+    });
+    child.doesNotThrow((): void => {});
+    child.end();
+  });
+  context.equal<i32>(teardownCount, 0, "teardown ran too early");
+  context.pass();
+  context.end();
+});
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 2 passed, 0 failed, 3 discovered with js.",
+			);
+		},
+	);
+});
+
 test('cli run executes the bundled "uvu/assert" guest library through the js host', async () => {
 	await withTempEntryFile(
 		`

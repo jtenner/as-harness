@@ -1,6 +1,6 @@
 # `tape` Adapter TODO
 
-Status: assertion surface landed; bundled CLI wiring remains.
+Status: shipped sync adapter surface.
 Current surface plan is documented in [docs/018-2026-03-22-tape-adapter-interface.md](../../../docs/018-2026-03-22-tape-adapter-interface.md).
 
 Implemented so far:
@@ -11,9 +11,6 @@ Implemented so far:
 - `tape-003`: add the shipped assertion subset and aliases, plus internal and
   cross-host smoke proof for nested subtests, plan accounting, teardown, and
   shared assertion lowering
-
-Still planned:
-
 - `tape-004`: wire `tape` into the bundled CLI surface, compile rewriting, and
   direct CLI proof, then mark the adapter shipped
 
