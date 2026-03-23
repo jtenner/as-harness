@@ -56,6 +56,10 @@ jobs:
         working-directory: ./cli
         run: bun install --frozen-lockfile
 
+      - name: Install assembly dependencies
+        working-directory: ./assembly
+        run: npm ci
+
       - name: Build and smoke wazero host package
         working-directory: ./harness/wazero
         run: npm test

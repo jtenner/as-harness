@@ -128,7 +128,8 @@ async function resolveDownloadedNodeIncludeDir() {
 		writeFileSync(archivePath, Buffer.from(await response.arrayBuffer()));
 	}
 
-	execFileSync("tar", ["-xzf", archivePath, "-C", downloadDir], {
+	execFileSync("tar", ["-xzf", path.basename(archivePath)], {
+		cwd: downloadDir,
 		stdio: "inherit",
 	});
 
