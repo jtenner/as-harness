@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-03-23
+
+- **docs: plan the tap adapter slices** Add the dedicated `tap` interface note, replace the placeholder `tap` TODO with concrete `tap-001` through `tap-004` slices, link the roadmap to that note, and expand the live backlog with the exact implementation order and runtime-fit risks for the new adapter workstream. GitHub: *@jtenner*
+
 ## 2026-03-22
 
 - **tape: bundle the shipped adapter surface** Add the bundled `tape` guest-library entry plus CLI compile rewriting, prove the shipped sync subset through a direct bundled CLI run, and refresh the README, roadmap, and backlog docs so `tape` is now tracked as an active surface with only honest runtime-limit deferrals. GitHub: *@jtenner*
