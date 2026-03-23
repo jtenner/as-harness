@@ -62,13 +62,16 @@
 - `pkg-010` Add clean temp-project install and smoke coverage for every staged
   npm package under Node and Bun, including explicit unsupported-platform
   failure proof for native packages.
-- `pkg-011` Extend the tag-driven release workflow to stage, verify, and
+- `pkg-011` Add npm publish-validation proof that inspects the staged package
+  payloads with `npm pack`/publish-dry-run style checks before any public npm
+  release automation is allowed to ship them.
+- `pkg-012` Extend the tag-driven release workflow to stage, verify, and
   publish npm packages in dependency order while keeping the existing packaged
   Bun executable release assets.
 
 ### Docs
 
-- `pkg-012` Refresh the root/package READMEs and release-process docs to
+- `pkg-013` Refresh the root/package READMEs and release-process docs to
   replace the current GitHub-only distribution guidance with the staged
   dual-channel release contract.
 
