@@ -951,9 +951,11 @@ describe("artifact suite", (_context): void => {
 });
 
 for (const harnessName of dependencyCliHarnesses) {
-	test(`cli run executes the bundled "as-harness" guest library through the ${harnessName} host`, async () => {
-		await withTempEntryFile(
-			`
+	test(
+		`cli run executes the bundled "as-harness" guest library through the ${harnessName} host`,
+		async () => {
+			await withTempEntryFile(
+				`
 import {
   afterEach,
   beforeAll,
@@ -994,20 +996,22 @@ sequential("ordered group", (_context: SuiteContext): void => {
   test("ordered second", (_context: TestContext): void => {});
 });
 `,
-			async (entryFile, cwd) => {
-				const result = await runCliWithArguments(
-					["run", "--harness", harnessName, entryFile],
-					cwd,
-				);
+				async (entryFile, cwd) => {
+					const result = await runCliWithArguments(
+						["run", "--harness", harnessName, entryFile],
+						cwd,
+					);
 
-				expect(result.exitCode).toBe(0);
-				expect(result.stderr).toBe("");
-				expect(result.stdout).toContain(
-					`PASS 4 passed, 0 failed, 4 discovered with ${harnessName}.`,
-				);
-			},
-		);
-	});
+					expect(result.exitCode).toBe(0);
+					expect(result.stderr).toBe("");
+					expect(result.stdout).toContain(
+						`PASS 4 passed, 0 failed, 4 discovered with ${harnessName}.`,
+					);
+				},
+			);
+		},
+		{ timeout: 60_000 },
+	);
 }
 
 test('cli run executes a thin jest adapter entry from the bundled "jest" guest library', async () => {

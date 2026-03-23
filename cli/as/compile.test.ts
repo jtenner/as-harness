@@ -495,6 +495,10 @@ test("compileEntrypoints works inside a compiled Bun executable with bundled str
 
 		const runProcess = Bun.spawn([executableFile], {
 			cwd: tempDirectory,
+			env: {
+				...process.env,
+				AS_HARNESS_SOURCE_CLI_REPO_DIR: join(import.meta.dir, "..", ".."),
+			},
 			stderr: "pipe",
 			stdout: "pipe",
 		});

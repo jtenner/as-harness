@@ -1,9 +1,9 @@
 import { createRequire } from "node:module";
-import { resolve } from "node:path";
 import type {
 	Harness,
 	HarnessCreateOptions,
 } from "../../harness/shared/harness-types";
+import { resolveSourceOrPackageModulePath } from "./module-paths";
 import { setCompilerOptionValue, type Runtime } from "./types";
 
 type WasmtimeHarnessModule = {
@@ -11,11 +11,11 @@ type WasmtimeHarnessModule = {
 };
 
 const sourceRequire = createRequire(import.meta.url);
-const sourceCliRepoDir = process.env.AS_HARNESS_SOURCE_CLI_REPO_DIR ?? "";
-const sourceHarnessModulePath =
-	sourceCliRepoDir.length > 0
-		? resolve(sourceCliRepoDir, "harness", "wasmtime", "index.cjs")
-		: "../../harness/wasmtime/index.cjs";
+const sourceHarnessModulePath = resolveSourceOrPackageModulePath({
+	packageName: "@as-harness/wasmtime",
+	sourceRelativePath: "../../harness/wasmtime/index.cjs",
+	sourceRepoPath: ["harness", "wasmtime", "index.cjs"],
+});
 let cachedHarnessModule: WasmtimeHarnessModule | null = null;
 
 function resolveWasmtimeHarnessModule() {

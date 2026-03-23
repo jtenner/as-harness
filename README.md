@@ -23,7 +23,8 @@ Limits:
 
 - async/Promise-based APIs are intentionally unsupported.
 - thin adapters are intentionally narrow.
-- `wasmtime` is source-only; packaged releases stay `js` + `wazero` only.
+- packaged Bun releases stay `js` + `wazero` only; the staged npm package set
+  now includes `@as-harness/wasmtime`.
 
 ## Quick Start
 
@@ -35,12 +36,19 @@ bun run ./cli/index.ts run --harness js --coverage ./example.test.ts
 bun run ./cli/index.ts run --update-snapshots ./example.test.ts
 ```
 
-For contributor validation, the repo now uses two distinct execution proofs:
+For contributor validation and release packaging, the repo now uses two
+distinct execution proofs:
 
 - source-host verification builds a Node-targeted CLI bundle with Bun and runs
   that bundle under the Node baseline from [`.mise.toml`](./.mise.toml)
 - packaged verification stages the real compiled Bun executable from its
   release archive under a sanitized runtime environment
+
+The repo also now stages npm package payloads locally and proves them with:
+
+- `bun run npm:stage`
+- `bun run npm:verify`
+- `bun run npm:install-smoke`
 
 ## Dependency Notes
 
@@ -111,6 +119,9 @@ bun test
 cd harness/js && npm test
 cd harness/wazero && npm test
 cd harness/wasmtime && npm test
+bun run npm:stage
+bun run npm:verify
+bun run npm:install-smoke
 ```
 
 Helpful checks:
@@ -152,11 +163,16 @@ packaged stability policy for this release line, while source-host verification
 continues to prove the repo-local `wazero` and `wasmtime` paths separately
 through the Node-targeted CLI bundle.
 
-`wasmtime` remains source-only, and the source-host matrix now validates the
-native hosts through the Bun-built Node-targeted CLI bundle rather than direct
-`bun run ./cli/index.ts` execution.
+Packaged Bun releases still exclude `wasmtime`, and the source-host matrix now
+validates the native hosts through the Bun-built Node-targeted CLI bundle
+rather than direct `bun run ./cli/index.ts` execution. The staged npm package
+lane now includes `@as-harness/wasmtime` plus the current-platform binary
+package shape for local pack/install proof.
 
-`npm` publication is not the current distribution channel.
+The npm release lane now publishes the staged lockstep package set through the
+tag workflow after cross-platform pack and install-smoke verification, while
+the packaged Bun executable lane remains separately gated by Bun standalone
+redistribution compliance.
 
 ## Versioning Policy
 

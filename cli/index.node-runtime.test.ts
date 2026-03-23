@@ -39,6 +39,10 @@ test("a Node-targeted CLI bundle runs under Node.js", () => {
 			[bundledEntrypointPath, "--version"],
 			{
 				encoding: "utf8",
+				env: {
+					...process.env,
+					AS_HARNESS_SOURCE_CLI_REPO_DIR: repoDir,
+				},
 			},
 		);
 

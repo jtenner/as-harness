@@ -1,13 +1,13 @@
 import { createRequire } from "node:module";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import sharedStartModule from "../../harness/shared/start.cjs";
 import type {
 	Harness,
 	HarnessCreateOptions,
 } from "../../harness/shared/harness-types";
+import { resolveSourceOrPackageModulePath } from "./module-paths";
 import { setCompilerOptionValue, type Runtime } from "./types";
 
 declare const WAZERO_TARGET: string | undefined;
@@ -36,15 +36,14 @@ type DecorateHarnessOptions = {
 
 const WAZERO_ENGINE_INTERPRETER = "interpreter";
 const sourceRequire = createRequire(import.meta.url);
-const { decorateHarness } = sharedStartModule as {
-	decorateHarness(harness: Harness, options: DecorateHarnessOptions): Harness;
-};
 const runtimeModulePath = fileURLToPath(import.meta.url);
-const sourceCliRepoDir = process.env.AS_HARNESS_SOURCE_CLI_REPO_DIR ?? "";
-const sourceHarnessModulePath =
-	sourceCliRepoDir.length > 0
-		? resolve(sourceCliRepoDir, "cli", "runtime", "wazero-source-worker.cjs")
-		: fileURLToPath(new URL("./wazero-source-worker.cjs", import.meta.url));
+const sourceHarnessModulePath = resolveSourceOrPackageModulePath({
+	packageName: "@as-harness/wazero",
+	sourceRelativePath: fileURLToPath(
+		new URL("./wazero-source-worker.cjs", import.meta.url),
+	),
+	sourceRepoPath: ["cli", "runtime", "wazero-source-worker.cjs"],
+});
 let cachedHarnessModule: WazeroHarnessModule | null = null;
 let bundledAddonTempDirectory: string | null = null;
 
@@ -56,6 +55,18 @@ function traceWazero(message: string) {
 
 function loadSourceWazeroHarnessModule(): WazeroHarnessModule {
 	return sourceRequire(sourceHarnessModulePath) as WazeroHarnessModule;
+}
+
+function resolveDecorateHarness() {
+	return sourceRequire(
+		resolveSourceOrPackageModulePath({
+			packageName: "@as-harness/shared/start",
+			sourceRelativePath: "../../harness/shared/start.cjs",
+			sourceRepoPath: ["harness", "shared", "start.cjs"],
+		}),
+	) as {
+		decorateHarness(harness: Harness, options: DecorateHarnessOptions): Harness;
+	};
 }
 
 function loadBundledWazeroHarnessModule(): WazeroHarnessModule {
@@ -176,7 +187,7 @@ function createBundledWazeroHarness(
 	const runInBand = artifactOptions.updateSnapshots === true;
 
 	traceWazero("decorating bundled wazero harness");
-	return decorateHarness(
+	return resolveDecorateHarness().decorateHarness(
 		createBundledNativeHarness(nativeHarnessModule, bundledBytes, options),
 		{
 			bytes: bundledBytes,
@@ -204,7 +215,7 @@ function createSourceWazeroHarness(
 	const runInBand = artifactOptions.updateSnapshots === true;
 
 	traceWazero("decorating source wazero harness");
-	return decorateHarness(
+	return resolveDecorateHarness().decorateHarness(
 		nativeHarnessModule.createHarness(
 			sourceBytes,
 			"",

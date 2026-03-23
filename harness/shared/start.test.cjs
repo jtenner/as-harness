@@ -1,12 +1,14 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const path = require("node:path");
 const test = require("node:test");
 
 const {
 	classifyDependencyOutcome,
 	decorateHarness,
 	evaluatePlannedExecution,
+	normalizeWorkerModulePath,
 	planExecutionStages,
 	setNodeIdentity,
 } = require("./start.cjs");
@@ -1519,6 +1521,21 @@ test("evaluatePlannedExecution keeps pre-blocked targets blocked even with execu
 		["pre-blocked target"],
 	);
 	assert.equal(evaluated.blockedTargets.length, 1);
+});
+
+test("normalizeWorkerModulePath preserves package specifiers", () => {
+	assert.equal(
+		normalizeWorkerModulePath("@as-harness/wazero"),
+		"@as-harness/wazero",
+	);
+	assert.equal(
+		normalizeWorkerModulePath("@as-harness/shared/start"),
+		"@as-harness/shared/start",
+	);
+	assert.equal(
+		normalizeWorkerModulePath("./start-worker.cjs"),
+		path.resolve("./start-worker.cjs"),
+	);
 });
 
 test("decorateHarness can execute start() in-band and merge coverage snapshots", async () => {

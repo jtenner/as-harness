@@ -31,6 +31,14 @@ const EVENT_TYPES = [
 ];
 const workerScriptPath = path.join(__dirname, "start-worker.cjs");
 
+function normalizeWorkerModulePath(workerModulePath) {
+	if (path.isAbsolute(workerModulePath) || workerModulePath.startsWith(".")) {
+		return path.resolve(workerModulePath);
+	}
+
+	return workerModulePath;
+}
+
 function closeHarness(harness) {
 	if (harness && typeof harness.close === "function") {
 		harness.close();
@@ -1828,7 +1836,7 @@ function decorateHarness(harness, options) {
 			createLocalHarness: options.createLocalHarness,
 			createHarnessOptions: options.createHarnessOptions,
 			runInBand: options.runInBand === true,
-			workerModulePath: path.resolve(options.workerModulePath),
+			workerModulePath: normalizeWorkerModulePath(options.workerModulePath),
 		});
 	};
 
@@ -1844,6 +1852,7 @@ module.exports = {
 	decorateHarness,
 	EVENT_TYPES,
 	evaluatePlannedExecution,
+	normalizeWorkerModulePath,
 	planExecutionStages,
 	readCoverageSnapshot,
 	setNodeIdentity,

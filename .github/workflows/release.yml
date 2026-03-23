@@ -23,6 +23,23 @@ jobs:
       - name: Enforce Bun standalone release policy
         run: bun run ./scripts/assert-bun-release-policy.ts
 
+  npm-matrix:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.npm-matrix.outputs.matrix }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up mise toolchain
+        uses: jdx/mise-action@v4
+        with:
+          install_args: bun
+
+      - name: Emit npm matrix
+        id: npm-matrix
+        run: printf 'matrix=%s\n' "$(bun run ./scripts/host-validation-matrix.ts)" >> "$GITHUB_OUTPUT"
+
   release-matrix:
     needs:
       - release-policy
@@ -82,11 +99,118 @@ jobs:
           name: packaged-cli-report-${{ matrix.compileTarget }}
           path: ./dist/packaged-cli-reports/*
 
+  build-npm-packages:
+    name: Build npm package artifacts (${{ matrix.label }})
+    needs:
+      - npm-matrix
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.npm-matrix.outputs.matrix) }}
+    env:
+      NPM_ARTIFACT_DIR: ./dist/npm-release-artifacts/${{ matrix.label }}
+      NPM_OUTPUT_DIR: ./dist/npm-${{ matrix.label }}
+      NPM_PACKAGE_SELECTION: ${{ matrix.label == 'linux-x64' && 'all' || 'native' }}
+      NPM_REPORT_DIR: ./dist/npm-reports-${{ matrix.label }}
+      NPM_INSTALL_SMOKE_REPORT_DIR: ./dist/npm-install-smoke-reports-${{ matrix.label }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up mise toolchain
+        uses: jdx/mise-action@v4
+        with:
+          install_args: bun node go rust
+
+      - name: Install CLI dependencies
+        working-directory: ./cli
+        run: bun install --frozen-lockfile
+
+      - name: Build and smoke wazero host package
+        working-directory: ./harness/wazero
+        run: npm test
+
+      - name: Build and smoke wasmtime host package
+        working-directory: ./harness/wasmtime
+        run: npm test
+
+      - name: Verify staged npm package payloads
+        run: bun run npm:verify -- --output-dir "${NPM_OUTPUT_DIR}" --report-dir "${NPM_REPORT_DIR}"
+
+      - name: Run staged npm install smoke
+        run: bun run npm:install-smoke -- --output-dir "${NPM_OUTPUT_DIR}" --report-dir "${NPM_INSTALL_SMOKE_REPORT_DIR}"
+
+      - name: Pack release npm tarballs
+        run: bun run npm:pack-release -- --output-dir "${NPM_OUTPUT_DIR}" --artifact-dir "${NPM_ARTIFACT_DIR}" --selection "${NPM_PACKAGE_SELECTION}"
+
+      - name: Upload npm package artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: npm-package-artifacts-${{ matrix.label }}
+          path: ./dist/npm-release-artifacts/${{ matrix.label }}
+
+      - name: Upload npm verification reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: ignore
+          name: npm-package-reports-${{ matrix.label }}
+          path: |
+            ./dist/npm-reports-${{ matrix.label }}/*
+            ./dist/npm-install-smoke-reports-${{ matrix.label }}/*
+
+  publish-npm:
+    name: Publish npm packages
+    needs:
+      - build-npm-packages
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up mise toolchain
+        uses: jdx/mise-action@v4
+        with:
+          install_args: bun node
+
+      - name: Validate npm token
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "Missing required NPM_TOKEN secret."
+            exit 1
+          fi
+
+      - name: Configure npm authentication
+        run: |
+          cat <<EOF > "${HOME}/.npmrc"
+          //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}
+          registry=https://registry.npmjs.org/
+          EOF
+
+      - name: Download npm package artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: ./dist/npm-release-artifacts
+          pattern: npm-package-artifacts-*
+
+      - name: Publish npm packages in dependency order
+        run: bun run npm:publish-release -- --artifact-dir ./dist/npm-release-artifacts --tag latest
+
   publish-release:
     name: Publish GitHub release
     needs:
       - release-policy
       - build-release-assets
+      - publish-npm
     runs-on: ubuntu-24.04
     steps:
       - name: Check out repository

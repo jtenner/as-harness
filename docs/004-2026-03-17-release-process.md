@@ -14,7 +14,8 @@ Operational flow for shipping `as-harness` through GitHub:
   standalone redistribution path
 - source and verification tooling still build packaged Bun executables locally
   for engineering proof
-- no current `npm` publication
+- the tag workflow now stages, verifies, packs, and publishes the lockstep npm
+  package set after cross-platform host verification and clean install smoke
 - while the project is still `0.x`, treat a `minor` bump as the normal vehicle
   for breaking public API or behavior changes; reserve `patch` for
   non-breaking fixes within the current minor line
@@ -29,7 +30,8 @@ Operational flow for shipping `as-harness` through GitHub:
 - each packaged release archive now includes a `legal/` directory with the
   project `LICENSE`, `THIRD_PARTY_NOTICES.md`, and the tracked third-party
   license texts for the packaged release line
-- `wasmtime` is source-only
+- packaged Bun release assets exclude `wasmtime`, while the staged npm package
+  lane includes `@as-harness/wasmtime`
 - CI and release install toolchains from repo-local [`.mise.toml`](../.mise.toml)
   through `jdx/mise-action@v4`
 - Node.js `25.8.1` baseline
@@ -62,6 +64,9 @@ bun test
 cd harness/js && npm test
 cd harness/wazero && npm test
 cd harness/wasmtime && npm test
+bun run npm:stage
+bun run npm:verify
+bun run npm:install-smoke
 AS_HARNESS_ALLOW_UNRESOLVED_BUN_STANDALONE_RELEASE=1 bun run assert:bun-release-policy
 bun run release:matrix
 bun run verify:packaged-cli -- --target bun-linux-x64 --report-dir ./dist/packaged-cli-reports
@@ -81,6 +86,13 @@ Source-host verification proof is intentionally different from packaged proof:
   release archive under a sanitized runtime environment and verifies the
   bundled hosts from that clean install shape; the archived install shape now
   includes the packaged `legal/` bundle alongside the executable
+- `npm:verify` inspects the staged npm package payloads with
+  `npm pack --dry-run --json`
+- `npm:install-smoke` installs the staged tarballs into clean temp projects and
+  proves the staged CLI and runtime packages under both Node and Bun
+- `npm:pack-release` creates publishable tarballs from the staged package set,
+  and `npm:publish-release` publishes the collected cross-platform tarballs in
+  dependency order
 
 Inspect lists locally:
 
@@ -99,6 +111,9 @@ bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-hos
 - root Bun tests
 - full source-host matrix through the Node-targeted source CLI bundle
 - packaged CLI verification on the release matrix through staged Bun executables
+- staged npm pack validation and clean temp-project npm install smoke now run on
+  the release host matrix before the workflow publishes npm packages in
+  dependency order
 - tag-driven public packaged release publication stays blocked by the Bun
   standalone release-policy gate unless an explicit override is configured
 
@@ -129,7 +144,6 @@ Pre-`v1` release semantics:
 
 ## Non-goals
 
-- no `npm` publishing
 - no packaged `wasmtime`
 - no scope change without explicit matrix/provenance updates
 
@@ -138,6 +152,11 @@ Pre-`v1` release semantics:
 - `.github/workflows/release.yml`
 - `scripts/release-manifest.ts`
 - `scripts/verify-packaged-cli.ts`
+- `scripts/stage-npm-packages.ts`
+- `scripts/pack-npm-packages.ts`
+- `scripts/publish-npm-packages.ts`
+- `scripts/verify-npm-packages.ts`
+- `scripts/verify-npm-install-smoke.ts`
 - `scripts/release-matrix.ts`
 - `scripts/stage-release-legal.ts`
 - `scripts/host-validation-matrix.ts`
