@@ -2,6 +2,10 @@
 
 The Bun CLI compiles AssemblyScript test files to Wasm, selects a harness, and executes tests.
 
+The packaged Bun release lane is currently gated for public distribution until
+the repo grows a documented Bun standalone redistribution path. Local packaged
+build and smoke proof remain in place for engineering verification.
+
 ## Today
 
 - `list` discovers test entries.

@@ -87,6 +87,7 @@ function renderReleaseNotes(tag: string) {
 		"",
 		"- The normal CI workflow validates source-host smoke coverage separately from the packaged release matrix.",
 		"- Native-host source verification builds a Node-targeted CLI bundle with Bun and runs that bundle under the Node baseline from .mise.toml.",
+		"- Public tag-driven packaged Bun releases are currently gated pending a documented standalone redistribution path; any override run should be treated as an explicit exception, not the default release policy.",
 		"- Packaged Windows artifacts are currently `js`-only.",
 		"- Packaged `wazero` support is currently shipped on `bun-darwin-arm64`, `bun-darwin-x64`, and `bun-linux-x64` release archives with the native addon embedded inside the executable.",
 		"- Source-based Windows `wazero` development remains supported outside the packaged executable path.",

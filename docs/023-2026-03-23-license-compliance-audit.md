@@ -9,8 +9,10 @@ first packaging-focused compliance slice landed. That follow-up slice now tracks
 the missing `binaryen` and `long` license texts, embeds the legal bundle inside
 packaged archives, refreshes the packaged notice/docs, generates the source-build
 `wasmtime` inventory, and adds validation that checks the generated legal
-artifacts for drift. The remaining open item from this audit is the Bun
-standalone redistribution path.
+artifacts for drift. The repo now also gates tag-driven packaged Bun releases
+closed by default until that redistribution path exists. The remaining open item
+from this audit is therefore the substantive Bun standalone redistribution
+implementation itself rather than whether the repo acknowledges the problem.
 
 ## Scope
 

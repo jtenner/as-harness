@@ -3,6 +3,7 @@
 	"license": "MIT",
 	"private": true,
 	"scripts": {
+		"assert:bun-release-policy": "bun run ./scripts/assert-bun-release-policy.ts",
 		"format": "bun run ./scripts/format.ts",
 		"host:matrix": "bun run ./scripts/host-validation-matrix.ts",
 		"legal:check": "bun run ./scripts/check-legal.ts",

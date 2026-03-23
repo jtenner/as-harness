@@ -74,6 +74,6 @@
 
 ### Legal And Compliance
 
-- `legal-003` Either implement Bun's documented standalone redistribution path
-  for packaged executables or replace that release lane with a legally simpler
-  distribution shape.
+- `legal-003` Replace the temporary Bun standalone release gate with a
+  documented redistribution path that satisfies Bun's official downstream
+  guidance for standalone executables.

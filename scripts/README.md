@@ -13,6 +13,8 @@
 - `test.ts` — repo test flow including AssemblyScript smoke + host package tests (`js`, `wazero`, `wasmtime`).
 - `test-bootstrap.ts` — run the compiled AssemblyScript bootstrap fixture.
 - `assert-bridge-smoke.ts` — verify assertion bridge behavior through compiled fixtures.
+- `assert-bun-release-policy.ts` — fail closed on public packaged Bun release
+  publication until the repo has an explicit standalone redistribution path.
 - `generate-wasmtime-license-inventory.ts` — regenerate the source-build
   `wasmtime` third-party inventory from `cargo metadata --format-version 1 --locked`.
 - `release-matrix.ts` / `host-validation-matrix.ts` — emit release and source-host matrices.
@@ -41,12 +43,14 @@
   environment, and (when requested) archived release assets with a stable inner
   executable basename plus an embedded `legal/` bundle
 - release manifest, checksum, and legal-bundle checks
+- release-policy gating for Bun standalone publication
 
 ## Key commands
 
 ```bash
 bun format
 bun validate
+bun run assert:bun-release-policy
 bun run legal:check
 bun run legal:sync:notices
 bun run legal:sync:wasmtime

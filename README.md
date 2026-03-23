@@ -125,6 +125,11 @@ bun run verify:packaged-cli -- --target bun-linux-x64 --report-dir ./dist/packag
 
 ## Release Packaging
 
+Public packaged Bun releases are currently gated pending a documented Bun
+standalone redistribution path. The repo still keeps the packaged build and
+verification flow live for engineering proof, but the tag-driven GitHub release
+workflow now fails closed by default before publishing those artifacts.
+
 Current packaged release archives:
 
 - `bun-darwin-arm64`: `js`, `wazero`

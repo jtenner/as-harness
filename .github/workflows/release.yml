@@ -9,7 +9,23 @@ permissions:
   contents: write
 
 jobs:
+  release-policy:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up mise toolchain
+        uses: jdx/mise-action@v4
+        with:
+          install_args: bun
+
+      - name: Enforce Bun standalone release policy
+        run: bun run ./scripts/assert-bun-release-policy.ts
+
   release-matrix:
+    needs:
+      - release-policy
     runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.release-matrix.outputs.matrix }}
@@ -29,6 +45,7 @@ jobs:
   build-release-assets:
     name: Build release asset (${{ matrix.compileTarget }})
     needs:
+      - release-policy
       - release-matrix
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -68,6 +85,7 @@ jobs:
   publish-release:
     name: Publish GitHub release
     needs:
+      - release-policy
       - build-release-assets
     runs-on: ubuntu-24.04
     steps:

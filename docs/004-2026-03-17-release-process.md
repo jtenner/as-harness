@@ -10,7 +10,10 @@ Operational flow for shipping `as-harness` through GitHub:
 
 ## Current policy
 
-- official distribution: packaged Bun executables
+- official packaged Bun releases are currently gated pending a documented Bun
+  standalone redistribution path
+- source and verification tooling still build packaged Bun executables locally
+  for engineering proof
 - no current `npm` publication
 - while the project is still `0.x`, treat a `minor` bump as the normal vehicle
   for breaking public API or behavior changes; reserve `patch` for
@@ -59,9 +62,15 @@ bun test
 cd harness/js && npm test
 cd harness/wazero && npm test
 cd harness/wasmtime && npm test
+AS_HARNESS_ALLOW_UNRESOLVED_BUN_STANDALONE_RELEASE=1 bun run assert:bun-release-policy
 bun run release:matrix
 bun run verify:packaged-cli -- --target bun-linux-x64 --report-dir ./dist/packaged-cli-reports
 ```
+
+The release workflow intentionally fails closed on tag pushes until the Bun
+standalone redistribution path is implemented. The temporary
+`AS_HARNESS_ALLOW_UNRESOLVED_BUN_STANDALONE_RELEASE=1` override exists only for
+explicitly acknowledged non-public or otherwise accepted override runs.
 
 Source-host verification proof is intentionally different from packaged proof:
 
@@ -90,6 +99,8 @@ bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-hos
 - root Bun tests
 - full source-host matrix through the Node-targeted source CLI bundle
 - packaged CLI verification on the release matrix through staged Bun executables
+- tag-driven public packaged release publication stays blocked by the Bun
+  standalone release-policy gate unless an explicit override is configured
 
 ## Tagging
 
@@ -105,6 +116,8 @@ Pre-`v1` release semantics:
 
 ## Failure triage
 
+- release-policy failure: treat this as the expected Bun-redistribution gate,
+  not as a build failure
 - release build failure: inspect target packaged smoke step
 - verifier-wrapper failure: check wrapper logs first
 - packaged build timeout: treat as build-budget exhaustion before blaming hosted verifier supervision
