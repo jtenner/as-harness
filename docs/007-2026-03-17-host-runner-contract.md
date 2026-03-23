@@ -243,6 +243,10 @@ The current parity proof for this contract is:
   blocked-propagation, dependency-cycle matrix with explicit blocked
   cycle-member diagnostics, and bundled `uvu` hint-lowering proof through
   real compile-and-run paths
+- compile-path export-surface coverage in
+  [cli/as/compile.test.ts](../cli/as/compile.test.ts), proving the generated
+  guest wrapper stays on the flat host-owned execution surface and does not
+  grow scheduler-step exports
 - package-local host tests in `harness/js`, `harness/wazero`, and
   `harness/wasmtime`
 - the CI source-host matrix and packaged verification flow described in

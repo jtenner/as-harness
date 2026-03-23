@@ -14,6 +14,7 @@ import {
 	BUNDLED_COVERAGE_TRANSFORM_PATH,
 	BUNDLED_LIBRARY_COMPONENTS_PATH,
 	BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH,
+	compileEntrypoints,
 	withBundledHarnessLibraryComponents,
 	withBundledCoverageTransform,
 	withBundledStrictEqualityTransform,
@@ -413,6 +414,71 @@ test("compileEntrypoints works inside a compiled Bun executable with bundled str
 		expect(runExitCode).toBe(0);
 		expect(runStderr).toBe("");
 		expect(runStdout.trim().split(",")).toContain("output.wasm");
+	} finally {
+		await rm(tempDirectory, { force: true, recursive: true });
+	}
+});
+
+test("compileEntrypoints keeps the guest export surface flat and host-owned", async () => {
+	const tempDirectory = await mkdtemp(
+		join(tmpdir(), "as-harness-export-surface-"),
+	);
+	const entryFile = join(tempDirectory, "entry.ts");
+	const suiteFile = join(tempDirectory, "suite.test.ts");
+
+	try {
+		await writeFile(
+			suiteFile,
+			[
+				'import { test } from "node:test";',
+				"",
+				'test("passes", (): void => {});',
+				"",
+			].join("\n"),
+			"utf8",
+		);
+
+		await writeFile(
+			entryFile,
+			[
+				'export { allocateNodeIndexBuffer, discover, invoke, run } from "~/.as-harness/exports";',
+				'import "./suite.test";',
+				"",
+			].join("\n"),
+			"utf8",
+		);
+
+		const artifacts = await compileEntrypoints(["entry.ts"], {
+			baseDir: tempDirectory,
+			lib: ["node:test"],
+		});
+		const wasmArtifact = artifacts.find(
+			(artifact) => artifact.path === "output.wasm",
+		);
+
+		expect(wasmArtifact).toBeDefined();
+		if (!wasmArtifact) {
+			throw new Error("expected output.wasm artifact");
+		}
+		const module = await WebAssembly.compile(wasmArtifact.contents);
+		const exportNames = WebAssembly.Module.exports(module)
+			.map((entry) => `${entry.name}:${entry.kind}`)
+			.sort();
+
+		expect(exportNames).toEqual([
+			"__start:function",
+			"allocateNodeIndexBuffer:function",
+			"discover:function",
+			"invoke:function",
+			"memory:memory",
+			"run:function",
+		]);
+		expect(exportNames.some((entry) => entry.startsWith("start:"))).toBe(false);
+		expect(exportNames.some((entry) => entry.startsWith("plan:"))).toBe(false);
+		expect(exportNames.some((entry) => entry.startsWith("next:"))).toBe(false);
+		expect(exportNames.some((entry) => entry.startsWith("schedule:"))).toBe(
+			false,
+		);
 	} finally {
 		await rm(tempDirectory, { force: true, recursive: true });
 	}
