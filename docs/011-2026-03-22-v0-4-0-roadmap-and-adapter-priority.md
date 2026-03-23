@@ -7,7 +7,9 @@ the current packaged/source-host policy, and both recommended adapter slices,
 `mocha` and `jasmine`, are now bundled and documented in the live README and
 adapter TODO files. The remaining live adapter backlog is narrower than this
 historical note: `uvu` is shipped with one deferred upstream `Assertion`
-object-parity gap, while `ava`, `tap`, `tape`, and `qnit` remain planned-only.
+object-parity gap, `ava` now ships as a thin synchronous bundled surface with
+its async / timeout / teardown / snapshot-directory semantics still deferred,
+and `tap`, `tape`, and `qnit` remain planned-only.
 
 ## Current Status
 
@@ -21,8 +23,8 @@ Delivered from this roadmap:
 Still deferred after that work:
 
 - `uvu` upstream `Assertion` object parity
-- async-first or assertion-object-heavy adapters such as `ava`, `tap`, and
-  `tape`
+- full async / timeout / teardown / snapshot-directory parity for `ava`
+- assertion-object-heavy adapters such as `tap` and `tape`
 
 ## Why This Is The Right Next Step
 

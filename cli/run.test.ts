@@ -1284,6 +1284,83 @@ fdescribe("focused jasmine suite", (_context): void => {
 	);
 });
 
+test('cli run executes a thin ava adapter entry from the bundled "ava" guest library', async () => {
+	await withTempEntryFile(
+		`
+import test from "ava";
+import { ExecutionContext } from "ava";
+
+let beforeCount = 0;
+let beforeEachCount = 0;
+let afterEachCount = 0;
+let afterAllCount = 0;
+
+const titledMacro = test.macro<string>(
+  (context: ExecutionContext, values: Array<string>): void => {
+    context.is<string>(values.join(","), "alpha,beta");
+    context.is<string>(context.title, "macro title alpha beta");
+  },
+  (providedTitle: string, values: Array<string>): string => {
+    return "  " + providedTitle + "   " + values.join("   ") + "  ";
+  },
+);
+
+test.before((context: ExecutionContext): void => {
+  beforeCount = 1;
+  context.context.set("trace", "");
+});
+
+test.beforeEach((context: ExecutionContext): void => {
+  beforeEachCount += 1;
+  context.context.set("trace", "beforeEach|" + context.title);
+});
+
+test.afterEach((context: ExecutionContext): void => {
+  afterEachCount += 1;
+  context.context.set("trace", context.context.get("trace") + ">afterEach|" + context.title);
+});
+
+test.after.always((_context: ExecutionContext): void => {
+  afterAllCount = beforeEachCount;
+});
+
+test.skip("skipped test", (_context: ExecutionContext): void => {});
+test.todo("todo test");
+
+test.serial.failing("expected failure", (context: ExecutionContext): void => {
+  context.is<i32>(11, 12, "ava adapter expected failure mismatch");
+});
+
+test.serial("passes through ava adapter", (context: ExecutionContext): void => {
+  context.is<i32>(beforeCount, 1, "before hook mismatch");
+  context.true(beforeEachCount > 0, "beforeEach missing");
+  context.is<i32>(afterEachCount + 1, beforeEachCount, "afterEach ordering mismatch");
+  context.is<i32>(afterAllCount, 0, "afterAll ran too early");
+  context.is<string>(
+    context.context.get("trace"),
+    "beforeEach|passes through ava adapter",
+    "ava trace mismatch",
+  );
+  context.log("ava adapter diagnostic");
+});
+
+test.serial.useNamed("macro title", titledMacro, "alpha", "beta");
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 3 passed, 0 failed, 5 discovered with js.",
+			);
+		},
+	);
+});
+
 test('cli run executes the bundled "uvu/assert" guest library through the js host', async () => {
 	await withTempEntryFile(
 		`

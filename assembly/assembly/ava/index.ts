@@ -1,5 +1,6 @@
 import { DeclarationMode, HookKind, SequenceMode } from "../internal/imports";
 import { TestContext as InternalTestContext } from "../internal/context";
+import { currentNode, Node } from "../internal/node";
 import { declareHook, declareModifiedTest, declareTest } from "./parse";
 import {
 	ExecutionContext,
@@ -33,6 +34,35 @@ function castHookCallback(
 const internalExecutionContext = changetype<InternalTestContext>(
 	sharedExecutionContext,
 );
+const macroInvocations = new Map<u32, MacroInvocation>();
+
+class MacroInvocation {
+	execute(_context: ExecutionContext): void {}
+}
+
+class TypedMacroInvocation<T> extends MacroInvocation {
+	readonly macro: Macro<T>;
+	readonly args: Array<T>;
+
+	constructor(macro: Macro<T>, args: Array<T>) {
+		super();
+		this.macro = macro;
+		this.args = args;
+	}
+
+	execute(context: ExecutionContext): void {
+		this.macro.exec(context, this.args);
+	}
+}
+
+function invokeDeclaredMacro(context: ExecutionContext): void {
+	const nodeId = currentNode.nodeId;
+	if (!macroInvocations.has(nodeId)) {
+		unreachable();
+	}
+
+	changetype<MacroInvocation>(macroInvocations.get(nodeId)).execute(context);
+}
 
 function isMacroWhitespace(code: i32): bool {
 	return (
@@ -72,14 +102,14 @@ function normalizeMacroTitleWhitespace(value: string): string {
 function resolveMacroTitle<T>(
 	macro: Macro<T>,
 	providedTitle: string = "",
-	...args: T[]
+	args: Array<T> = new Array<T>(),
 ): string {
 	if (macro.title === null) {
 		return normalizeMacroTitleWhitespace(providedTitle);
 	}
 
 	return normalizeMacroTitleWhitespace(
-		changetype<TitleFn<T>>(macro.title)(providedTitle, ...args),
+		changetype<TitleFn<T>>(macro.title)(providedTitle, args),
 	);
 }
 
@@ -90,18 +120,21 @@ function declareAvaTest(
 	only: bool = false,
 	expectFailure: bool = false,
 	sequenceMode: SequenceMode = SequenceMode.Inherit,
-): void {
+): Node {
 	if (
 		mode == DeclarationMode.Normal &&
 		!only &&
 		!expectFailure &&
 		sequenceMode == SequenceMode.Inherit
 	) {
-		declareTest(name, castTestCallback(callback), internalExecutionContext);
-		return;
+		return declareTest(
+			name,
+			castTestCallback(callback),
+			internalExecutionContext,
+		);
 	}
 
-	declareModifiedTest(
+	return declareModifiedTest(
 		name,
 		castTestCallback(callback),
 		mode,
@@ -123,20 +156,17 @@ function declareMacroTest<T>(
 	only: bool = false,
 	expectFailure: bool = false,
 	sequenceMode: SequenceMode = SequenceMode.Inherit,
-	...args: T[]
+	args: Array<T> = new Array<T>(),
 ): void {
-	const callback = (context: ExecutionContext): void => {
-		changetype<MacroFn<T>>(macro.exec)(context, ...args);
-	};
-
-	declareAvaTest(
-		resolveMacroTitle(macro, providedTitle, ...args),
-		changetype<TestFn>(callback),
+	const node = declareAvaTest(
+		resolveMacroTitle(macro, providedTitle, args),
+		invokeDeclaredMacro,
 		mode,
 		only,
 		expectFailure,
 		sequenceMode,
 	);
+	macroInvocations.set(node.nodeId, new TypedMacroInvocation<T>(macro, args));
 }
 
 function skipHook(_callback: HookFn | null = null): void {}
@@ -161,7 +191,7 @@ export namespace test {
 			false,
 			false,
 			SequenceMode.Inherit,
-			...args,
+			args,
 		);
 	}
 
@@ -177,7 +207,7 @@ export namespace test {
 			false,
 			false,
 			SequenceMode.Inherit,
-			...args,
+			args,
 		);
 	}
 
@@ -197,7 +227,7 @@ export namespace test {
 				true,
 				false,
 				SequenceMode.Inherit,
-				...args,
+				args,
 			);
 		}
 
@@ -213,7 +243,7 @@ export namespace test {
 				true,
 				false,
 				SequenceMode.Inherit,
-				...args,
+				args,
 			);
 		}
 	}
@@ -234,7 +264,7 @@ export namespace test {
 				false,
 				false,
 				SequenceMode.Inherit,
-				...args,
+				args,
 			);
 		}
 
@@ -250,7 +280,7 @@ export namespace test {
 				false,
 				false,
 				SequenceMode.Inherit,
-				...args,
+				args,
 			);
 		}
 	}
@@ -275,7 +305,7 @@ export namespace test {
 				false,
 				true,
 				SequenceMode.Inherit,
-				...args,
+				args,
 			);
 		}
 
@@ -291,7 +321,7 @@ export namespace test {
 				false,
 				true,
 				SequenceMode.Inherit,
-				...args,
+				args,
 			);
 		}
 
@@ -311,7 +341,7 @@ export namespace test {
 					true,
 					true,
 					SequenceMode.Inherit,
-					...args,
+					args,
 				);
 			}
 
@@ -327,7 +357,7 @@ export namespace test {
 					true,
 					true,
 					SequenceMode.Inherit,
-					...args,
+					args,
 				);
 			}
 		}
@@ -348,7 +378,7 @@ export namespace test {
 					false,
 					true,
 					SequenceMode.Inherit,
-					...args,
+					args,
 				);
 			}
 
@@ -364,7 +394,7 @@ export namespace test {
 					false,
 					true,
 					SequenceMode.Inherit,
-					...args,
+					args,
 				);
 			}
 		}
@@ -453,7 +483,7 @@ export namespace test {
 				false,
 				false,
 				SequenceMode.Sequential,
-				...args,
+				args,
 			);
 		}
 
@@ -469,7 +499,7 @@ export namespace test {
 				false,
 				false,
 				SequenceMode.Sequential,
-				...args,
+				args,
 			);
 		}
 
@@ -496,7 +526,7 @@ export namespace test {
 					true,
 					false,
 					SequenceMode.Sequential,
-					...args,
+					args,
 				);
 			}
 
@@ -512,7 +542,7 @@ export namespace test {
 					true,
 					false,
 					SequenceMode.Sequential,
-					...args,
+					args,
 				);
 			}
 		}
@@ -540,7 +570,7 @@ export namespace test {
 					false,
 					false,
 					SequenceMode.Sequential,
-					...args,
+					args,
 				);
 			}
 
@@ -556,7 +586,7 @@ export namespace test {
 					false,
 					false,
 					SequenceMode.Sequential,
-					...args,
+					args,
 				);
 			}
 		}
@@ -595,7 +625,7 @@ export namespace test {
 					false,
 					true,
 					SequenceMode.Sequential,
-					...args,
+					args,
 				);
 			}
 
@@ -611,7 +641,7 @@ export namespace test {
 					false,
 					true,
 					SequenceMode.Sequential,
-					...args,
+					args,
 				);
 			}
 
@@ -638,7 +668,7 @@ export namespace test {
 						true,
 						true,
 						SequenceMode.Sequential,
-						...args,
+						args,
 					);
 				}
 
@@ -654,7 +684,7 @@ export namespace test {
 						true,
 						true,
 						SequenceMode.Sequential,
-						...args,
+						args,
 					);
 				}
 			}
@@ -682,7 +712,7 @@ export namespace test {
 						false,
 						true,
 						SequenceMode.Sequential,
-						...args,
+						args,
 					);
 				}
 
@@ -698,7 +728,7 @@ export namespace test {
 						false,
 						true,
 						SequenceMode.Sequential,
-						...args,
+						args,
 					);
 				}
 			}

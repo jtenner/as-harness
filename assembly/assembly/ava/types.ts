@@ -218,8 +218,8 @@ export class ExecutionContext {
 
 export type TestFn = (context: ExecutionContext) => void;
 export type HookFn = (context: ExecutionContext) => void;
-export type MacroFn<T> = (context: ExecutionContext, ...args: T[]) => void;
-export type TitleFn<T> = (providedTitle: string, ...args: T[]) => string;
+export type MacroFn<T> = (context: ExecutionContext, args: Array<T>) => void;
+export type TitleFn<T> = (providedTitle: string, args: Array<T>) => string;
 
 export class Macro<T> {
 	readonly exec: MacroFn<T>;

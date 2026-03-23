@@ -292,6 +292,12 @@ AssemblyScript-facing note:
 - the adapter should therefore expose the macro factory as `test.macro(...)`
   but lower declarations through explicit helpers such as `test.use(...)` and
   `test.useNamed(...)` plus the equivalent modifier variants
+- because AssemblyScript cannot lower the needed spread invocation honestly,
+  macro callbacks and title builders should receive `Array<T>` argument bags
+  rather than AVA's variadic callback shape
+- AssemblyScript also requires separate import lines for AVA's default export
+  and named exports, so guest code should use `import test from "ava"` plus
+  separate named imports such as `import { ExecutionContext } from "ava"`
 - that divergence is acceptable because it preserves the real macro semantics
   without inventing unsupported guest-language overloading
 

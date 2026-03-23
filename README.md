@@ -11,7 +11,7 @@ Implemented:
 - `as-harness run` for compile + execute.
 - Synchronous `node:test` declarations with `dependsOn(...)` chains and the same host-owned planning hints.
 - `node:assert` / `node:assert/strict` bridge support.
-- Built-in thin adapters for `jest`, `mocha`, `jasmine`, and `vitest`.
+- Built-in thin adapters for `jest`, `mocha`, `jasmine`, `ava`, and `vitest`.
 - Built-in `uvu` adapter plus the shared `uvu/assert` subset.
 - Stable start-reporting pipeline with branch, execution, planning, and blocked-outcome details.
 - `js`, `wazero`, `wasmtime` source-host runtime support.
@@ -66,6 +66,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `uvu`: sync top-level `test` hooks, root and suite-local host-owned `inBand(...)` / `bail(...)` / `continueOnFailure(...)` hints, `suite(...)` builder objects, `exec(bail?)` root hint lowering, `.run()` compatibility no-op, and adapter-local `TestContext` crumbs with `__suite__` / `__test__`.
 - `uvu/assert`: shared assertion subset: `ok`, `is`, `equal`, `match`, `type`, `instance`, `throws`, `snapshot`, `fixture`, `not`, `is.not`, `not.equal`, `not.match`, `not.type`, `not.instance`, `not.throws`, and `unreachable`.
 - `jest`: sync declarations, core hooks, matcher slice.
+- `ava`: sync flat `test(...)` declarations, hooks, `test.macro(...)` plus explicit `use(...)` / `useNamed(...)` lowering helpers, adapter-local `ExecutionContext`, and `test.meta` placeholders.
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks.
 - `jasmine`: sync declarations, focus/exclude aliases, core hooks, `fail(...)`, and a narrow matcher slice backed by the shared expectation core.
 - `vitest`: sync declarations, shared `sequential` constraints, host-default `concurrent` aliases, and the same matcher slice.
@@ -77,6 +78,7 @@ See:
 - [docs/006-2026-03-17-guest-runtime-contracts.md](./docs/006-2026-03-17-guest-runtime-contracts.md)
 - [docs/007-2026-03-17-host-runner-contract.md](./docs/007-2026-03-17-host-runner-contract.md)
 - [docs/008-2026-03-19-vitest-adapter.md](./docs/008-2026-03-19-vitest-adapter.md)
+- [docs/017-2026-03-22-ava-adapter-interface.md](./docs/017-2026-03-22-ava-adapter-interface.md)
 - [docs/013-2026-03-22-jasmine-adapter-interface.md](./docs/013-2026-03-22-jasmine-adapter-interface.md)
 - [docs/012-2026-03-22-mocha-adapter-interface.md](./docs/012-2026-03-22-mocha-adapter-interface.md)
 - [docs/014-2026-03-22-uvu-adapter-interface.md](./docs/014-2026-03-22-uvu-adapter-interface.md)

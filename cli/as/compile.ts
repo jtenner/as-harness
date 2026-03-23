@@ -120,6 +120,7 @@ export const BUNDLED_COVERAGE_TRANSFORM_PATH = `${bundledTransformRoot}/covers.j
 export const BUNDLED_HARNESS_EXPORTS_ENTRY_PATH = `${bundledVirtualRoot}/exports.ts`;
 const BUNDLED_HARNESS_LIBRARY_ENTRY_POINTS = new Set([
 	"as-harness",
+	"ava",
 	"node:test",
 	"node:assert",
 	"node:assert/strict",

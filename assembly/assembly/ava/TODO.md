@@ -1,6 +1,6 @@
 # `ava` Adapter TODO
 
-Status: declaration, synchronous context, and macro slices implemented.
+Status: bundled thin synchronous adapter shipped.
 Current surface is documented in [docs/017-2026-03-22-ava-adapter-interface.md](../../../docs/017-2026-03-22-ava-adapter-interface.md).
 
 Implemented so far:
@@ -15,13 +15,15 @@ Implemented so far:
 - add an AssemblyScript-friendly macro layer with `test.macro(...)`,
   `test.use(...)` / `test.useNamed(...)`, modifier variants, argument lowering,
   and whitespace-normalized title generation
+- wire the shipped sync slice into the bundled CLI library set, compile
+  rewriting, and direct CLI proof
 - add internal declaration plus execution-context proof and one cross-host smoke
   fixture that executes the AVA slice through the shared hosts
 
-Still deferred for this slice:
+Still deferred for the adapter:
 
-- bundled CLI library wiring and CLI-run proof
-
-Constraint: Promise / observable execution, `t.try(...)`, timeout control,
-teardown callbacks, and AVA-specific snapshot behavior stay deferred until the
-shared runtime can represent them honestly.
+- Promise / observable execution
+- `t.try(...)`
+- timeout control
+- teardown callbacks
+- AVA-specific snapshot-directory behavior

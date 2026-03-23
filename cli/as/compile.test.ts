@@ -58,6 +58,14 @@ test('rewrites "as-harness" to the bundled harness library root', () => {
 	expect(result.lib).toEqual([BUNDLED_LIBRARY_COMPONENTS_PATH]);
 });
 
+test("rewrites ava to the bundled harness library root", () => {
+	const result = withBundledHarnessLibraryComponents({
+		lib: ["ava"],
+	});
+
+	expect(result.lib).toEqual([BUNDLED_LIBRARY_COMPONENTS_PATH]);
+});
+
 test("rewrites node:assert/strict to the bundled harness library root", () => {
 	const result = withBundledHarnessLibraryComponents({
 		lib: ["node:assert/strict"],
@@ -285,6 +293,9 @@ test("bundles Windows-safe assembly paths alongside public node:* library aliase
 	expect(
 		bundledVirtualFiles.has(`${bundledVirtualRoot}/lib/as-harness.ts`),
 	).toBe(true);
+	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/lib/ava.ts`)).toBe(
+		true,
+	);
 	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/lib/jasmine.ts`)).toBe(
 		true,
 	);
@@ -312,6 +323,9 @@ test("bundles Windows-safe assembly paths alongside public node:* library aliase
 	expect(
 		bundledVirtualFiles.has(`${bundledVirtualRoot}/as_harness/index.ts`),
 	).toBe(true);
+	expect(bundledVirtualFiles.has(`${bundledVirtualRoot}/ava/index.ts`)).toBe(
+		true,
+	);
 	expect(
 		bundledVirtualFiles.has(`${bundledVirtualRoot}/jasmine/index.ts`),
 	).toBe(true);

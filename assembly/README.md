@@ -10,7 +10,7 @@ Host owns scheduling, aggregation, and reporting.
 - `assembly/assembly/internal/`: runtime primitives (events, nodes, traversal, executor, hooks, assertions, imports/exports).
 - `assembly/assembly/exports.ts`: Wasm exports expected by hosts.
 - `assembly/assembly/as_harness/`: native scheduler-aware guest surface.
-- `assembly/assembly/ava/`: flat AVA-shaped declaration workstream under active development.
+- `assembly/assembly/ava/`: thin sync AVA-shaped declaration surface.
 - `assembly/assembly/node_test/`: native `node:test` surface.
 - `assembly/assembly/jasmine/`: thin sync Jasmine-shaped surface.
 - `assembly/assembly/jest/`: thin sync Jest-shaped surface.
@@ -27,8 +27,8 @@ Host owns scheduling, aggregation, and reporting.
   host-owned `inBand(...)` / `bail(...)` / `continueOnFailure(...)` hints
 - synchronous `node:test`, chainable declarations, core hooks, and the same
   host-owned planning hints
-- thin `jest`, `mocha`, `jasmine`, `uvu`, and `vitest` adapters, including the
-  shipped Vitest scheduling subset
+- thin `jest`, `mocha`, `jasmine`, `ava`, `uvu`, and `vitest` adapters,
+  including the shipped Vitest scheduling subset
 - shared `uvu/assert` subset for assertion reuse, including structural
   `match(...)`, runtime-type `instance(...)`, and host-backed `snapshot(...)` /
   `fixture(...)` support

@@ -151,29 +151,29 @@ function testAvaMacroDeclarationsAndExecution(): void {
 	setCurrentNode(localRoot);
 
 	const titledMacro = test.macro<string>(
-		(context: ExecutionContext, ...values: string[]): void => {
+		(context: ExecutionContext, values: Array<string>): void => {
 			observed.push("macro|" + context.title + "|" + values.join(","));
 			context.is<string>(values.join(","), "alpha,beta");
 		},
-		(providedTitle: string, ...values: string[]): string => {
+		(providedTitle: string, values: Array<string>): string => {
 			return "  " + providedTitle + "   " + values.join("   ") + "  ";
 		},
 	);
 
 	const generatedMacro = test.macro<string>(
-		(context: ExecutionContext, ...values: string[]): void => {
+		(context: ExecutionContext, values: Array<string>): void => {
 			observed.push("generated|" + context.title + "|" + values.join(","));
 		},
-		(_providedTitle: string, ...values: string[]): string => {
+		(_providedTitle: string, values: Array<string>): string => {
 			return "   generated   " + values.join("   ");
 		},
 	);
 
 	const failingMacro = test.macro<string>(
-		(context: ExecutionContext, ...values: string[]): void => {
+		(context: ExecutionContext, values: Array<string>): void => {
 			context.is<string>(values.join(","), "unexpected");
 		},
-		(providedTitle: string, ...values: string[]): string => {
+		(providedTitle: string, values: Array<string>): string => {
 			return providedTitle + " " + values.join(" ");
 		},
 	);

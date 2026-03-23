@@ -16,16 +16,9 @@
   an adapter-local error-object contract with enough structured failure
   metadata to support future reuse such as Jasmine `throwUnless(...)`.
 
-### Adapter: `ava`
-
-- `ava-004`: wire the honest sync slice into bundled CLI proof and cross-host
-  smoke only after the declaration and context surfaces stop changing.
-- implementation plan: land the declaration chain first, then the sync
-  execution-context helpers, then macro lowering, and keep async / timeout /
-  teardown / `try(...)` / snapshot-directory parity explicitly deferred unless
-  the shared runtime grows those semantics.
-
 ### Adapter: `uvu`
 
-- add the deferred upstream `Assertion` object-parity work only after that
-  shared error-object contract exists.
+- `uvu-001`: add the deferred upstream `Assertion` object-parity work only
+  after the shared error-object contract exists.
+- implementation plan: define the shared error-object contract first, then
+  lift object-parity helpers that depend on structured failure metadata.
