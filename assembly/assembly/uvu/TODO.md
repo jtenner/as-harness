@@ -37,10 +37,6 @@ Permanent divergence for now:
 
 Current implementation slice plan for the remaining `uvu/assert` parity work:
 
-- `uvu-assertion-001`: document the shared assertion-record contract and the
-  exact shipped scope
-- `uvu-assertion-002`: add shared structured assertion metadata to the failure
-  state so adapters can reconstruct failed assertions after a trap
 - `uvu-assertion-003`: ship the `Assertion` class plus `throws(...)`,
   `not.throws(...)`, `not.ok`, `not.snapshot`, and `not.fixture` parity on top
   of that contract

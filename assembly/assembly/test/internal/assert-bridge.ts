@@ -1,10 +1,22 @@
 import {
+	assertDoesNotThrow,
+	assertThrows,
+	failAssertion,
 	assertIfError,
 	assertTruthy,
 	isDeepStrictlyEqual,
 	isLooselyEqual,
 	isStrictlyEqual,
 } from "../../internal/assert-bridge";
+import {
+	AssertionFailureRecord,
+	clearActiveErrorMessage,
+	getActiveAssertionFailureRecord,
+	getActiveFailureKind,
+	getActiveErrorPointer,
+	stageActiveAssertionFailure,
+} from "../../internal/failure-state";
+import { FailureKind } from "../../internal/imports";
 import {
 	getActiveStrictEqualityReferencePairCount,
 	getProvenStrictEqualityReferencePairCount,
@@ -68,6 +80,33 @@ function testIsLooselyEqualCoversLegacyCoerciveCases(): void {
 	assert(!isLooselyEqual<i32, string>(1, "2"));
 }
 
+function trapWithAssertionFailure(): void {
+	failAssertion("inner assertion");
+}
+
+function testThrowHelpersRestoreOuterFailureState(): void {
+	clearActiveErrorMessage();
+	stageActiveAssertionFailure("outer assertion", "outer", "actual", "expected");
+
+	assertThrows(trapWithAssertionFailure);
+
+	const record = getActiveAssertionFailureRecord();
+	assert(record !== null);
+	assert(
+		changetype<AssertionFailureRecord>(record).message == "outer assertion",
+	);
+	assert(changetype<AssertionFailureRecord>(record).operator == "outer");
+	assert(getActiveFailureKind() == <u8>FailureKind.Assertion);
+	assert(getActiveErrorPointer() == changetype<usize>("outer assertion"));
+
+	assertDoesNotThrow((): void => {});
+	const preserved = getActiveAssertionFailureRecord();
+	assert(preserved !== null);
+	assert(
+		changetype<AssertionFailureRecord>(preserved).message == "outer assertion",
+	);
+}
+
 testIsDeepStrictlyEqualMatchesEqualValues();
 testIsDeepStrictlyEqualRejectsDifferentValues();
 testIsDeepStrictlyEqualResetsStrictEqualityTracking();
@@ -76,3 +115,4 @@ testIsStrictlyEqualUsesValueSemanticsForStringsAndIdentityForReferences();
 testAssertTruthyAcceptsCommonTruthyValues();
 testAssertIfErrorAcceptsNullReferences();
 testIsLooselyEqualCoversLegacyCoerciveCases();
+testThrowHelpersRestoreOuterFailureState();

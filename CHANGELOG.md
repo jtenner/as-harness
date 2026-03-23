@@ -2,6 +2,7 @@
 
 ## 2026-03-23
 
+- **runtime: add shared structured assertion failure state** Extend the guest failure-state runtime with cloneable assertion records plus failure-state snapshots, update shared throw observers so inner traps no longer leak their failure kind into later execution, and add focused internal proof for the new structured metadata contract that the remaining `uvu/assert` `Assertion` work now depends on. GitHub: *@jtenner*
 - **docs: plan the `uvu` Assertion contract slices** Add a dedicated note for the deferred `uvu/assert` `Assertion` work, replace the old vague backlog wording with explicit `uvu-assertion-001` through `uvu-assertion-003` slices, and align the live `uvu` TODO with the structured failure-record contract the runtime now needs before adapter parity can land. GitHub: *@jtenner*
 - **qunit: bundle the shipped adapter surface** Add the bundled `qunit` guest-library entry plus CLI compile rewriting, prove the shipped sync subset through a direct bundled CLI run, and refresh the README, roadmap, and backlog docs so `qunit` is now tracked as an active surface with explicit AssemblyScript-only deferrals. GitHub: *@jtenner*
 - **qunit: add assertions and smoke proof** Expand the `qunit` adapter with the shipped `Assert` surface, add ordered step verification, add internal proof plus a shared cross-host smoke fixture for global hooks, module hooks, and expected-failure todo modules, and narrow the backlog to the final bundled CLI slice. GitHub: *@jtenner*

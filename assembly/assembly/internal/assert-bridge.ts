@@ -1,5 +1,11 @@
 import { failMessage } from "./events";
-import { setActiveErrorMessage, setActiveFailureKind } from "./failure-state";
+import {
+	clearActiveErrorMessage,
+	restoreActiveFailureState,
+	setActiveErrorMessage,
+	setActiveFailureKind,
+	takeActiveFailureStateSnapshot,
+} from "./failure-state";
 import { isPartialMatch as matchesPartialShape } from "./partial-match";
 import { isRuntimeTypeInstance as matchesRuntimeTypeInstance } from "./runtime-type";
 import {
@@ -321,12 +327,20 @@ export function assertThrows(
 	callback: TrapCallback,
 	message: string | null = null,
 ): void {
-	assertCondition(didCallbackTrap(callback), message);
+	const snapshot = takeActiveFailureStateSnapshot();
+	clearActiveErrorMessage();
+	const trapped = didCallbackTrap(callback);
+	restoreActiveFailureState(snapshot);
+	assertCondition(trapped, message);
 }
 
 export function assertDoesNotThrow(
 	callback: TrapCallback,
 	message: string | null = null,
 ): void {
-	assertCondition(!didCallbackTrap(callback), message);
+	const snapshot = takeActiveFailureStateSnapshot();
+	clearActiveErrorMessage();
+	const trapped = didCallbackTrap(callback);
+	restoreActiveFailureState(snapshot);
+	assertCondition(!trapped, message);
 }
