@@ -40,4 +40,5 @@ For each adapter workstream, start from the doc + TODO pair:
 - [docs/018-2026-03-22-tape-adapter-interface.md](../docs/018-2026-03-22-tape-adapter-interface.md)
 - [docs/019-2026-03-23-tap-adapter-interface.md](../docs/019-2026-03-23-tap-adapter-interface.md)
 - [docs/020-2026-03-23-qunit-adapter-interface.md](../docs/020-2026-03-23-qunit-adapter-interface.md)
+- [docs/021-2026-03-23-uvu-assertion-class-contract.md](../docs/021-2026-03-23-uvu-assertion-class-contract.md)
 - [docs/003-2026-03-17-harness-abi.md](../docs/003-2026-03-17-harness-abi.md)

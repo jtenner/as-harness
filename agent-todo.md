@@ -12,13 +12,16 @@
   Promise / observable execution, `t.try(...)`, timeout control, teardown
   callbacks, or AVA's snapshot-directory contract before the shared runtime can
   represent those semantics directly.
-- do not expand upstream `uvu` `Assertion` object parity until the repo ships
-  an adapter-local error-object contract with enough structured failure
-  metadata to support future reuse such as Jasmine `throwUnless(...)`.
+- keep the new structured assertion-record contract honest: it should preserve
+  enough metadata for `uvu` parity and future thrown-assertion reuse, but it
+  must not pretend the current Wasm trap boundary can preserve arbitrary JS
+  object identity.
 
 ### Adapter: `uvu`
 
-- `uvu-001`: add the deferred upstream `Assertion` object-parity work only
-  after the shared error-object contract exists.
-- implementation plan: define the shared error-object contract first, then
-  lift object-parity helpers that depend on structured failure metadata.
+- `uvu-assertion-001`: document the `uvu` `Assertion` contract and replace the
+  old vague backlog wording with explicit implementation slices.
+- `uvu-assertion-002`: add shared structured assertion metadata to the failure
+  state so guest adapters can reconstruct failed assertions after a trap.
+- `uvu-assertion-003`: ship `uvu/assert` `Assertion` parity plus the remaining
+  helper surface that depends on that metadata, then remove the backlog item.
