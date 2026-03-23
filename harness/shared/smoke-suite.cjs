@@ -801,6 +801,7 @@ function registerHarnessSmokeSuite(options) {
 		assert.equal(typeof harness.onCallbackFail, "function");
 		assert.equal(typeof harness.onDiagnostic, "function");
 		assert.equal(typeof harness.onLog, "function");
+		assert.equal(typeof harness.onDebug, "function");
 		assert.equal(typeof harness.callI32, "function");
 		assert.equal(typeof harness.discover, "function");
 		assert.equal(typeof harness.run, "function");
@@ -816,6 +817,7 @@ function registerHarnessSmokeSuite(options) {
 		harness.onCallbackFail(() => {});
 		harness.onDiagnostic(() => {});
 		harness.onLog(() => {});
+		harness.onDebug(() => {});
 		assert.equal(harness.discover("bad"), false);
 		assert.equal(harness.run([]), true);
 		assert.equal(harness.run("bad"), false);

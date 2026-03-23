@@ -648,6 +648,91 @@ test("defaultRunReporter emits fallback failure text when a failing test has no 
 	expect(messages.error).toContain("  fail: failed without a fail message");
 });
 
+test("defaultRunReporter renders structured debug details with crumbs", () => {
+	const messages = {
+		error: [] as string[],
+		info: [] as string[],
+	};
+	const logger: ReporterLogger = {
+		error(message) {
+			messages.error.push(message);
+		},
+		info(message) {
+			messages.info.push(message);
+		},
+	};
+	const report = createHarnessRunReport(
+		createStartResult({
+			ok: false,
+			discoveryOk: true,
+			planningOk: true,
+			discoveredTestCount: 1,
+			topLevelNodes: [createNode("root", 0)],
+			workerCount: 1,
+			branches: [
+				{
+					root: createNode("root", 0),
+					discovery: {
+						ok: true,
+						nodes: [createNode("root", 0)],
+						testCount: 1,
+					},
+					executions: [
+						{
+							node: createNode("debug failure", 1),
+							ok: false,
+							events: [
+								{
+									type: "debug",
+									data: {
+										source: "abort",
+										message: "debug trap",
+										values: [],
+										location: {
+											fileName: "suite.test.ts",
+											line: 12,
+											column: 3,
+										},
+										crumbs: [
+											{
+												kind: 2,
+												nodeKind: 1,
+												hookKind: 0,
+												name: "debug failure",
+												sourceFile: "suite.test.ts",
+												sourceLine: 10,
+												sourceColumn: 1,
+												nodeIndex: [1],
+											},
+										],
+										engineStack: [],
+									},
+								},
+							],
+						},
+					],
+					ok: false,
+				},
+			],
+			planIssues: [],
+			blocked: [],
+			coverage: null,
+		}),
+	);
+
+	defaultRunReporter.accept(report, {
+		harnessName: "js",
+		logger,
+	});
+
+	expect(messages.error).toContain("- debug failure");
+	expect(messages.error).toContain("  abort: debug trap at suite.test.ts:12:3");
+	expect(messages.error).toContain(
+		"    crumb: debug failure kind=2 hook=0 nodeKind=1 at suite.test.ts:10:1 [1]",
+	);
+	expect(messages.error).toContain("  fail: failed without a fail message");
+});
+
 test("defaultRunReporter surfaces ignored hints as informational issues on passing runs", () => {
 	const messages = {
 		error: [] as string[],

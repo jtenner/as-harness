@@ -27,6 +27,7 @@ const EVENT_TYPES = [
 	["onCallbackFail", "callbackFail"],
 	["onDiagnostic", "diagnostic"],
 	["onLog", "log"],
+	["onDebug", "debug"],
 ];
 const workerScriptPath = path.join(__dirname, "start-worker.cjs");
 
@@ -61,12 +62,22 @@ function readCoverageSnapshot(harness) {
 	return harness.getCoverageSnapshot();
 }
 
-function cloneEvent(event) {
-	const copy = {};
-	for (const [key, value] of Object.entries(event)) {
-		copy[key] = Array.isArray(value) ? value.slice() : value;
+function cloneEventValue(value) {
+	if (Array.isArray(value)) {
+		return value.map(cloneEventValue);
 	}
-	return copy;
+	if (value && typeof value === "object") {
+		const copy = {};
+		for (const [key, nestedValue] of Object.entries(value)) {
+			copy[key] = cloneEventValue(nestedValue);
+		}
+		return copy;
+	}
+	return value;
+}
+
+function cloneEvent(event) {
+	return cloneEventValue(event);
 }
 
 function cloneNode(node) {
@@ -492,7 +503,12 @@ function runBranchTaskInBand(options, task) {
 
 	try {
 		for (const [registrationName, type] of EVENT_TYPES) {
-			harness[registrationName]((event) => {
+			const register = harness[registrationName];
+			if (typeof register !== "function") {
+				continue;
+			}
+
+			register.call(harness, (event) => {
 				if (currentEvents === null) {
 					return;
 				}

@@ -33,6 +33,7 @@ const EVENT_KIND_DIAGNOSTIC = 7;
 const EVENT_KIND_NODE_FAIL = 8;
 const EVENT_KIND_CALLBACK_FAIL = 9;
 const EVENT_KIND_LOG = 10;
+const EVENT_KIND_DEBUG = 11;
 const HOOK_KIND_BEFORE_ALL = 1;
 const HOOK_KIND_BEFORE_EACH = 2;
 const HOOK_KIND_AFTER_EACH = 3;
@@ -337,6 +338,177 @@ function decodeLogEvent(bytes) {
 	};
 }
 
+function decodeDebugCrumb(bytes, offset) {
+	if (offset + 8 > bytes.byteLength) {
+		return null;
+	}
+
+	const decodedNodeIndex = decodeNodeIndex(bytes, offset + 4);
+	if (decodedNodeIndex === null) {
+		return null;
+	}
+
+	const nameLength = decodeUint32(bytes, decodedNodeIndex.offset);
+	if (nameLength === null) {
+		return null;
+	}
+	if (nameLength.offset + nameLength.value > bytes.byteLength) {
+		return null;
+	}
+
+	const sourceFileLength = decodeUint32(
+		bytes,
+		nameLength.offset + nameLength.value,
+	);
+	if (sourceFileLength === null) {
+		return null;
+	}
+	if (sourceFileLength.offset + sourceFileLength.value + 8 > bytes.byteLength) {
+		return null;
+	}
+
+	const sourceLine = decodeUint32(
+		bytes,
+		sourceFileLength.offset + sourceFileLength.value,
+	);
+	if (sourceLine === null) {
+		return null;
+	}
+	const sourceColumn = decodeUint32(bytes, sourceLine.offset);
+	if (sourceColumn === null) {
+		return null;
+	}
+
+	return {
+		crumb: {
+			kind: bytes[offset],
+			nodeKind: bytes[offset + 1],
+			hookKind: bytes[offset + 2],
+			nodeIndex: decodedNodeIndex.nodeIndex,
+			name: readUtf8(bytes, nameLength.offset, nameLength.value),
+			sourceFile: readUtf8(
+				bytes,
+				sourceFileLength.offset,
+				sourceFileLength.value,
+			),
+			sourceLine: sourceLine.value,
+			sourceColumn: sourceColumn.value,
+		},
+		offset: sourceColumn.offset,
+	};
+}
+
+function toDebugSource(sourceKind) {
+	switch (sourceKind) {
+		case 1:
+			return "trace";
+		case 2:
+			return "abort";
+		default:
+			return null;
+	}
+}
+
+function decodeDebugEvent(bytes) {
+	if (bytes.byteLength < 8) {
+		return null;
+	}
+
+	const source = toDebugSource(bytes[0]);
+	if (source === null) {
+		return null;
+	}
+
+	const valueCount = decodeUint32(bytes, 4);
+	if (valueCount === null) {
+		return null;
+	}
+
+	const values = [];
+	let offset = valueCount.offset;
+	for (let index = 0; index < valueCount.value; index += 1) {
+		const decoded = decodeFloat64(bytes, offset);
+		if (decoded === null) {
+			return null;
+		}
+
+		values.push(decoded.value);
+		offset = decoded.offset;
+	}
+
+	const crumbCount = decodeUint32(bytes, offset);
+	if (crumbCount === null) {
+		return null;
+	}
+
+	const crumbs = [];
+	offset = crumbCount.offset;
+	for (let index = 0; index < crumbCount.value; index += 1) {
+		const decodedCrumb = decodeDebugCrumb(bytes, offset);
+		if (decodedCrumb === null) {
+			return null;
+		}
+
+		crumbs.push(decodedCrumb.crumb);
+		offset = decodedCrumb.offset;
+	}
+
+	const messageLength = decodeUint32(bytes, offset);
+	if (messageLength === null) {
+		return null;
+	}
+	if (messageLength.offset + messageLength.value > bytes.byteLength) {
+		return null;
+	}
+
+	const locationFileLength = decodeUint32(
+		bytes,
+		messageLength.offset + messageLength.value,
+	);
+	if (locationFileLength === null) {
+		return null;
+	}
+	if (
+		locationFileLength.offset + locationFileLength.value + 8 >
+		bytes.byteLength
+	) {
+		return null;
+	}
+
+	const locationLine = decodeUint32(
+		bytes,
+		locationFileLength.offset + locationFileLength.value,
+	);
+	if (locationLine === null) {
+		return null;
+	}
+	const locationColumn = decodeUint32(bytes, locationLine.offset);
+	if (locationColumn === null) {
+		return null;
+	}
+
+	const fileName = readUtf8(
+		bytes,
+		locationFileLength.offset,
+		locationFileLength.value,
+	);
+	return {
+		source,
+		message: readUtf8(bytes, messageLength.offset, messageLength.value),
+		values,
+		location:
+			fileName.length > 0 || locationLine.value > 0 || locationColumn.value > 0
+				? {
+						fileName,
+						line: locationLine.value,
+						column: locationColumn.value,
+					}
+				: null,
+		crumbs,
+		engineStack: [],
+	};
+}
+
 function decodeEvent(kind, bytes) {
 	switch (kind) {
 		case EVENT_KIND_NODE_FOUND:
@@ -357,6 +529,8 @@ function decodeEvent(kind, bytes) {
 			return decodeCallbackFailureEvent(bytes);
 		case EVENT_KIND_LOG:
 			return decodeLogEvent(bytes);
+		case EVENT_KIND_DEBUG:
+			return decodeDebugEvent(bytes);
 		default:
 			return null;
 	}
@@ -649,6 +823,7 @@ class Harness {
 		callbackFail: null,
 		diagnostic: null,
 		log: null,
+		debug: null,
 	};
 
 	constructor(compiledModule, createHarnessOptions = {}) {
@@ -705,6 +880,11 @@ class Harness {
 	onLog(callback) {
 		assertCallback(callback);
 		this.#callbacks.log = callback;
+	}
+
+	onDebug(callback) {
+		assertCallback(callback);
+		this.#callbacks.debug = callback;
 	}
 
 	close() {}
@@ -1165,6 +1345,8 @@ class Harness {
 				return this.#callbacks.diagnostic;
 			case EVENT_KIND_LOG:
 				return this.#callbacks.log;
+			case EVENT_KIND_DEBUG:
+				return this.#callbacks.debug;
 			default:
 				return null;
 		}

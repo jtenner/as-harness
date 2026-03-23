@@ -15,8 +15,6 @@
 
 ### Rich Debug Payloads
 
-- `debug-003`: add the host-facing `debug` event surface, deep event cloning,
-  decoder support, and reporter formatting across the shipped host matrix.
 - `debug-004`: ship bundled `harnessAbort` and `harnessTrace` globals plus
   default compile-wrapper `--use` overrides, while keeping user-specified
   overrides authoritative.

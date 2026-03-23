@@ -104,6 +104,32 @@ export interface HarnessLogEvent {
 	values: Array<number>;
 }
 
+export interface HarnessDebugCrumb {
+	kind: number;
+	nodeKind: number;
+	hookKind: number;
+	name: string;
+	sourceFile: string;
+	sourceLine: number;
+	sourceColumn: number;
+	nodeIndex: Array<number>;
+}
+
+export interface HarnessDebugLocation {
+	fileName: string;
+	line: number;
+	column: number;
+}
+
+export interface HarnessDebugEvent {
+	source: "trace" | "abort";
+	message: string;
+	values: Array<number>;
+	location: HarnessDebugLocation | null;
+	crumbs: Array<HarnessDebugCrumb>;
+	engineStack: Array<string>;
+}
+
 export interface HarnessEventMap {
 	nodeFound: HarnessNodeFoundEvent;
 	nodeStart: HarnessNodeEvent;
@@ -115,6 +141,7 @@ export interface HarnessEventMap {
 	callbackFail: HarnessCallbackFailureEvent;
 	diagnostic: HarnessDiagnosticEvent;
 	log: HarnessLogEvent;
+	debug: HarnessDebugEvent;
 }
 
 export type HarnessEventType = keyof HarnessEventMap;
@@ -199,6 +226,7 @@ export interface Harness {
 	onCallbackFail(callback: HarnessEventCallback<"callbackFail">): void;
 	onDiagnostic(callback: HarnessEventCallback<"diagnostic">): void;
 	onLog(callback: HarnessEventCallback<"log">): void;
+	onDebug(callback: HarnessEventCallback<"debug">): void;
 	callI32(exportName: string): number;
 	discover(nodeIndex: Array<number>): boolean;
 	run(nodeIndex: Array<number>): boolean;

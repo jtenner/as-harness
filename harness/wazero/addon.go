@@ -41,6 +41,7 @@ extern napi_value GoOnCallbackPass(napi_env env, napi_callback_info info);
 extern napi_value GoOnCallbackFail(napi_env env, napi_callback_info info);
 extern napi_value GoOnDiagnostic(napi_env env, napi_callback_info info);
 extern napi_value GoOnLog(napi_env env, napi_callback_info info);
+extern napi_value GoOnDebug(napi_env env, napi_callback_info info);
 extern napi_value GoCallI32(napi_env env, napi_callback_info info);
 extern napi_value GoDiscoverHarness(napi_env env, napi_callback_info info);
 extern napi_value GoRunHarness(napi_env env, napi_callback_info info);
@@ -98,6 +99,7 @@ const eventKindDiagnostic = 7
 const eventKindNodeFail = 8
 const eventKindCallbackFail = 9
 const eventKindLog = 10
+const eventKindDebug = 11
 const nodeKindTest = 1
 const declarationModeNormal = 1
 const activeArtifactFrameDepthExport = "getActiveArtifactFrameDepth"
@@ -132,6 +134,7 @@ const (
 	callbackFailSlot
 	diagnosticSlot
 	logSlot
+	debugSlot
 	callbackSlotCount
 )
 
@@ -236,6 +239,17 @@ type discoverySnapshot struct {
 	TestCount uint32
 }
 
+type debugCrumbSnapshot struct {
+	Kind         uint32
+	NodeKind     uint32
+	HookKind     uint32
+	NodeIndex    []uint32
+	Name         string
+	SourceFile   string
+	SourceLine   uint32
+	SourceColumn uint32
+}
+
 type eventSnapshot struct {
 	Type                   string
 	NodeIndex              []uint32
@@ -255,6 +269,12 @@ type eventSnapshot struct {
 	FailureKind            uint32
 	Message                string
 	Values                 []float64
+	DebugSource            string
+	LocationFileName       string
+	LocationLine           uint32
+	LocationColumn         uint32
+	Crumbs                 []debugCrumbSnapshot
+	EngineStack            []string
 }
 
 type executionSnapshot struct {
@@ -2014,6 +2034,299 @@ func createLogEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
 	return result, true
 }
 
+func decodeDebugCrumbPayload(payload []byte, offset int) (debugCrumbSnapshot, int, bool) {
+	if offset+8 > len(payload) {
+		return debugCrumbSnapshot{}, 0, false
+	}
+
+	nodeIndex, nextOffset, ok := decodeNodeIndex(payload, offset+4)
+	if !ok {
+		return debugCrumbSnapshot{}, 0, false
+	}
+
+	nameLength, nextOffset, ok := decodeUint32(payload, nextOffset)
+	if !ok {
+		return debugCrumbSnapshot{}, 0, false
+	}
+	if nextOffset+int(nameLength) > len(payload) {
+		return debugCrumbSnapshot{}, 0, false
+	}
+	name := string(payload[nextOffset : nextOffset+int(nameLength)])
+	nextOffset += int(nameLength)
+
+	sourceFileLength, nextOffset, ok := decodeUint32(payload, nextOffset)
+	if !ok {
+		return debugCrumbSnapshot{}, 0, false
+	}
+	if nextOffset+int(sourceFileLength)+8 > len(payload) {
+		return debugCrumbSnapshot{}, 0, false
+	}
+	sourceFile := string(payload[nextOffset : nextOffset+int(sourceFileLength)])
+	nextOffset += int(sourceFileLength)
+
+	sourceLine, nextOffset, ok := decodeUint32(payload, nextOffset)
+	if !ok {
+		return debugCrumbSnapshot{}, 0, false
+	}
+	sourceColumn, nextOffset, ok := decodeUint32(payload, nextOffset)
+	if !ok {
+		return debugCrumbSnapshot{}, 0, false
+	}
+
+	return debugCrumbSnapshot{
+		Kind:         uint32(payload[offset]),
+		NodeKind:     uint32(payload[offset+1]),
+		HookKind:     uint32(payload[offset+2]),
+		NodeIndex:    cloneNodeIndex(nodeIndex),
+		Name:         name,
+		SourceFile:   sourceFile,
+		SourceLine:   sourceLine,
+		SourceColumn: sourceColumn,
+	}, nextOffset, true
+}
+
+func decodeDebugPayload(payload []byte) (string, string, []float64, string, uint32, uint32, []debugCrumbSnapshot, bool) {
+	if len(payload) < 8 {
+		return "", "", nil, "", 0, 0, nil, false
+	}
+
+	var source string
+	switch payload[0] {
+	case 1:
+		source = "trace"
+	case 2:
+		source = "abort"
+	default:
+		return "", "", nil, "", 0, 0, nil, false
+	}
+
+	valueCount, offset, ok := decodeUint32(payload, 4)
+	if !ok {
+		return "", "", nil, "", 0, 0, nil, false
+	}
+
+	values := make([]float64, 0, int(valueCount))
+	for index := uint32(0); index < valueCount; index++ {
+		if offset+8 > len(payload) {
+			return "", "", nil, "", 0, 0, nil, false
+		}
+
+		valueBits := binary.LittleEndian.Uint64(payload[offset : offset+8])
+		values = append(values, math.Float64frombits(valueBits))
+		offset += 8
+	}
+
+	crumbCount, offset, ok := decodeUint32(payload, offset)
+	if !ok {
+		return "", "", nil, "", 0, 0, nil, false
+	}
+
+	crumbs := make([]debugCrumbSnapshot, 0, int(crumbCount))
+	for index := uint32(0); index < crumbCount; index++ {
+		crumb, nextOffset, ok := decodeDebugCrumbPayload(payload, offset)
+		if !ok {
+			return "", "", nil, "", 0, 0, nil, false
+		}
+
+		crumbs = append(crumbs, crumb)
+		offset = nextOffset
+	}
+
+	messageLength, nextOffset, ok := decodeUint32(payload, offset)
+	if !ok {
+		return "", "", nil, "", 0, 0, nil, false
+	}
+	if nextOffset+int(messageLength) > len(payload) {
+		return "", "", nil, "", 0, 0, nil, false
+	}
+	message := string(payload[nextOffset : nextOffset+int(messageLength)])
+	offset = nextOffset + int(messageLength)
+
+	locationFileLength, nextOffset, ok := decodeUint32(payload, offset)
+	if !ok {
+		return "", "", nil, "", 0, 0, nil, false
+	}
+	if nextOffset+int(locationFileLength)+8 > len(payload) {
+		return "", "", nil, "", 0, 0, nil, false
+	}
+	locationFileName := string(payload[nextOffset : nextOffset+int(locationFileLength)])
+	offset = nextOffset + int(locationFileLength)
+
+	locationLine, offset, ok := decodeUint32(payload, offset)
+	if !ok {
+		return "", "", nil, "", 0, 0, nil, false
+	}
+	locationColumn, _, ok := decodeUint32(payload, offset)
+	if !ok {
+		return "", "", nil, "", 0, 0, nil, false
+	}
+
+	return source, message, values, locationFileName, locationLine, locationColumn, crumbs, true
+}
+
+func createDebugLocationValue(env C.napi_env, fileName string, line uint32, column uint32) (C.napi_value, bool) {
+	if len(fileName) == 0 && line == 0 && column == 0 {
+		return null(env), true
+	}
+
+	location := createObject(env, "failed to create debug location")
+	if location == nil {
+		return nil, false
+	}
+	if !setNamedProperty(env, location, "fileName", createString(env, fileName)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, location, "line", createUint32(env, line)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, location, "column", createUint32(env, column)) {
+		return nil, false
+	}
+
+	return location, true
+}
+
+func createDebugCrumbsValue(env C.napi_env, crumbs []debugCrumbSnapshot) (C.napi_value, bool) {
+	crumbsValue := createArrayWithLength(env, uint32(len(crumbs)))
+	if crumbsValue == nil {
+		return nil, false
+	}
+
+	for index, crumb := range crumbs {
+		crumbValue := createObject(env, "failed to create debug crumb")
+		if crumbValue == nil {
+			return nil, false
+		}
+		if !setNamedProperty(env, crumbValue, "kind", createUint32(env, crumb.Kind)) {
+			return nil, false
+		}
+		if !setNamedProperty(env, crumbValue, "nodeKind", createUint32(env, crumb.NodeKind)) {
+			return nil, false
+		}
+		if !setNamedProperty(env, crumbValue, "hookKind", createUint32(env, crumb.HookKind)) {
+			return nil, false
+		}
+
+		nodeIndexValue := createArrayWithLength(env, uint32(len(crumb.NodeIndex)))
+		if nodeIndexValue == nil {
+			return nil, false
+		}
+		for nodeIndexIndex, segment := range crumb.NodeIndex {
+			if !setElement(env, nodeIndexValue, uint32(nodeIndexIndex), createUint32(env, segment)) {
+				return nil, false
+			}
+		}
+
+		if !setNamedProperty(env, crumbValue, "nodeIndex", nodeIndexValue) {
+			return nil, false
+		}
+		if !setNamedProperty(env, crumbValue, "name", createString(env, crumb.Name)) {
+			return nil, false
+		}
+		if !setNamedProperty(env, crumbValue, "sourceFile", createString(env, crumb.SourceFile)) {
+			return nil, false
+		}
+		if !setNamedProperty(env, crumbValue, "sourceLine", createUint32(env, crumb.SourceLine)) {
+			return nil, false
+		}
+		if !setNamedProperty(env, crumbValue, "sourceColumn", createUint32(env, crumb.SourceColumn)) {
+			return nil, false
+		}
+		if !setElement(env, crumbsValue, uint32(index), crumbValue) {
+			return nil, false
+		}
+	}
+
+	return crumbsValue, true
+}
+
+func createStringArrayValue(env C.napi_env, values []string) (C.napi_value, bool) {
+	result := createArrayWithLength(env, uint32(len(values)))
+	if result == nil {
+		return nil, false
+	}
+
+	for index, value := range values {
+		if !setElement(env, result, uint32(index), createString(env, value)) {
+			return nil, false
+		}
+	}
+
+	return result, true
+}
+
+func createDebugEventObject(env C.napi_env, source string, message string, values []float64, fileName string, line uint32, column uint32, crumbs []debugCrumbSnapshot, engineStack []string) (C.napi_value, bool) {
+	result := createObject(env, "failed to create debug event")
+	if result == nil {
+		return nil, false
+	}
+
+	if !setNamedProperty(env, result, "source", createString(env, source)) {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "message", createString(env, message)) {
+		return nil, false
+	}
+
+	valuesValue := createArrayWithLength(env, uint32(len(values)))
+	if valuesValue == nil {
+		return nil, false
+	}
+	for index, value := range values {
+		if !setElement(env, valuesValue, uint32(index), createDouble(env, value)) {
+			return nil, false
+		}
+	}
+	if !setNamedProperty(env, result, "values", valuesValue) {
+		return nil, false
+	}
+
+	locationValue, ok := createDebugLocationValue(env, fileName, line, column)
+	if !ok {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "location", locationValue) {
+		return nil, false
+	}
+
+	crumbsValue, ok := createDebugCrumbsValue(env, crumbs)
+	if !ok {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "crumbs", crumbsValue) {
+		return nil, false
+	}
+
+	engineStackValue, ok := createStringArrayValue(env, engineStack)
+	if !ok {
+		return nil, false
+	}
+	if !setNamedProperty(env, result, "engineStack", engineStackValue) {
+		return nil, false
+	}
+
+	return result, true
+}
+
+func createDebugEvent(env C.napi_env, payload []byte) (C.napi_value, bool) {
+	source, message, values, locationFileName, locationLine, locationColumn, crumbs, ok := decodeDebugPayload(payload)
+	if !ok {
+		return nil, false
+	}
+
+	return createDebugEventObject(
+		env,
+		source,
+		message,
+		values,
+		locationFileName,
+		locationLine,
+		locationColumn,
+		crumbs,
+		nil,
+	)
+}
+
 func createEventValue(env C.napi_env, kind uint32, payload []byte) (C.napi_value, bool) {
 	switch kind {
 	case eventKindNodeFound:
@@ -2040,6 +2353,8 @@ func createEventValue(env C.napi_env, kind uint32, payload []byte) (C.napi_value
 		return createDiagnosticEvent(env, payload)
 	case eventKindLog:
 		return createLogEvent(env, payload)
+	case eventKindDebug:
+		return createDebugEvent(env, payload)
 	default:
 		return nil, false
 	}
@@ -2215,6 +2530,23 @@ func decodeEventSnapshot(kind uint32, payload []byte) (eventSnapshot, bool) {
 			Message: message,
 			Values:  append([]float64(nil), values...),
 		}, true
+	case eventKindDebug:
+		source, message, values, locationFileName, locationLine, locationColumn, crumbs, ok := decodeDebugPayload(payload)
+		if !ok {
+			return eventSnapshot{}, false
+		}
+
+		return eventSnapshot{
+			Type:             "debug",
+			DebugSource:      source,
+			Message:          message,
+			Values:           append([]float64(nil), values...),
+			LocationFileName: locationFileName,
+			LocationLine:     locationLine,
+			LocationColumn:   locationColumn,
+			Crumbs:           append([]debugCrumbSnapshot(nil), crumbs...),
+			EngineStack:      []string{},
+		}, true
 	default:
 		return eventSnapshot{}, false
 	}
@@ -2264,6 +2596,8 @@ func callbackSlotForEventKind(kind uint32) (callbackSlot, bool) {
 		return diagnosticSlot, true
 	case eventKindLog:
 		return logSlot, true
+	case eventKindDebug:
+		return debugSlot, true
 	default:
 		return 0, false
 	}
@@ -2866,6 +3200,9 @@ func createHarnessObject(env C.napi_env, id int64) C.napi_value {
 	if !setNamedProperty(env, harness, "onLog", createFunction(env, "onLog", (C.napi_callback)(C.GoOnLog))) {
 		return nil
 	}
+	if !setNamedProperty(env, harness, "onDebug", createFunction(env, "onDebug", (C.napi_callback)(C.GoOnDebug))) {
+		return nil
+	}
 	if !setNamedProperty(env, harness, "callI32", createFunction(env, "callI32", (C.napi_callback)(C.GoCallI32))) {
 		return nil
 	}
@@ -3326,6 +3663,22 @@ func createEventSnapshotValue(env C.napi_env, event eventSnapshot) (C.napi_value
 		if !setNamedProperty(env, data, "values", valuesValue) {
 			return nil, false
 		}
+	case "debug":
+		var ok bool
+		data, ok = createDebugEventObject(
+			env,
+			event.DebugSource,
+			event.Message,
+			event.Values,
+			event.LocationFileName,
+			event.LocationLine,
+			event.LocationColumn,
+			event.Crumbs,
+			event.EngineStack,
+		)
+		if !ok {
+			return nil, false
+		}
 	default:
 		return nil, false
 	}
@@ -3776,6 +4129,11 @@ func GoOnDiagnostic(env C.napi_env, info C.napi_callback_info) C.napi_value {
 //export GoOnLog
 func GoOnLog(env C.napi_env, info C.napi_callback_info) C.napi_value {
 	return registerCallback(env, info, logSlot)
+}
+
+//export GoOnDebug
+func GoOnDebug(env C.napi_env, info C.napi_callback_info) C.napi_value {
+	return registerCallback(env, info, debugSlot)
 }
 
 //export GoCallI32

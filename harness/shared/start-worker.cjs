@@ -26,7 +26,12 @@ function runBranch(branch) {
 
 	try {
 		for (const [registrationName, type] of EVENT_TYPES) {
-			harness[registrationName]((event) => {
+			const register = harness[registrationName];
+			if (typeof register !== "function") {
+				continue;
+			}
+
+			register.call(harness, (event) => {
 				if (currentEvents === null) {
 					return;
 				}

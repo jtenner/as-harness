@@ -1,5 +1,6 @@
 import type {
 	HarnessBlockedNode,
+	HarnessDebugEvent,
 	HarnessBranchDiscovery,
 	HarnessDiagnosticEvent,
 	HarnessEvent,
@@ -27,6 +28,15 @@ export type HarnessExecutionDetail =
 			nodeIndex: number[] | null;
 			source: "diagnostic" | "trace";
 			type: "log";
+			values: number[];
+	  }
+	| {
+			crumbs: HarnessDebugEvent["crumbs"];
+			engineStack: string[];
+			location: HarnessDebugEvent["location"];
+			message: string;
+			source: HarnessDebugEvent["source"];
+			type: "debug";
 			values: number[];
 	  };
 
@@ -102,6 +112,28 @@ function toTraceLogDetail(event: HarnessLogEvent): HarnessExecutionDetail {
 	};
 }
 
+function toDebugDetail(event: HarnessDebugEvent): HarnessExecutionDetail {
+	return {
+		crumbs: event.crumbs.map((crumb) => ({
+			...crumb,
+			nodeIndex: crumb.nodeIndex.slice(),
+		})),
+		engineStack: event.engineStack.slice(),
+		location:
+			event.location === null
+				? null
+				: {
+						fileName: event.location.fileName,
+						line: event.location.line,
+						column: event.location.column,
+					},
+		message: event.message,
+		source: event.source,
+		type: "debug",
+		values: event.values.slice(),
+	};
+}
+
 function collectExecutionDetails(
 	events: readonly HarnessEvent[],
 ): HarnessExecutionDetail[] {
@@ -117,6 +149,9 @@ function collectExecutionDetails(
 				break;
 			case "log":
 				details.push(toTraceLogDetail(event.data));
+				break;
+			case "debug":
+				details.push(toDebugDetail(event.data));
 				break;
 			default:
 				break;
@@ -199,6 +234,24 @@ export function createHarnessRunReport(
 	};
 }
 
+function formatLocation(location: HarnessDebugEvent["location"]) {
+	if (
+		location === null ||
+		((typeof location.fileName !== "string" ||
+			location.fileName.length === 0) &&
+			location.line === 0 &&
+			location.column === 0)
+	) {
+		return "";
+	}
+
+	const fileName =
+		typeof location.fileName === "string" && location.fileName.length > 0
+			? location.fileName
+			: "<unknown>";
+	return `${fileName}:${location.line}:${location.column}`;
+}
+
 function formatLogDetail(
 	detail: Extract<HarnessExecutionDetail, { type: "log" }>,
 ) {
@@ -207,6 +260,39 @@ function formatLogDetail(
 	}
 
 	return `${detail.source}: ${detail.message}`;
+}
+
+function formatDebugDetailLines(
+	detail: Extract<HarnessExecutionDetail, { type: "debug" }>,
+) {
+	const lines = [];
+	const valueSuffix =
+		detail.source === "trace" && detail.values.length > 0
+			? ` (${detail.values.join(", ")})`
+			: "";
+	const formattedLocation = formatLocation(detail.location);
+
+	lines.push(
+		formattedLocation.length > 0
+			? `${detail.source}: ${detail.message}${valueSuffix} at ${formattedLocation}`
+			: `${detail.source}: ${detail.message}${valueSuffix}`,
+	);
+
+	for (const crumb of detail.crumbs) {
+		const crumbLocation =
+			typeof crumb.sourceFile === "string" && crumb.sourceFile.length > 0
+				? `${crumb.sourceFile}:${crumb.sourceLine}:${crumb.sourceColumn}`
+				: "<unknown>:0:0";
+		lines.push(
+			`  crumb: ${crumb.name} kind=${crumb.kind} hook=${crumb.hookKind} nodeKind=${crumb.nodeKind} at ${crumbLocation} [${crumb.nodeIndex.join(", ")}]`,
+		);
+	}
+
+	for (const stackLine of detail.engineStack) {
+		lines.push(`  stack: ${stackLine}`);
+	}
+
+	return lines;
 }
 
 function getFallbackFailureMessage(execution: HarnessExecutionReport) {
@@ -300,7 +386,14 @@ export const defaultRunReporter: RunReporter = {
 							continue;
 						}
 
-						logger.error(`  ${formatLogDetail(detail)}`);
+						if (detail.type === "log") {
+							logger.error(`  ${formatLogDetail(detail)}`);
+							continue;
+						}
+
+						for (const line of formatDebugDetailLines(detail)) {
+							logger.error(`  ${line}`);
+						}
 					}
 
 					if (!sawFailMessage) {
