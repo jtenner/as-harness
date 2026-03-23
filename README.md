@@ -144,8 +144,12 @@ Public installable distribution is now npm-only.
 The tag workflow publishes the staged lockstep npm package set after
 cross-platform pack and install-smoke verification, then creates or updates a
 notes-only GitHub release page from the annotated tag contents. The staged npm
-lane includes `@as-harness/wasmtime` plus the current-platform binary package
-shape for local pack/install proof.
+lane includes `@as-harness/shared`, `@as-harness/js`,
+`@as-harness/wazero`, `@as-harness/wasmtime`, and `@as-harness/cli` plus
+optional per-platform `wazero-*` and `wasmtime-*` native packages. On
+the release matrix, `linux-x64` currently builds all packages while the other
+platform jobs build the full common package surface plus their host-native
+package slice.
 
 ## Versioning Policy
 

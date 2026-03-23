@@ -18,7 +18,9 @@ Operational flow for shipping `as-harness` through GitHub:
 - while the project is still `0.x`, treat a `minor` bump as the normal vehicle
   for breaking public API or behavior changes; reserve `patch` for
   non-breaking fixes within the current minor line
-- the staged npm package lane includes `@as-harness/wasmtime`
+- the staged npm package lane includes `@as-harness/shared`, `@as-harness/js`,
+  `@as-harness/wazero`, `@as-harness/wasmtime`, `@as-harness/cli`, and
+  per-platform `wazero-*` / `wasmtime-*` native payload packages
 - `@as-harness/cli` expects a consumer-installed `assemblyscript` peer
 - CI and release install toolchains from repo-local [`.mise.toml`](../.mise.toml)
   through `jdx/mise-action@v4`
@@ -28,6 +30,14 @@ Operational flow for shipping `as-harness` through GitHub:
 - Rust `1.94.0` baseline for `wasmtime` source verification and native package production
 
 ## Targets
+
+- release workflow package-matrix:
+  - `linux-x64` currently stages and verifies all package variants for
+    `npm:pack-release` and `npm:publish-release`
+  - each non-`linux-x64` release job stages all common packages plus only
+    the native binary variants for that host platform
+  - all release jobs upload tarballs under `dist/npm-release-artifacts/<label>`,
+    then `publish-npm` publishes by dependency order after downloads
 
 - source-host verification targets:
   - `linux-x64`, `linux-arm64`, `macos-arm64`, `macos-x64`, `windows-x64`
