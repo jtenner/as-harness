@@ -2,6 +2,7 @@
 
 ## 2026-03-23
 
+- **docs: plan the qunit adapter slices** Add the dedicated QUnit interface note, correct the old `qnit` placeholder name across the live roadmap and TODO path, and expand the backlog with concrete `qunit-001` through `qunit-004` slices plus the runtime-fit risks for the new adapter workstream. GitHub: *@jtenner*
 - **tap: bundle the shipped adapter surface** Add the bundled `tap` guest-library entry plus CLI compile rewriting, prove the shipped sync subset through a direct bundled CLI run, and refresh the README, roadmap, and backlog docs so `tap` is now tracked as a bundled active surface with only explicit runtime-limit deferrals remaining. GitHub: *@jtenner*
 - **tap: add lifecycle helpers and smoke proof** Expand the `tap` adapter with the shipped lifecycle helpers and assertion subset, add internal guest proof plus a shared cross-host smoke fixture for root hooks, nested subtests, plan accounting, and shared assertion lowering, and narrow the live backlog to the final bundled CLI slice. GitHub: *@jtenner*
 - **tap: add the declaration and hook shell** Start the `tap` adapter with a default root singleton plus named declaration and hook helpers, add an adapter-local `Test` callback object for nested subtests and nested hooks, and extend the internal AssemblyScript proof to validate the new declaration graph and execution shell. GitHub: *@jtenner*
