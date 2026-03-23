@@ -24,3 +24,9 @@ export const ARTIFACT_FRAME_SOURCE_RUNTIME_HELPER_NAME =
 	"recordActiveArtifactFrameSource";
 export const ARTIFACT_FRAME_SOURCE_RUNTIME_IMPORT_PATH =
 	"~/.as-harness/internal/artifact-frame";
+export const DEBUG_ABORT_IMPORT_NAME = "__asHarnessAbort";
+export const DEBUG_TRACE_IMPORT_NAME = "__asHarnessTrace";
+export const DEBUG_ABORT_RUNTIME_HELPER_NAME = "harnessAbort";
+export const DEBUG_TRACE_RUNTIME_HELPER_NAME = "harnessTrace";
+export const DEBUG_OVERRIDES_RUNTIME_IMPORT_PATH =
+	"~/.as-harness/internal/debug";

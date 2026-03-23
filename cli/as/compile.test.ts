@@ -15,8 +15,9 @@ import {
 	BUNDLED_LIBRARY_COMPONENTS_PATH,
 	BUNDLED_STRICT_EQUALITY_TRANSFORM_PATH,
 	compileEntrypoints,
-	withBundledHarnessLibraryComponents,
+	shouldEnableBundledDebugSourceRewrite,
 	withBundledCoverageTransform,
+	withBundledHarnessLibraryComponents,
 	withBundledStrictEqualityTransform,
 } from "./compile";
 import {
@@ -173,6 +174,43 @@ test("does not add the strict-equality transform when node:assert libraries are 
 	const result = withBundledStrictEqualityTransform(compilerOptions);
 
 	expect(result).toEqual(compilerOptions);
+});
+
+test("does not enable bundled debug source rewriting when bundled harness libraries are absent", () => {
+	const compilerOptions = {
+		lib: ["./custom-lib"],
+		use: ["SOME_FLAG=1"],
+	};
+
+	const result = shouldEnableBundledDebugSourceRewrite(compilerOptions);
+
+	expect(result).toBe(false);
+});
+
+test("enables bundled debug source rewriting when bundled harness libraries are requested", () => {
+	const result = shouldEnableBundledDebugSourceRewrite({
+		lib: ["node:test"],
+	});
+
+	expect(result).toBe(true);
+});
+
+test("does not enable bundled debug source rewriting when an explicit abort alias is present", () => {
+	const result = shouldEnableBundledDebugSourceRewrite({
+		lib: ["node:test"],
+		use: ["abort=myAbort"],
+	});
+
+	expect(result).toBe(false);
+});
+
+test("does not enable bundled debug source rewriting when an explicit trace alias is present", () => {
+	const result = shouldEnableBundledDebugSourceRewrite({
+		lib: ["node:test"],
+		use: ["trace=myTrace"],
+	});
+
+	expect(result).toBe(false);
 });
 
 test("adds the bundled strict-equality transform when node:assert is requested", () => {

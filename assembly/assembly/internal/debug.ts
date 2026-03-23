@@ -58,7 +58,7 @@ export function harnessAbort(
 	fileName: string | null = null,
 	lineNumber: i32 = 0,
 	columnNumber: i32 = 0,
-): never {
+): void {
 	debug(
 		DebugSourceKind.Abort,
 		new Array<f64>(),

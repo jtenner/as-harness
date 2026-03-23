@@ -318,6 +318,33 @@ test("failing test", (context: TestContext): void => {
 
 	await withTempEntryFile(
 		`
+import { test } from "node:test";
+
+test("failing abort", (): void => {
+  abort("abort payload");
+});
+`,
+		async (entryFile, cwd) => {
+			const result = await runCli(entryFile, cwd);
+
+			expect(result.exitCode).toBe(1);
+			expect(result.stdout).toBe("");
+			expect(result.stderr).toContain(
+				"FAIL 0 passed, 1 failed, 1 discovered with js.",
+			);
+			expect(result.stderr).toContain("- failing abort");
+			expect(result.stderr).toContain(
+				"  abort: abort payload at suite.test.ts:5:3",
+			);
+			expect(result.stderr).toContain(
+				"    crumb: failing abort kind=2 hook=0 nodeKind=1 at suite.test.ts:5:23 [0]",
+			);
+			expect(result.stderr).toContain("  fail: failed without a fail message");
+		},
+	);
+
+	await withTempEntryFile(
+		`
 import { test, TestContext } from "node:test";
 
 test("passing test", (_context: TestContext): void => {});

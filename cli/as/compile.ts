@@ -14,6 +14,36 @@ import {
 	libraryPrefix,
 	main as runAsc,
 } from "assemblyscript/asc";
+import { NodeKind, Parser } from "assemblyscript/dist/assemblyscript.js";
+import type {
+	BinaryExpression,
+	BlockStatement,
+	CallExpression,
+	Expression,
+	ExpressionStatement,
+	ForOfStatement,
+	ForStatement,
+	FunctionDeclaration,
+	FunctionExpression,
+	IfStatement,
+	NamespaceDeclaration,
+	NewExpression,
+	ObjectLiteralExpression,
+	ParenthesizedExpression,
+	PropertyAccessExpression,
+	ReturnStatement,
+	Source,
+	Statement,
+	SwitchCase,
+	SwitchStatement,
+	TernaryExpression,
+	ThrowStatement,
+	TryStatement,
+	UnaryExpression,
+	VariableDeclaration,
+	VariableStatement,
+	WhileStatement,
+} from "assemblyscript/dist/assemblyscript.js";
 import type { Runtime as HarnessRuntime } from "../runtime/types";
 import { jsRuntime } from "../runtime/js";
 import {
@@ -34,6 +64,11 @@ import BundledCoverageTransform, {
 	setCoverageTransformOptions,
 	type CoverageTransformOptions,
 } from "../transform/src/covers.ts";
+import {
+	DEBUG_ABORT_IMPORT_NAME,
+	DEBUG_OVERRIDES_RUNTIME_IMPORT_PATH,
+	DEBUG_TRACE_IMPORT_NAME,
+} from "../transform/src/contracts.ts";
 
 export type Binding = "raw";
 
@@ -140,6 +175,7 @@ const STRICT_EQUALITY_LIBRARY_ENTRY_POINTS = new Set([
 ]);
 const TRACE_COMPILE_FILE_SYSTEM =
 	process.env.AS_HARNESS_TRACE_COMPILE_FS === "1";
+const DEBUG_OVERRIDES_IMPORT_STATEMENT = `import { harnessAbort as ${DEBUG_ABORT_IMPORT_NAME}, harnessTrace as ${DEBUG_TRACE_IMPORT_NAME} } from "${DEBUG_OVERRIDES_RUNTIME_IMPORT_PATH}";`;
 
 type VirtualAssemblyFileSystem = {
 	files: Map<string, string>;
@@ -170,6 +206,576 @@ function traceCompileFileSystem(message: string) {
 	if (TRACE_COMPILE_FILE_SYSTEM) {
 		console.error(`[compile-fs] ${message}`);
 	}
+}
+
+type DebugOverrideEdit = {
+	end: number;
+	start: number;
+	text: string;
+};
+
+function getLineAndColumn(sourceText: string, offset: number) {
+	let line = 1;
+	let column = 1;
+
+	for (let index = 0; index < offset && index < sourceText.length; index += 1) {
+		const code = sourceText.charCodeAt(index);
+		if (code === 10) {
+			line += 1;
+			column = 1;
+			continue;
+		}
+
+		column += 1;
+	}
+
+	return { line, column };
+}
+
+function applyTextEdits(
+	sourceText: string,
+	edits: readonly DebugOverrideEdit[],
+): string {
+	if (edits.length === 0) {
+		return sourceText;
+	}
+
+	const sortedEdits = edits
+		.slice()
+		.sort((left, right) =>
+			left.start === right.start
+				? right.end - left.end
+				: right.start - left.start,
+		);
+	let rewritten = sourceText;
+
+	for (const edit of sortedEdits) {
+		rewritten =
+			rewritten.slice(0, edit.start) + edit.text + rewritten.slice(edit.end);
+	}
+
+	return rewritten;
+}
+
+function getAbortLocationInsertion(
+	callExpression: CallExpression,
+	sourceText: string,
+	sourcePath: string,
+): string {
+	const argsLength = callExpression.args.length;
+	if (argsLength >= 4) {
+		return "";
+	}
+
+	const { line, column } = getLineAndColumn(
+		sourceText,
+		callExpression.range.start,
+	);
+	const fileLiteral = JSON.stringify(toPosixPath(sourcePath));
+
+	switch (argsLength) {
+		case 0:
+			return `null, ${fileLiteral}, ${line}, ${column}`;
+		case 1:
+			return `, ${fileLiteral}, ${line}, ${column}`;
+		case 2:
+			return `, ${line}, ${column}`;
+		case 3:
+			return `, ${column}`;
+		default:
+			return "";
+	}
+}
+
+function collectDebugOverrideEditsFromExpression(
+	expression: Expression,
+	sourceText: string,
+	sourcePath: string,
+	edits: DebugOverrideEdit[],
+): void {
+	switch (expression.kind) {
+		case NodeKind.Call: {
+			const callExpression = expression as CallExpression;
+			if (callExpression.expression.kind === NodeKind.Identifier) {
+				const name = callExpression.expression.text;
+				if (name === "trace" || name === "abort") {
+					edits.push({
+						start: callExpression.expression.range.start,
+						end: callExpression.expression.range.end,
+						text:
+							name === "trace"
+								? DEBUG_TRACE_IMPORT_NAME
+								: DEBUG_ABORT_IMPORT_NAME,
+					});
+					if (name === "abort") {
+						const insertion = getAbortLocationInsertion(
+							callExpression,
+							sourceText,
+							sourcePath,
+						);
+						if (insertion.length > 0) {
+							edits.push({
+								start: callExpression.range.end - 1,
+								end: callExpression.range.end - 1,
+								text: insertion,
+							});
+						}
+					}
+				}
+			} else {
+				collectDebugOverrideEditsFromExpression(
+					callExpression.expression,
+					sourceText,
+					sourcePath,
+					edits,
+				);
+			}
+
+			for (const argument of callExpression.args) {
+				collectDebugOverrideEditsFromExpression(
+					argument,
+					sourceText,
+					sourcePath,
+					edits,
+				);
+			}
+			return;
+		}
+		case NodeKind.Function:
+			collectDebugOverrideEditsFromFunctionDeclaration(
+				(expression as FunctionExpression).declaration,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			return;
+		case NodeKind.Binary: {
+			const binaryExpression = expression as BinaryExpression;
+			collectDebugOverrideEditsFromExpression(
+				binaryExpression.left,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			collectDebugOverrideEditsFromExpression(
+				binaryExpression.right,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			return;
+		}
+		case NodeKind.PropertyAccess:
+			collectDebugOverrideEditsFromExpression(
+				(expression as PropertyAccessExpression).expression,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			return;
+		case NodeKind.Parenthesized:
+			collectDebugOverrideEditsFromExpression(
+				(expression as ParenthesizedExpression).expression,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			return;
+		case NodeKind.UnaryPrefix:
+		case NodeKind.UnaryPostfix:
+			collectDebugOverrideEditsFromExpression(
+				(expression as UnaryExpression).operand,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			return;
+		case NodeKind.Ternary: {
+			const ternaryExpression = expression as TernaryExpression;
+			collectDebugOverrideEditsFromExpression(
+				ternaryExpression.condition,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			collectDebugOverrideEditsFromExpression(
+				ternaryExpression.ifThen,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			collectDebugOverrideEditsFromExpression(
+				ternaryExpression.ifElse,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			return;
+		}
+		case NodeKind.Assertion:
+			collectDebugOverrideEditsFromExpression(
+				expression.expression,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			return;
+		case NodeKind.ArrayLiteral:
+			for (const element of expression.elementExpressions) {
+				collectDebugOverrideEditsFromExpression(
+					element,
+					sourceText,
+					sourcePath,
+					edits,
+				);
+			}
+			return;
+		case NodeKind.ObjectLiteral:
+			for (const value of (expression as ObjectLiteralExpression).values) {
+				collectDebugOverrideEditsFromExpression(
+					value,
+					sourceText,
+					sourcePath,
+					edits,
+				);
+			}
+			return;
+		case NodeKind.New:
+			for (const argument of (expression as NewExpression).args) {
+				collectDebugOverrideEditsFromExpression(
+					argument,
+					sourceText,
+					sourcePath,
+					edits,
+				);
+			}
+			return;
+		default:
+			return;
+	}
+}
+
+function collectDebugOverrideEditsFromVariableDeclaration(
+	declaration: VariableDeclaration,
+	sourceText: string,
+	sourcePath: string,
+	edits: DebugOverrideEdit[],
+): void {
+	if (declaration.initializer !== null) {
+		collectDebugOverrideEditsFromExpression(
+			declaration.initializer,
+			sourceText,
+			sourcePath,
+			edits,
+		);
+	}
+}
+
+function collectDebugOverrideEditsFromFunctionDeclaration(
+	declaration: FunctionDeclaration,
+	sourceText: string,
+	sourcePath: string,
+	edits: DebugOverrideEdit[],
+): void {
+	if (declaration.body) {
+		collectDebugOverrideEditsFromStatements(
+			declaration.body.statements,
+			sourceText,
+			sourcePath,
+			edits,
+		);
+	}
+}
+
+function collectDebugOverrideEditsFromSwitchCase(
+	switchCase: SwitchCase,
+	sourceText: string,
+	sourcePath: string,
+	edits: DebugOverrideEdit[],
+): void {
+	if (switchCase.label) {
+		collectDebugOverrideEditsFromExpression(
+			switchCase.label,
+			sourceText,
+			sourcePath,
+			edits,
+		);
+	}
+
+	collectDebugOverrideEditsFromStatements(
+		switchCase.statements,
+		sourceText,
+		sourcePath,
+		edits,
+	);
+}
+
+function collectDebugOverrideEditsFromStatement(
+	statement: Statement,
+	sourceText: string,
+	sourcePath: string,
+	edits: DebugOverrideEdit[],
+): void {
+	switch (statement.kind) {
+		case NodeKind.FunctionDeclaration:
+			collectDebugOverrideEditsFromFunctionDeclaration(
+				statement as FunctionDeclaration,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			return;
+		case NodeKind.NamespaceDeclaration:
+			collectDebugOverrideEditsFromStatements(
+				(statement as NamespaceDeclaration).members,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			return;
+		case NodeKind.Block:
+			collectDebugOverrideEditsFromStatements(
+				(statement as BlockStatement).statements,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			return;
+		case NodeKind.If: {
+			const ifStatement = statement as IfStatement;
+			collectDebugOverrideEditsFromExpression(
+				ifStatement.condition,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			if (ifStatement.ifTrue) {
+				collectDebugOverrideEditsFromStatement(
+					ifStatement.ifTrue,
+					sourceText,
+					sourcePath,
+					edits,
+				);
+			}
+			if (ifStatement.ifFalse) {
+				collectDebugOverrideEditsFromStatement(
+					ifStatement.ifFalse,
+					sourceText,
+					sourcePath,
+					edits,
+				);
+			}
+			return;
+		}
+		case NodeKind.Switch: {
+			const switchStatement = statement as SwitchStatement;
+			collectDebugOverrideEditsFromExpression(
+				switchStatement.condition,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			for (const switchCase of switchStatement.cases) {
+				collectDebugOverrideEditsFromSwitchCase(
+					switchCase,
+					sourceText,
+					sourcePath,
+					edits,
+				);
+			}
+			return;
+		}
+		case NodeKind.For: {
+			const forStatement = statement as ForStatement;
+			if (forStatement.initializer) {
+				if (forStatement.initializer.kind === NodeKind.Variable) {
+					for (const declaration of forStatement.initializer.declarations) {
+						collectDebugOverrideEditsFromVariableDeclaration(
+							declaration,
+							sourceText,
+							sourcePath,
+							edits,
+						);
+					}
+				} else {
+					collectDebugOverrideEditsFromExpression(
+						forStatement.initializer,
+						sourceText,
+						sourcePath,
+						edits,
+					);
+				}
+			}
+			if (forStatement.condition) {
+				collectDebugOverrideEditsFromExpression(
+					forStatement.condition,
+					sourceText,
+					sourcePath,
+					edits,
+				);
+			}
+			if (forStatement.incrementor) {
+				collectDebugOverrideEditsFromExpression(
+					forStatement.incrementor,
+					sourceText,
+					sourcePath,
+					edits,
+				);
+			}
+			collectDebugOverrideEditsFromStatement(
+				forStatement.body,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			return;
+		}
+		case NodeKind.ForOf: {
+			const forOfStatement = statement as ForOfStatement;
+			collectDebugOverrideEditsFromExpression(
+				forOfStatement.iterable,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			collectDebugOverrideEditsFromStatement(
+				forOfStatement.body,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			return;
+		}
+		case NodeKind.While:
+		case NodeKind.Do: {
+			const whileStatement = statement as WhileStatement;
+			collectDebugOverrideEditsFromExpression(
+				whileStatement.condition,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			collectDebugOverrideEditsFromStatement(
+				whileStatement.body,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			return;
+		}
+		case NodeKind.Return: {
+			const returnStatement = statement as ReturnStatement;
+			if (returnStatement.value) {
+				collectDebugOverrideEditsFromExpression(
+					returnStatement.value,
+					sourceText,
+					sourcePath,
+					edits,
+				);
+			}
+			return;
+		}
+		case NodeKind.Throw:
+			collectDebugOverrideEditsFromExpression(
+				(statement as ThrowStatement).value,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			return;
+		case NodeKind.Expression:
+			collectDebugOverrideEditsFromExpression(
+				(statement as ExpressionStatement).expression,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			return;
+		case NodeKind.Variable:
+			for (const declaration of (statement as VariableStatement).declarations) {
+				collectDebugOverrideEditsFromVariableDeclaration(
+					declaration,
+					sourceText,
+					sourcePath,
+					edits,
+				);
+			}
+			return;
+		case NodeKind.Try: {
+			const tryStatement = statement as TryStatement;
+			collectDebugOverrideEditsFromStatements(
+				tryStatement.body.statements,
+				sourceText,
+				sourcePath,
+				edits,
+			);
+			if (tryStatement.catchVariable) {
+				collectDebugOverrideEditsFromStatements(
+					tryStatement.catchBody.statements,
+					sourceText,
+					sourcePath,
+					edits,
+				);
+			}
+			if (tryStatement.finallyBody) {
+				collectDebugOverrideEditsFromStatements(
+					tryStatement.finallyBody.statements,
+					sourceText,
+					sourcePath,
+					edits,
+				);
+			}
+			return;
+		}
+		default:
+			return;
+	}
+}
+
+function collectDebugOverrideEditsFromStatements(
+	statements: readonly Statement[],
+	sourceText: string,
+	sourcePath: string,
+	edits: DebugOverrideEdit[],
+): void {
+	for (const statement of statements) {
+		collectDebugOverrideEditsFromStatement(
+			statement,
+			sourceText,
+			sourcePath,
+			edits,
+		);
+	}
+}
+
+function rewriteBundledDebugOverrideSource(
+	sourceText: string,
+	sourcePath: string,
+): string {
+	const parser = new Parser();
+	parser.parseFile(sourceText, sourcePath, true);
+	const [source] = parser.sources as Source[];
+	if (!source) {
+		return sourceText;
+	}
+
+	const edits: DebugOverrideEdit[] = [];
+	collectDebugOverrideEditsFromStatements(
+		source.statements,
+		sourceText,
+		sourcePath,
+		edits,
+	);
+	if (edits.length === 0) {
+		return sourceText;
+	}
+
+	const rewrittenSource = applyTextEdits(sourceText, edits);
+	if (rewrittenSource.includes(DEBUG_OVERRIDES_IMPORT_STATEMENT)) {
+		return rewrittenSource;
+	}
+
+	return `${DEBUG_OVERRIDES_IMPORT_STATEMENT}\n${rewrittenSource}`;
 }
 
 function toUint8Array(contents: string | Uint8Array): Uint8Array {
@@ -217,6 +823,15 @@ function toPosixPath(path: string): string {
 
 function normalizeVirtualPath(path: string): string {
 	return posix.normalize(toPosixPath(path));
+}
+
+function isPathWithinDirectory(path: string, directory: string): boolean {
+	const normalizedPath = normalizeVirtualPath(resolve(path));
+	const normalizedDirectory = normalizeVirtualPath(resolve(directory));
+	return (
+		normalizedPath === normalizedDirectory ||
+		normalizedPath.startsWith(`${normalizedDirectory}/`)
+	);
 }
 
 function isBundledTransformPath(path: string): boolean {
@@ -330,6 +945,45 @@ function ensureBundledLibraryPath(
 	};
 }
 
+function hasGlobalAliasForName(
+	useValues: readonly string[] | undefined,
+	name: string,
+): boolean {
+	if (!Array.isArray(useValues)) {
+		return false;
+	}
+
+	return useValues.some((useValue) => {
+		const separatorIndex = useValue.indexOf("=");
+		if (separatorIndex < 0) {
+			return false;
+		}
+
+		return useValue.slice(0, separatorIndex).trim() === name;
+	});
+}
+
+export function shouldEnableBundledDebugSourceRewrite(
+	compilerOptions: CompilerOptions,
+): boolean {
+	if (
+		hasGlobalAliasForName(compilerOptions.use, "abort") ||
+		hasGlobalAliasForName(compilerOptions.use, "trace")
+	) {
+		return false;
+	}
+
+	const libraries = compilerOptions.lib;
+	return (
+		Array.isArray(libraries) &&
+		libraries.some(
+			(library) =>
+				BUNDLED_HARNESS_LIBRARY_ENTRY_POINTS.has(library) ||
+				isBundledLibraryPath(library),
+		)
+	);
+}
+
 export function withBundledCoverageTransform(
 	compilerOptions: CompilerOptions,
 	enabled: boolean | CoverageTransformOptions,
@@ -430,6 +1084,7 @@ function createVirtualFileSystem(
 type PreparedCompilerOptions = {
 	cleanup(): Promise<void>;
 	compilerOptions: CompilerOptions;
+	enableBundledDebugSourceRewrite: boolean;
 	transforms: unknown[];
 };
 
@@ -476,6 +1131,9 @@ async function prepareCompilerOptions(
 	const internalCompilerOptions = compilerOptions as InternalCompilerOptions;
 	const compilerOptionsWithBundledSupport = withBundledHarnessLibraryComponents(
 		withBundledStrictEqualityTransform(compilerOptions),
+	);
+	const enableBundledDebugSourceRewrite = shouldEnableBundledDebugSourceRewrite(
+		compilerOptionsWithBundledSupport,
 	);
 	const cleanupTasks: Array<() => Promise<void>> = [];
 	let rewrittenTransformPaths = compilerOptionsWithBundledSupport.transform;
@@ -571,6 +1229,7 @@ async function prepareCompilerOptions(
 			transform: rewrittenTransformPaths,
 			lib: rewrittenLibraryPaths,
 		},
+		enableBundledDebugSourceRewrite,
 		transforms,
 	};
 }
@@ -578,6 +1237,8 @@ async function prepareCompilerOptions(
 async function readCompilerFile(
 	filename: string,
 	baseDir: string,
+	enableBundledDebugSourceRewrite: boolean,
+	libraryPaths: readonly string[] | undefined,
 ): Promise<string | null> {
 	traceCompileFileSystem(`read ${filename} (base ${baseDir})`);
 
@@ -591,12 +1252,19 @@ async function readCompilerFile(
 	}
 
 	try {
-		const contents = await readFileFromDisk(
-			resolveFromBaseDir(filename, baseDir),
-			"utf8",
-		);
-		traceCompileFileSystem(`disk hit ${resolveFromBaseDir(filename, baseDir)}`);
-		return contents;
+		const resolvedPath = resolveFromBaseDir(filename, baseDir);
+		const contents = await readFileFromDisk(resolvedPath, "utf8");
+		traceCompileFileSystem(`disk hit ${resolvedPath}`);
+		const shouldRewrite =
+			enableBundledDebugSourceRewrite &&
+			!(libraryPaths ?? []).some((libraryPath) =>
+				isPathWithinDirectory(resolvedPath, libraryPath),
+			);
+		return enableBundledDebugSourceRewrite
+			? shouldRewrite
+				? rewriteBundledDebugOverrideSource(contents, filename)
+				: contents
+			: contents;
 	} catch {
 		traceCompileFileSystem(`miss ${resolveFromBaseDir(filename, baseDir)}`);
 
@@ -888,7 +1556,12 @@ async function compileWithArguments(
 				stderr,
 				transforms: preparedCompilerOptions.transforms,
 				readFile(filename, baseDir) {
-					return readCompilerFile(filename, baseDir);
+					return readCompilerFile(
+						filename,
+						baseDir,
+						preparedCompilerOptions.enableBundledDebugSourceRewrite,
+						preparedCompilerOptions.compilerOptions.lib,
+					);
 				},
 				writeFile(name, contents) {
 					artifacts.set(name, {
