@@ -1,6 +1,6 @@
 # `tap` Adapter TODO
 
-Status: declaration and hook shell landed.
+Status: declaration, hook, lifecycle, and assertion slices landed.
 Current surface plan is documented in [docs/019-2026-03-23-tap-adapter-interface.md](../../../docs/019-2026-03-23-tap-adapter-interface.md).
 
 Implemented so far:
@@ -9,11 +9,11 @@ Implemented so far:
   the live implementation slices
 - `tap-002`: ship the root declaration / hook shell plus callback-level nested
   subtests and hooks, then prove the shape internally
+- `tap-003`: add lifecycle helpers plus the shipped assertion subset, then
+  prove the surface through one cross-host smoke fixture
 
 Still planned:
 
-- `tap-003`: add lifecycle helpers and the shipped assertion subset, then prove
-  the surface through one cross-host smoke fixture
 - `tap-004`: wire `tap` into the bundled CLI surface, compile rewriting, and
   direct CLI proof, then mark the adapter shipped
 

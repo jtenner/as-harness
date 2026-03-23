@@ -616,6 +616,11 @@ function compileSmokeFixtures(options) {
 			"assembly/test/mocha-smoke.ts",
 			path.join(options.cacheDir, "mocha-smoke.wasm"),
 		),
+		compiledTapWasm: compileFixture(
+			assemblyDir,
+			"assembly/test/tap-smoke.ts",
+			path.join(options.cacheDir, "tap-smoke.wasm"),
+		),
 		compiledTapeWasm: compileFixture(
 			assemblyDir,
 			"assembly/test/tape-smoke.ts",
@@ -737,6 +742,7 @@ function registerHarnessSmokeSuite(options) {
 		compiledExportsWasm,
 		compiledJasmineWasm,
 		compiledMochaWasm,
+		compiledTapWasm,
 		compiledTapeWasm,
 		compiledUvuAssertWasm,
 		compiledUvuHintsWasm,
@@ -1328,6 +1334,37 @@ function registerHarnessSmokeSuite(options) {
 				["top-level pass", 1, 1],
 				["implicit pending", 1, 3],
 				["runs hooks and assertions", 1, 1],
+			],
+		);
+
+		closeHarness(harness);
+	});
+
+	test("discover(nodeIndex) preserves tap declaration shape with skip, todo, and nested subtests", () => {
+		const harness = createHarness(compiledTapWasm);
+		const found = [];
+
+		harness.onNodeFound((event) => {
+			found.push(event);
+		});
+
+		assert.equal(harness.discover([]), true);
+		assert.deepEqual(
+			found.map((node) => [node.name, node.kind, node.declarationMode]),
+			[
+				["skipped tap test", 1, 2],
+				["todo tap test", 1, 3],
+				["tap parent", 1, 1],
+			],
+		);
+
+		found.length = 0;
+		assert.equal(harness.discover([2]), true);
+		assert.deepEqual(
+			found.map((node) => [node.name, node.kind, node.declarationMode]),
+			[
+				["tap parent", 1, 1],
+				["nested child", 1, 1],
 			],
 		);
 
@@ -2233,6 +2270,37 @@ function registerHarnessSmokeSuite(options) {
 			branch.executions.map((execution) => execution.node.name),
 			["top-level pass", "runs hooks and assertions", "nested context child"],
 		);
+
+		closeHarness(harness);
+	});
+
+	test("start() preserves tap declarations through shared graph execution", async () => {
+		const harness = createHarness(compiledTapWasm);
+
+		const result = await harness.start();
+		const executionNames = result.branches
+			.flatMap((branch) =>
+				branch.executions.map((execution) => execution.node.name),
+			)
+			.sort();
+
+		assert.equal(result.discoveryOk, true);
+		assert.equal(result.planningOk, true);
+		assert.equal(result.ok, true);
+		assert.equal(result.discoveredTestCount, 4);
+		assert.equal(result.topLevelNodes.length, 3);
+		assert(result.workerCount >= 1);
+		assert.deepEqual(result.planIssues, []);
+		assert.deepEqual(result.blocked, []);
+		assert.deepEqual(
+			result.topLevelNodes.map((node) => [node.name, node.declarationMode]),
+			[
+				["skipped tap test", 2],
+				["todo tap test", 3],
+				["tap parent", 1],
+			],
+		);
+		assert.deepEqual(executionNames, ["nested child", "tap parent"]);
 
 		closeHarness(harness);
 	});

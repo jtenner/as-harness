@@ -147,7 +147,41 @@ function testTapExecutionShell(): void {
 	resetCurrentNode();
 }
 
+function testTapAssertionSurface(): void {
+	const localRoot = new Node(NodeKind.Root, "local root");
+	setCurrentNode(localRoot);
+
+	test("assertion surface", (context: Test): void => {
+		context.plan(15, "tap assertion plan");
+		context.comment("tap assertion diagnostic");
+		context.pass("tap pass diagnostic");
+		context.ok<bool>(true);
+		context.notOk<i32>(0);
+		context.equal<i32>(context.count, 3);
+		context.not<i32>(11, 12);
+		context.same<Array<i32>>([1, 2], [1, 2]);
+		context.notSame<Array<i32>>([1, 2], [1, 3]);
+		context.strictSame<Array<i32>>([3, 4], [3, 4]);
+		context.strictNotSame<Array<i32>>([3, 4], [3, 5]);
+		context.throws((): void => {
+			unreachable();
+		});
+		context.doesNotThrow((): void => {});
+		context.type<string>("tap", "string");
+		context.error<string | null>(null);
+		context.pass();
+		context.end();
+	});
+
+	const children = localRoot.getChildren();
+	assert(children.length == 1);
+	assert(executeNode(unchecked(children[0])));
+
+	resetCurrentNode();
+}
+
 testTapRootRegistration();
 testTapDefaultExportRegistration();
 testTapNestedRegistration();
 testTapExecutionShell();
+testTapAssertionSurface();
