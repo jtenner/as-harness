@@ -1,13 +1,16 @@
 # `qunit` Adapter TODO
 
-Status: planned, not started.
+Status: declaration, module, and hook shell landed.
 Current surface plan is documented in [docs/020-2026-03-23-qunit-adapter-interface.md](../../../docs/020-2026-03-23-qunit-adapter-interface.md).
 
-Planned slices:
+Implemented so far:
 
 - `qunit-001`: add the interface note, replace the old `qnit` placeholder, and
   commit the live implementation slices
 - `qunit-002`: ship the declaration, module, and hook shell plus internal proof
+
+Still planned:
+
 - `qunit-003`: add the shipped `Assert` surface plus one cross-host smoke
   fixture
 - `qunit-004`: wire `qunit` into the bundled CLI surface, compile rewriting,

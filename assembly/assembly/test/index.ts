@@ -12,6 +12,7 @@ import "./internal/mocha";
 import "./internal/node";
 import "./internal/node-test";
 import "./internal/partial-match";
+import "./internal/qunit";
 import "./internal/reflected-render";
 import "./internal/reflected-value";
 import "./internal/runtime-type";

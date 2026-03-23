@@ -56,12 +56,10 @@ The published QUnit surface includes:
   - `QUnit.module.only(...)`
   - `QUnit.module.skip(...)`
   - `QUnit.module.todo(...)`
-  - `QUnit.module.if(...)`
   - `QUnit.test(...)`
   - `QUnit.test.only(...)`
   - `QUnit.test.skip(...)`
   - `QUnit.test.todo(...)`
-  - `QUnit.test.if(...)`
   - root aliases `QUnit.only(...)`, `QUnit.skip(...)`, `QUnit.todo(...)`
 - global hooks:
   - `QUnit.hooks.beforeEach(...)`
@@ -96,12 +94,10 @@ Ship these on the default `QUnit` export:
 - `QUnit.module.only(name, nested)`
 - `QUnit.module.skip(name, nested)`
 - `QUnit.module.todo(name, nested)`
-- `QUnit.module.if(name, condition, nested)`
 - `QUnit.test(name, callback)`
 - `QUnit.test.only(name, callback)`
 - `QUnit.test.skip(name, callback?)`
 - `QUnit.test.todo(name, callback?)`
-- `QUnit.test.if(name, condition, callback)`
 - `QUnit.only(name, callback)`
 - `QUnit.skip(name, callback?)`
 - `QUnit.todo(name, callback?)`
@@ -110,7 +106,6 @@ The shipped behavior should be:
 
 - `skip` lowers to skipped declarations
 - `only` lowers to focused declarations
-- `if(..., false, ...)` lowers to skipped declarations
 - `todo(name)` without a callback lowers to a placeholder todo declaration
 - `todo(name, callback)` lowers to expected-failure execution, because that is
   what real QUnit todo tests mean
@@ -161,6 +156,9 @@ These differences should be documented explicitly:
   not attempt to reproduce every host-side event, reporter, or config API
 - `QUnit.module(...)` only ships the callback form; the options-object overload
   and open-ended “subsequent tests belong to this module” form stay deferred
+- `QUnit.module.if(...)` and `QUnit.test.if(...)` stay deferred because the
+  chained keyword-property shape is not honest to expose through the current
+  AssemblyScript-only surface without additional transform machinery
 - `QUnit.todo(name, callback)` and `QUnit.test.todo(name, callback)` are
   represented as expected-failure tests instead of declaration-mode todo nodes,
   because the shared runtime's declaration-mode todo semantics intentionally
@@ -185,6 +183,9 @@ adapter cycle:
   - `only.each(...)`
   - `skip.each(...)`
   - `todo.each(...)`
+- conditional keyword-property helpers:
+  - `test.if(...)`
+  - `module.if(...)`
 - options-object module overloads and open-ended module scope
 - property and partial-match assertions:
   - `propEqual`

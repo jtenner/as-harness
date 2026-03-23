@@ -2,6 +2,7 @@
 
 ## 2026-03-23
 
+- **qunit: add the declaration and module shell** Start the `qunit` adapter with a default `QUnit` object, callback-style `module(...)` declarations, root aliases, global hooks, inherited module modifier defaults, and internal guest proof for nested modules plus execution-order shell behavior. GitHub: *@jtenner*
 - **docs: plan the qunit adapter slices** Add the dedicated QUnit interface note, correct the old `qnit` placeholder name across the live roadmap and TODO path, and expand the backlog with concrete `qunit-001` through `qunit-004` slices plus the runtime-fit risks for the new adapter workstream. GitHub: *@jtenner*
 - **tap: bundle the shipped adapter surface** Add the bundled `tap` guest-library entry plus CLI compile rewriting, prove the shipped sync subset through a direct bundled CLI run, and refresh the README, roadmap, and backlog docs so `tap` is now tracked as a bundled active surface with only explicit runtime-limit deferrals remaining. GitHub: *@jtenner*
 - **tap: add lifecycle helpers and smoke proof** Expand the `tap` adapter with the shipped lifecycle helpers and assertion subset, add internal guest proof plus a shared cross-host smoke fixture for root hooks, nested subtests, plan accounting, and shared assertion lowering, and narrow the live backlog to the final bundled CLI slice. GitHub: *@jtenner*
