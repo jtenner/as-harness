@@ -9,6 +9,7 @@ The Bun CLI compiles AssemblyScript test files to Wasm, selects a harness, and e
 - `run --coverage` emits merged coverage in `text`, `json`, `yaml`, `csv`, `lcov`, or `cobertura`.
 - `--coverage-include`, `--coverage-exclude`, and repeated `--coverage-point-type` refine instrumentation.
 - `--update-snapshots` is the explicit rewrite path for host-owned snapshot artifacts.
+- compile-wrapper rewriting of bare `abort(...)` / `trace(...)` emits structured host `debug` events without requiring explicit user `--use` wiring.
 - `--harness js|wazero|wasmtime` selects the runtime.
 - `build.ts` builds target-specific packaged executables; release packaging wraps them into target-specific archives.
 - root `bun test` and release smoke flows now reuse package-local host commands (`npm test` per host).
@@ -38,6 +39,7 @@ Default reporting summarizes:
 - blocked runs rendered as `missing prerequisite`, `blocked by prerequisite`, `dependency cycle`, `invalid constraint`, and `stopped after failure`
 - unsupported hint values rendered as informational `ignored hint` planner issues without changing pass/fail status
 - shared run metadata is a required `start()` snapshot that mirrors the top-level summary fields and keeps the underlying planner code plus the concise issue label on `planIssues` and `blocked`
+- structured `debug` details for rewritten `abort` / `trace` events, including crumb and location context when provided by the host
 - coverage after execution (when enabled)
 
 ## Bundled Libraries
@@ -65,6 +67,7 @@ See their interface docs:
 - [docs/019-2026-03-23-tap-adapter-interface.md](../docs/019-2026-03-23-tap-adapter-interface.md)
 - [docs/018-2026-03-22-tape-adapter-interface.md](../docs/018-2026-03-22-tape-adapter-interface.md)
 - [docs/014-2026-03-22-uvu-adapter-interface.md](../docs/014-2026-03-22-uvu-adapter-interface.md)
+- [docs/021-2026-03-23-uvu-assertion-class-contract.md](../docs/021-2026-03-23-uvu-assertion-class-contract.md)
 - [docs/008-2026-03-19-vitest-adapter.md](../docs/008-2026-03-19-vitest-adapter.md)
 
 ## Built-In Harnesses
@@ -132,5 +135,6 @@ bun run verify:packaged-cli -- --target bun-linux-x64 --report-dir ./dist/packag
 - [README.md](../README.md)
 - [docs/003-2026-03-17-harness-abi.md](../docs/003-2026-03-17-harness-abi.md)
 - [docs/004-2026-03-17-release-process.md](../docs/004-2026-03-17-release-process.md)
+- [docs/022-2026-03-23-abort-trace-debug-payload-contract.md](../docs/022-2026-03-23-abort-trace-debug-payload-contract.md)
 - [cli/n-api/README.md](./n-api/README.md)
 - [cli/transform/README.md](./transform/README.md)

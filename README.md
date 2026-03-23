@@ -14,6 +14,7 @@ Implemented:
 - Built-in thin adapters for `jest`, `mocha`, `jasmine`, `ava`, `tap`, `tape`, `qunit`, and `vitest`.
 - Built-in `uvu` adapter plus the shared `uvu/assert` surface.
 - Stable start-reporting pipeline with branch, execution, planning, and blocked-outcome details.
+- Structured `debug` reporting for rewritten bare `abort(...)` / `trace(...)` calls, including source crumbs and location details when hosts provide them.
 - `js`, `wazero`, `wasmtime` source-host runtime support.
 - Coverage output in `text`, `json`, `yaml`, `csv`, `lcov`, `cobertura`.
 - Explicit snapshot rewrite mode via `as-harness run --update-snapshots`.
@@ -88,6 +89,8 @@ See:
 - [docs/018-2026-03-22-tape-adapter-interface.md](./docs/018-2026-03-22-tape-adapter-interface.md)
 - [docs/020-2026-03-23-qunit-adapter-interface.md](./docs/020-2026-03-23-qunit-adapter-interface.md)
 - [docs/014-2026-03-22-uvu-adapter-interface.md](./docs/014-2026-03-22-uvu-adapter-interface.md)
+- [docs/021-2026-03-23-uvu-assertion-class-contract.md](./docs/021-2026-03-23-uvu-assertion-class-contract.md)
+- [docs/022-2026-03-23-abort-trace-debug-payload-contract.md](./docs/022-2026-03-23-abort-trace-debug-payload-contract.md)
 - [docs/009-2026-03-19-vitest-scheduling-and-test-graph-strategy.md](./docs/009-2026-03-19-vitest-scheduling-and-test-graph-strategy.md)
 
 ## Validation

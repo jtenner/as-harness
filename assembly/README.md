@@ -7,7 +7,7 @@ Host owns scheduling, aggregation, and reporting.
 
 ## Layout
 
-- `assembly/assembly/internal/`: runtime primitives (events, nodes, traversal, executor, hooks, assertions, imports/exports).
+- `assembly/assembly/internal/`: runtime primitives (events, nodes, traversal, executor, hooks, assertions, debug payload serialization, imports/exports).
 - `assembly/assembly/exports.ts`: Wasm exports expected by hosts.
 - `assembly/assembly/as_harness/`: native scheduler-aware guest surface.
 - `assembly/assembly/ava/`: thin sync AVA-shaped declaration surface.
@@ -37,6 +37,9 @@ Host owns scheduling, aggregation, and reporting.
   assertion failures, structural `match(...)`, runtime-type `instance(...)`,
   and host-backed `snapshot(...)` / `fixture(...)` support
 - `node:assert` / `node:assert/strict` bridge + trampoline trap observation
+- structured `abort(...)` / `trace(...)` debug payload helpers
+  (`harnessAbort(...)` / `harnessTrace(...)`) emitted through the shared host
+  `debug` channel
 - shared event ABI, `NodeIndex` discovery/run model, and coverage declarations
 
 ## Still out of scope
@@ -53,3 +56,4 @@ Host owns scheduling, aggregation, and reporting.
 5. decode emitted events
 
 See [docs/003-2026-03-17-harness-abi.md](../docs/003-2026-03-17-harness-abi.md) before extending the ABI.
+See [docs/022-2026-03-23-abort-trace-debug-payload-contract.md](../docs/022-2026-03-23-abort-trace-debug-payload-contract.md) for the structured debug payload contract.

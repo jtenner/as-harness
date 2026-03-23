@@ -16,7 +16,7 @@ Portable JavaScript host for the shared runtime contract.
 - `start()` orchestration through shared deterministic planning plus same-machine worker slots
 - event callbacks and report-tree aggregation
 - coverage collection merge/snapshot reset
-- optional `close()`
+- explicit `close()`
 
 ## Responsibilities
 
@@ -24,6 +24,7 @@ Portable JavaScript host for the shared runtime contract.
 - decode `write_event(...)` payloads
 - trap observation via trampoline boundary
 - `trace(...)` interception → `log` events
+- structured debug payload decoding for rewritten `abort(...)` / `trace(...)` events
 - emit merged coverage snapshots when guest declares coverage
 
 ## Testing and Notes
@@ -41,4 +42,5 @@ npm test
 - [harness/shared/harness-types.d.ts](../shared/harness-types.d.ts)
 - [docs/003-2026-03-17-harness-abi.md](../../docs/003-2026-03-17-harness-abi.md)
 - [docs/007-2026-03-17-host-runner-contract.md](../../docs/007-2026-03-17-host-runner-contract.md)
+- [docs/022-2026-03-23-abort-trace-debug-payload-contract.md](../../docs/022-2026-03-23-abort-trace-debug-payload-contract.md)
 - [harness/shared/smoke-suite.cjs](../shared/smoke-suite.cjs)

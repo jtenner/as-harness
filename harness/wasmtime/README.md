@@ -15,6 +15,8 @@ Rust/Node-API host implementation built on `wasmtime`.
 - same shared contract and callback suite as `js` and `wazero`
 - supports coverage declaration/imports, merged coverage snapshots, and
   host-owned `uvu/assert` fixture / snapshot artifacts
+- decodes and surfaces structured `debug` payload events for rewritten
+  `abort(...)` / `trace(...)` output through the shared host callback contract
 
 ## Build and Test
 
