@@ -18,9 +18,6 @@
 
 ### Adapter: `ava`
 
-- `ava-002`: add the first synchronous `ExecutionContext` slice and shared
-  assertion subset, starting with title/log plumbing plus the sync assertion
-  helpers that already map cleanly onto the shared assertion bridge.
 - `ava-003`: add `test.macro(...)` title generation and argument lowering
   without inventing a fake broader TypeScript parity layer.
 - `ava-004`: wire the honest sync slice into bundled CLI proof and cross-host

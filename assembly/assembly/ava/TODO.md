@@ -1,6 +1,6 @@
 # `ava` Adapter TODO
 
-Status: initial declaration slice in progress.
+Status: declaration and synchronous context slices in progress.
 Current surface is documented in [docs/017-2026-03-22-ava-adapter-interface.md](../../../docs/017-2026-03-22-ava-adapter-interface.md).
 
 Implemented so far:
@@ -9,12 +9,14 @@ Implemented so far:
   and the current `test.meta` placeholder
 - map the declaration subset onto shared runtime metadata, including
   expected-failure and sequential execution hints
-- add initial internal declaration proof plus one cross-host smoke fixture
+- add an adapter-local synchronous `ExecutionContext` with `title`, `log(...)`,
+  a string-keyed shared `t.context` bag, and the first direct `t.*` assertion
+  subset that maps onto the shared assertion bridge
+- add internal declaration plus execution-context proof and one cross-host smoke
+  fixture that executes the AVA slice through the shared hosts
 
 Still deferred for this slice:
 
-- the first adapter-local `ExecutionContext` parity helpers beyond the shared
-  callback context
 - `test.macro(...)`
 - bundled CLI library wiring and CLI-run proof
 

@@ -4,6 +4,7 @@ import {
 	NodeKind,
 	SequenceMode,
 } from "../../internal/imports";
+import { executeNode } from "../../internal/executor";
 import { Node, resetCurrentNode, setCurrentNode } from "../../internal/node";
 import test from "../../ava";
 import { ExecutionContext } from "../../ava";
@@ -79,4 +80,70 @@ function testAvaDeclarationRegistration(): void {
 	resetCurrentNode();
 }
 
+function testAvaExecutionContext(): void {
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const observed = new Array<string>();
+	setCurrentNode(localRoot);
+
+	test.before((context: ExecutionContext): void => {
+		context.context.set("trace", "before|" + context.title);
+	});
+
+	test.beforeEach((context: ExecutionContext): void => {
+		const trace = context.context.get("trace");
+		context.context.set("trace", trace + ">beforeEach|" + context.title);
+		context.truthy<string>(trace);
+	});
+
+	test.afterEach((context: ExecutionContext): void => {
+		const trace = context.context.get("trace");
+		context.context.set("trace", trace + ">afterEach|" + context.title);
+	});
+
+	test.after((context: ExecutionContext): void => {
+		const trace = context.context.get("trace");
+		observed.push(trace + ">after|" + context.title);
+	});
+
+	test("first test", (context: ExecutionContext): void => {
+		const trace = context.context.get("trace");
+		context.context.set("trace", trace + ">test|" + context.title);
+		context.log("first ava diagnostic");
+		context.pass();
+		context.assert<bool>(true);
+		context.truthy<string>("value");
+		context.falsy<string | null>(null);
+		context.true(true);
+		context.false(false);
+		context.is<string>(context.title, "first test");
+		context.not<i32>(11, 12);
+		context.deepEqual<Array<i32>>([1, 2], [1, 2]);
+		context.notDeepEqual<Array<i32>>([1, 2], [1, 3]);
+		context.like<Array<i32>, Array<i32>>([1, 2, 3], [1, 2]);
+		context.throws((): void => {
+			unreachable();
+		});
+		context.notThrows((): void => {});
+	});
+
+	test("second test", (context: ExecutionContext): void => {
+		const trace = context.context.get("trace");
+		context.context.set("trace", trace + ">test|" + context.title);
+		context.is<string>(context.title, "second test");
+		context.true(context.context.isSet);
+	});
+
+	const children = localRoot.getChildren();
+	assert(children.length == 2);
+	assert(executeNode(unchecked(children[0])));
+	assert(executeNode(unchecked(children[1])));
+	assert.deepStrictEqual(observed, [
+		"before|first test>beforeEach|first test>test|first test>afterEach|first test>after|first test",
+		"before|second test>beforeEach|second test>test|second test>afterEach|second test>after|second test",
+	]);
+
+	resetCurrentNode();
+}
+
 testAvaDeclarationRegistration();
+testAvaExecutionContext();

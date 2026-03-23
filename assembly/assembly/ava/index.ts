@@ -1,8 +1,29 @@
 import { DeclarationMode, HookKind, SequenceMode } from "../internal/imports";
 import { declareHook, declareModifiedTest, declareTest } from "./parse";
-import { HookFn, sharedMeta, TestFn } from "./types";
+import { TestContext as InternalTestContext } from "../internal/context";
+import { HookFn, sharedExecutionContext, sharedMeta, TestFn } from "./types";
 
 export * from "./types";
+
+function castTestCallback(
+	callback: TestFn | null = null,
+): ((context: InternalTestContext) => void) | null {
+	return callback === null
+		? null
+		: changetype<(context: InternalTestContext) => void>(callback);
+}
+
+function castHookCallback(
+	callback: HookFn | null = null,
+): ((context: InternalTestContext) => void) | null {
+	return callback === null
+		? null
+		: changetype<(context: InternalTestContext) => void>(callback);
+}
+
+const internalExecutionContext = changetype<InternalTestContext>(
+	sharedExecutionContext,
+);
 
 function declareAvaTest(
 	name: string = "",
@@ -18,11 +39,19 @@ function declareAvaTest(
 		!expectFailure &&
 		sequenceMode == SequenceMode.Inherit
 	) {
-		declareTest(name, callback);
+		declareTest(name, castTestCallback(callback), internalExecutionContext);
 		return;
 	}
 
-	declareModifiedTest(name, callback, mode, only, expectFailure, sequenceMode);
+	declareModifiedTest(
+		name,
+		castTestCallback(callback),
+		mode,
+		only,
+		expectFailure,
+		sequenceMode,
+		internalExecutionContext,
+	);
 }
 
 function declareSequentialTest(
@@ -43,7 +72,7 @@ function declareSequentialTest(
 }
 
 function declareAvaHook(kind: HookKind, callback: HookFn | null = null): void {
-	declareHook(kind, callback);
+	declareHook(kind, castHookCallback(callback), internalExecutionContext);
 }
 
 function skipHook(_callback: HookFn | null = null): void {}

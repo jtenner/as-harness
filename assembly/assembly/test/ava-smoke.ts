@@ -8,24 +8,29 @@ let beforeEachCount = 0;
 let afterEachCount = 0;
 let afterAllCount = 0;
 
-test.before((_context: ExecutionContext): void => {
+test.before((context: ExecutionContext): void => {
 	beforeCount = 1;
+	context.context.set("trace", "");
 });
 
 test.before.skip((_context: ExecutionContext): void => {
 	beforeCount = 99;
 });
 
-test.beforeEach((_context: ExecutionContext): void => {
+test.beforeEach((context: ExecutionContext): void => {
 	beforeEachCount++;
+	const trace = context.context.get("trace");
+	context.context.set("trace", trace + "beforeEach|" + context.title);
 });
 
 test.beforeEach.skip((_context: ExecutionContext): void => {
 	beforeEachCount += 99;
 });
 
-test.afterEach((_context: ExecutionContext): void => {
+test.afterEach((context: ExecutionContext): void => {
 	afterEachCount++;
+	const trace = context.context.get("trace");
+	context.context.set("trace", trace + ">afterEach|" + context.title);
 });
 
 test.afterEach.skip((_context: ExecutionContext): void => {
@@ -36,31 +41,41 @@ test.afterEach.always((_context: ExecutionContext): void => {});
 
 test.after((_context: ExecutionContext): void => {});
 
-test.after.always((_context: ExecutionContext): void => {
+test.after.always((context: ExecutionContext): void => {
 	afterAllCount = beforeEachCount;
+	const trace = context.context.get("trace");
+	context.context.set("trace", trace + ">after|" + context.title);
 });
 
 test.skip("skipped test", (_context: ExecutionContext): void => {});
 test.todo("todo test");
 
 test.failing("expected failure", (context: ExecutionContext): void => {
-	context.assert.strictEqual<i32>(11, 12, "ava expected failure mismatch");
+	context.is<i32>(11, 12, "ava expected failure mismatch");
 });
 
 test.serial("serial pass", (_context: ExecutionContext): void => {});
 
 test("runs hooks and assertions", (context: ExecutionContext): void => {
-	context.assert.strictEqual<i32>(beforeCount, 1, "before hook mismatch");
-	context.assert.strictEqual<bool>(
-		beforeEachCount > 0,
-		true,
-		"beforeEach missing",
+	const trace = context.context.get("trace");
+	context.context.set("trace", trace + ">test|" + context.title);
+	context.is<string>(
+		context.title,
+		"runs hooks and assertions",
+		"ava title mismatch",
 	);
-	context.assert.strictEqual<i32>(
+	context.is<i32>(beforeCount, 1, "before hook mismatch");
+	context.true(beforeEachCount > 0, "beforeEach missing");
+	context.is<i32>(
 		afterEachCount + 1,
 		beforeEachCount,
 		"afterEach ordering mismatch",
 	);
-	context.assert.strictEqual<i32>(afterAllCount, 0, "afterAll ran too early");
-	context.diagnostic("ava smoke diagnostic");
+	context.is<i32>(afterAllCount, 0, "afterAll ran too early");
+	context.is(
+		context.context.get("trace"),
+		"beforeEach|runs hooks and assertions>test|runs hooks and assertions",
+		"ava trace mismatch: " + context.context.get("trace"),
+	);
+	context.log("ava smoke diagnostic");
 });
