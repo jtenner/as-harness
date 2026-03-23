@@ -23,6 +23,9 @@ Operational flow for shipping `as-harness` through GitHub:
 - packaged release assets stay archived instead of renaming the executable itself because current Bun standalone native-addon loading is sensitive to the compiled executable basename on Linux
 - packaged Linux `wazero` stays on the interpreter engine as the deliberate
   stability policy for this release line
+- each packaged release archive now includes a `legal/` directory with the
+  project `LICENSE`, `THIRD_PARTY_NOTICES.md`, and the tracked third-party
+  license texts for the packaged release line
 - `wasmtime` is source-only
 - CI and release install toolchains from repo-local [`.mise.toml`](../.mise.toml)
   through `jdx/mise-action@v4`
@@ -67,7 +70,8 @@ Source-host verification proof is intentionally different from packaged proof:
   without depending on Bun's direct Windows native-addon path
 - `verify:packaged-cli` stages the real packaged Bun executable from the
   release archive under a sanitized runtime environment and verifies the
-  bundled hosts from that clean install shape
+  bundled hosts from that clean install shape; the archived install shape now
+  includes the packaged `legal/` bundle alongside the executable
 
 Inspect lists locally:
 

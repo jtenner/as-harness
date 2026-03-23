@@ -9,6 +9,8 @@
 - choose the native npm distribution model (`optionalDependencies` meta package
   plus per-platform binary packages vs source-build installs) before publishing
   `wazero` or `wasmtime`.
+- resolve the Bun standalone redistribution/compliance path before treating the
+  packaged executable release lane as legally complete.
 
 ### Risks
 
@@ -17,6 +19,9 @@
 - native runtime packages currently load local `dist/*.node` outputs and shared
   repo files directly, so staged package layouts must prove clean install/load
   paths under both Node and Bun before release automation goes live.
+- tracked legal texts can drift from `cli/bun.lock`, `harness/wazero/go.mod`,
+  and `harness/wasmtime/Cargo.lock` unless the repo adds generated inventory
+  proof and CI checks.
 
 ### Release Contract
 
@@ -69,3 +74,13 @@
 - `pkg-012` Refresh the root/package READMEs and release-process docs to
   replace the current GitHub-only distribution guidance with the staged
   dual-channel release contract.
+
+### Legal And Compliance
+
+- `legal-001` Generate and track the source-build third-party inventory for the
+  `wasmtime` host from `harness/wasmtime/Cargo.lock`.
+- `legal-002` Add CI proof that fails when the staged legal bundle drifts from
+  the locked npm, Go, or Rust dependency graphs.
+- `legal-003` Either implement Bun's documented standalone redistribution path
+  for packaged executables or replace that release lane with a legally simpler
+  distribution shape.

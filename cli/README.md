@@ -89,6 +89,10 @@ The packaged archive keeps the executable basename stable as `as-harness`
 inside that executable, so extraction preserves the Bun-compiled basename that
 successfully loads the embedded addon.
 
+Each packaged archive also carries a `legal/` directory containing the project
+`LICENSE`, `THIRD_PARTY_NOTICES.md`, and the tracked third-party license texts
+for the packaged release line.
+
 Source-host proof is a separate path: the source-host matrix builds a
 Node-targeted CLI bundle with Bun, executes that bundle under Node `25.8.1`,
 and uses `AS_HARNESS_SOURCE_CLI_REPO_DIR` so the bundled CLI still resolves the

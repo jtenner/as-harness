@@ -15,7 +15,7 @@ type LegalAsset = {
 	sourcePath: string;
 };
 
-const LEGAL_ASSETS: LegalAsset[] = [
+export const LEGAL_ASSETS: LegalAsset[] = [
 	{
 		destinationFilename: "LICENSE",
 		sourcePath: join(REPO_DIR, "LICENSE"),
@@ -31,6 +31,18 @@ const LEGAL_ASSETS: LegalAsset[] = [
 	{
 		destinationFilename: "ASSEMBLYSCRIPT-NOTICE.txt",
 		sourcePath: join(REPO_DIR, "licenses", "assemblyscript", "NOTICE"),
+	},
+	{
+		destinationFilename: "BINARYEN-LICENSE.txt",
+		sourcePath: join(REPO_DIR, "licenses", "binaryen", "LICENSE"),
+	},
+	{
+		destinationFilename: "BINARYEN-FP16-LICENSE.txt",
+		sourcePath: join(REPO_DIR, "licenses", "binaryen", "FP16-LICENSE"),
+	},
+	{
+		destinationFilename: "LONG-LICENSE.txt",
+		sourcePath: join(REPO_DIR, "licenses", "long", "LICENSE"),
 	},
 	{
 		destinationFilename: "WAZERO-LICENSE.txt",
@@ -68,10 +80,8 @@ function parseArguments(argv: string[]): ParsedArguments {
 	return { assetDir };
 }
 
-async function main() {
-	const { assetDir } = parseArguments(process.argv.slice(2));
+export async function stageLegalAssets(assetDir: string) {
 	await mkdir(assetDir, { recursive: true });
-
 	for (const asset of LEGAL_ASSETS) {
 		if (!existsSync(asset.sourcePath)) {
 			throw new Error(
@@ -85,4 +95,11 @@ async function main() {
 	}
 }
 
-await main();
+async function main() {
+	const { assetDir } = parseArguments(process.argv.slice(2));
+	await stageLegalAssets(assetDir);
+}
+
+if (import.meta.main) {
+	await main();
+}

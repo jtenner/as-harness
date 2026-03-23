@@ -22,6 +22,7 @@ import {
 	createPackagedCommandRunnerSource,
 	DEFAULT_COMMAND_TIMEOUT_MS,
 } from "./packaged-command-runner";
+import { stageLegalAssets } from "./stage-release-legal";
 
 const REPO_DIR = join(import.meta.dir, "..");
 const NODE_RUNNER_SOURCE = createPackagedCommandRunnerSource();
@@ -516,6 +517,9 @@ export async function main() {
 
 			assertSmokePass(runResult, target, harness);
 		}
+
+		const installLegalDirectory = join(installDirectory, "legal");
+		await stageLegalAssets(installLegalDirectory);
 
 		if (assetDir) {
 			await mkdir(assetDir, { recursive: true });

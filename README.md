@@ -134,6 +134,10 @@ Each archive preserves the inner executable name as `as-harness` (or
 bundled inside that executable so extraction does not rename the compiled
 binary away from Bun's working embedded-addon path.
 
+Each packaged archive also includes a `legal/` directory with the project
+`LICENSE`, [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md), and the tracked
+third-party license texts for the packaged release line.
+
 Bundled Linux `wazero` now stays on the interpreter engine as the deliberate
 packaged stability policy for this release line, while source-host verification
 continues to prove the repo-local `wazero` and `wasmtime` paths separately
@@ -159,3 +163,5 @@ The project is still pre-`v1`, so release communication follows the common
 
 - MIT project license: [LICENSE](./LICENSE)
 - Third-party notices: [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)
+- Packaged Bun executables are also subject to Bun's official licensing and
+  redistribution guidance: <https://bun.sh/docs/project/license>

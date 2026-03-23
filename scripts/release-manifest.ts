@@ -91,8 +91,8 @@ function renderReleaseNotes(tag: string) {
 		"- Packaged `wazero` support is currently shipped on `bun-darwin-arm64`, `bun-darwin-x64`, and `bun-linux-x64` release archives with the native addon embedded inside the executable.",
 		"- Source-based Windows `wazero` development remains supported outside the packaged executable path.",
 		"- Source-based `wasmtime` support is validated in CI but is not bundled into the packaged release artifacts yet.",
-		"- `LICENSE` carries the project MIT license for this release.",
-		"- `THIRD_PARTY_NOTICES.md` and the tracked third-party license texts are included in the release asset set.",
+		"- Each packaged release archive now includes a `legal/` directory with `LICENSE`, `THIRD_PARTY_NOTICES.md`, and the tracked third-party license texts for that release line.",
+		"- The same legal files are also uploaded as sidecar release assets for easier review.",
 		"- `SHA256SUMS.txt` contains checksums for the packaged release archives in this release.",
 		"",
 	];

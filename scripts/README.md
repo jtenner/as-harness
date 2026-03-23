@@ -15,7 +15,8 @@
   matrix target and emit source-host reports; native host smoke inside those
   package tests builds a Node-targeted CLI bundle.
 - `release-manifest.ts` — generate `release-manifest.json`, `SHA256SUMS.txt`, and notes.
-- `stage-release-legal.ts` — gather third-party legal files into a release artifact directory.
+- `stage-release-legal.ts` — gather the tracked legal bundle into a target
+  directory for packaged archives and release sidecar assets.
 - `packaged-command-runner.ts` — timeout-safe Node command wrapper used by packaged verification.
 - `verify-packaged-cli.ts` — run packaged CLI smoke with phase-specific
   timeout-safe supervision, a sanitized packaged runtime environment, and emit
@@ -31,7 +32,7 @@
   Node-targeted CLI bundle for native-host smoke
 - packaged CLI smoke from a clean staged install directory, sanitized runtime
   environment, and (when requested) archived release assets with a stable inner
-  executable basename
+  executable basename plus an embedded `legal/` bundle
 - release manifest, checksum, and legal-bundle checks
 
 ## Key commands
