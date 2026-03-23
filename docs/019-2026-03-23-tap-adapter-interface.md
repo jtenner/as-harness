@@ -1,13 +1,13 @@
 # `tap` Adapter Interface
 
-This note answers which `tap` functions, types, and per-test methods should be
-implemented next for `as-harness`, recommends an honest synchronous subset, and
-defines the slice plan for `assembly/assembly/tap/`, bundled CLI wiring, and
-proof coverage.
+This note answers which `tap` functions, types, and per-test methods were
+required to implement the `as-harness` adapter, records the shipped honest
+synchronous subset, and preserves the slice plan that landed across
+`assembly/assembly/tap/`, bundled CLI wiring, and proof coverage.
 
 ## Question
 
-What `tap` API surface should `as-harness` implement next, and how should that
+What `tap` API surface should `as-harness` implement, and how should that
 surface be reduced into an honest adapter that matches the current shared
 runtime?
 
@@ -170,6 +170,8 @@ adapter cycle:
   host or guest protocols, so shipping them now would overstate compatibility.
 
 ## Implementation Slices
+
+These are the slices that were used to land the adapter.
 
 ### `tap-001`: interface note and live backlog plan
 

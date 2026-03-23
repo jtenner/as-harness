@@ -21,10 +21,10 @@ Adapter-level intent for guest runtime work.
 Tracked adapters: `as-harness`, `node:test`, `node:assert`, `jest`, `vitest`, `mocha`, `jasmine`, `uvu`, `ava`, `tap`, `tape`, `qnit`.
 
 Active surface today: `as-harness`, `node:test`, `node:assert`,
-`node:assert/strict`, `jest`, `vitest`, `mocha`, `jasmine`, `ava`, `tape`,
-`uvu`, and `uvu/assert`.
+`node:assert/strict`, `jest`, `vitest`, `mocha`, `jasmine`, `ava`, `tap`,
+`tape`, `uvu`, and `uvu/assert`.
 
-Planned-only workstreams today: `tap` and `qnit`.
+Planned-only workstreams today: `qnit`.
 
 For each adapter workstream, start from the doc + TODO pair:
 

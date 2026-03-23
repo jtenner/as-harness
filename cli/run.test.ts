@@ -1361,6 +1361,81 @@ test.serial.useNamed("macro title", titledMacro, "alpha", "beta");
 	);
 });
 
+test('cli run executes a thin tap adapter entry from the bundled "tap" guest library', async () => {
+	await withTempEntryFile(
+		`
+import tap from "tap";
+import { Test, after, afterEach, before, beforeEach, test } from "tap";
+
+let beforeCount = 0;
+let afterCount = 0;
+
+before((_context: Test): void => {
+  beforeCount = 1;
+});
+
+beforeEach((context: Test): void => {
+  context.comment("tap beforeEach|" + context.name);
+});
+
+afterEach((context: Test): void => {
+  context.comment("tap afterEach|" + context.name);
+});
+
+after((_context: Test): void => {
+  afterCount = beforeCount;
+});
+
+tap.skip("skipped tap test", (_context: Test): void => {});
+tap.todo("todo tap test", (_context: Test): void => {});
+
+test("passes through tap adapter", (context: Test): void => {
+  context.plan(2);
+  context.before((hookContext: Test): void => {
+    hookContext.comment("tap nested before|" + hookContext.name);
+  });
+  context.after((hookContext: Test): void => {
+    hookContext.comment("tap nested after|" + hookContext.name);
+  });
+  context.test("nested tap child", (child: Test): void => {
+    child.plan(13);
+    child.pass("tap child pass");
+    child.ok<bool>(true);
+    child.notOk<i32>(0);
+    child.equal<i32>(child.count, 3);
+    child.not<i32>(11, 12);
+    child.same<Array<i32>>([1, 2], [1, 2]);
+    child.notSame<Array<i32>>([1, 2], [1, 3]);
+    child.strictSame<Array<i32>>([2, 3], [2, 3]);
+    child.strictNotSame<Array<i32>>([2, 3], [2, 4]);
+    child.throws((): void => {
+      unreachable();
+    });
+    child.doesNotThrow((): void => {});
+    child.type<string>("tap", "string");
+    child.error<string | null>(null);
+    child.end();
+  });
+  context.equal<i32>(afterCount, 0, "tap after ran too early");
+  context.pass();
+  context.end();
+});
+`,
+		async (entryFile, cwd) => {
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 2 passed, 0 failed, 4 discovered with js.",
+			);
+		},
+	);
+});
+
 test('cli run executes a thin tape adapter entry from the bundled "tape" guest library', async () => {
 	await withTempEntryFile(
 		`
