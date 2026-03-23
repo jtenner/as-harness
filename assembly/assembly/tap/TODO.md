@@ -1,14 +1,17 @@
 # `tap` Adapter TODO
 
-Status: planned with documented sync subset.
+Status: declaration and hook shell landed.
 Current surface plan is documented in [docs/019-2026-03-23-tap-adapter-interface.md](../../../docs/019-2026-03-23-tap-adapter-interface.md).
 
-Planned slices:
+Implemented so far:
 
 - `tap-001`: add the interface note, replace this placeholder TODO, and commit
   the live implementation slices
 - `tap-002`: ship the root declaration / hook shell plus callback-level nested
   subtests and hooks, then prove the shape internally
+
+Still planned:
+
 - `tap-003`: add lifecycle helpers and the shipped assertion subset, then prove
   the surface through one cross-host smoke fixture
 - `tap-004`: wire `tap` into the bundled CLI surface, compile rewriting, and

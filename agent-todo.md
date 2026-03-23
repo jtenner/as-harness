@@ -24,16 +24,12 @@
 
 ### Adapter: `tap`
 
-- `tap-001`: add the interface note, replace the placeholder TODO, and commit
-  the live implementation slices.
-- `tap-002`: ship the root declaration / hook shell plus callback-level nested
-  subtests and hooks, then prove the shape internally.
 - `tap-003`: add lifecycle helpers and the shipped assertion subset, plus one
   cross-host smoke fixture covering root hooks, nested subtests, hook order,
   plan accounting, and shared assertion lowering.
 - `tap-004`: wire `tap` into bundled CLI compile rewriting and direct CLI
   proof, then mark the adapter shipped in docs.
-- implementation plan: land the declaration/root-hook shell first, then add the
+- implementation plan: the declaration/root-hook shell is done; next add the
   lifecycle and assertion slice, then bundle the adapter through the CLI. Keep
   root assertions, `pragma(...)`, `bailout(...)`, timeout controls,
   options-object overloads, Promise/event helpers, matcher-heavy assertion
