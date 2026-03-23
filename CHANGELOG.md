@@ -2,6 +2,7 @@
 
 ## 2026-03-22
 
+- **release: prepare the repository metadata for `v0.4.0`** Bump `cli/package.json` to `0.4.0`, refresh the Node-targeted CLI version proof, and keep the live backlog focused only on post-`v0.4.0` work before tagging the release. GitHub: *@jtenner*
 - **contract: lock the flat guest execution surface in compile-path proof** Add compile coverage that inspects a real generated Wasm module and proves the shipped wrapper only exports `allocateNodeIndexBuffer`, `discover`, `invoke`, `run`, `memory`, and `__start`, update the ABI and host-runner docs to record that flat host-owned surface explicitly, and remove the now-closed guest-scheduling drift risk from the live backlog. GitHub: *@jtenner*
 - **docs: move `uvu` Assertion parity into the `v0.6.0` backlog** Update the live backlog so the remaining `uvu` `Assertion` object work is no longer tracked against `v0.4.0`, and instead sits under `v0.6.0` with an explicit note that the future contract should be rich enough to support adjacent thrown-assertion APIs such as Jasmine `throwUnless(...)`. GitHub: *@jtenner*
 - **docs: freeze the remaining `uvu` compatibility decisions** Record that the shipped builder-object `suite(...)` divergence is now the permanent `uvu` contract unless a later transform policy lands, defer async hooks/tests until AssemblyScript can support an honest shared async runtime, trim those resolved policy items out of the live backlog, and leave only upstream `Assertion` object parity as the remaining `uvu` compatibility decision. GitHub: *@jtenner*
