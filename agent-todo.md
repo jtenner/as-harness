@@ -25,9 +25,6 @@
 
 - `tape-001`: add the interface note, replace the placeholder TODO, and commit
   the live implementation slices.
-- `tape-002`: ship `test(...)`, `test.only(...)`, `test.skip(...)`, adapter-local
-  `TestContext`, nested `t.test(...)`, `plan(...)`, `end()`, `teardown(...)`,
-  and `comment(...)`, then prove declaration behavior internally.
 - `tape-003`: add the shipped assertion subset and aliases, plus one cross-host
   smoke fixture covering nested subtests, plan, teardown, comments, and the
   shared assertion mapping.

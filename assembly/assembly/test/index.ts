@@ -16,6 +16,7 @@ import "./internal/reflected-render";
 import "./internal/reflected-value";
 import "./internal/runtime-type";
 import "./internal/strict-equality";
+import "./internal/tape";
 import "./internal/traversal";
 import "./internal/uvu-assert";
 import "./internal/uvu";

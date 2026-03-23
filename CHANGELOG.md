@@ -2,6 +2,7 @@
 
 ## 2026-03-22
 
+- **tape: add the declaration and context shell** Start the `tape` adapter with top-level `test(...)`, `test.only(...)`, and `test.skip(...)`, add an adapter-local `TestContext` with nested `t.test(...)`, `plan(...)`, `end()`, `teardown(...)`, and `comment(...)`, and extend the internal AssemblyScript proof to validate nested declaration and teardown behavior. GitHub: *@jtenner*
 - **docs: plan the tape adapter slices** Add the dedicated `tape` interface note, replace the placeholder `tape` TODO with concrete `tape-001` through `tape-004` slices, link the roadmap to that note, and expand the live backlog with the exact implementation order and runtime-fit risks for the new adapter workstream. GitHub: *@jtenner*
 - **ava: bundle the shipped adapter surface** Add the bundled `ava` guest-library entry, route CLI compile rewriting through that entry, add direct bundled-CLI proof for the thin AVA surface, and refresh the README, roadmap, and backlog docs so `ava` is now tracked as shipped with only honest async-parity deferrals remaining. GitHub: *@jtenner*
 - **ava: add macro lowering and title generation** Add the AVA macro factory plus explicit `use(...)` / `useNamed(...)` declaration helpers and modifier variants, normalize generated titles the same way the real runner collapses whitespace, extend the AVA internal proof to execute lowered macro callbacks, and clear the completed `ava-003` backlog slice while documenting the deliberate AssemblyScript overload divergence. GitHub: *@jtenner*
