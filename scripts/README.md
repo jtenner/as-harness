@@ -6,9 +6,15 @@
 
 - `format.ts` — run Biome, `gofmt`, and `cargo fmt`.
 - `validate.ts` — check format baseline and run CLI lints.
+- `check-legal.ts` — verify the checked-in generated legal artifacts still
+  match the packaged lockfiles and `wasmtime` cargo metadata.
+- `sync-third-party-notices.ts` — regenerate `THIRD_PARTY_NOTICES.md` from the
+  packaged dependency metadata.
 - `test.ts` — repo test flow including AssemblyScript smoke + host package tests (`js`, `wazero`, `wasmtime`).
 - `test-bootstrap.ts` — run the compiled AssemblyScript bootstrap fixture.
 - `assert-bridge-smoke.ts` — verify assertion bridge behavior through compiled fixtures.
+- `generate-wasmtime-license-inventory.ts` — regenerate the source-build
+  `wasmtime` third-party inventory from `cargo metadata --format-version 1 --locked`.
 - `release-matrix.ts` / `host-validation-matrix.ts` — emit release and source-host matrices.
 - `source-host-smoke.ts` — shared source-host smoke command map used by repo and matrix test flows.
 - `verify-source-hosts.ts` — execute source-host package smoke commands for a
@@ -25,6 +31,7 @@
 ## What These Scripts Prove
 
 - formatting and CLI lint baseline
+- generated packaged/source legal inventory drift checks
 - guest compile flow
 - assertion bridge parity
 - shared host smoke suites for all shipped hosts
@@ -40,6 +47,9 @@
 ```bash
 bun format
 bun validate
+bun run legal:check
+bun run legal:sync:notices
+bun run legal:sync:wasmtime
 bun test
 bun run host:matrix
 bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-host-reports

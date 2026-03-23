@@ -5,6 +5,9 @@
 	"scripts": {
 		"format": "bun run ./scripts/format.ts",
 		"host:matrix": "bun run ./scripts/host-validation-matrix.ts",
+		"legal:check": "bun run ./scripts/check-legal.ts",
+		"legal:sync:notices": "bun run ./scripts/sync-third-party-notices.ts",
+		"legal:sync:wasmtime": "bun run ./scripts/generate-wasmtime-license-inventory.ts",
 		"release:manifest": "bun run ./scripts/release-manifest.ts",
 		"release:matrix": "bun run ./scripts/release-matrix.ts",
 		"test": "bun run ./scripts/test.ts",

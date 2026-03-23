@@ -37,3 +37,6 @@ npm test
 - the bundled source CLI uses `AS_HARNESS_SOURCE_CLI_REPO_DIR` during CI smoke
   so the Node-targeted bundle can still resolve the repo-local host package.
 - Linux/Windows/ARM cross-target packaging is not currently part of release artifacts.
+- the tracked source-build dependency inventory lives in
+  [licenses/wasmtime/THIRD_PARTY_INVENTORY.md](../../licenses/wasmtime/THIRD_PARTY_INVENTORY.md)
+  and is generated from `cargo metadata --format-version 1 --locked`.

@@ -100,6 +100,10 @@ The repo pins Bun `1.3.11`, Node `25.8.1`, Go `1.26.1`, and Rust `1.94.0` in
 once for the repo and then `mise install` before the validation suite if you use
 `mise`.
 
+`bun validate` now also checks that the generated legal artifacts stay aligned
+with the packaged dependency lockfiles and the `wasmtime` source-host cargo
+metadata.
+
 ```bash
 bun format
 bun validate
@@ -163,5 +167,7 @@ The project is still pre-`v1`, so release communication follows the common
 
 - MIT project license: [LICENSE](./LICENSE)
 - Third-party notices: [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)
+- Source-build `wasmtime` inventory:
+  [licenses/wasmtime/THIRD_PARTY_INVENTORY.md](./licenses/wasmtime/THIRD_PARTY_INVENTORY.md)
 - Packaged Bun executables are also subject to Bun's official licensing and
   redistribution guidance: <https://bun.sh/docs/project/license>

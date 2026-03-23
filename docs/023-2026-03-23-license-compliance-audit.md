@@ -7,9 +7,10 @@ This is a repo-state audit as of `2026-03-23`.
 Historical note: this audit captured the repo state immediately before the
 first packaging-focused compliance slice landed. That follow-up slice now tracks
 the missing `binaryen` and `long` license texts, embeds the legal bundle inside
-packaged archives, and refreshes the packaged notice/docs. The remaining open
-items from this audit are the Bun standalone redistribution path, the
-source-build `wasmtime` inventory, and automated license-drift proof.
+packaged archives, refreshes the packaged notice/docs, generates the source-build
+`wasmtime` inventory, and adds validation that checks the generated legal
+artifacts for drift. The remaining open item from this audit is the Bun
+standalone redistribution path.
 
 ## Scope
 

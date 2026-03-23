@@ -15,3 +15,8 @@ console.log("Validating cli/ with Biome lint...");
 await $`bunx biome lint . --error-on-warnings`.cwd(cliDir);
 
 console.log("cli/ Biome lint validation passed.");
+console.log("Checking generated legal inventories...");
+
+await $`bun run ${rootDir}/scripts/check-legal.ts`;
+
+console.log("Generated legal inventory checks passed.");
