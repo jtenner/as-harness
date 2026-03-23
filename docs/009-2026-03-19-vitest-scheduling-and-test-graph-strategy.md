@@ -1,7 +1,8 @@
 # Vitest Scheduling and Test Graph Strategy
 
-This document plans the next scheduling step for a thin `"vitest"` adapter and
-shared host work for a future native `"as-harness"` adapter.
+This document captured the March 19, 2026 planning work for the thin
+`"vitest"` adapter and the shared host scheduling work that later shipped as
+the native `"as-harness"` constraint model.
 
 The short version is:
 

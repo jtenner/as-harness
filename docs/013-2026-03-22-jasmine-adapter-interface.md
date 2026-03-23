@@ -1,13 +1,13 @@
 # Jasmine Adapter Interface
 
 This note answers which `jasmine` functions and matcher families are worth
-exposing through `as-harness`, recommends a thin synchronous adapter boundary
-for `v0.4.0`, and covers the affected guest adapter, shared runtime, and CLI
-surface in `assembly/`, `harness/`, and `cli/`. The recommendation is to ship
-the declaration DSL, core hooks, `fail`, and a deliberately small `expect(...)`
-matcher subset first, while explicitly deferring async expectations, spy APIs,
-custom matcher registration, property bags, and most of the mutable `jasmine`
-namespace.
+exposing through `as-harness`, records the thin synchronous adapter boundary
+shipped for `v0.4.0`, and covers the affected guest adapter, shared runtime,
+and CLI surface in `assembly/`, `harness/`, and `cli/`. The shipped
+recommendation was to expose the declaration DSL, core hooks, `fail`, and a
+deliberately small `expect(...)` matcher subset first, while explicitly
+deferring async expectations, spy APIs, custom matcher registration, property
+bags, and most of the mutable `jasmine` namespace.
 
 ## Research Basis
 

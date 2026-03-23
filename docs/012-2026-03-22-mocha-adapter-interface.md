@@ -1,13 +1,13 @@
 # Mocha Adapter Interface
 
 This note answers which `mocha` user-facing functions are worth exposing
-through `as-harness`, recommends a thin BDD-only adapter shape for the current
-`v0.4.0` work, and covers the affected guest adapter, shared runtime, and CLI
-surface in `assembly/`, `harness/`, and `cli/`. The recommendation is to ship
-only the synchronous BDD declaration and hook family first, keep `mocha`-style
-`this` context APIs and async completion semantics out of scope, and treat
-suite-skip behavior plus callback-context behavior as the primary compatibility
-risks.
+through `as-harness`, records the thin BDD-only adapter shape shipped for the
+`v0.4.0` line, and covers the affected guest adapter, shared runtime, and CLI
+surface in `assembly/`, `harness/`, and `cli/`. The shipped recommendation was
+to expose only the synchronous BDD declaration and hook family first, keep
+`mocha`-style `this` context APIs and async completion semantics out of scope,
+and treat suite-skip behavior plus callback-context behavior as the primary
+compatibility risks.
 
 ## Research Basis
 

@@ -1,6 +1,6 @@
 # `node:assert` Adapter TODO
 
-Status: active, in scope for `v0.1.0`.
+Status: shipped bridge surface kept intentionally narrow.
 
 Implemented:
 

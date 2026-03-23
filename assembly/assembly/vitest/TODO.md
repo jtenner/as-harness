@@ -1,9 +1,9 @@
 # `vitest` Adapter TODO
 
-Status: first implementation slice completed, not in `v0.1.0`.
+Status: thin adapter shipped for the current `v0.4.0` line.
 Current surface is documented in [docs/008-2026-03-19-vitest-adapter.md](../../../docs/008-2026-03-19-vitest-adapter.md).
 
-First slice (implemented):
+Implemented:
 
 - `test`, `it`, `describe`, `suite`
 - `skip`, `todo`, `only`, `fails`

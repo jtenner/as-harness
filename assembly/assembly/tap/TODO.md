@@ -1,6 +1,6 @@
 # `tap` Adapter TODO
 
-Status: planned, not in `v0.1.0`.
+Status: planned, not started.
 
 First slice:
 

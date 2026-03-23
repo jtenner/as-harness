@@ -1,13 +1,28 @@
 # v0.4.0 Roadmap And Adapter Priority
 
-This note answers what should come after the `v0.3.0` release, recommends a
-`v0.4.0` plan centered on runtime hardening plus a new adapter wave, and covers
-the affected CLI packaging, host verification, and guest adapter areas in
-`cli/`, `harness/`, and `assembly/`. The recommendation is to spend the first
-`v0.4.0` slice on restoring confidence in the shipped packaged/runtime matrix,
-then add new test adapters `mocha` and `jasmine` in that order, while keeping
-`uvu`, `ava`, `tap`, and `tape` deferred until the shared runtime can support
-their execution models honestly without inventing compatibility theater.
+This note captured the March 22, 2026 planning decision for what should follow
+the `v0.3.0` release across `cli/`, `harness/`, and `assembly/`. That planned
+`v0.4.0` work has now shipped: the runtime matrix guidance from this note is
+the current packaged/source-host policy, and both recommended adapter slices,
+`mocha` and `jasmine`, are now bundled and documented in the live README and
+adapter TODO files. The remaining live adapter backlog is narrower than this
+historical note: `uvu` is shipped with one deferred upstream `Assertion`
+object-parity gap, while `ava`, `tap`, `tape`, and `qnit` remain planned-only.
+
+## Current Status
+
+Delivered from this roadmap:
+
+- packaged/source-host runtime guidance stayed explicit for the `v0.4.0` line
+- `mocha` shipped as a thin synchronous BDD adapter
+- `jasmine` shipped as a thin synchronous declaration-plus-matcher adapter
+- docs, compile wiring, and cross-host proof now exist for both adapters
+
+Still deferred after that work:
+
+- `uvu` upstream `Assertion` object parity
+- async-first or assertion-object-heavy adapters such as `ava`, `tap`, and
+  `tape`
 
 ## Why This Is The Right Next Step
 
@@ -27,7 +42,7 @@ It should instead:
 2. add two more synchronous adapters that fit the current guest/runtime model
 3. keep deferred adapters explicitly deferred rather than overpromising parity
 
-## Recommended `v0.4.0` Shape
+## Historical `v0.4.0` Plan
 
 ### Phase 1: Runtime Hardening
 

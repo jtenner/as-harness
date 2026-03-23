@@ -1,9 +1,9 @@
 # `jest` Adapter TODO
 
-Status: first declaration slice implemented, not in `v0.1.0`.
+Status: thin adapter shipped for the current `v0.4.0` line.
 Current surface is documented in [docs/005-2026-03-17-jest-adapter.md](../../../docs/005-2026-03-17-jest-adapter.md).
 
-Scope:
+Implemented:
 
 - `test` / `it` / `describe`
 - `skip`, `todo`, `only`
@@ -11,7 +11,7 @@ Scope:
 - fixture/alias mapping
 - minimal `expect(...)` matcher slice
 
-Non-goals:
+Current non-goals:
 
 - mocks/spies and call-tracking
 - matcher-aware throw message assertions

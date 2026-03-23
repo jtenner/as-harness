@@ -4,6 +4,7 @@ Adapter-level intent for guest runtime work.
 
 ## Current priorities
 
+- keep shipped adapter docs and TODOs aligned with the released surface
 - keep `node:test` and assertion core stable
 - keep host contracts explicit as they evolve
 - keep ABI documentation current for additional host implementations
@@ -17,9 +18,13 @@ Adapter-level intent for guest runtime work.
 
 ## Adapter set
 
-Tracked adapters: `as-harness`, `node:test`, `node:assert`, `jest`, `vitest`, `mocha`, `ava`, `tap`, `tape`, `uvu`, `jasmine`, `qunit`.
+Tracked adapters: `as-harness`, `node:test`, `node:assert`, `jest`, `vitest`, `mocha`, `jasmine`, `uvu`, `ava`, `tap`, `tape`, `qnit`.
 
-Active surface today: `as-harness`, `node:test`, `jest`, `vitest`.
+Active surface today: `as-harness`, `node:test`, `node:assert`,
+`node:assert/strict`, `jest`, `vitest`, `mocha`, `jasmine`, `uvu`, and
+`uvu/assert`.
+
+Planned-only workstreams today: `ava`, `tap`, `tape`, and `qnit`.
 
 For each adapter workstream, start from the doc + TODO pair:
 

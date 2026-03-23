@@ -1,6 +1,6 @@
 # `node:test` Adapter TODO
 
-Status: active, in scope for `v0.1.0`.
+Status: shipped synchronous core kept intentionally narrow.
 
 Implemented:
 

@@ -1,6 +1,6 @@
 # `as-harness` Adapter TODO
 
-Status: active, in scope for `v0.3.0`.
+Status: shipped native surface for the current `v0.4.0` line.
 
 Implemented:
 
