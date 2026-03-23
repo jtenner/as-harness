@@ -37,4 +37,5 @@ For each adapter workstream, start from the doc + TODO pair:
 - [docs/005-2026-03-17-jest-adapter.md](../docs/005-2026-03-17-jest-adapter.md)
 - [docs/008-2026-03-19-vitest-adapter.md](../docs/008-2026-03-19-vitest-adapter.md)
 - [docs/017-2026-03-22-ava-adapter-interface.md](../docs/017-2026-03-22-ava-adapter-interface.md)
+- [docs/018-2026-03-22-tape-adapter-interface.md](../docs/018-2026-03-22-tape-adapter-interface.md)
 - [docs/003-2026-03-17-harness-abi.md](../docs/003-2026-03-17-harness-abi.md)
