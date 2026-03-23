@@ -45,7 +45,7 @@ Default reporting summarizes:
 - `as-harness`: native scheduler-aware declarations, `sequential(...)` groups, chainable `dependsOn(...)` handles, host-owned `inBand(...)` / `bail(...)` / `continueOnFailure(...)` hints, and shared `TestContext.assert`.
 - `ava`: sync flat `test(...)` declarations, hooks, `test.macro(...)` plus explicit `use(...)` / `useNamed(...)` lowering helpers, adapter-local `ExecutionContext`, and `test.meta` placeholders.
 - `uvu`: sync top-level `test` hooks, root and suite-local host-owned `inBand(...)` / `bail(...)` / `continueOnFailure(...)` hints, `suite(...)` builder objects, `exec(bail?)` root hint lowering, `.run()` no-op under host-owned execution, and adapter-local `TestContext` crumbs with `__suite__` / `__test__`.
-- `uvu/assert`: shared assertion subset: `ok`, `is`, `equal`, `match`, `type`, `instance`, `throws`, `snapshot`, `fixture`, `not`, `is.not`, `not.equal`, `not.match`, `not.type`, `not.instance`, `not.throws`, and `unreachable`.
+- `uvu/assert`: shared assertion surface: `Assertion`, `ok`, `is`, `equal`, `match`, `type`, `instance`, `throws`, `snapshot`, `fixture`, `not`, `is.not`, `not.equal`, `not.match`, `not.type`, `not.instance`, `not.throws`, and `unreachable`.
 - `jasmine`: sync declarations, focus/exclude aliases, core hooks, `fail(...)`, and a narrow shared matcher slice.
 - `jest`: thin sync declarations + shared assertion set (containment, length/size, numeric, `toThrow`, strict equality helpers).
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks for diagnostics and assertions.

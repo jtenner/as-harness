@@ -1,25 +1,65 @@
 import {
-	doesNotThrow,
-	deepStrictEqual,
-	fail,
-	notDeepStrictEqual,
-	notStrictEqual,
-	ok as assertOk,
-	strictEqual,
-	throws as assertThrows,
-} from "../node_assert/shared";
+	clearActiveErrorMessage,
+	getActiveAssertionFailureRecord,
+	getActiveFailureKind,
+	restoreActiveFailureState,
+	stageActiveAssertionFailure,
+	takeActiveFailureStateSnapshot,
+} from "../internal/failure-state";
 import {
-	assertCondition,
+	isDeepStrictlyEqual,
 	isPartialMatch,
 	isRuntimeTypeInstance,
+	isStrictlyEqual,
+	trapWithActiveFailureState,
 } from "../internal/assert-bridge";
 import {
 	readLastArtifactText,
 	tryFixtureRead,
 	trySnapshotCheck,
 } from "../internal/artifacts";
+import { FailureKind } from "../internal/imports";
 import { stringifyReflectedValue } from "../internal/reflected-render";
-import { TrapCallback } from "../internal/trampoline";
+import { TrapCallback, didCallbackTrap } from "../internal/trampoline";
+
+@final
+class ObservedTrapResult {
+	trapped: bool;
+	assertion: Assertion | null;
+
+	constructor(trapped: bool, assertion: Assertion | null = null) {
+		this.trapped = trapped;
+		this.assertion = assertion;
+	}
+}
+
+export class Assertion extends Error {
+	name: string;
+	code: string;
+	details: string | null;
+	generated: bool;
+	operator: string;
+	expects: string | null;
+	actual: string | null;
+
+	constructor(
+		message: string | null = null,
+		operator: string = "",
+		actual: string | null = null,
+		expects: string | null = null,
+		details: string | null = null,
+		generated: bool = false,
+	) {
+		super(message === null ? "" : message);
+		this.name = "Assertion";
+		this.code = "ERR_ASSERTION";
+		this.details = details;
+		this.generated = generated;
+		this.operator = operator;
+		this.expects = expects;
+		this.actual = actual;
+	}
+}
 
 function typeNameFor<T>(value: T): string {
 	if (isBoolean<T>()) {
@@ -41,8 +81,111 @@ function typeNameFor<T>(value: T): string {
 	return "number";
 }
 
+function isTruthyValue<T>(value: T): bool {
+	if (isReference<T>()) {
+		const reference = changetype<usize>(value);
+
+		if (reference == 0) {
+			return false;
+		}
+
+		if (isString<T>()) {
+			return changetype<string>(value).length > 0;
+		}
+
+		return true;
+	}
+
+	if (isBoolean<T>()) {
+		return <bool>value;
+	}
+
+	if (isFloat<T>()) {
+		if (sizeof<T>() == sizeof<f32>()) {
+			const floatValue = <f32>value;
+			return floatValue != 0.0 && !isNaN<f32>(floatValue);
+		}
+
+		const floatValue = <f64>value;
+		return floatValue != 0.0 && !isNaN<f64>(floatValue);
+	}
+
+	return value != 0;
+}
+
+function failWithAssertion(
+	operator: string,
+	actual: string | null,
+	expects: string | null,
+	backupMessage: string,
+	message: string | null = null,
+	details: string | null = null,
+): void {
+	const resolvedMessage = message === null ? backupMessage : message;
+	stageActiveAssertionFailure(
+		resolvedMessage,
+		operator,
+		actual,
+		expects,
+		details,
+		message === null,
+	);
+	trapWithActiveFailureState(resolvedMessage);
+}
+
+function rethrowAssertion(assertion: Assertion): void {
+	stageActiveAssertionFailure(
+		assertion.message,
+		assertion.operator,
+		assertion.actual,
+		assertion.expects,
+		assertion.details,
+		assertion.generated,
+	);
+	trapWithActiveFailureState(assertion.message);
+}
+
+function activeObservedAssertion(): Assertion | null {
+	if (getActiveFailureKind() != <u8>FailureKind.Assertion) {
+		return null;
+	}
+
+	const record = getActiveAssertionFailureRecord();
+	if (record === null) {
+		return null;
+	}
+
+	return new Assertion(
+		record.message,
+		record.operator !== null ? changetype<string>(record.operator) : "",
+		record.actual,
+		record.expects,
+		record.details,
+		record.generated,
+	);
+}
+
+function observeTrap(callback: TrapCallback): ObservedTrapResult {
+	const snapshot = takeActiveFailureStateSnapshot();
+	clearActiveErrorMessage();
+	const trapped = didCallbackTrap(callback);
+	const assertion = trapped ? activeObservedAssertion() : null;
+	restoreActiveFailureState(snapshot);
+	return new ObservedTrapResult(trapped, assertion);
+}
+
 export function ok<T>(value: T, message: string | null = null): void {
-	assertOk(value, message);
+	if (isTruthyValue(value)) {
+		return;
+	}
+
+	failWithAssertion(
+		"ok",
+		stringifyReflectedValue(value),
+		"truthy",
+		"Expected value to be truthy",
+		message,
+	);
 }
 
 export function is<T>(
@@ -50,7 +193,17 @@ export function is<T>(
 	expected: T,
 	message: string | null = null,
 ): void {
-	strictEqual(actual, expected, message);
+	if (isStrictlyEqual(actual, expected)) {
+		return;
+	}
+
+	failWithAssertion(
+		"is",
+		stringifyReflectedValue(actual),
+		stringifyReflectedValue(expected),
+		"Expected values to be strictly equal",
+		message,
+	);
 }
 
 export namespace is {
@@ -59,7 +212,17 @@ export namespace is {
 		expected: T,
 		message: string | null = null,
 	): void {
-		notStrictEqual(actual, expected, message);
+		if (!isStrictlyEqual(actual, expected)) {
+			return;
+		}
+
+		failWithAssertion(
+			"is.not",
+			stringifyReflectedValue(actual),
+			stringifyReflectedValue(expected),
+			"Expected values not to be strictly equal",
+			message,
+		);
 	}
 }
 
@@ -68,7 +231,17 @@ export function equal<T>(
 	expected: T,
 	message: string | null = null,
 ): void {
-	deepStrictEqual(actual, expected, message);
+	if (isDeepStrictlyEqual(actual, expected)) {
+		return;
+	}
+
+	failWithAssertion(
+		"equal",
+		stringifyReflectedValue(actual),
+		stringifyReflectedValue(expected),
+		"Expected values to be deeply equal",
+		message,
+	);
 }
 
 export function match<Actual, Expected>(
@@ -76,9 +249,16 @@ export function match<Actual, Expected>(
 	expected: Expected,
 	message: string | null = null,
 ): void {
-	assertCondition(
-		isPartialMatch(actual, expected),
-		message === null ? "uvu assert match mismatch" : message,
+	if (isPartialMatch(actual, expected)) {
+		return;
+	}
+
+	failWithAssertion(
+		"match",
+		stringifyReflectedValue(actual),
+		stringifyReflectedValue(expected),
+		"uvu assert match mismatch",
+		message,
 	);
 }
 
@@ -87,9 +267,16 @@ export function instance<T>(
 	expectedRuntimeTypeId: u32,
 	message: string | null = null,
 ): void {
-	assertCondition(
-		isRuntimeTypeInstance(value, expectedRuntimeTypeId),
-		message === null ? "uvu assert instance mismatch" : message,
+	if (isRuntimeTypeInstance(value, expectedRuntimeTypeId)) {
+		return;
+	}
+
+	failWithAssertion(
+		"instance",
+		stringifyReflectedValue(value),
+		expectedRuntimeTypeId.toString(),
+		"uvu assert instance mismatch",
+		message,
 	);
 }
 
@@ -98,10 +285,17 @@ export function type<T>(
 	expected: string,
 	message: string | null = null,
 ): void {
-	strictEqual(
-		typeNameFor(value),
+	const actualType = typeNameFor(value);
+	if (actualType == expected) {
+		return;
+	}
+
+	failWithAssertion(
+		"type",
+		actualType,
 		expected,
-		message === null ? "uvu assert type mismatch" : message,
+		"uvu assert type mismatch",
+		message,
 	);
 }
 
@@ -110,7 +304,17 @@ export function not<T>(
 	expected: T,
 	message: string | null = null,
 ): void {
-	notStrictEqual(actual, expected, message);
+	if (!isStrictlyEqual(actual, expected)) {
+		return;
+	}
+
+	failWithAssertion(
+		"not",
+		stringifyReflectedValue(actual),
+		stringifyReflectedValue(expected),
+		"Expected values not to be strictly equal",
+		message,
+	);
 }
 
 export namespace not {
@@ -119,7 +323,17 @@ export namespace not {
 		expected: T,
 		message: string | null = null,
 	): void {
-		notDeepStrictEqual(actual, expected, message);
+		if (!isDeepStrictlyEqual(actual, expected)) {
+			return;
+		}
+
+		failWithAssertion(
+			"not.equal",
+			stringifyReflectedValue(actual),
+			stringifyReflectedValue(expected),
+			"Expected values not to be deeply equal",
+			message,
+		);
 	}
 
 	export function type<T>(
@@ -127,10 +341,17 @@ export namespace not {
 		expected: string,
 		message: string | null = null,
 	): void {
-		notStrictEqual(
-			typeNameFor(value),
+		const actualType = typeNameFor(value);
+		if (actualType != expected) {
+			return;
+		}
+
+		failWithAssertion(
+			"not.type",
+			actualType,
 			expected,
-			message === null ? "uvu assert not.type mismatch" : message,
+			"uvu assert not.type mismatch",
+			message,
 		);
 	}
 
@@ -139,9 +360,16 @@ export namespace not {
 		expected: Expected,
 		message: string | null = null,
 	): void {
-		assertCondition(
-			!isPartialMatch(actual, expected),
-			message === null ? "uvu assert not.match mismatch" : message,
+		if (!isPartialMatch(actual, expected)) {
+			return;
+		}
+
+		failWithAssertion(
+			"not.match",
+			stringifyReflectedValue(actual),
+			stringifyReflectedValue(expected),
+			"uvu assert not.match mismatch",
+			message,
 		);
 	}
 
@@ -150,9 +378,16 @@ export namespace not {
 		expectedRuntimeTypeId: u32,
 		message: string | null = null,
 	): void {
-		assertCondition(
-			!isRuntimeTypeInstance(value, expectedRuntimeTypeId),
-			message === null ? "uvu assert not.instance mismatch" : message,
+		if (!isRuntimeTypeInstance(value, expectedRuntimeTypeId)) {
+			return;
+		}
+
+		failWithAssertion(
+			"not.instance",
+			stringifyReflectedValue(value),
+			expectedRuntimeTypeId.toString(),
+			"uvu assert not.instance mismatch",
+			message,
 		);
 	}
 
@@ -160,7 +395,18 @@ export namespace not {
 		callback: TrapCallback,
 		message: string | null = null,
 	): void {
-		doesNotThrow(callback, message);
+		const observed = observeTrap(callback);
+		if (!observed.trapped) {
+			return;
+		}
+
+		failWithAssertion(
+			"not.throws",
+			"true",
+			"false",
+			"Expected function not to throw",
+			message,
+		);
 	}
 }
 
@@ -168,7 +414,21 @@ export function throws(
 	callback: TrapCallback,
 	message: string | null = null,
 ): void {
-	assertThrows(callback, message);
+	const observed = observeTrap(callback);
+	if (!observed.trapped) {
+		failWithAssertion(
+			"throws",
+			"false",
+			"true",
+			"Expected function to throw",
+			message,
+		);
+		return;
+	}
+
+	if (observed.assertion !== null) {
+		rethrowAssertion(changetype<Assertion>(observed.assertion));
+	}
 }
 
 export function snapshot<T>(value: T, label: string | null = null): void {
@@ -178,7 +438,10 @@ export function snapshot<T>(value: T, label: string | null = null): void {
 	}
 
 	const failureMessage = readLastArtifactText();
-	fail(
+	failWithAssertion(
+		"snapshot",
+		serialized,
+		label,
 		failureMessage.length > 0 ? failureMessage : "uvu assert snapshot mismatch",
 	);
 }
@@ -190,12 +453,15 @@ export function fixture(path: string): string {
 	}
 
 	const failureMessage = readLastArtifactText();
-	fail(
+	failWithAssertion(
+		"fixture",
+		path,
+		"fixture to exist",
 		failureMessage.length > 0 ? failureMessage : "uvu assert fixture missing",
 	);
 	return "";
 }
 
 export function unreachable(message: string | null = null): void {
-	fail(message === null ? "unreachable" : message);
+	failWithAssertion("unreachable", "true", "false", "unreachable", message);
 }

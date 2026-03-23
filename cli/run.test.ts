@@ -1547,22 +1547,25 @@ test('cli run executes the bundled "uvu/assert" guest library through the js hos
 	await withTempEntryFile(
 		`
 import { test, TestContext } from "node:test";
-import { equal, is, not, ok, throws, type, unreachable } from "uvu/assert";
+import { Assertion, equal, is, not, ok, throws, type } from "uvu/assert";
 
-function failViaUnreachable(): void {
-  unreachable("uvu assert trap");
+function failViaNullAccess(): void {
+  unreachable();
 }
 
 function doesNotTrap(): void {}
 
 test("passes through uvu/assert", (context: TestContext): void => {
+  const assertion = new Assertion("manual", "equal", "[1]", "[2]");
+  is<string>(assertion.name, "Assertion");
+  is<string>(assertion.code, "ERR_ASSERTION");
   ok<bool>(true);
   is<i32>(11, 11);
   is.not<i32>(11, 12);
   equal<Array<i32>>([1, 2], [1, 2]);
   type<i32>(11, "number");
   type<string>("uvu", "string");
-  throws(failViaUnreachable);
+  throws(failViaNullAccess);
   not<i32>(11, 12);
   not.equal<Array<i32>>([1, 2], [1, 3]);
   not.type<i32>(11, "string");

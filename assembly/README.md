@@ -18,7 +18,7 @@ Host owns scheduling, aggregation, and reporting.
 - `assembly/assembly/qunit/`: thin sync QUnit-shaped declaration and assertion surface.
 - `assembly/assembly/tap/`: thin sync Tap-shaped declaration, hook, and assertion surface.
 - `assembly/assembly/tape/`: thin sync Tape-shaped declaration and assertion surface.
-- `assembly/assembly/uvu/`: sync `uvu`-shaped declarations, host-owned hint helpers, plus the shared `uvu/assert` subset.
+- `assembly/assembly/uvu/`: sync `uvu`-shaped declarations, host-owned hint helpers, plus the shared `uvu/assert` surface.
 - `assembly/assembly/vitest/`: thin sync Vitest-shaped surface.
 - `assembly/assembly/node_assert/`: assertion adapters.
 - `assembly/assembly/test/`: guest fixtures and bootstrap tests.
@@ -32,9 +32,10 @@ Host owns scheduling, aggregation, and reporting.
   host-owned planning hints
 - thin `jest`, `mocha`, `jasmine`, `ava`, `tap`, `tape`, `qunit`, `uvu`, and `vitest` adapters,
   including the shipped Vitest scheduling subset
-- shared `uvu/assert` subset for assertion reuse, including structural
-  `match(...)`, runtime-type `instance(...)`, and host-backed `snapshot(...)` /
-  `fixture(...)` support
+- shared `uvu/assert` surface for assertion reuse, including the adapter-local
+  `Assertion` class, structured `throws(...)` parity for inner `uvu`
+  assertion failures, structural `match(...)`, runtime-type `instance(...)`,
+  and host-backed `snapshot(...)` / `fixture(...)` support
 - `node:assert` / `node:assert/strict` bridge + trampoline trap observation
 - shared event ABI, `NodeIndex` discovery/run model, and coverage declarations
 

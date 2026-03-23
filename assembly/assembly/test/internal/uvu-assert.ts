@@ -1,6 +1,13 @@
+import {
+	AssertionFailureRecord,
+	getActiveAssertionFailureRecord,
+	getActiveFailureKind,
+} from "../../internal/failure-state";
+import { FailureKind } from "../../internal/imports";
 import { didCallbackTrap } from "../../internal/trampoline";
 import { addReflectedValueKeyValuePair } from "../../internal/reflected-value";
 import {
+	Assertion,
 	equal,
 	instance,
 	is,
@@ -9,7 +16,7 @@ import {
 	ok,
 	throws,
 	type,
-	unreachable,
+	unreachable as uvuUnreachable,
 } from "../../uvu/assert";
 
 class UvuAssertMatchLeaf {
@@ -42,8 +49,8 @@ class UvuAssertMatchNode {
 	}
 }
 
-function trapsUnreachable(): void {
-	unreachable("uvu assert unreachable");
+function trapsGenericNullAccess(): void {
+	unreachable();
 }
 
 function doesNotTrap(): void {}
@@ -52,7 +59,28 @@ function trapsFailedOk(): void {
 	ok<bool>(false, "uvu assert ok mismatch");
 }
 
+function trapsViaUvuUnreachable(): void {
+	uvuUnreachable("uvu assert unreachable");
+}
+
 function testUvuAssertFunctions(): void {
+	const assertion = new Assertion(
+		"manual assertion",
+		"equal",
+		"[1]",
+		"[2]",
+		"manual detail",
+		true,
+	);
+	assert(assertion.name == "Assertion");
+	assert(assertion.code == "ERR_ASSERTION");
+	assert(assertion.message == "manual assertion");
+	assert(assertion.operator == "equal");
+	assert(assertion.actual == "[1]");
+	assert(assertion.expects == "[2]");
+	assert(assertion.details == "manual detail");
+	assert(assertion.generated);
+
 	ok<bool>(true);
 	is<i32>(2, 2);
 	is.not<i32>(2, 3);
@@ -78,11 +106,24 @@ function testUvuAssertFunctions(): void {
 	not.equal<Array<i32>>([1, 2], [1, 3]);
 	not.match<string, string>("uvu", "runner");
 	not.type<i32>(2, "string");
-	throws(trapsUnreachable);
+	throws(trapsGenericNullAccess);
 	not.throws(doesNotTrap);
 
-	assert(didCallbackTrap(trapsUnreachable));
+	assert(didCallbackTrap(trapsViaUvuUnreachable));
 	assert(didCallbackTrap(trapsFailedOk));
+	assert(
+		didCallbackTrap((): void => {
+			throws(trapsFailedOk);
+		}),
+	);
+	assert(getActiveFailureKind() == <u8>FailureKind.Assertion);
+	const throwsAssertion = getActiveAssertionFailureRecord();
+	assert(throwsAssertion !== null);
+	assert(changetype<AssertionFailureRecord>(throwsAssertion).operator == "ok");
+	assert(
+		changetype<AssertionFailureRecord>(throwsAssertion).message ==
+			"uvu assert ok mismatch",
+	);
 	assert(
 		didCallbackTrap((): void => {
 			instance<string>("uvu", idof<ArrayBuffer>());
@@ -120,8 +161,14 @@ function testUvuAssertFunctions(): void {
 	);
 	assert(
 		didCallbackTrap((): void => {
-			not.throws(trapsUnreachable);
+			not.throws(trapsGenericNullAccess);
 		}),
+	);
+	const notThrowsAssertion = getActiveAssertionFailureRecord();
+	assert(notThrowsAssertion !== null);
+	assert(
+		changetype<AssertionFailureRecord>(notThrowsAssertion).operator ==
+			"not.throws",
 	);
 }
 

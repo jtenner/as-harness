@@ -2,6 +2,7 @@
 
 ## 2026-03-23
 
+- **uvu/assert: ship Assertion object parity** Export the adapter-local `Assertion` class, stage structured assertion records across the `uvu/assert` helpers, rethrow inner `uvu/assert` assertion failures correctly through `throws(...)`, extend internal, smoke, bundled-CLI, and virtual-library proof, and refresh the shipped docs and backlog so the deferred `uvu` `Assertion` work is now closed. GitHub: *@jtenner*
 - **runtime: add shared structured assertion failure state** Extend the guest failure-state runtime with cloneable assertion records plus failure-state snapshots, update shared throw observers so inner traps no longer leak their failure kind into later execution, and add focused internal proof for the new structured metadata contract that the remaining `uvu/assert` `Assertion` work now depends on. GitHub: *@jtenner*
 - **docs: plan the `uvu` Assertion contract slices** Add a dedicated note for the deferred `uvu/assert` `Assertion` work, replace the old vague backlog wording with explicit `uvu-assertion-001` through `uvu-assertion-003` slices, and align the live `uvu` TODO with the structured failure-record contract the runtime now needs before adapter parity can land. GitHub: *@jtenner*
 - **qunit: bundle the shipped adapter surface** Add the bundled `qunit` guest-library entry plus CLI compile rewriting, prove the shipped sync subset through a direct bundled CLI run, and refresh the README, roadmap, and backlog docs so `qunit` is now tracked as an active surface with explicit AssemblyScript-only deferrals. GitHub: *@jtenner*

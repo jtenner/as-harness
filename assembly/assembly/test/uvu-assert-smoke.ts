@@ -1,6 +1,7 @@
 import { test, TestContext } from "../node_test";
 import { addReflectedValueKeyValuePair } from "../internal/reflected-value";
 import {
+	Assertion,
 	equal,
 	instance,
 	is,
@@ -9,7 +10,6 @@ import {
 	ok,
 	throws,
 	type,
-	unreachable,
 } from "../uvu/assert";
 
 export { allocateNodeIndexBuffer, discover, invoke, run } from "../exports";
@@ -41,13 +41,16 @@ class UvuAssertSmokeNode {
 	}
 }
 
-function failViaUnreachable(): void {
-	unreachable("uvu assert smoke trap");
+function failViaNullAccess(): void {
+	unreachable();
 }
 
 function doesNotTrap(): void {}
 
 test("passes through uvu/assert", (context: TestContext): void => {
+	const assertion = new Assertion("manual", "equal", "[1]", "[2]");
+	is<string>(assertion.name, "Assertion");
+	is<string>(assertion.code, "ERR_ASSERTION");
 	ok<bool>(true);
 	is<i32>(11, 11);
 	is.not<i32>(11, 12);
@@ -64,7 +67,7 @@ test("passes through uvu/assert", (context: TestContext): void => {
 	);
 	type<i32>(11, "number");
 	type<string>("uvu", "string");
-	throws(failViaUnreachable);
+	throws(failViaNullAccess);
 	not<i32>(11, 12);
 	not.instance<UvuAssertSmokeNode>(
 		new UvuAssertSmokeNode("runner", new UvuAssertSmokeLeaf("leaf value")),

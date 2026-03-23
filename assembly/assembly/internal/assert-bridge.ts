@@ -146,7 +146,12 @@ function isLooselyEqualStringAndPrimitive<T>(text: string, value: T): bool {
 export function failAssertion(message: string | null = null): void {
 	setActiveErrorMessage(message);
 	setActiveFailureKind(<u8>FailureKind.Assertion);
+	trapWithActiveFailureState(message);
+}
 
+export function trapWithActiveFailureState(
+	message: string | null = null,
+): void {
 	if (message !== null) {
 		failMessage(message);
 	}

@@ -458,10 +458,12 @@ Game plan:
 
 ### `uvu/assert`
 
-Status: Shipped with one deferred upstream object-model gap.
+Status: shipped with one explicit value-model divergence and repo-local
+artifact-helper boundaries.
 
 Shipped:
 
+- `Assertion`
 - `ok`
 - `is`
 - `equal`
@@ -482,8 +484,7 @@ Shipped:
 
 Deferred:
 
-- negated forms that depend on artifact helpers
-- `Assertion`
+- async-only behavior and strict upstream object payload parity
 
 ## Remaining Compatibility Decisions
 
@@ -515,12 +516,6 @@ The repo still does not support:
 
 ### 3. Remaining `uvu/assert` Object Helpers Need Contracts The Repo Does Not Ship
 
-The remaining deferred helpers now sit in the upstream-specific object-model
-family:
-
-- `Assertion`, which still depends on a richer adapter-local error object
-  contract than the shared trap and fail-message boundary currently provides
-
 The reopened helper families are now shipped with explicit repo-local
 semantics:
 
@@ -528,10 +523,21 @@ semantics:
   ad hoc adapter logic
 - `instance(...)` uses the current runtime-type-id boundary instead of
   pretending to support upstream constructor tokens
+- `Assertion` is now reconstructed from the shared structured assertion record,
+  and `throws(...)` rethrows inner `uvu/assert` assertion failures unchanged at
+  the adapter level instead of treating them as generic trapped callbacks
 - `snapshot(...)` lowers onto the host-owned project-root `__snapshots__/`
   contract with strict compare mode and explicit `--update-snapshots`
 - `fixture(...)` lowers onto the host-owned project-root `__fixtures__/`
   contract resolved from the active declaration source file
+
+The remaining divergences stay explicit:
+
+- `Assertion.actual` and `Assertion.expects` are stored as reflected render
+  strings, not arbitrary JS values
+- the repo-local artifact-backed `snapshot(...)` and `fixture(...)` helpers do
+  not currently claim upstream negated helper parity such as `not.snapshot(...)`
+  or `not.fixture(...)`
 
 ## Selected This Cycle
 
@@ -547,10 +553,10 @@ semantics:
 
 ## Suggested Future Order
 
-1. revisit `Assertion` only after the repo adopts an adapter-local error object
-   contract
-2. revisit async only after AssemblyScript and the shared runtime contract can
+1. revisit async only after AssemblyScript and the shared runtime contract can
    support it honestly
+2. revisit any broader artifact-helper parity only if the repo wants to narrow
+   its current snapshot / fixture divergence deliberately
 
 ## Sources
 

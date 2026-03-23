@@ -2,7 +2,7 @@
 
 Status: shipped sync `uvu` slice with top-level `test` hooks, `suite(...)`
 builder objects, `.run()` / `exec()` no-op compatibility, and the shared
-`uvu/assert` subset.
+`uvu/assert` surface.
 
 Shipped:
 
@@ -13,8 +13,8 @@ Shipped:
   `.test(...)`, `.only(...)`, `.skip(...)`, `.inBand(...)`, `.bail(...)`,
   `.continueOnFailure(...)`, `.before(...)`, `.after(...)`, `.beforeEach(...)`,
   `.afterEach(...)`, and `exec(...)`
-- `uvu/assert`: `ok`, `is`, `equal`, `match`, `type`, `instance`, `throws`,
-  `snapshot`, `fixture`, `not`, `is.not`, `not.equal`, `not.match`,
+- `uvu/assert`: `Assertion`, `ok`, `is`, `equal`, `match`, `type`, `instance`,
+  `throws`, `snapshot`, `fixture`, `not`, `is.not`, `not.equal`, `not.match`,
   `not.type`, `not.instance`, `not.throws`, and `unreachable`
 - `uvu` callbacks now receive adapter-local `TestContext` crumbs with
   `__suite__` and `__test__` while keeping the shared assertion and diagnostic
@@ -34,11 +34,8 @@ Permanent divergence for now:
   as reflected render strings rather than arbitrary JS objects, because the
   current Wasm trap boundary cannot preserve rich thrown object identity across
   guest-side trap observation yet
-
-Current implementation slice plan for the remaining `uvu/assert` parity work:
-
-- `uvu-assertion-003`: ship the `Assertion` class plus `throws(...)`,
-  `not.throws(...)`, `not.ok`, `not.snapshot`, and `not.fixture` parity on top
-  of that contract
+- the repo-local artifact-backed `snapshot(...)` and `fixture(...)` helpers do
+  not currently claim upstream negated helper parity such as `not.snapshot(...)`
+  or `not.fixture(...)`
 
 Constraint: keep logic in shared runtime, no runtime-policy duplication in adapter.

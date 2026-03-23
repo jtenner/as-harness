@@ -12,7 +12,7 @@ Implemented:
 - Synchronous `node:test` declarations with `dependsOn(...)` chains and the same host-owned planning hints.
 - `node:assert` / `node:assert/strict` bridge support.
 - Built-in thin adapters for `jest`, `mocha`, `jasmine`, `ava`, `tap`, `tape`, `qunit`, and `vitest`.
-- Built-in `uvu` adapter plus the shared `uvu/assert` subset.
+- Built-in `uvu` adapter plus the shared `uvu/assert` surface.
 - Stable start-reporting pipeline with branch, execution, planning, and blocked-outcome details.
 - `js`, `wazero`, `wasmtime` source-host runtime support.
 - Coverage output in `text`, `json`, `yaml`, `csv`, `lcov`, `cobertura`.
@@ -64,7 +64,7 @@ The runtime enforces scheduler semantics from discovered metadata:
 - `node:test`: core declarations, hooks, sync contexts, assertion binding, and the same host-owned planning hints.
 - `node:assert`, `node:assert/strict`: synchronous assertions and strict-bridge tests.
 - `uvu`: sync top-level `test` hooks, root and suite-local host-owned `inBand(...)` / `bail(...)` / `continueOnFailure(...)` hints, `suite(...)` builder objects, `exec(bail?)` root hint lowering, `.run()` compatibility no-op, and adapter-local `TestContext` crumbs with `__suite__` / `__test__`.
-- `uvu/assert`: shared assertion subset: `ok`, `is`, `equal`, `match`, `type`, `instance`, `throws`, `snapshot`, `fixture`, `not`, `is.not`, `not.equal`, `not.match`, `not.type`, `not.instance`, `not.throws`, and `unreachable`.
+- `uvu/assert`: shared assertion surface: `Assertion`, `ok`, `is`, `equal`, `match`, `type`, `instance`, `throws`, `snapshot`, `fixture`, `not`, `is.not`, `not.equal`, `not.match`, `not.type`, `not.instance`, `not.throws`, and `unreachable`.
 - `jest`: sync declarations, core hooks, matcher slice.
 - `ava`: sync flat `test(...)` declarations, hooks, `test.macro(...)` plus explicit `use(...)` / `useNamed(...)` lowering helpers, adapter-local `ExecutionContext`, and `test.meta` placeholders.
 - `mocha`: sync BDD declarations, core hooks, `only` / `skip` / `x*` aliases, pending by omitted callback, and optional shared `TestContext` callbacks.

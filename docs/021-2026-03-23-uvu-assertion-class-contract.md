@@ -4,10 +4,10 @@ This note answers how `as-harness` should implement upstream `uvu`'s
 `Assertion` class honestly, what structured failure metadata the shared guest
 runtime must preserve for that work, and which exact `uvu/assert` behaviors are
 worth shipping now across `assembly/`, `cli/`, and the host matrix. The
-recommendation is to add a shared guest-side assertion-record contract first,
-then use that contract to reconstruct adapter-local `Assertion` objects inside
-`uvu/assert` trap observers instead of pretending the current Wasm trap
-boundary can preserve arbitrary thrown JS objects.
+recommendation in this note is now the shipped contract: the shared runtime
+stores a guest-side assertion record, and `uvu/assert` reconstructs
+adapter-local `Assertion` objects inside trap observers instead of pretending
+the current Wasm boundary can preserve arbitrary thrown JS objects.
 
 ## Research Basis
 
@@ -108,11 +108,10 @@ future adapter reuse such as Jasmine `throwUnless(...)`.
 Ship now:
 
 - `Assertion`
-- structured `throws(...)` and `not.throws(...)` parity over reconstructed
-  adapter-local `Assertion` instances
-- `not.ok`
-- `not.snapshot`
-- `not.fixture`
+- structured `throws(...)` parity that rethrows inner reconstructed
+  adapter-local `Assertion` instances unchanged at the adapter level
+- structured `not.throws(...)` parity that still fails on any observed trap
+  with the adapter's own `not.throws` assertion record
 
 Keep deferred:
 
@@ -120,6 +119,8 @@ Keep deferred:
 - arbitrary non-assertion thrown-object inspection beyond the existing trap
   boundary
 - exact upstream `any` payload parity for `actual` and `expects`
+- broader negated helper parity around the repo-local artifact-backed
+  `snapshot(...)` and `fixture(...)` semantics
 
 ## Implementation Slices
 
@@ -142,7 +143,6 @@ Keep deferred:
 - refactor `uvu/assert` helpers to stage structured failures before trapping
 - update `throws(...)` and `not.throws(...)` to reconstruct and validate
   adapter-local `Assertion` objects
-- ship `not.ok`, `not.snapshot`, and `not.fixture`
 - extend internal, smoke, and bundled CLI proof
 - refresh shipped docs and remove the backlog item
 
