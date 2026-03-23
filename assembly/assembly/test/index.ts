@@ -3,6 +3,7 @@ export { invoke } from "../internal/trampoline";
 import "./internal/assert-bridge";
 import "./internal/as-harness";
 import "./internal/ava";
+import "./internal/debug";
 import "./internal/execution-state";
 import "./internal/executor";
 import "./internal/events";

@@ -8,6 +8,38 @@ export const enum ArtifactFrameKind {
 	Hook = 3,
 }
 
+@final
+export class ArtifactFrameSnapshot {
+	readonly kind: ArtifactFrameKind;
+	readonly nodeKind: NodeKind;
+	readonly hookKind: HookKind;
+	readonly name: string;
+	readonly sourceFile: string;
+	readonly sourceLine: i32;
+	readonly sourceColumn: i32;
+	readonly nodeIndex: StaticArray<u32>;
+
+	constructor(
+		kind: ArtifactFrameKind,
+		nodeKind: NodeKind,
+		hookKind: HookKind,
+		name: string,
+		nodeIndex: StaticArray<u32> | null = null,
+		sourceFile: string = "",
+		sourceLine: i32 = 0,
+		sourceColumn: i32 = 0,
+	) {
+		this.kind = kind;
+		this.nodeKind = nodeKind;
+		this.hookKind = hookKind;
+		this.name = name;
+		this.sourceFile = sourceFile;
+		this.sourceLine = sourceLine;
+		this.sourceColumn = sourceColumn;
+		this.nodeIndex = cloneNodeIndex(nodeIndex);
+	}
+}
+
 class ArtifactFrame {
 	readonly kind: ArtifactFrameKind;
 	readonly nodeKind: NodeKind;
@@ -79,6 +111,21 @@ function artifactFrameKindForNode(node: Node): ArtifactFrameKind {
 	return node.kind == NodeKind.Test
 		? ArtifactFrameKind.Test
 		: ArtifactFrameKind.Suite;
+}
+
+function cloneArtifactFrameSnapshot(
+	frame: ArtifactFrame,
+): ArtifactFrameSnapshot {
+	return new ArtifactFrameSnapshot(
+		frame.kind,
+		frame.nodeKind,
+		frame.hookKind,
+		frame.name,
+		frame.nodeIndexValue,
+		frame.sourceFile,
+		frame.sourceLine,
+		frame.sourceColumn,
+	);
 }
 
 export function resetArtifactFrameStack(): void {
@@ -188,4 +235,20 @@ export function getActiveArtifactFrameNodeIndexLength(): i32 {
 export function getActiveArtifactFrameNodeIndexElement(index: i32): u32 {
 	const frame = currentArtifactFrame();
 	return frame === null ? 0 : frame.getNodeIndexElement(index);
+}
+
+export function getActiveArtifactFrameSnapshots(): Array<ArtifactFrameSnapshot> {
+	const snapshots = new Array<ArtifactFrameSnapshot>();
+
+	for (
+		let index = 0, length = activeArtifactFrames.length;
+		index < length;
+		index++
+	) {
+		snapshots.push(
+			cloneArtifactFrameSnapshot(unchecked(activeArtifactFrames[index])),
+		);
+	}
+
+	return snapshots;
 }

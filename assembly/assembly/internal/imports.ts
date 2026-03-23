@@ -48,11 +48,17 @@ export const enum EventKind {
   NodeFail = 8,
   CallbackFail = 9,
   Log = 10,
+  Debug = 11,
 }
 
 export const enum FailureKind {
   Assertion = 1,
   Trap = 2,
+}
+
+export const enum DebugSourceKind {
+	Trace = 1,
+	Abort = 2,
 }
 
 /**
@@ -81,6 +87,15 @@ export declare function writeEvent(
 // @ts-ignore AssemblyScript external decorator
 @external("as-harness", "invoke_staged")
 export declare function invokeStaged(): i32;
+
+// @ts-ignore AssemblyScript external decorator
+@external("env", "abort")
+export declare function rawAbort(
+	message?: string | null,
+	fileName?: string | null,
+	lineNumber?: i32,
+	columnNumber?: i32,
+): void;
 
 /**
  * Test-only host hook that captures the current artifact frame while the guest

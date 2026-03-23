@@ -1,4 +1,5 @@
 import {
+	DebugSourceKind,
 	DeclarationMode,
 	EventKind,
 	FailurePolicyHint,
@@ -9,11 +10,16 @@ import {
 	SequenceMode,
 	writeEvent,
 } from "./imports";
+import {
+	ArtifactFrameSnapshot,
+	getActiveArtifactFrameSnapshots,
+} from "./artifact-frame";
 
 export type NodeIndex = StaticArray<u32>;
 
 const U8_BYTE_LENGTH: u32 = sizeof<u8>();
 const U32_BYTE_LENGTH: u32 = sizeof<u32>();
+const F64_BYTE_LENGTH: u32 = sizeof<f64>();
 const CALLBACK_ALIGNMENT_PADDING: u32 = 3;
 const FAILURE_ALIGNMENT_PADDING: u32 = 3;
 const CALLBACK_FAILURE_ALIGNMENT_PADDING: u32 = 2;
@@ -24,6 +30,10 @@ function nodeIndexByteLength(nodeIndex: NodeIndex): u32 {
 
 function dependencyNodeIdsByteLength(dependencyNodeIds: Array<u32>): u32 {
 	return <u32>dependencyNodeIds.length * U32_BYTE_LENGTH;
+}
+
+function f64ValuesByteLength(values: Array<f64>): u32 {
+	return <u32>values.length * F64_BYTE_LENGTH;
 }
 
 function utf8ByteLength(value: string): u32 {
@@ -56,6 +66,97 @@ function copyDependencyNodeIdsBytes(
 			unchecked(dependencyNodeIds[index]),
 		);
 	}
+}
+
+function copyF64ValuesBytes(destination: usize, values: Array<f64>): void {
+	for (let index: i32 = 0, length = values.length; index < length; index++) {
+		store<f64>(
+			destination + <usize>(<u32>index * F64_BYTE_LENGTH),
+			unchecked(values[index]),
+		);
+	}
+}
+
+function frameCrumbByteLength(frame: ArtifactFrameSnapshot): u32 {
+	const nodeIndexBytes = nodeIndexByteLength(frame.nodeIndex);
+	const nameBytes = utf8ByteLength(frame.name);
+	const sourceFileBytes = utf8ByteLength(frame.sourceFile);
+	return (
+		U8_BYTE_LENGTH +
+		U8_BYTE_LENGTH +
+		U8_BYTE_LENGTH +
+		U8_BYTE_LENGTH +
+		U32_BYTE_LENGTH +
+		nodeIndexBytes +
+		U32_BYTE_LENGTH +
+		nameBytes +
+		U32_BYTE_LENGTH +
+		sourceFileBytes +
+		U32_BYTE_LENGTH +
+		U32_BYTE_LENGTH
+	);
+}
+
+function frameCrumbsByteLength(frames: Array<ArtifactFrameSnapshot>): u32 {
+	let total: u32 = 0;
+
+	for (let index = 0, length = frames.length; index < length; index++) {
+		total += frameCrumbByteLength(unchecked(frames[index]));
+	}
+
+	return total;
+}
+
+function clampDebugLocation(value: i32): u32 {
+	return value > 0 ? <u32>value : 0;
+}
+
+function copyFrameCrumbBytes(
+	destination: usize,
+	frame: ArtifactFrameSnapshot,
+): u32 {
+	const nodeIndexLength = <u32>frame.nodeIndex.length;
+	const nodeIndexBytes = nodeIndexByteLength(frame.nodeIndex);
+	const nameBytes = utf8ByteLength(frame.name);
+	const sourceFileBytes = utf8ByteLength(frame.sourceFile);
+	let offset: usize = 0;
+
+	store<u8>(destination + offset, <u8>frame.kind);
+	offset += <usize>U8_BYTE_LENGTH;
+
+	store<u8>(destination + offset, <u8>frame.nodeKind);
+	offset += <usize>U8_BYTE_LENGTH;
+
+	store<u8>(destination + offset, <u8>frame.hookKind);
+	offset += <usize>U8_BYTE_LENGTH;
+
+	store<u8>(destination + offset, 0);
+	offset += <usize>U8_BYTE_LENGTH;
+
+	store<u32>(destination + offset, nodeIndexLength);
+	offset += <usize>U32_BYTE_LENGTH;
+
+	copyNodeIndexBytes(destination + offset, frame.nodeIndex);
+	offset += <usize>nodeIndexBytes;
+
+	store<u32>(destination + offset, nameBytes);
+	offset += <usize>U32_BYTE_LENGTH;
+
+	copyUtf8Bytes(destination + offset, frame.name);
+	offset += <usize>nameBytes;
+
+	store<u32>(destination + offset, sourceFileBytes);
+	offset += <usize>U32_BYTE_LENGTH;
+
+	copyUtf8Bytes(destination + offset, frame.sourceFile);
+	offset += <usize>sourceFileBytes;
+
+	store<u32>(destination + offset, clampDebugLocation(frame.sourceLine));
+	offset += <usize>U32_BYTE_LENGTH;
+
+	store<u32>(destination + offset, clampDebugLocation(frame.sourceColumn));
+
+	return frameCrumbByteLength(frame);
 }
 
 /**
@@ -438,6 +539,92 @@ export function serializeCallbackFail(
 }
 
 /**
+ * Serializes a `Debug` payload into the wire-format byte buffer.
+ *
+ * Payload grammar:
+ * `[source_kind: u8] [3 bytes empty for alignment] [value_count: u32]
+ * [values: ...f64 bytes] [crumb_count: u32] [crumbs: ...bytes]
+ * [message_byte_length: u32] [message: ...bytes]
+ * [location_file_byte_length: u32] [location_file: ...bytes]
+ * [location_line: u32] [location_column: u32]`
+ */
+export function serializeDebug(
+	source: DebugSourceKind,
+	values: Array<f64>,
+	message: string,
+	locationFile: string = "",
+	locationLine: i32 = 0,
+	locationColumn: i32 = 0,
+	crumbs: Array<ArtifactFrameSnapshot> = getActiveArtifactFrameSnapshots(),
+): StaticArray<u8> {
+	const valueCount = <u32>values.length;
+	const valueBytes = f64ValuesByteLength(values);
+	const crumbCount = <u32>crumbs.length;
+	const crumbBytes = frameCrumbsByteLength(crumbs);
+	const messageBytes = utf8ByteLength(message);
+	const locationFileBytes = utf8ByteLength(locationFile);
+	const totalByteLength =
+		U8_BYTE_LENGTH +
+		3 +
+		U32_BYTE_LENGTH +
+		valueBytes +
+		U32_BYTE_LENGTH +
+		crumbBytes +
+		U32_BYTE_LENGTH +
+		messageBytes +
+		U32_BYTE_LENGTH +
+		locationFileBytes +
+		U32_BYTE_LENGTH +
+		U32_BYTE_LENGTH;
+	const payload = new StaticArray<u8>(totalByteLength);
+	const payloadStart = changetype<usize>(payload);
+	let offset: usize = 0;
+
+	store<u8>(payloadStart + offset, <u8>source);
+	offset += <usize>U8_BYTE_LENGTH;
+
+	store<u8>(payloadStart + offset, 0);
+	offset += <usize>U8_BYTE_LENGTH;
+	store<u8>(payloadStart + offset, 0);
+	offset += <usize>U8_BYTE_LENGTH;
+	store<u8>(payloadStart + offset, 0);
+	offset += <usize>U8_BYTE_LENGTH;
+
+	store<u32>(payloadStart + offset, valueCount);
+	offset += <usize>U32_BYTE_LENGTH;
+
+	copyF64ValuesBytes(payloadStart + offset, values);
+	offset += <usize>valueBytes;
+
+	store<u32>(payloadStart + offset, crumbCount);
+	offset += <usize>U32_BYTE_LENGTH;
+
+	for (let index = 0, length = crumbs.length; index < length; index++) {
+		const frame = unchecked(crumbs[index]);
+		offset += <usize>copyFrameCrumbBytes(payloadStart + offset, frame);
+	}
+
+	store<u32>(payloadStart + offset, messageBytes);
+	offset += <usize>U32_BYTE_LENGTH;
+
+	copyUtf8Bytes(payloadStart + offset, message);
+	offset += <usize>messageBytes;
+
+	store<u32>(payloadStart + offset, locationFileBytes);
+	offset += <usize>U32_BYTE_LENGTH;
+
+	copyUtf8Bytes(payloadStart + offset, locationFile);
+	offset += <usize>locationFileBytes;
+
+	store<u32>(payloadStart + offset, clampDebugLocation(locationLine));
+	offset += <usize>U32_BYTE_LENGTH;
+
+	store<u32>(payloadStart + offset, clampDebugLocation(locationColumn));
+
+	return payload;
+}
+
+/**
  * Sends a serialized event payload to the imported host event sink.
  */
 function sendEvent(kind: EventKind, payload: StaticArray<u8>): void {
@@ -558,5 +745,26 @@ export function callbackFail(
 	sendEvent(
 		EventKind.CallbackFail,
 		serializeCallbackFail(hook, nodeIndex, nodeId, failureKind),
+	);
+}
+
+export function debug(
+	source: DebugSourceKind,
+	values: Array<f64>,
+	message: string,
+	locationFile: string = "",
+	locationLine: i32 = 0,
+	locationColumn: i32 = 0,
+): void {
+	sendEvent(
+		EventKind.Debug,
+		serializeDebug(
+			source,
+			values,
+			message,
+			locationFile,
+			locationLine,
+			locationColumn,
+		),
 	);
 }

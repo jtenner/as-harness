@@ -15,10 +15,6 @@
 
 ### Rich Debug Payloads
 
-- `debug-001`: land the abort/trace debug payload contract note and define the
-  exact implementation slices.
-- `debug-002`: add guest-side structured debug payload serialization plus full
-  artifact-frame crumb snapshots and focused internal proof.
 - `debug-003`: add the host-facing `debug` event surface, deep event cloning,
   decoder support, and reporter formatting across the shipped host matrix.
 - `debug-004`: ship bundled `harnessAbort` and `harnessTrace` globals plus
