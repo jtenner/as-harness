@@ -444,7 +444,7 @@ Game plan:
 
 ### `uvu/assert`
 
-Status: Partially shipped.
+Status: Shipped with one deferred upstream object-model gap.
 
 Shipped:
 
@@ -455,6 +455,8 @@ Shipped:
 - `type`
 - `instance`
 - `throws`
+- `snapshot`
+- `fixture`
 - `not`
 - `is.not`
 - `not.equal`
@@ -466,9 +468,7 @@ Shipped:
 
 Deferred:
 
-- `snapshot`
-- `fixture`
-- negated forms that depend on those helpers
+- negated forms that depend on artifact helpers
 - `Assertion`
 
 ## Primary Remaining Blockers
@@ -501,16 +501,13 @@ The repo still does not support:
 - Promise tests
 - guest-owned execution finalization
 
-### 4. Remaining `uvu/assert` Helpers Need Contracts The Repo Does Not Ship
+### 4. Remaining `uvu/assert` Object Helpers Need Contracts The Repo Does Not Ship
 
-The still-deferred helpers now split into two contract families:
+The remaining deferred helpers now sit in the upstream-specific object-model
+family:
 
-- artifact-backed helpers like `snapshot(...)` and `fixture(...)`, which need a
-  host-backed file or persisted-artifact contract that the current guest ABI
-  does not expose
-- upstream-specific object-model helpers like `Assertion`, which still depend
-  on a richer adapter-local error object contract than the shared trap and
-  fail-message boundary currently provides
+- `Assertion`, which still depends on a richer adapter-local error object
+  contract than the shared trap and fail-message boundary currently provides
 
 The reopened helper families are now shipped with explicit repo-local
 semantics:
@@ -519,6 +516,10 @@ semantics:
   ad hoc adapter logic
 - `instance(...)` uses the current runtime-type-id boundary instead of
   pretending to support upstream constructor tokens
+- `snapshot(...)` lowers onto the host-owned project-root `__snapshots__/`
+  contract with strict compare mode and explicit `--update-snapshots`
+- `fixture(...)` lowers onto the host-owned project-root `__fixtures__/`
+  contract resolved from the active declaration source file
 
 ## Selected This Cycle
 
@@ -527,14 +528,13 @@ semantics:
    `continueOnFailure(...)` helpers on top-level `test` and `UvuSuite`
 3. ship `exec(bail?)` as root-level `bail` hint lowering only
 4. keep `.run()` as a compatibility no-op
-5. explicitly defer artifact-backed and upstream object-model helpers
+5. explicitly defer only upstream object-model helpers
 
 ## Suggested Future Order
 
 1. revisit crumb/context parity only if the callback-model divergence becomes a
    practical blocker
-2. revisit `snapshot(...)`, `fixture(...)`, and `Assertion` only after the repo
-   adopts a host-backed artifact model or an adapter-local error object
+2. revisit `Assertion` only after the repo adopts an adapter-local error object
    contract
 3. keep async behavior deferred until the project-wide runtime contract changes
 

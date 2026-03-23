@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "bun:test";
@@ -255,6 +255,7 @@ test("passing test", (_context: TestContext): void => {});
 			expect(capturedOptions).toEqual({
 				artifactOptions: {
 					projectRoot: cwd,
+					sourceFiles: ["suite.test.ts"],
 					updateSnapshots: true,
 				},
 			});
@@ -332,6 +333,129 @@ test("passing test", (_context: TestContext): void => {});
 			expect(result.stderr).toContain(
 				"Harness resolution failed: Unsupported harness: nope. Supported harnesses: js, wazero, wasmtime.",
 			);
+		},
+	);
+});
+
+test("cli run executes uvu fixture and snapshot helpers through the js host", async () => {
+	await withTempEntryFile(
+		[
+			'import { test } from "uvu";',
+			'import { fixture, snapshot } from "uvu/assert";',
+			"",
+			'test("snapshot smoke", (): void => {',
+			'\tsnapshot<string>(fixture("cases/alpha.txt"), "snapshot smoke");',
+			"});",
+			"",
+		].join("\n"),
+		async (entryFile, cwd) => {
+			await mkdir(join(cwd, "__fixtures__", "cases"), { recursive: true });
+			await mkdir(join(cwd, "__snapshots__"), { recursive: true });
+			await writeFile(
+				join(cwd, "__fixtures__", "cases", "alpha.txt"),
+				"fixture text\n",
+				"utf8",
+			);
+			await writeFile(
+				join(cwd, "__snapshots__", "suite.test.snap"),
+				'exports[`snapshot smoke~(0)`] = `"fixture text\\n"`;\n',
+				"utf8",
+			);
+
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 1 passed, 0 failed, 1 discovered with js.",
+			);
+		},
+	);
+});
+
+test("cli run reports mismatched and stale snapshots through the js host", async () => {
+	await withTempEntryFile(
+		[
+			'import { test } from "uvu";',
+			'import { snapshot } from "uvu/assert";',
+			"",
+			'test("snapshot smoke", (): void => {',
+			'\tsnapshot<string>("new value", "snapshot smoke");',
+			"});",
+			"",
+		].join("\n"),
+		async (entryFile, cwd) => {
+			await mkdir(join(cwd, "__snapshots__"), { recursive: true });
+			await writeFile(
+				join(cwd, "__snapshots__", "suite.test.snap"),
+				[
+					'exports[`snapshot smoke~(0)`] = `"old value"`;',
+					"",
+					'exports[`snapshot smoke~(1)`] = `"stale value"`;',
+					"",
+				].join("\n"),
+				"utf8",
+			);
+
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(1);
+			expect(result.stdout).toBe("");
+			expect(result.stderr).toContain("snapshot mismatch:");
+			expect(result.stderr).toContain("stale snapshot entry:");
+		},
+	);
+});
+
+test("cli run rewrites snapshots in update mode through the js host", async () => {
+	await withTempEntryFile(
+		[
+			'import { test } from "uvu";',
+			'import { fixture, snapshot } from "uvu/assert";',
+			"",
+			'test("snapshot smoke", (): void => {',
+			'\tsnapshot<string>(fixture("cases/alpha.txt"), "snapshot smoke");',
+			"});",
+			"",
+		].join("\n"),
+		async (entryFile, cwd) => {
+			await mkdir(join(cwd, "__fixtures__", "cases"), { recursive: true });
+			await mkdir(join(cwd, "__snapshots__"), { recursive: true });
+			await writeFile(
+				join(cwd, "__fixtures__", "cases", "alpha.txt"),
+				"updated fixture\n",
+				"utf8",
+			);
+			await writeFile(
+				join(cwd, "__snapshots__", "suite.test.snap"),
+				[
+					'exports[`snapshot smoke~(0)`] = `"outdated fixture\\n"`;',
+					"",
+					'exports[`snapshot smoke~(1)`] = `"stale fixture\\n"`;',
+					"",
+				].join("\n"),
+				"utf8",
+			);
+
+			const result = await runCliWithArguments(
+				["run", "--harness", "js", "--update-snapshots", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 1 passed, 0 failed, 1 discovered with js.",
+			);
+			expect(
+				await readFile(join(cwd, "__snapshots__", "suite.test.snap"), "utf8"),
+			).toContain('exports[`snapshot smoke~(0)`] = `"updated fixture');
 		},
 	);
 });

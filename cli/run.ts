@@ -239,6 +239,9 @@ export async function runEntryFiles(
 	const harnessCreateOptions: HarnessCreateOptions = {
 		artifactOptions: {
 			projectRoot: cwd,
+			sourceFiles: entryFiles.map((entryFile) =>
+				toPosixPath(relative(cwd, entryFile)),
+			),
 			updateSnapshots: artifactOptions.updateSnapshots === true,
 		},
 	};

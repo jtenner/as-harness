@@ -14,7 +14,13 @@ declare const WAZERO_TARGET: string | undefined;
 declare const WAZERO_EMBEDDED_MODULE_PATH: string | null | undefined;
 
 type WazeroHarnessModule = {
-	createHarness(bytes: Uint8Array, engine?: string): Harness;
+	createHarness(
+		bytes: Uint8Array,
+		engine?: string,
+		projectRoot?: string,
+		sourceFileFallback?: string,
+		updateSnapshots?: boolean,
+	): Harness;
 };
 
 type DecorateHarnessOptions = {
@@ -112,21 +118,50 @@ function shouldUseBundledLinuxInterpreterEngine() {
 	return typeof WAZERO_TARGET !== "undefined" && process.platform === "linux";
 }
 
+function normalizeArtifactOptions(options) {
+	const artifactOptions =
+		options &&
+		typeof options === "object" &&
+		options.artifactOptions &&
+		typeof options.artifactOptions === "object"
+			? options.artifactOptions
+			: null;
+
+	return {
+		projectRoot:
+			typeof artifactOptions?.projectRoot === "string"
+				? artifactOptions.projectRoot
+				: "",
+		sourceFileFallback:
+			Array.isArray(artifactOptions?.sourceFiles) &&
+			artifactOptions.sourceFiles.length === 1 &&
+			typeof artifactOptions.sourceFiles[0] === "string"
+				? artifactOptions.sourceFiles[0]
+				: "",
+		updateSnapshots: artifactOptions?.updateSnapshots === true,
+	};
+}
+
 function createBundledNativeHarness(
 	nativeHarnessModule: WazeroHarnessModule,
 	wasmBytes: Uint8Array,
+	options: HarnessCreateOptions | undefined,
 ) {
 	traceWazero("creating bundled native harness");
 	const engine = shouldUseBundledLinuxInterpreterEngine()
 		? WAZERO_ENGINE_INTERPRETER
 		: "";
+	const artifactOptions = normalizeArtifactOptions(options);
 	if (engine === WAZERO_ENGINE_INTERPRETER) {
 		traceWazero("forcing bundled Linux wazero interpreter engine");
 	}
-	const harness =
-		engine.length > 0
-			? nativeHarnessModule.createHarness(Buffer.from(wasmBytes), engine)
-			: nativeHarnessModule.createHarness(Buffer.from(wasmBytes));
+	const harness = nativeHarnessModule.createHarness(
+		Buffer.from(wasmBytes),
+		engine,
+		artifactOptions.projectRoot,
+		artifactOptions.sourceFileFallback,
+		artifactOptions.updateSnapshots,
+	);
 	traceWazero("created bundled native harness");
 	return harness;
 }
@@ -137,17 +172,23 @@ function createBundledWazeroHarness(
 ) {
 	const nativeHarnessModule = resolveWazeroHarnessModule();
 	const bundledBytes = Buffer.from(wasmBytes);
+	const artifactOptions = normalizeArtifactOptions(options);
+	const runInBand = artifactOptions.updateSnapshots === true;
 
 	traceWazero("decorating bundled wazero harness");
 	return decorateHarness(
-		createBundledNativeHarness(nativeHarnessModule, bundledBytes),
+		createBundledNativeHarness(nativeHarnessModule, bundledBytes, options),
 		{
 			bytes: bundledBytes,
-			createLocalHarness(localBytes) {
-				return createBundledNativeHarness(nativeHarnessModule, localBytes);
+			createLocalHarness(localBytes, localOptions = options) {
+				return createBundledNativeHarness(
+					nativeHarnessModule,
+					localBytes,
+					localOptions,
+				);
 			},
 			createHarnessOptions: options,
-			runInBand: false,
+			runInBand,
 			workerModulePath: runtimeModulePath,
 		},
 	);
@@ -159,17 +200,35 @@ function createSourceWazeroHarness(
 ) {
 	const nativeHarnessModule = resolveWazeroHarnessModule();
 	const sourceBytes = Buffer.from(wasmBytes);
+	const artifactOptions = normalizeArtifactOptions(options);
+	const runInBand = artifactOptions.updateSnapshots === true;
 
 	traceWazero("decorating source wazero harness");
-	return decorateHarness(nativeHarnessModule.createHarness(sourceBytes), {
-		bytes: sourceBytes,
-		createLocalHarness(localBytes) {
-			return nativeHarnessModule.createHarness(Buffer.from(localBytes));
+	return decorateHarness(
+		nativeHarnessModule.createHarness(
+			sourceBytes,
+			"",
+			artifactOptions.projectRoot,
+			artifactOptions.sourceFileFallback,
+			artifactOptions.updateSnapshots,
+		),
+		{
+			bytes: sourceBytes,
+			createLocalHarness(localBytes, localOptions = options) {
+				const localArtifactOptions = normalizeArtifactOptions(localOptions);
+				return nativeHarnessModule.createHarness(
+					Buffer.from(localBytes),
+					"",
+					localArtifactOptions.projectRoot,
+					localArtifactOptions.sourceFileFallback,
+					localArtifactOptions.updateSnapshots,
+				);
+			},
+			createHarnessOptions: options,
+			runInBand,
+			workerModulePath: sourceHarnessModulePath,
 		},
-		createHarnessOptions: options,
-		runInBand: false,
-		workerModulePath: sourceHarnessModulePath,
-	});
+	);
 }
 
 export const wazeroRuntime: Runtime = {

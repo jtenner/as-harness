@@ -39,6 +39,30 @@ function toWasmBytes(value) {
 	);
 }
 
+function normalizeArtifactOptions(options = {}) {
+	const artifactOptions =
+		options &&
+		typeof options === "object" &&
+		options.artifactOptions &&
+		typeof options.artifactOptions === "object"
+			? options.artifactOptions
+			: null;
+
+	return {
+		projectRoot:
+			typeof artifactOptions?.projectRoot === "string"
+				? artifactOptions.projectRoot
+				: "",
+		sourceFileFallback:
+			Array.isArray(artifactOptions?.sourceFiles) &&
+			artifactOptions.sourceFiles.length === 1 &&
+			typeof artifactOptions.sourceFiles[0] === "string"
+				? artifactOptions.sourceFiles[0]
+				: "",
+		updateSnapshots: artifactOptions?.updateSnapshots === true,
+	};
+}
+
 function assertCallback(callback) {
 	if (typeof callback !== "function") {
 		throw new TypeError("expected a callback function");
@@ -526,16 +550,25 @@ class Harness {
 }
 
 function createLocalHarness(bytes, options) {
-	return new Harness(native.createHarness(toWasmBytes(bytes), options));
+	const artifactOptions = normalizeArtifactOptions(options);
+	return new Harness(
+		native.createHarness(
+			toWasmBytes(bytes),
+			artifactOptions.projectRoot,
+			artifactOptions.sourceFileFallback,
+			artifactOptions.updateSnapshots,
+		),
+	);
 }
 
 function createHarness(bytes, options = {}) {
 	const wasmBytes = toWasmBytes(bytes);
+	const artifactOptions = normalizeArtifactOptions(options);
 	return decorateHarness(createLocalHarness(wasmBytes, options), {
 		bytes: wasmBytes,
 		createLocalHarness,
 		createHarnessOptions: options,
-		runInBand: false,
+		runInBand: artifactOptions.updateSnapshots === true,
 		workerModulePath: __filename,
 	});
 }

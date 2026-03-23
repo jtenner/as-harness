@@ -17,6 +17,8 @@ Proves the ABI is not tied to one runtime language by implementing the same shar
 - expose `callI32`, `discover`, `run`
 - run shared `start()` through `harness/shared/start.cjs` with same-machine worker slots for ready work
 - provide persistent coverage snapshots (`getCoverageSnapshot` / `resetCoverage`)
+- provide host-owned fixture reads plus snapshot compare/update support for
+  bundled `uvu/assert`
 - explicit `close()` to release native resources promptly
 
 ## Build Requirements

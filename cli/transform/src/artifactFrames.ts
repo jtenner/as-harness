@@ -58,6 +58,7 @@ const CALLBACK_CALL_NAMES = new Set([
 	"xit",
 	"xtest",
 ]);
+const ARTIFACT_CALL_NAMES = new Set(["fixture", "snapshot"]);
 let activeArtifactFrameTransformOptions =
 	DEFAULT_ARTIFACT_FRAME_TRANSFORM_OPTIONS;
 
@@ -276,6 +277,68 @@ function shouldInstrumentCallExpression(
 	return name !== null && CALLBACK_CALL_NAMES.has(name);
 }
 
+function hasArtifactCallExpression(expression: Expression): boolean {
+	if (expression.kind === NodeKind.Call) {
+		const callExpression = expression as CallExpression;
+		const name = getCallExpressionName(callExpression.expression);
+		if (name !== null && ARTIFACT_CALL_NAMES.has(name)) {
+			return true;
+		}
+
+		if (hasArtifactCallExpression(callExpression.expression)) {
+			return true;
+		}
+		for (const argument of callExpression.args) {
+			if (hasArtifactCallExpression(argument)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	if (expression.kind === NodeKind.PropertyAccess) {
+		return hasArtifactCallExpression(
+			(expression as PropertyAccessExpression).expression,
+		);
+	}
+	if (expression.kind === NodeKind.Parenthesized) {
+		return hasArtifactCallExpression(
+			(expression as ParenthesizedExpression).expression,
+		);
+	}
+	if (expression.kind === NodeKind.Binary) {
+		return (
+			hasArtifactCallExpression(expression.left) ||
+			hasArtifactCallExpression(expression.right)
+		);
+	}
+	if (
+		expression.kind === NodeKind.UnaryPrefix ||
+		expression.kind === NodeKind.UnaryPostfix
+	) {
+		return hasArtifactCallExpression(expression.operand);
+	}
+	if (expression.kind === NodeKind.Ternary) {
+		return (
+			hasArtifactCallExpression(expression.condition) ||
+			hasArtifactCallExpression(expression.ifThen) ||
+			hasArtifactCallExpression(expression.ifElse)
+		);
+	}
+	if (expression.kind === NodeKind.Assertion) {
+		return hasArtifactCallExpression(expression.expression);
+	}
+	if (expression.kind === NodeKind.ArrayLiteral) {
+		return expression.elementExpressions.some(hasArtifactCallExpression);
+	}
+	if (expression.kind === NodeKind.ObjectLiteral) {
+		return expression.values.some(hasArtifactCallExpression);
+	}
+	if (expression.kind === NodeKind.New) {
+		return expression.args.some(hasArtifactCallExpression);
+	}
+	return false;
+}
+
 function visitExpression(
 	expression: Expression,
 	sourceFile: string,
@@ -457,7 +520,41 @@ function visitStatements(
 ): boolean {
 	let modified = false;
 
-	for (const statement of statements) {
+	for (let index = 0; index < statements.length; index += 1) {
+		const statement = statements[index];
+		let shouldInsertArtifactMarker = false;
+		if (
+			statement.kind === NodeKind.Expression &&
+			hasArtifactCallExpression(statement.expression)
+		) {
+			shouldInsertArtifactMarker = true;
+		}
+		if (statement.kind === NodeKind.Variable) {
+			shouldInsertArtifactMarker = statement.declarations.some(
+				(declaration) =>
+					declaration.initializer !== null &&
+					hasArtifactCallExpression(declaration.initializer),
+			);
+		}
+		if (shouldInsertArtifactMarker) {
+			const { line, column } = getLineAndColumn(
+				statement.range.source,
+				statement.range.start,
+			);
+			statements.splice(
+				index,
+				0,
+				createArtifactFrameMarkerStatement(
+					sourceFile,
+					line,
+					column,
+					statement.range,
+				),
+			);
+			modified = true;
+			index += 1;
+		}
+
 		switch (statement.kind) {
 			case NodeKind.FunctionDeclaration:
 				modified =

@@ -1,6 +1,11 @@
 const assert = require("node:assert/strict");
 const { spawnSync } = require("node:child_process");
-const { mkdtempSync, writeFileSync } = require("node:fs");
+const {
+	mkdtempSync,
+	mkdirSync,
+	readFileSync,
+	writeFileSync,
+} = require("node:fs");
 const { availableParallelism, tmpdir } = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
@@ -190,6 +195,188 @@ test("cli run emits coverage through the wazero harness", () => {
 		assertSuccessfulCliRun(result);
 		assert.match(result.stdout, /Coverage:/);
 		assert.match(result.stdout, /suite\.test\.ts/);
+	} finally {
+		removeTempDirectory(tempDirectory);
+	}
+});
+
+test("cli run executes uvu fixture and snapshot helpers through the wazero harness", () => {
+	const tempDirectory = mkdtempSync(
+		path.join(tmpdir(), "as-harness-wazero-snapshots-"),
+	);
+
+	try {
+		const entryFile = path.join(tempDirectory, "suite.test.ts");
+		writeFileSync(
+			entryFile,
+			[
+				'import { test } from "uvu";',
+				'import { fixture, snapshot } from "uvu/assert";',
+				"",
+				'test("snapshot smoke", (): void => {',
+				'\tsnapshot<string>(fixture("cases/alpha.txt"), "snapshot smoke");',
+				"});",
+				"",
+			].join("\n"),
+			"utf8",
+		);
+		mkdirSync(path.join(tempDirectory, "__fixtures__", "cases"), {
+			recursive: true,
+		});
+		mkdirSync(path.join(tempDirectory, "__snapshots__"), { recursive: true });
+		writeFileSync(
+			path.join(tempDirectory, "__fixtures__", "cases", "alpha.txt"),
+			"fixture text\n",
+			"utf8",
+		);
+		writeFileSync(
+			path.join(tempDirectory, "__snapshots__", "suite.test.snap"),
+			'exports[`snapshot smoke~(0)`] = `"fixture text\\n"`;\n',
+			"utf8",
+		);
+
+		const result = spawnSync(
+			process.execPath,
+			[cliEntrypointPath, "run", "--harness", "wazero", entryFile],
+			{
+				cwd: tempDirectory,
+				encoding: "utf8",
+				env: createCliEnvironment(),
+			},
+		);
+
+		assertSuccessfulCliRun(result);
+		assert.match(
+			result.stdout,
+			/PASS 1 passed, 0 failed, 1 discovered with wazero\./,
+		);
+	} finally {
+		removeTempDirectory(tempDirectory);
+	}
+});
+
+test("cli run reports mismatched and stale snapshots through the wazero harness", () => {
+	const tempDirectory = mkdtempSync(
+		path.join(tmpdir(), "as-harness-wazero-snapshot-mismatch-"),
+	);
+
+	try {
+		const entryFile = path.join(tempDirectory, "suite.test.ts");
+		writeFileSync(
+			entryFile,
+			[
+				'import { test } from "uvu";',
+				'import { snapshot } from "uvu/assert";',
+				"",
+				'test("snapshot smoke", (): void => {',
+				'\tsnapshot<string>("new value", "snapshot smoke");',
+				"});",
+				"",
+			].join("\n"),
+			"utf8",
+		);
+		mkdirSync(path.join(tempDirectory, "__snapshots__"), { recursive: true });
+		writeFileSync(
+			path.join(tempDirectory, "__snapshots__", "suite.test.snap"),
+			[
+				'exports[`snapshot smoke~(0)`] = `"old value"`;',
+				"",
+				'exports[`snapshot smoke~(1)`] = `"stale value"`;',
+				"",
+			].join("\n"),
+			"utf8",
+		);
+
+		const result = spawnSync(
+			process.execPath,
+			[cliEntrypointPath, "run", "--harness", "wazero", entryFile],
+			{
+				cwd: tempDirectory,
+				encoding: "utf8",
+				env: createCliEnvironment(),
+			},
+		);
+
+		assert.equal(result.status, 1);
+		assert.match(result.stderr, /snapshot mismatch:/);
+		assert.match(result.stderr, /stale snapshot entry:/);
+	} finally {
+		removeTempDirectory(tempDirectory);
+	}
+});
+
+test("cli run rewrites snapshots in update mode through the wazero harness", () => {
+	const tempDirectory = mkdtempSync(
+		path.join(tmpdir(), "as-harness-wazero-snapshot-update-"),
+	);
+
+	try {
+		const entryFile = path.join(tempDirectory, "suite.test.ts");
+		writeFileSync(
+			entryFile,
+			[
+				'import { test } from "uvu";',
+				'import { fixture, snapshot } from "uvu/assert";',
+				"",
+				'test("snapshot smoke", (): void => {',
+				'\tsnapshot<string>(fixture("cases/alpha.txt"), "snapshot smoke");',
+				"});",
+				"",
+			].join("\n"),
+			"utf8",
+		);
+		mkdirSync(path.join(tempDirectory, "__fixtures__", "cases"), {
+			recursive: true,
+		});
+		mkdirSync(path.join(tempDirectory, "__snapshots__"), { recursive: true });
+		writeFileSync(
+			path.join(tempDirectory, "__fixtures__", "cases", "alpha.txt"),
+			"updated fixture\n",
+			"utf8",
+		);
+		writeFileSync(
+			path.join(tempDirectory, "__snapshots__", "suite.test.snap"),
+			[
+				'exports[`snapshot smoke~(0)`] = `"outdated fixture\\n"`;',
+				"",
+				'exports[`snapshot smoke~(1)`] = `"stale fixture\\n"`;',
+				"",
+			].join("\n"),
+			"utf8",
+		);
+
+		const result = spawnSync(
+			process.execPath,
+			[
+				cliEntrypointPath,
+				"run",
+				"--harness",
+				"wazero",
+				"--update-snapshots",
+				entryFile,
+			],
+			{
+				cwd: tempDirectory,
+				encoding: "utf8",
+				env: createCliEnvironment(),
+			},
+		);
+
+		assertSuccessfulCliRun(result);
+		assert.match(
+			readFileSync(
+				path.join(tempDirectory, "__snapshots__", "suite.test.snap"),
+				"utf8",
+			),
+			/exports\[`snapshot smoke~\(0\)`\] = `"updated fixture/,
+		);
+		assert.doesNotMatch(
+			readFileSync(
+				path.join(tempDirectory, "__snapshots__", "suite.test.snap"),
+				"utf8",
+			),
+			/stale fixture/,
+		);
 	} finally {
 		removeTempDirectory(tempDirectory);
 	}

@@ -110,8 +110,45 @@ function toWasmBytes(value) {
 	);
 }
 
-function createHarness(bytes) {
-	return loadNative().createHarness(Buffer.from(toWasmBytes(bytes)));
+function createHarness(
+	bytes,
+	engineOrOptions = "",
+	projectRoot = "",
+	sourceFileFallback = "",
+	updateSnapshots = false,
+) {
+	let engine = engineOrOptions;
+	if (
+		engineOrOptions &&
+		typeof engineOrOptions === "object" &&
+		!Array.isArray(engineOrOptions)
+	) {
+		const artifactOptions =
+			engineOrOptions.artifactOptions &&
+			typeof engineOrOptions.artifactOptions === "object"
+				? engineOrOptions.artifactOptions
+				: null;
+		engine = "";
+		projectRoot =
+			typeof artifactOptions?.projectRoot === "string"
+				? artifactOptions.projectRoot
+				: "";
+		sourceFileFallback =
+			Array.isArray(artifactOptions?.sourceFiles) &&
+			artifactOptions.sourceFiles.length === 1 &&
+			typeof artifactOptions.sourceFiles[0] === "string"
+				? artifactOptions.sourceFiles[0]
+				: "";
+		updateSnapshots = artifactOptions?.updateSnapshots === true;
+	}
+
+	return loadNative().createHarness(
+		Buffer.from(toWasmBytes(bytes)),
+		engine,
+		projectRoot,
+		sourceFileFallback,
+		updateSnapshots,
+	);
 }
 
 module.exports = {

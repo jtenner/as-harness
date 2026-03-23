@@ -58,6 +58,8 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path"
+	"path/filepath"
 	goruntime "runtime"
 	"sort"
 	"strings"
@@ -80,6 +82,10 @@ const artifactImportModuleName = "__asArtifacts"
 const invokeExport = "invoke"
 const invokeStagedImport = "invoke_staged"
 const captureActiveArtifactFrameImport = "capture_active_frame"
+const snapshotCheckImport = "snapshot_check"
+const fixtureReadImport = "fixture_read"
+const getLastTextUtf16ByteLengthImport = "get_last_text_utf16_byte_length"
+const copyLastTextUtf16Import = "copy_last_text_utf16"
 const uint32ByteLength = 4
 const wazeroEngineInterpreter = "interpreter"
 const eventKindNodeFound = 1
@@ -104,6 +110,14 @@ const activeArtifactFrameSourceLineExport = "getActiveArtifactFrameSourceLine"
 const activeArtifactFrameSourceColumnExport = "getActiveArtifactFrameSourceColumn"
 const activeArtifactFrameNodeIndexLengthExport = "getActiveArtifactFrameNodeIndexLength"
 const activeArtifactFrameNodeIndexElementExport = "getActiveArtifactFrameNodeIndexElement"
+const artifactFrameKindHook = 3
+const hookKindBeforeAll = 1
+const hookKindBeforeEach = 2
+const hookKindAfterEach = 3
+const hookKindAfterAll = 4
+const fixtureRootDirectory = "__fixtures__"
+const snapshotRootDirectory = "__snapshots__"
+const snapshotFileExtension = ".snap"
 
 type callbackSlot int
 
@@ -125,6 +139,7 @@ type harnessState struct {
 	runtime   wazero.Runtime
 	compiled  wazero.CompiledModule
 	coverage  *coverageCollector
+	artifact  artifactConfig
 	env       C.napi_env
 	callbacks [callbackSlotCount]C.napi_ref
 }
@@ -137,6 +152,61 @@ type hostCallState struct {
 	harness  *harnessState
 	sink     writeEventSink
 	coverage *coverageCollector
+	artifact *artifactInvocationState
+}
+
+type artifactConfig struct {
+	ProjectRoot        string
+	SourceFileFallback string
+	UpdateSnapshots    bool
+}
+
+type artifactInvocationState struct {
+	Enabled                bool
+	ProjectRoot            string
+	SourceFileFallback     string
+	UpdateSnapshots        bool
+	LastText               string
+	Manifest               *snapshotManifest
+	OccurrencesByExecution map[string]uint32
+}
+
+type snapshotManifest struct {
+	ProjectRoot string
+	Files       map[string]*snapshotFileState
+}
+
+type snapshotFileState struct {
+	RelativeSnapshotPath  string
+	SnapshotPath          string
+	Entries               []*snapshotEntry
+	Touched               bool
+	TouchedExecutionNames map[string]struct{}
+}
+
+type snapshotEntry struct {
+	Key     string
+	Value   string
+	Matched bool
+}
+
+type snapshotCheckResult struct {
+	OK                   bool
+	Outcome              string
+	RelativeSnapshotPath string
+	Key                  string
+	ExpectedValue        string
+	ActualValue          string
+}
+
+type staleSnapshotEntry struct {
+	RelativeSnapshotPath string
+	Key                  string
+}
+
+type snapshotFinalizeResult struct {
+	OK           bool
+	StaleEntries []staleSnapshotEntry
 }
 
 type nodeSnapshot struct {
@@ -636,6 +706,23 @@ func stringFromValue(env C.napi_env, value C.napi_value) (string, bool) {
 	return string(buffer[:int(length)]), true
 }
 
+func boolFromValue(env C.napi_env, value C.napi_value) (bool, bool) {
+	var valueType C.napi_valuetype
+	if !must(C.napi_typeof(env, value, &valueType), env, "failed to read boolean type") {
+		return false, false
+	}
+	if valueType != C.napi_boolean {
+		return false, false
+	}
+
+	var result C.bool
+	if !must(C.napi_get_value_bool(env, value, &result), env, "failed to read boolean value") {
+		return false, false
+	}
+
+	return result == C.bool(true), true
+}
+
 func contextWithHarnessState(ctx context.Context, state *harnessState) context.Context {
 	return context.WithValue(ctx, hostCallStateContextKey{}, &hostCallState{harness: state})
 }
@@ -649,11 +736,12 @@ func contextWithCoverageCollector(
 	state *harnessState,
 	sink writeEventSink,
 	coverage *coverageCollector,
+	artifact *artifactInvocationState,
 ) context.Context {
 	return context.WithValue(
 		ctx,
 		hostCallStateContextKey{},
-		&hostCallState{harness: state, sink: sink, coverage: coverage},
+		&hostCallState{harness: state, sink: sink, coverage: coverage, artifact: artifact},
 	)
 }
 
@@ -682,6 +770,29 @@ func coverageCollectorFromContext(ctx context.Context) *coverageCollector {
 	}
 
 	return callState.coverage
+}
+
+func artifactCallStateFromContext(ctx context.Context) *hostCallState {
+	callState, _ := ctx.Value(hostCallStateContextKey{}).(*hostCallState)
+	return callState
+}
+
+func setArtifactLastText(ctx context.Context, value string) {
+	callState := artifactCallStateFromContext(ctx)
+	if callState == nil || callState.artifact == nil {
+		return
+	}
+
+	callState.artifact.LastText = value
+}
+
+func getArtifactLastText(ctx context.Context) string {
+	callState := artifactCallStateFromContext(ctx)
+	if callState == nil || callState.artifact == nil {
+		return ""
+	}
+
+	return callState.artifact.LastText
 }
 
 func cloneNodeIndex(nodeIndex []uint32) []uint32 {
@@ -751,6 +862,26 @@ func readAssemblyString(memory api.Memory, pointer uint32) (string, bool) {
 	}
 
 	return string(utf16.Decode(codeUnits)), true
+}
+
+func writeAssemblyUtf16String(memory api.Memory, pointer uint32, value string) bool {
+	if memory == nil {
+		return false
+	}
+	if len(value) == 0 {
+		return true
+	}
+
+	codeUnits := utf16.Encode([]rune(value))
+	utf16Bytes := make([]byte, len(codeUnits)*2)
+	for index, codeUnit := range codeUnits {
+		binary.LittleEndian.PutUint16(
+			utf16Bytes[index*2:index*2+2],
+			codeUnit,
+		)
+	}
+
+	return memory.Write(pointer, utf16Bytes)
 }
 
 func callI32Export(ctx context.Context, module api.Module, exportName string) (int32, bool) {
@@ -879,6 +1010,603 @@ func formatActiveArtifactFrame(frame *activeArtifactFrame) string {
 		frame.SourceColumn,
 		strings.Join(segments, ","),
 	)
+}
+
+func (config artifactConfig) Enabled() bool {
+	return config.ProjectRoot != ""
+}
+
+func newArtifactInvocationState(config artifactConfig) (*artifactInvocationState, error) {
+	if !config.Enabled() {
+		return &artifactInvocationState{
+			Enabled:                false,
+			OccurrencesByExecution: map[string]uint32{},
+		}, nil
+	}
+
+	manifest, err := loadSnapshotManifest(config.ProjectRoot)
+	if err != nil {
+		return nil, err
+	}
+
+	return &artifactInvocationState{
+		Enabled:                true,
+		ProjectRoot:            config.ProjectRoot,
+		SourceFileFallback:     config.SourceFileFallback,
+		UpdateSnapshots:        config.UpdateSnapshots,
+		LastText:               "",
+		Manifest:               manifest,
+		OccurrencesByExecution: map[string]uint32{},
+	}, nil
+}
+
+func toPosixPath(value string) string {
+	return strings.ReplaceAll(value, "\\", "/")
+}
+
+func normalizeRelativeArtifactPath(relativePath string) (string, error) {
+	if relativePath == "" {
+		return "", fmt.Errorf("expected a non-empty relative artifact path")
+	}
+
+	segments := make([]string, 0)
+	for _, segment := range strings.Split(toPosixPath(relativePath), "/") {
+		switch segment {
+		case "", ".":
+			continue
+		case "..":
+			return "", fmt.Errorf("artifact paths must stay within the project root")
+		default:
+			segments = append(segments, segment)
+		}
+	}
+
+	normalized := strings.Join(segments, "/")
+	if normalized == "" || normalized == "." || strings.HasPrefix(normalized, "/") {
+		return "", fmt.Errorf("artifact paths must stay within the project root")
+	}
+	if len(normalized) >= 3 && normalized[1] == ':' && normalized[2] == '/' {
+		return "", fmt.Errorf("artifact paths must stay within the project root")
+	}
+
+	return normalized, nil
+}
+
+func normalizeRelativeSourceFilePath(sourceFilePath string) (string, error) {
+	normalized, err := normalizeRelativeArtifactPath(sourceFilePath)
+	if err == nil {
+		return normalized, nil
+	}
+
+	basename := path.Base(toPosixPath(sourceFilePath))
+	if basename == "" || basename == "." || basename == ".." {
+		return "", err
+	}
+
+	return normalizeRelativeArtifactPath(basename)
+}
+
+func normalizeArtifactSourceFile(projectRoot string, sourceFile string) string {
+	if sourceFile == "" {
+		return ""
+	}
+
+	if filepath.IsAbs(sourceFile) {
+		relativePath, err := filepath.Rel(projectRoot, sourceFile)
+		if err == nil {
+			normalized := toPosixPath(relativePath)
+			if normalized != "" &&
+				normalized != "." &&
+				!strings.HasPrefix(normalized, "../") &&
+				!filepath.IsAbs(normalized) {
+				return normalized
+			}
+		}
+	}
+
+	normalized := toPosixPath(sourceFile)
+	if normalized == "." ||
+		strings.HasPrefix(normalized, "../") ||
+		strings.Contains(normalized, "/../") {
+		return path.Base(normalized)
+	}
+
+	return normalized
+}
+
+func resolveSnapshotRelativePath(sourceFilePath string) (string, error) {
+	normalizedSourcePath, err := normalizeRelativeSourceFilePath(sourceFilePath)
+	if err != nil {
+		return "", err
+	}
+
+	parsedDirectory := path.Dir(normalizedSourcePath)
+	basename := path.Base(normalizedSourcePath)
+	extension := path.Ext(basename)
+	name := strings.TrimSuffix(basename, extension)
+	if parsedDirectory != "" && parsedDirectory != "." {
+		return path.Join(parsedDirectory, name+snapshotFileExtension), nil
+	}
+
+	return name + snapshotFileExtension, nil
+}
+
+func resolveFixtureRelativePath(sourceFilePath string, fixturePath string) (string, error) {
+	normalizedSourcePath, err := normalizeRelativeSourceFilePath(sourceFilePath)
+	if err != nil {
+		return "", err
+	}
+	normalizedFixturePath, err := normalizeRelativeArtifactPath(fixturePath)
+	if err != nil {
+		return "", err
+	}
+
+	sourceDirectory := path.Dir(normalizedSourcePath)
+	if sourceDirectory != "" && sourceDirectory != "." {
+		return path.Join(sourceDirectory, normalizedFixturePath), nil
+	}
+
+	return normalizedFixturePath, nil
+}
+
+func resolveSnapshotPath(projectRoot string, sourceFilePath string) (string, error) {
+	relativePath, err := resolveSnapshotRelativePath(sourceFilePath)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(projectRoot, snapshotRootDirectory, filepath.FromSlash(relativePath)), nil
+}
+
+func resolveFixturePath(projectRoot string, sourceFilePath string, fixturePath string) (string, error) {
+	relativePath, err := resolveFixtureRelativePath(sourceFilePath, fixturePath)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(projectRoot, fixtureRootDirectory, filepath.FromSlash(relativePath)), nil
+}
+
+func createSnapshotKey(baseName string, occurrence uint32) (string, error) {
+	if baseName == "" {
+		return "", fmt.Errorf("expected a non-empty snapshot base name")
+	}
+	return fmt.Sprintf("%s~(%d)", baseName, occurrence), nil
+}
+
+func getSnapshotKeyBaseName(key string) string {
+	suffixIndex := strings.LastIndex(key, "~(")
+	if suffixIndex < 0 || !strings.HasSuffix(key, ")") {
+		return key
+	}
+
+	suffix := key[suffixIndex+2 : len(key)-1]
+	if suffix == "" {
+		return key
+	}
+	for _, runeValue := range suffix {
+		if runeValue < '0' || runeValue > '9' {
+			return key
+		}
+	}
+
+	return key[:suffixIndex]
+}
+
+func escapeTemplateLiteral(value string) string {
+	return strings.ReplaceAll(
+		strings.ReplaceAll(
+			strings.ReplaceAll(value, "\\", "\\\\"),
+			"`",
+			"\\`",
+		),
+		"${",
+		"\\${",
+	)
+}
+
+func readTemplateLiteral(sourceText string, startOffset int) (string, int, error) {
+	if startOffset >= len(sourceText) || sourceText[startOffset] != '`' {
+		return "", startOffset, fmt.Errorf("expected a template literal")
+	}
+
+	index := startOffset + 1
+	var builder strings.Builder
+	for index < len(sourceText) {
+		character := sourceText[index]
+		if character == '`' {
+			return builder.String(), index + 1, nil
+		}
+		if character == '\\' {
+			if index+1 >= len(sourceText) {
+				return "", startOffset, fmt.Errorf("unterminated template literal escape")
+			}
+			escapedCharacter := sourceText[index+1]
+			switch escapedCharacter {
+			case '\\':
+				builder.WriteByte('\\')
+			case '`':
+				builder.WriteByte('`')
+			case 'n':
+				builder.WriteByte('\n')
+			case 'r':
+				builder.WriteByte('\r')
+			case 't':
+				builder.WriteByte('\t')
+			case '$':
+				if index+2 >= len(sourceText) || sourceText[index+2] != '{' {
+					return "", startOffset, fmt.Errorf("unsupported template literal escape")
+				}
+				builder.WriteString("${")
+				index += 1
+			default:
+				return "", startOffset, fmt.Errorf("unsupported template literal escape")
+			}
+
+			index += 2
+			continue
+		}
+
+		builder.WriteByte(character)
+		index += 1
+	}
+
+	return "", startOffset, fmt.Errorf("unterminated template literal")
+}
+
+func skipWhitespace(sourceText string, offset int) int {
+	for offset < len(sourceText) {
+		switch sourceText[offset] {
+		case ' ', '\t', '\n', '\r':
+			offset += 1
+		default:
+			return offset
+		}
+	}
+	return offset
+}
+
+func parseSnapshotFile(sourceText string) ([]*snapshotEntry, error) {
+	entries := make([]*snapshotEntry, 0)
+	seenKeys := map[string]struct{}{}
+	offset := skipWhitespace(sourceText, 0)
+
+	for offset < len(sourceText) {
+		if !strings.HasPrefix(sourceText[offset:], "exports[") {
+			return nil, fmt.Errorf("snapshot files must use export-map assignments")
+		}
+		offset += len("exports[")
+		offset = skipWhitespace(sourceText, offset)
+
+		key, nextOffset, err := readTemplateLiteral(sourceText, offset)
+		if err != nil {
+			return nil, err
+		}
+		offset = skipWhitespace(sourceText, nextOffset)
+		if offset >= len(sourceText) || sourceText[offset] != ']' {
+			return nil, fmt.Errorf("expected closing ] after snapshot key")
+		}
+		offset = skipWhitespace(sourceText, offset+1)
+		if offset >= len(sourceText) || sourceText[offset] != '=' {
+			return nil, fmt.Errorf("expected = after snapshot key")
+		}
+		offset = skipWhitespace(sourceText, offset+1)
+
+		value, nextOffset, err := readTemplateLiteral(sourceText, offset)
+		if err != nil {
+			return nil, err
+		}
+		offset = skipWhitespace(sourceText, nextOffset)
+		if offset >= len(sourceText) || sourceText[offset] != ';' {
+			return nil, fmt.Errorf("expected ; after snapshot entry")
+		}
+
+		if _, exists := seenKeys[key]; exists {
+			return nil, fmt.Errorf("duplicate snapshot key: %s", key)
+		}
+		seenKeys[key] = struct{}{}
+		entries = append(entries, &snapshotEntry{
+			Key:     key,
+			Value:   value,
+			Matched: false,
+		})
+		offset = skipWhitespace(sourceText, offset+1)
+	}
+
+	return entries, nil
+}
+
+func renderSnapshotFile(entries []*snapshotEntry) string {
+	if len(entries) == 0 {
+		return ""
+	}
+
+	lines := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		lines = append(
+			lines,
+			fmt.Sprintf(
+				"exports[`%s`] = `%s`;",
+				escapeTemplateLiteral(entry.Key),
+				escapeTemplateLiteral(entry.Value),
+			),
+		)
+	}
+
+	return strings.Join(lines, "\n\n") + "\n"
+}
+
+func loadSnapshotManifest(projectRoot string) (*snapshotManifest, error) {
+	snapshotRoot := filepath.Join(projectRoot, snapshotRootDirectory)
+	manifest := &snapshotManifest{
+		ProjectRoot: projectRoot,
+		Files:       map[string]*snapshotFileState{},
+	}
+
+	if _, err := os.Stat(snapshotRoot); err != nil {
+		if os.IsNotExist(err) {
+			return manifest, nil
+		}
+		return nil, err
+	}
+
+	err := filepath.Walk(snapshotRoot, func(currentPath string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if info.IsDir() || !strings.HasSuffix(info.Name(), snapshotFileExtension) {
+			return nil
+		}
+
+		relativeSnapshotPath, err := filepath.Rel(snapshotRoot, currentPath)
+		if err != nil {
+			return err
+		}
+		normalizedRelativeSnapshotPath, err := normalizeRelativeArtifactPath(toPosixPath(relativeSnapshotPath))
+		if err != nil {
+			return err
+		}
+
+		sourceText, err := os.ReadFile(currentPath)
+		if err != nil {
+			return err
+		}
+		entries, err := parseSnapshotFile(string(sourceText))
+		if err != nil {
+			return err
+		}
+
+		manifest.Files[normalizedRelativeSnapshotPath] = &snapshotFileState{
+			RelativeSnapshotPath:  normalizedRelativeSnapshotPath,
+			SnapshotPath:          currentPath,
+			Entries:               entries,
+			Touched:               false,
+			TouchedExecutionNames: map[string]struct{}{},
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return manifest, nil
+}
+
+func persistSnapshotFileState(fileState *snapshotFileState) error {
+	if fileState == nil {
+		return fmt.Errorf("expected a snapshot file state")
+	}
+	if err := os.MkdirAll(filepath.Dir(fileState.SnapshotPath), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(fileState.SnapshotPath, []byte(renderSnapshotFile(fileState.Entries)), 0o644)
+}
+
+func resolveSnapshotFileState(manifest *snapshotManifest, sourceFilePath string) (*snapshotFileState, string, error) {
+	if manifest == nil {
+		return nil, "", fmt.Errorf("expected a loaded snapshot manifest")
+	}
+	relativeSnapshotPath, err := resolveSnapshotRelativePath(sourceFilePath)
+	if err != nil {
+		return nil, "", err
+	}
+	return manifest.Files[relativeSnapshotPath], relativeSnapshotPath, nil
+}
+
+func upsertSnapshotEntry(manifest *snapshotManifest, sourceFilePath string, key string, value string) error {
+	if manifest == nil {
+		return fmt.Errorf("expected a loaded snapshot manifest")
+	}
+	if key == "" {
+		return fmt.Errorf("expected a non-empty snapshot key")
+	}
+
+	fileState, relativeSnapshotPath, err := resolveSnapshotFileState(manifest, sourceFilePath)
+	if err != nil {
+		return err
+	}
+	if fileState == nil {
+		snapshotPath, err := resolveSnapshotPath(manifest.ProjectRoot, sourceFilePath)
+		if err != nil {
+			return err
+		}
+		fileState = &snapshotFileState{
+			RelativeSnapshotPath:  relativeSnapshotPath,
+			SnapshotPath:          snapshotPath,
+			Entries:               make([]*snapshotEntry, 0),
+			TouchedExecutionNames: map[string]struct{}{},
+		}
+		manifest.Files[relativeSnapshotPath] = fileState
+	}
+
+	fileState.Touched = true
+	fileState.TouchedExecutionNames[getSnapshotKeyBaseName(key)] = struct{}{}
+	for _, entry := range fileState.Entries {
+		if entry.Key == key {
+			entry.Value = value
+			entry.Matched = true
+			return persistSnapshotFileState(fileState)
+		}
+	}
+
+	fileState.Entries = append(fileState.Entries, &snapshotEntry{
+		Key:     key,
+		Value:   value,
+		Matched: true,
+	})
+	return persistSnapshotFileState(fileState)
+}
+
+func matchSnapshotEntry(manifest *snapshotManifest, sourceFilePath string, key string, actualValue string) (snapshotCheckResult, error) {
+	if manifest == nil {
+		return snapshotCheckResult{}, fmt.Errorf("expected a loaded snapshot manifest")
+	}
+	fileState, relativeSnapshotPath, err := resolveSnapshotFileState(manifest, sourceFilePath)
+	if err != nil {
+		return snapshotCheckResult{}, err
+	}
+	if fileState == nil {
+		return snapshotCheckResult{
+			OK:                   false,
+			Outcome:              "missing-snapshot-file",
+			RelativeSnapshotPath: relativeSnapshotPath,
+			Key:                  key,
+			ActualValue:          actualValue,
+		}, nil
+	}
+
+	fileState.Touched = true
+	fileState.TouchedExecutionNames[getSnapshotKeyBaseName(key)] = struct{}{}
+	for _, entry := range fileState.Entries {
+		if entry.Key != key {
+			continue
+		}
+
+		entry.Matched = true
+		if entry.Value == actualValue {
+			return snapshotCheckResult{
+				OK:                   true,
+				Outcome:              "match",
+				RelativeSnapshotPath: relativeSnapshotPath,
+				Key:                  key,
+				ExpectedValue:        entry.Value,
+			}, nil
+		}
+
+		return snapshotCheckResult{
+			OK:                   false,
+			Outcome:              "mismatch",
+			RelativeSnapshotPath: relativeSnapshotPath,
+			Key:                  key,
+			ExpectedValue:        entry.Value,
+			ActualValue:          actualValue,
+		}, nil
+	}
+
+	return snapshotCheckResult{
+		OK:                   false,
+		Outcome:              "missing-snapshot-entry",
+		RelativeSnapshotPath: relativeSnapshotPath,
+		Key:                  key,
+		ActualValue:          actualValue,
+	}, nil
+}
+
+func finalizeSnapshotManifest(manifest *snapshotManifest, updateSnapshots bool) (snapshotFinalizeResult, error) {
+	if manifest == nil {
+		return snapshotFinalizeResult{OK: true}, nil
+	}
+
+	staleEntries := make([]staleSnapshotEntry, 0)
+	for _, fileState := range manifest.Files {
+		if fileState == nil || !fileState.Touched {
+			continue
+		}
+
+		nextEntries := make([]*snapshotEntry, 0, len(fileState.Entries))
+		removedAnyEntries := false
+		for _, entry := range fileState.Entries {
+			executionName := getSnapshotKeyBaseName(entry.Key)
+			_, isTouchedExecution := fileState.TouchedExecutionNames[executionName]
+			if entry.Matched || !isTouchedExecution {
+				nextEntries = append(nextEntries, entry)
+				continue
+			}
+
+			staleEntries = append(staleEntries, staleSnapshotEntry{
+				RelativeSnapshotPath: fileState.RelativeSnapshotPath,
+				Key:                  entry.Key,
+			})
+			if updateSnapshots {
+				removedAnyEntries = true
+				continue
+			}
+			nextEntries = append(nextEntries, entry)
+		}
+
+		fileState.Entries = nextEntries
+		if updateSnapshots && removedAnyEntries {
+			if err := persistSnapshotFileState(fileState); err != nil {
+				return snapshotFinalizeResult{}, err
+			}
+		}
+	}
+
+	return snapshotFinalizeResult{
+		OK:           updateSnapshots || len(staleEntries) == 0,
+		StaleEntries: staleEntries,
+	}, nil
+}
+
+func hookExecutionName(hookKind int32) string {
+	switch hookKind {
+	case hookKindBeforeAll:
+		return "before hook"
+	case hookKindBeforeEach:
+		return "beforeEach hook"
+	case hookKindAfterEach:
+		return "afterEach hook"
+	case hookKindAfterAll:
+		return "after hook"
+	default:
+		return "hook"
+	}
+}
+
+func resolveSnapshotExecutionName(frame *activeArtifactFrame, label string) string {
+	if label != "" {
+		return label
+	}
+	if frame != nil && frame.Kind == artifactFrameKindHook {
+		return hookExecutionName(frame.HookKind)
+	}
+	if frame != nil {
+		return frame.Name
+	}
+	return ""
+}
+
+func formatSnapshotCheckFailure(result snapshotCheckResult) string {
+	switch result.Outcome {
+	case "missing-snapshot-file":
+		return fmt.Sprintf("snapshot missing file: %s :: %s", result.RelativeSnapshotPath, result.Key)
+	case "missing-snapshot-entry":
+		return fmt.Sprintf("snapshot missing entry: %s :: %s", result.RelativeSnapshotPath, result.Key)
+	case "mismatch":
+		return fmt.Sprintf(
+			"snapshot mismatch: %s :: %s\nexpected: %s\nactual: %s",
+			result.RelativeSnapshotPath,
+			result.Key,
+			result.ExpectedValue,
+			result.ActualValue,
+		)
+	default:
+		return "snapshot comparison failed"
+	}
+}
+
+func formatSnapshotStaleEntry(entry staleSnapshotEntry) string {
+	return fmt.Sprintf("stale snapshot entry: %s :: %s", entry.RelativeSnapshotPath, entry.Key)
 }
 
 func createNodeIndexValue(env C.napi_env, nodeIndex []uint32) (C.napi_value, bool) {
@@ -1627,7 +2355,7 @@ func createWazeroRuntime(ctx context.Context, engine string) wazero.Runtime {
 	return wazero.NewRuntime(ctx)
 }
 
-func compileHarness(bytes []byte, engine string) (*harnessState, error) {
+func compileHarness(bytes []byte, engine string, artifact artifactConfig) (*harnessState, error) {
 	ctx := context.Background()
 	traceNativeWazero("compileHarness bytes=%d engine=%q", len(bytes), engine)
 	runtime := createWazeroRuntime(ctx, engine)
@@ -1777,6 +2505,161 @@ func compileHarness(bytes []byte, engine string) (*harnessState, error) {
 			dispatchEventPayload(state, eventKindDiagnostic, payload)
 		}).
 		Export(captureActiveArtifactFrameImport).
+		NewFunctionBuilder().
+		WithFunc(func(ctx context.Context, module api.Module, actualPtr uint32, labelPtr uint32) uint32 {
+			callState := artifactCallStateFromContext(ctx)
+			if callState == nil || callState.artifact == nil {
+				setArtifactLastText(ctx, "snapshot artifacts require a configured project root")
+				return 0
+			}
+			artifactState := callState.artifact
+			if !artifactState.Enabled || artifactState.Manifest == nil {
+				setArtifactLastText(ctx, "snapshot artifacts require a configured project root")
+				return 0
+			}
+
+			memory := module.Memory()
+			if memory == nil {
+				setArtifactLastText(ctx, "missing memory export")
+				return 0
+			}
+
+			frame, _ := readActiveArtifactFrame(ctx, module)
+			normalizedFrameSourceFile := ""
+			if frame != nil && frame.SourceFile != "" {
+				normalizedFrameSourceFile = normalizeArtifactSourceFile(
+					artifactState.ProjectRoot,
+					frame.SourceFile,
+				)
+			}
+			sourceFile := normalizedFrameSourceFile
+			if sourceFile == "" {
+				sourceFile = artifactState.SourceFileFallback
+			}
+			if sourceFile == "" {
+				setArtifactLastText(ctx, "snapshot requires an active declaration source file")
+				return 0
+			}
+
+			actualValue, ok := readAssemblyString(memory, actualPtr)
+			if !ok {
+				setArtifactLastText(ctx, "failed to read snapshot value")
+				return 0
+			}
+			label, ok := readAssemblyString(memory, labelPtr)
+			if !ok {
+				setArtifactLastText(ctx, "failed to read snapshot label")
+				return 0
+			}
+			executionName := resolveSnapshotExecutionName(frame, label)
+			if executionName == "" {
+				setArtifactLastText(ctx, "snapshot requires a non-empty execution name")
+				return 0
+			}
+
+			occurrenceKey := sourceFile + "\x00" + executionName
+			occurrence := artifactState.OccurrencesByExecution[occurrenceKey]
+			artifactState.OccurrencesByExecution[occurrenceKey] = occurrence + 1
+			key, err := createSnapshotKey(executionName, occurrence)
+			if err != nil {
+				setArtifactLastText(ctx, err.Error())
+				return 0
+			}
+
+			if artifactState.UpdateSnapshots {
+				if err := upsertSnapshotEntry(artifactState.Manifest, sourceFile, key, actualValue); err != nil {
+					setArtifactLastText(ctx, err.Error())
+					return 0
+				}
+				setArtifactLastText(ctx, "")
+				return 1
+			}
+
+			result, err := matchSnapshotEntry(artifactState.Manifest, sourceFile, key, actualValue)
+			if err != nil {
+				setArtifactLastText(ctx, err.Error())
+				return 0
+			}
+			if result.OK {
+				setArtifactLastText(ctx, "")
+				return 1
+			}
+
+			setArtifactLastText(ctx, formatSnapshotCheckFailure(result))
+			return 0
+		}).
+		Export(snapshotCheckImport).
+		NewFunctionBuilder().
+		WithFunc(func(ctx context.Context, module api.Module, pathPtr uint32) uint32 {
+			callState := artifactCallStateFromContext(ctx)
+			if callState == nil || callState.artifact == nil {
+				setArtifactLastText(ctx, "fixture artifacts require a configured project root")
+				return 0
+			}
+			artifactState := callState.artifact
+			if !artifactState.Enabled || artifactState.ProjectRoot == "" {
+				setArtifactLastText(ctx, "fixture artifacts require a configured project root")
+				return 0
+			}
+
+			memory := module.Memory()
+			if memory == nil {
+				setArtifactLastText(ctx, "missing memory export")
+				return 0
+			}
+
+			frame, _ := readActiveArtifactFrame(ctx, module)
+			normalizedFrameSourceFile := ""
+			if frame != nil && frame.SourceFile != "" {
+				normalizedFrameSourceFile = normalizeArtifactSourceFile(
+					artifactState.ProjectRoot,
+					frame.SourceFile,
+				)
+			}
+			sourceFile := normalizedFrameSourceFile
+			if sourceFile == "" {
+				sourceFile = artifactState.SourceFileFallback
+			}
+			if sourceFile == "" {
+				setArtifactLastText(ctx, "fixture requires an active declaration source file")
+				return 0
+			}
+
+			fixturePath, ok := readAssemblyString(memory, pathPtr)
+			if !ok {
+				setArtifactLastText(ctx, "failed to read fixture path")
+				return 0
+			}
+
+			resolvedPath, err := resolveFixturePath(artifactState.ProjectRoot, sourceFile, fixturePath)
+			if err != nil {
+				setArtifactLastText(ctx, err.Error())
+				return 0
+			}
+			fixtureBytes, err := os.ReadFile(resolvedPath)
+			if err != nil {
+				setArtifactLastText(ctx, err.Error())
+				return 0
+			}
+
+			setArtifactLastText(ctx, string(fixtureBytes))
+			return 1
+		}).
+		Export(fixtureReadImport).
+		NewFunctionBuilder().
+		WithFunc(func(ctx context.Context) uint32 {
+			return uint32(len(utf16.Encode([]rune(getArtifactLastText(ctx)))) * 2)
+		}).
+		Export(getLastTextUtf16ByteLengthImport).
+		NewFunctionBuilder().
+		WithFunc(func(ctx context.Context, module api.Module, destinationPtr uint32) {
+			_ = writeAssemblyUtf16String(
+				module.Memory(),
+				destinationPtr,
+				getArtifactLastText(ctx),
+			)
+		}).
+		Export(copyLastTextUtf16Import).
 		Instantiate(ctx)
 	if err != nil {
 		_ = runtime.Close(ctx)
@@ -1795,6 +2678,7 @@ func compileHarness(bytes []byte, engine string) (*harnessState, error) {
 		runtime:  runtime,
 		compiled: compiled,
 		coverage: newCoverageCollector(),
+		artifact: artifact,
 	}, nil
 }
 
@@ -2009,7 +2893,7 @@ func createHarnessObject(env C.napi_env, id int64) C.napi_value {
 
 //export GoCreateHarness
 func GoCreateHarness(env C.napi_env, info C.napi_callback_info) C.napi_value {
-	args, _, ok := getCallbackArguments(env, info, 2)
+	args, _, ok := getCallbackArguments(env, info, 5)
 	if !ok {
 		return nil
 	}
@@ -2026,15 +2910,54 @@ func GoCreateHarness(env C.napi_env, info C.napi_callback_info) C.napi_value {
 
 	engine := ""
 	if len(args) > 1 {
-		engine, ok = stringFromValue(env, args[1])
-		if !ok {
-			throwTypeError(env, "createHarness engine override must be a string")
-			return nil
+		if args[1] != nil {
+			engine, ok = stringFromValue(env, args[1])
+			if !ok {
+				throwTypeError(env, "createHarness engine override must be a string")
+				return nil
+			}
+		}
+	}
+
+	projectRoot := ""
+	if len(args) > 2 {
+		if args[2] != nil {
+			projectRoot, ok = stringFromValue(env, args[2])
+			if !ok {
+				throwTypeError(env, "createHarness artifact project root must be a string")
+				return nil
+			}
+		}
+	}
+
+	sourceFileFallback := ""
+	if len(args) > 3 {
+		if args[3] != nil {
+			sourceFileFallback, ok = stringFromValue(env, args[3])
+			if !ok {
+				throwTypeError(env, "createHarness artifact source file fallback must be a string")
+				return nil
+			}
+		}
+	}
+
+	updateSnapshots := false
+	if len(args) > 4 {
+		if args[4] != nil {
+			updateSnapshots, ok = boolFromValue(env, args[4])
+			if !ok {
+				throwTypeError(env, "createHarness updateSnapshots flag must be a boolean")
+				return nil
+			}
 		}
 	}
 
 	traceNativeWazero("GoCreateHarness invoked")
-	state, err := compileHarness(wasmBytes, engine)
+	state, err := compileHarness(wasmBytes, engine, artifactConfig{
+		ProjectRoot:        projectRoot,
+		SourceFileFallback: sourceFileFallback,
+		UpdateSnapshots:    updateSnapshots,
+	})
 	if err != nil {
 		throwError(env, err.Error())
 		return nil
@@ -2653,7 +3576,11 @@ func runNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) 
 }
 
 func runNodeIndexWithSink(ctx context.Context, state *harnessState, nodeIndex []uint32, sink writeEventSink, coverage *coverageCollector) bool {
-	ctx = contextWithCoverageCollector(ctx, state, sink, coverage)
+	artifactState, err := newArtifactInvocationState(state.artifact)
+	if err != nil {
+		return false
+	}
+	ctx = contextWithCoverageCollector(ctx, state, sink, coverage, artifactState)
 
 	module, err := state.runtime.InstantiateModule(
 		ctx,
@@ -2698,7 +3625,24 @@ func runNodeIndexWithSink(ctx context.Context, state *harnessState, nodeIndex []
 		return false
 	}
 
-	return runResults[0] == 1
+	ok := runResults[0] == 1
+	finalized, err := finalizeSnapshotManifest(artifactState.Manifest, artifactState.UpdateSnapshots)
+	if err != nil {
+		return false
+	}
+	if !finalized.OK {
+		ok = false
+		for _, entry := range finalized.StaleEntries {
+			payload := []byte(formatSnapshotStaleEntry(entry))
+			if sink != nil {
+				sink.Handle(eventKindFailMessage, payload)
+				continue
+			}
+			dispatchEventPayload(state, eventKindFailMessage, payload)
+		}
+	}
+
+	return ok
 }
 
 func discoverNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uint32) bool {
@@ -2706,7 +3650,11 @@ func discoverNodeIndex(ctx context.Context, state *harnessState, nodeIndex []uin
 }
 
 func discoverNodeIndexWithSink(ctx context.Context, state *harnessState, nodeIndex []uint32, sink writeEventSink, coverage *coverageCollector) bool {
-	ctx = contextWithCoverageCollector(ctx, state, sink, coverage)
+	artifactState, err := newArtifactInvocationState(state.artifact)
+	if err != nil {
+		return false
+	}
+	ctx = contextWithCoverageCollector(ctx, state, sink, coverage, artifactState)
 
 	module, err := state.runtime.InstantiateModule(
 		ctx,

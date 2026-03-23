@@ -11,6 +11,7 @@ const path = require("node:path");
 const FIXTURE_ROOT_DIRECTORY = "__fixtures__";
 const SNAPSHOT_ROOT_DIRECTORY = "__snapshots__";
 const SNAPSHOT_FILE_EXTENSION = ".snap";
+const SNAPSHOT_KEY_SUFFIX_PATTERN = /^(.*)~\((\d+)\)$/u;
 
 function toPosixPath(value) {
 	return value.replaceAll("\\", "/");
@@ -38,8 +39,21 @@ function normalizeRelativeArtifactPath(relativePath) {
 	return normalized;
 }
 
+function normalizeRelativeSourceFilePath(sourceFilePath) {
+	try {
+		return normalizeRelativeArtifactPath(sourceFilePath);
+	} catch (error) {
+		const basename = path.posix.basename(toPosixPath(sourceFilePath));
+		if (basename.length === 0 || basename === "." || basename === "..") {
+			throw error;
+		}
+
+		return normalizeRelativeArtifactPath(basename);
+	}
+}
+
 function resolveSnapshotRelativePath(sourceFilePath) {
-	const normalizedSourcePath = normalizeRelativeArtifactPath(sourceFilePath);
+	const normalizedSourcePath = normalizeRelativeSourceFilePath(sourceFilePath);
 	const parsed = path.posix.parse(normalizedSourcePath);
 	return parsed.dir && parsed.dir !== "."
 		? path.posix.join(parsed.dir, `${parsed.name}${SNAPSHOT_FILE_EXTENSION}`)
@@ -55,7 +69,7 @@ function resolveSnapshotPath(projectRoot, sourceFilePath) {
 }
 
 function resolveFixtureRelativePath(sourceFilePath, fixturePath) {
-	const normalizedSourcePath = normalizeRelativeArtifactPath(sourceFilePath);
+	const normalizedSourcePath = normalizeRelativeSourceFilePath(sourceFilePath);
 	const normalizedFixturePath = normalizeRelativeArtifactPath(fixturePath);
 	const sourceDirectory = path.posix.dirname(normalizedSourcePath);
 
@@ -70,6 +84,33 @@ function resolveFixturePath(projectRoot, sourceFilePath, fixturePath) {
 		FIXTURE_ROOT_DIRECTORY,
 		resolveFixtureRelativePath(sourceFilePath, fixturePath),
 	);
+}
+
+function readFixtureText(projectRoot, sourceFilePath, fixturePath) {
+	return readFileSync(
+		resolveFixturePath(projectRoot, sourceFilePath, fixturePath),
+		"utf8",
+	);
+}
+
+function createSnapshotKey(baseName, occurrence) {
+	if (typeof baseName !== "string" || baseName.length === 0) {
+		throw new TypeError("expected a non-empty snapshot base name");
+	}
+	if (!Number.isInteger(occurrence) || occurrence < 0) {
+		throw new TypeError("expected a non-negative snapshot occurrence");
+	}
+
+	return `${baseName}~(${occurrence})`;
+}
+
+function getSnapshotKeyBaseName(key) {
+	if (typeof key !== "string" || key.length === 0) {
+		throw new TypeError("expected a non-empty snapshot key");
+	}
+
+	const match = SNAPSHOT_KEY_SUFFIX_PATTERN.exec(key);
+	return match ? match[1] : key;
 }
 
 function escapeTemplateLiteral(value) {
@@ -241,6 +282,7 @@ function createSnapshotFileState(projectRoot, snapshotPath) {
 		entries,
 		entriesByKey: new Map(entries.map((entry) => [entry.key, entry])),
 		touched: false,
+		touchedExecutionNames: new Set(),
 	};
 }
 
@@ -333,6 +375,7 @@ function createSnapshotFileStateForSource(projectRoot, sourceFilePath) {
 		entries: [],
 		entriesByKey: new Map(),
 		touched: false,
+		touchedExecutionNames: new Set(),
 	};
 }
 
@@ -382,6 +425,7 @@ function upsertSnapshotEntry(manifest, sourceFilePath, key, value) {
 	}
 
 	fileState.touched = true;
+	fileState.touchedExecutionNames.add(getSnapshotKeyBaseName(key));
 	const existingEntry = fileState.entriesByKey.get(key) ?? null;
 	if (existingEntry === null) {
 		const entry = {
@@ -431,6 +475,7 @@ function matchSnapshotEntry(manifest, sourceFilePath, key, actualValue) {
 	}
 
 	fileState.touched = true;
+	fileState.touchedExecutionNames.add(getSnapshotKeyBaseName(key));
 	const entry = fileState.entriesByKey.get(key) ?? null;
 	if (entry === null) {
 		return {
@@ -463,23 +508,34 @@ function matchSnapshotEntry(manifest, sourceFilePath, key, actualValue) {
 	};
 }
 
-function finalizeSnapshotManifest(manifest) {
+function finalizeSnapshotManifest(manifest, options = {}) {
 	if (!manifest || !Array.isArray(manifest.files)) {
 		throw new TypeError("expected a loaded snapshot manifest");
 	}
 
+	const updateSnapshots = options.updateSnapshots === true;
 	const staleEntries = [];
 	for (const fileState of manifest.files) {
 		if (
 			!fileState ||
 			fileState.touched !== true ||
-			!Array.isArray(fileState.entries)
+			!Array.isArray(fileState.entries) ||
+			!(fileState.touchedExecutionNames instanceof Set)
 		) {
 			continue;
 		}
 
+		let removedAnyEntries = false;
+		const nextEntries = [];
 		for (const entry of fileState.entries) {
-			if (!entry || entry.matched === true) {
+			if (!entry) {
+				continue;
+			}
+			const executionName = getSnapshotKeyBaseName(entry.key);
+			const isTouchedExecution =
+				fileState.touchedExecutionNames.has(executionName);
+			if (entry.matched === true || !isTouchedExecution) {
+				nextEntries.push(entry);
 				continue;
 			}
 
@@ -488,23 +544,38 @@ function finalizeSnapshotManifest(manifest) {
 				key: entry.key,
 				expectedValue: entry.value,
 			});
+			if (updateSnapshots) {
+				fileState.entriesByKey.delete(entry.key);
+				removedAnyEntries = true;
+				continue;
+			}
+
+			nextEntries.push(entry);
+		}
+
+		if (updateSnapshots && removedAnyEntries) {
+			fileState.entries = nextEntries;
+			persistSnapshotFileState(fileState);
 		}
 	}
 
 	return {
-		ok: staleEntries.length === 0,
+		ok: updateSnapshots || staleEntries.length === 0,
 		staleEntries,
 	};
 }
 
 module.exports = {
 	FIXTURE_ROOT_DIRECTORY,
+	createSnapshotKey,
 	finalizeSnapshotManifest,
+	getSnapshotKeyBaseName,
 	matchSnapshotEntry,
 	SNAPSHOT_FILE_EXTENSION,
 	SNAPSHOT_ROOT_DIRECTORY,
 	loadSnapshotManifest,
 	parseSnapshotFile,
+	readFixtureText,
 	renderSnapshotFile,
 	resolveFixturePath,
 	resolveFixtureRelativePath,

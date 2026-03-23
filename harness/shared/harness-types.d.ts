@@ -25,6 +25,7 @@ export type HarnessBytes = Buffer | ArrayBufferView | ArrayBuffer;
 export interface HarnessArtifactOptions {
 	projectRoot: string;
 	updateSnapshots: boolean;
+	sourceFiles?: string[];
 }
 
 export interface HarnessCreateOptions {

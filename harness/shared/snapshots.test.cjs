@@ -12,10 +12,13 @@ const test = require("node:test");
 
 const {
 	FIXTURE_ROOT_DIRECTORY,
+	createSnapshotKey,
 	finalizeSnapshotManifest,
+	getSnapshotKeyBaseName,
 	loadSnapshotManifest,
 	matchSnapshotEntry,
 	parseSnapshotFile,
+	readFixtureText,
 	renderSnapshotFile,
 	resolveFixturePath,
 	resolveFixtureRelativePath,
@@ -63,6 +66,15 @@ test("resolveSnapshotRelativePath mirrors the source tree under __snapshots__", 
 	);
 });
 
+test("createSnapshotKey and getSnapshotKeyBaseName follow the grouped name~(number) contract", () => {
+	assert.equal(createSnapshotKey("adds two values", 0), "adds two values~(0)");
+	assert.equal(
+		getSnapshotKeyBaseName("adds two values~(1)"),
+		"adds two values",
+	);
+	assert.equal(getSnapshotKeyBaseName("plain name"), "plain name");
+});
+
 test("resolveSnapshotPath anchors snapshots under the project root", () => {
 	assert.equal(
 		resolveSnapshotPath("/workspace/project", "tests/math/add.test.ts"),
@@ -98,18 +110,42 @@ test("resolveFixtureRelativePath mirrors the source tree under __fixtures__", ()
 	);
 });
 
+test("readFixtureText reads UTF-8 fixture content under the mirrored project root", () => {
+	const projectRoot = mkdtempSync(path.join(tmpdir(), "as-harness-fixtures-"));
+
+	try {
+		const fixturePath = path.join(
+			projectRoot,
+			FIXTURE_ROOT_DIRECTORY,
+			"tests",
+			"math",
+			"cases",
+			"alpha.txt",
+		);
+		mkdirSync(path.dirname(fixturePath), { recursive: true });
+		writeFileSync(fixturePath, "fixture text\n", "utf8");
+
+		assert.equal(
+			readFixtureText(projectRoot, "tests/math/add.test.ts", "cases/alpha.txt"),
+			"fixture text\n",
+		);
+	} finally {
+		rmSync(projectRoot, { force: true, recursive: true });
+	}
+});
+
 test("resolveSnapshotRelativePath rejects absolute and escaping paths", () => {
-	assert.throws(
-		() => resolveSnapshotRelativePath("../outside.test.ts"),
-		/artifact paths must stay within the project root/,
+	assert.equal(
+		resolveSnapshotRelativePath("../outside.test.ts"),
+		"outside.test.snap",
 	);
-	assert.throws(
-		() => resolveSnapshotRelativePath("/workspace/outside.test.ts"),
-		/artifact paths must stay within the project root/,
+	assert.equal(
+		resolveSnapshotRelativePath("/workspace/outside.test.ts"),
+		"outside.test.snap",
 	);
-	assert.throws(
-		() => resolveSnapshotRelativePath("C:/workspace/outside.test.ts"),
-		/artifact paths must stay within the project root/,
+	assert.equal(
+		resolveSnapshotRelativePath("C:/workspace/outside.test.ts"),
+		"outside.test.snap",
 	);
 	assert.throws(
 		() =>
@@ -291,19 +327,8 @@ test("matchSnapshotEntry reports missing files and entries without inventing syn
 			},
 		);
 		assert.deepEqual(finalizeSnapshotManifest(manifest), {
-			ok: false,
-			staleEntries: [
-				{
-					relativeSnapshotPath: "tests/math/add.test.snap",
-					key: "adds~(0)",
-					expectedValue: "1 + 1 = 2",
-				},
-				{
-					relativeSnapshotPath: "tests/math/add.test.snap",
-					key: "adds~(1)",
-					expectedValue: "2 + 2 = 4",
-				},
-			],
+			ok: true,
+			staleEntries: [],
 		});
 	} finally {
 		rmSync(projectRoot, { force: true, recursive: true });
@@ -341,6 +366,97 @@ test("matchSnapshotEntry treats mismatched entries as consumed so finalize only 
 				},
 			],
 		});
+	} finally {
+		rmSync(projectRoot, { force: true, recursive: true });
+	}
+});
+
+test("finalizeSnapshotManifest only reports stale entries inside touched execution-name groups", () => {
+	const projectRoot = createSnapshotProject();
+
+	try {
+		const manifest = loadSnapshotManifest(projectRoot);
+		assert.deepEqual(
+			matchSnapshotEntry(
+				manifest,
+				"tests/math/add.test.ts",
+				"adds~(0)",
+				"1 + 1 = 2",
+			),
+			{
+				ok: true,
+				outcome: "match",
+				relativeSnapshotPath: "tests/math/add.test.snap",
+				key: "adds~(0)",
+				expectedValue: "1 + 1 = 2",
+			},
+		);
+		assert.deepEqual(
+			upsertSnapshotEntry(
+				manifest,
+				"tests/math/add.test.ts",
+				"other test~(0)",
+				"value",
+			).outcome,
+			"added-entry",
+		);
+		assert.deepEqual(finalizeSnapshotManifest(manifest), {
+			ok: false,
+			staleEntries: [
+				{
+					relativeSnapshotPath: "tests/math/add.test.snap",
+					key: "adds~(1)",
+					expectedValue: "2 + 2 = 4",
+				},
+			],
+		});
+	} finally {
+		rmSync(projectRoot, { force: true, recursive: true });
+	}
+});
+
+test("finalizeSnapshotManifest removes stale touched entries in update mode", () => {
+	const projectRoot = createSnapshotProject();
+
+	try {
+		const manifest = loadSnapshotManifest(projectRoot);
+		assert.deepEqual(
+			matchSnapshotEntry(
+				manifest,
+				"tests/math/add.test.ts",
+				"adds~(0)",
+				"1 + 1 = 2",
+			).ok,
+			true,
+		);
+		assert.deepEqual(
+			finalizeSnapshotManifest(manifest, { updateSnapshots: true }),
+			{
+				ok: true,
+				staleEntries: [
+					{
+						relativeSnapshotPath: "tests/math/add.test.snap",
+						key: "adds~(1)",
+						expectedValue: "2 + 2 = 4",
+					},
+				],
+			},
+		);
+		assert.deepEqual(
+			parseSnapshotFile(
+				readFileSync(
+					path.join(
+						projectRoot,
+						"__snapshots__",
+						"tests",
+						"math",
+						"add.test.snap",
+					),
+					"utf8",
+				),
+			).map((entry) => entry.key),
+			["adds~(0)"],
+		);
 	} finally {
 		rmSync(projectRoot, { force: true, recursive: true });
 	}

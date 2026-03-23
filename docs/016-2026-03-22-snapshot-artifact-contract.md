@@ -107,7 +107,7 @@ fixtures and snapshots do not share one directory.
 
 ## Scope For The Next Slices
 
-This note freezes only:
+This note freezes:
 
 - snapshot path layout
 - snapshot key shape
@@ -118,4 +118,5 @@ It does not yet freeze:
 
 - the exact guest-side push/pop descriptor shape
 - the exact host-readable artifact-frame ABI
-- the final public `uvu/assert` helper signatures
+- the shipped public `uvu/assert` helper signatures for `snapshot(...)` and
+  `fixture(...)`

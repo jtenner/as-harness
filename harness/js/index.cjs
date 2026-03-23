@@ -3,6 +3,14 @@
 const textDecoder = new TextDecoder();
 const { createCoverageCollector } = require("../shared/covers.cjs");
 const { decorateHarness } = require("../shared/start.cjs");
+const {
+	createSnapshotKey,
+	finalizeSnapshotManifest,
+	loadSnapshotManifest,
+	matchSnapshotEntry,
+	readFixtureText,
+	upsertSnapshotEntry,
+} = require("../shared/snapshots.cjs");
 
 const HARNESS_MODULE_NAME = "as-harness";
 const ABORT_MODULE_NAME = "env";
@@ -25,6 +33,10 @@ const EVENT_KIND_DIAGNOSTIC = 7;
 const EVENT_KIND_NODE_FAIL = 8;
 const EVENT_KIND_CALLBACK_FAIL = 9;
 const EVENT_KIND_LOG = 10;
+const HOOK_KIND_BEFORE_ALL = 1;
+const HOOK_KIND_BEFORE_EACH = 2;
+const HOOK_KIND_AFTER_EACH = 3;
+const HOOK_KIND_AFTER_ALL = 4;
 const ACTIVE_ARTIFACT_FRAME_DEPTH_EXPORT = "getActiveArtifactFrameDepth";
 const ACTIVE_ARTIFACT_FRAME_KIND_EXPORT = "getActiveArtifactFrameKind";
 const ACTIVE_ARTIFACT_FRAME_NODE_KIND_EXPORT = "getActiveArtifactFrameNodeKind";
@@ -490,9 +502,142 @@ function formatActiveArtifactFrame(frame) {
 	].join(" ");
 }
 
+function normalizeArtifactOptions(createHarnessOptions = {}) {
+	const artifactOptions =
+		createHarnessOptions &&
+		typeof createHarnessOptions === "object" &&
+		createHarnessOptions.artifactOptions &&
+		typeof createHarnessOptions.artifactOptions === "object"
+			? createHarnessOptions.artifactOptions
+			: null;
+	return {
+		projectRoot:
+			typeof artifactOptions?.projectRoot === "string"
+				? artifactOptions.projectRoot
+				: "",
+		sourceFiles: Array.isArray(artifactOptions?.sourceFiles)
+			? artifactOptions.sourceFiles.filter(
+					(value) => typeof value === "string" && value.length > 0,
+				)
+			: [],
+		updateSnapshots: artifactOptions?.updateSnapshots === true,
+	};
+}
+
+function hookExecutionName(hookKind) {
+	switch (hookKind) {
+		case HOOK_KIND_BEFORE_ALL:
+			return "before hook";
+		case HOOK_KIND_BEFORE_EACH:
+			return "beforeEach hook";
+		case HOOK_KIND_AFTER_EACH:
+			return "afterEach hook";
+		case HOOK_KIND_AFTER_ALL:
+			return "after hook";
+		default:
+			return "hook";
+	}
+}
+
+function resolveSnapshotExecutionName(frame, label) {
+	if (typeof label === "string" && label.length > 0) {
+		return label;
+	}
+	if (frame && frame.kind === 3) {
+		return hookExecutionName(frame.hookKind);
+	}
+	return typeof frame?.name === "string" ? frame.name : "";
+}
+
+function createArtifactInvocationState(artifactOptions) {
+	const enabled =
+		typeof artifactOptions?.projectRoot === "string" &&
+		artifactOptions.projectRoot.length > 0;
+
+	return {
+		enabled,
+		lastText: "",
+		manifest: enabled
+			? loadSnapshotManifest(artifactOptions.projectRoot)
+			: null,
+		occurrencesByExecutionKey: new Map(),
+		projectRoot: enabled ? artifactOptions.projectRoot : "",
+		sourceFileFallback:
+			Array.isArray(artifactOptions?.sourceFiles) &&
+			artifactOptions.sourceFiles.length === 1
+				? artifactOptions.sourceFiles[0]
+				: "",
+		updateSnapshots: artifactOptions?.updateSnapshots === true,
+	};
+}
+
+function normalizeArtifactSourceFile(projectRoot, sourceFile) {
+	if (typeof sourceFile !== "string" || sourceFile.length === 0) {
+		return "";
+	}
+
+	if (path.isAbsolute(sourceFile)) {
+		const relativePath = sourceFile
+			? path.relative(projectRoot, sourceFile).replaceAll("\\", "/")
+			: "";
+		if (
+			relativePath.length > 0 &&
+			relativePath !== "." &&
+			!relativePath.startsWith("../") &&
+			!path.isAbsolute(relativePath)
+		) {
+			return relativePath;
+		}
+	}
+
+	const normalizedSourceFile = sourceFile.replaceAll("\\", "/");
+	if (
+		normalizedSourceFile === "." ||
+		normalizedSourceFile.startsWith("../") ||
+		normalizedSourceFile.includes("/../")
+	) {
+		return path.posix.basename(normalizedSourceFile);
+	}
+
+	return normalizedSourceFile;
+}
+
+function setArtifactLastText(artifactState, value) {
+	artifactState.lastText = typeof value === "string" ? value : "";
+}
+
+function writeUtf16ToMemory(memory, destination, value) {
+	const view = new DataView(memory.buffer);
+	for (let index = 0; index < value.length; index += 1) {
+		view.setUint16(
+			(destination >>> 0) + index * 2,
+			value.charCodeAt(index),
+			true,
+		);
+	}
+}
+
+function formatSnapshotCheckFailure(result) {
+	switch (result?.outcome) {
+		case "missing-snapshot-file":
+			return `snapshot missing file: ${result.relativeSnapshotPath} :: ${result.key}`;
+		case "missing-snapshot-entry":
+			return `snapshot missing entry: ${result.relativeSnapshotPath} :: ${result.key}`;
+		case "mismatch":
+			return `snapshot mismatch: ${result.relativeSnapshotPath} :: ${result.key}\nexpected: ${result.expectedValue}\nactual: ${result.actualValue}`;
+		default:
+			return "snapshot comparison failed";
+	}
+}
+
+function formatSnapshotStaleEntry(entry) {
+	return `stale snapshot entry: ${entry.relativeSnapshotPath} :: ${entry.key}`;
+}
+
 class Harness {
 	#compiledModule;
 	#coverage;
+	#artifactOptions;
 	#callbacks = {
 		nodeFound: null,
 		nodeStart: null,
@@ -506,9 +651,10 @@ class Harness {
 		log: null,
 	};
 
-	constructor(compiledModule) {
+	constructor(compiledModule, createHarnessOptions = {}) {
 		this.#compiledModule = compiledModule;
 		this.#coverage = createCoverageCollector();
+		this.#artifactOptions = normalizeArtifactOptions(createHarnessOptions);
 	}
 
 	onNodeFound(callback) {
@@ -615,7 +761,10 @@ class Harness {
 		}
 
 		try {
-			const exports = this.#instantiate();
+			const artifactState = createArtifactInvocationState(
+				this.#artifactOptions,
+			);
+			const exports = this.#instantiate(artifactState);
 			this.#stageNodeIndex(exports, decodedNodeIndex);
 			const exported = exports[exportName];
 			if (typeof exported !== "function") {
@@ -627,7 +776,25 @@ class Harness {
 				return false;
 			}
 
-			return isSuccess(result | 0);
+			let ok = isSuccess(result | 0);
+			if (exportName === RUN_EXPORT && artifactState.manifest !== null) {
+				const finalized = finalizeSnapshotManifest(artifactState.manifest, {
+					updateSnapshots: artifactState.updateSnapshots,
+				});
+				if (!finalized.ok) {
+					ok = false;
+					const callback = this.#callbacks.failMessage;
+					if (typeof callback === "function") {
+						for (const entry of finalized.staleEntries) {
+							callback({
+								message: formatSnapshotStaleEntry(entry),
+							});
+						}
+					}
+				}
+			}
+
+			return ok;
 		} catch {
 			return false;
 		}
@@ -655,7 +822,11 @@ class Harness {
 		return nodeIndex;
 	}
 
-	#instantiate() {
+	#instantiate(artifactState = null) {
+		const activeArtifactState =
+			artifactState === null
+				? createArtifactInvocationState(this.#artifactOptions)
+				: artifactState;
 		let exports = null;
 		const instance = new WebAssembly.Instance(this.#compiledModule, {
 			[HARNESS_MODULE_NAME]: {
@@ -742,6 +913,167 @@ class Harness {
 						nodeIndex: frame.nodeIndex,
 						message: formatActiveArtifactFrame(frame),
 					});
+				},
+				snapshot_check: (actualPtr, labelPtr) => {
+					if (exports === null) {
+						throw new Error("Harness exports are not ready.");
+					}
+
+					if (
+						!activeArtifactState.enabled ||
+						activeArtifactState.manifest === null
+					) {
+						setArtifactLastText(
+							activeArtifactState,
+							"snapshot artifacts require a configured project root",
+						);
+						return 0;
+					}
+
+					const frame = readActiveArtifactFrame(exports);
+					const normalizedFrameSourceFile =
+						frame !== null &&
+						typeof frame.sourceFile === "string" &&
+						frame.sourceFile.length > 0
+							? normalizeArtifactSourceFile(
+									activeArtifactState.projectRoot,
+									frame.sourceFile,
+								)
+							: "";
+					const sourceFile =
+						normalizedFrameSourceFile.length > 0
+							? normalizedFrameSourceFile
+							: activeArtifactState.sourceFileFallback;
+					if (typeof sourceFile !== "string" || sourceFile.length === 0) {
+						setArtifactLastText(
+							activeArtifactState,
+							"snapshot requires an active declaration source file",
+						);
+						return 0;
+					}
+
+					const actualValue = readAssemblyString(exports, actualPtr >>> 0);
+					const label = readAssemblyString(exports, labelPtr >>> 0);
+					const executionName = resolveSnapshotExecutionName(frame, label);
+					if (executionName.length === 0) {
+						setArtifactLastText(
+							activeArtifactState,
+							"snapshot requires a non-empty execution name",
+						);
+						return 0;
+					}
+
+					const occurrenceKey = `${sourceFile}\u0000${executionName}`;
+					const occurrence =
+						activeArtifactState.occurrencesByExecutionKey.get(occurrenceKey) ??
+						0;
+					activeArtifactState.occurrencesByExecutionKey.set(
+						occurrenceKey,
+						occurrence + 1,
+					);
+					const key = createSnapshotKey(executionName, occurrence);
+
+					if (activeArtifactState.updateSnapshots) {
+						upsertSnapshotEntry(
+							activeArtifactState.manifest,
+							sourceFile,
+							key,
+							actualValue,
+						);
+						setArtifactLastText(activeArtifactState, "");
+						return 1;
+					}
+
+					const result = matchSnapshotEntry(
+						activeArtifactState.manifest,
+						sourceFile,
+						key,
+						actualValue,
+					);
+					if (result.ok) {
+						setArtifactLastText(activeArtifactState, "");
+						return 1;
+					}
+
+					setArtifactLastText(
+						activeArtifactState,
+						formatSnapshotCheckFailure(result),
+					);
+					return 0;
+				},
+				fixture_read: (pathPtr) => {
+					if (exports === null) {
+						throw new Error("Harness exports are not ready.");
+					}
+
+					if (
+						!activeArtifactState.enabled ||
+						activeArtifactState.projectRoot.length === 0
+					) {
+						setArtifactLastText(
+							activeArtifactState,
+							"fixture artifacts require a configured project root",
+						);
+						return 0;
+					}
+
+					const frame = readActiveArtifactFrame(exports);
+					const normalizedFrameSourceFile =
+						frame !== null &&
+						typeof frame.sourceFile === "string" &&
+						frame.sourceFile.length > 0
+							? normalizeArtifactSourceFile(
+									activeArtifactState.projectRoot,
+									frame.sourceFile,
+								)
+							: "";
+					const sourceFile =
+						normalizedFrameSourceFile.length > 0
+							? normalizedFrameSourceFile
+							: activeArtifactState.sourceFileFallback;
+					if (typeof sourceFile !== "string" || sourceFile.length === 0) {
+						setArtifactLastText(
+							activeArtifactState,
+							"fixture requires an active declaration source file",
+						);
+						return 0;
+					}
+
+					try {
+						setArtifactLastText(
+							activeArtifactState,
+							readFixtureText(
+								activeArtifactState.projectRoot,
+								sourceFile,
+								readAssemblyString(exports, pathPtr >>> 0),
+							),
+						);
+						return 1;
+					} catch (error) {
+						setArtifactLastText(
+							activeArtifactState,
+							error instanceof Error ? error.message : String(error),
+						);
+						return 0;
+					}
+				},
+				get_last_text_utf16_byte_length: () =>
+					activeArtifactState.lastText.length * 2,
+				copy_last_text_utf16: (destinationPtr) => {
+					if (exports === null) {
+						throw new Error("Harness exports are not ready.");
+					}
+
+					const memory = exports.memory;
+					if (!(memory instanceof WebAssembly.Memory)) {
+						return;
+					}
+
+					writeUtf16ToMemory(
+						memory,
+						destinationPtr >>> 0,
+						activeArtifactState.lastText,
+					);
 				},
 			},
 			[ABORT_MODULE_NAME]: {
@@ -842,17 +1174,18 @@ class Harness {
 function createHarness(bytes, options = {}) {
 	const wasmBytes = toWasmBytes(bytes);
 	const compiledModule = new WebAssembly.Module(wasmBytes);
-	return decorateHarness(new Harness(compiledModule), {
+	const artifactOptions = normalizeArtifactOptions(options);
+	return decorateHarness(new Harness(compiledModule, options), {
 		bytes: wasmBytes,
 		createLocalHarness,
 		createHarnessOptions: options,
-		runInBand: false,
+		runInBand: artifactOptions.updateSnapshots === true,
 		workerModulePath: __filename,
 	});
 }
 
-function createLocalHarness(bytes) {
-	return new Harness(new WebAssembly.Module(toWasmBytes(bytes)));
+function createLocalHarness(bytes, options = {}) {
+	return new Harness(new WebAssembly.Module(toWasmBytes(bytes)), options);
 }
 
 module.exports = {

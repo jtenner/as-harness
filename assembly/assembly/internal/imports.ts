@@ -89,3 +89,22 @@ export declare function invokeStaged(): i32;
 // @ts-ignore AssemblyScript external decorator
 @external("__asArtifacts", "capture_active_frame")
 export declare function captureActiveArtifactFrame(): void;
+
+// @ts-ignore AssemblyScript external decorator
+@external("__asArtifacts", "snapshot_check")
+export declare function snapshotCheck(
+	actualPtr: usize,
+	labelPtr: usize,
+): i32;
+
+// @ts-ignore AssemblyScript external decorator
+@external("__asArtifacts", "fixture_read")
+export declare function fixtureRead(pathPtr: usize): i32;
+
+// @ts-ignore AssemblyScript external decorator
+@external("__asArtifacts", "get_last_text_utf16_byte_length")
+export declare function getLastArtifactTextUtf16ByteLength(): i32;
+
+// @ts-ignore AssemblyScript external decorator
+@external("__asArtifacts", "copy_last_text_utf16")
+export declare function copyLastArtifactTextUtf16(destination: usize): void;

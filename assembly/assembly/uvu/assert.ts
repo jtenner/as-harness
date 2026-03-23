@@ -13,6 +13,12 @@ import {
 	isPartialMatch,
 	isRuntimeTypeInstance,
 } from "../internal/assert-bridge";
+import {
+	readLastArtifactText,
+	tryFixtureRead,
+	trySnapshotCheck,
+} from "../internal/artifacts";
+import { stringifyReflectedValue } from "../internal/reflected-render";
 import { TrapCallback } from "../internal/trampoline";
 
 function typeNameFor<T>(value: T): string {
@@ -163,6 +169,31 @@ export function throws(
 	message: string | null = null,
 ): void {
 	assertThrows(callback, message);
+}
+
+export function snapshot<T>(value: T, label: string | null = null): void {
+	const serialized = stringifyReflectedValue(value);
+	if (trySnapshotCheck(serialized, label)) {
+		return;
+	}
+
+	const failureMessage = readLastArtifactText();
+	fail(
+		failureMessage.length > 0 ? failureMessage : "uvu assert snapshot mismatch",
+	);
+}
+
+export function fixture(path: string): string {
+	const value = tryFixtureRead(path);
+	if (value !== null) {
+		return value;
+	}
+
+	const failureMessage = readLastArtifactText();
+	fail(
+		failureMessage.length > 0 ? failureMessage : "uvu assert fixture missing",
+	);
+	return "";
 }
 
 export function unreachable(message: string | null = null): void {
