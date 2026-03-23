@@ -32,7 +32,9 @@
 - `pack-npm-packages.ts` — stage and pack release npm tarballs, writing an
   artifact manifest for the publish step.
 - `publish-npm-packages.ts` — publish the collected cross-platform npm tarballs
-  in dependency order.
+  in dependency order. In CI, npm trusted publishing is expected to provide the
+  authentication through GitHub Actions OIDC rather than a long-lived npm
+  secret.
 
 ## What These Scripts Prove
 

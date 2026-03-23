@@ -87,26 +87,40 @@ test("stageNpmPackages writes staged shared and js package payloads with package
 
 	const cliPackageJson = JSON.parse(cliPackageJsonText) as {
 		bin: Record<string, string>;
+		bugs: { url: string };
 		dependencies: Record<string, string>;
+		homepage: string;
 		name: string;
 		optionalDependencies: Record<string, string>;
 		peerDependencies: Record<string, string>;
+		publishConfig: { access: string };
+		repository: { type: string; url: string };
 	};
 	const jsPackageJson = JSON.parse(jsPackageJsonText) as {
+		bugs: { url: string };
 		dependencies: Record<string, string>;
+		homepage: string;
 		name: string;
+		publishConfig: { access: string };
+		repository: { type: string; url: string };
 	};
 	const sharedPackageJson = JSON.parse(sharedPackageJsonText) as {
 		exports: Record<string, string>;
 		name: string;
+		publishConfig: { access: string };
+		repository: { type: string; url: string };
 	};
 	const wazeroPackageJson = JSON.parse(wazeroPackageJsonText) as {
 		name: string;
 		optionalDependencies: Record<string, string>;
+		publishConfig: { access: string };
+		repository: { type: string; url: string };
 	};
 	const wasmtimePackageJson = JSON.parse(wasmtimePackageJsonText) as {
 		name: string;
 		optionalDependencies: Record<string, string>;
+		publishConfig: { access: string };
+		repository: { type: string; url: string };
 	};
 
 	expect(cliPackageJson.name).toBe("@as-harness/cli");
@@ -116,17 +130,45 @@ test("stageNpmPackages writes staged shared and js package payloads with package
 	expect(cliPackageJson.optionalDependencies).toHaveProperty(
 		"@as-harness/wazero",
 	);
+	expect(cliPackageJson.publishConfig.access).toBe("public");
+	expect(cliPackageJson.repository.url).toBe(
+		"git+https://github.com/jtenner/as-harness.git",
+	);
+	expect(cliPackageJson.homepage).toBe("https://github.com/jtenner/as-harness");
+	expect(cliPackageJson.bugs.url).toBe(
+		"https://github.com/jtenner/as-harness/issues",
+	);
 	expect(jsPackageJson.name).toBe("@as-harness/js");
 	expect(jsPackageJson.dependencies["@as-harness/shared"]).toMatch(/^0\./);
+	expect(jsPackageJson.publishConfig.access).toBe("public");
+	expect(jsPackageJson.repository.url).toBe(
+		"git+https://github.com/jtenner/as-harness.git",
+	);
+	expect(jsPackageJson.homepage).toBe("https://github.com/jtenner/as-harness");
+	expect(jsPackageJson.bugs.url).toBe(
+		"https://github.com/jtenner/as-harness/issues",
+	);
 	expect(sharedPackageJson.name).toBe("@as-harness/shared");
 	expect(sharedPackageJson.exports["./start"]).toBe("./start.cjs");
+	expect(sharedPackageJson.publishConfig.access).toBe("public");
+	expect(sharedPackageJson.repository.url).toBe(
+		"git+https://github.com/jtenner/as-harness.git",
+	);
 	expect(wazeroPackageJson.name).toBe("@as-harness/wazero");
 	expect(wazeroPackageJson.optionalDependencies).toHaveProperty(
 		"@as-harness/wazero-linux-x64-gnu",
 	);
+	expect(wazeroPackageJson.publishConfig.access).toBe("public");
+	expect(wazeroPackageJson.repository.url).toBe(
+		"git+https://github.com/jtenner/as-harness.git",
+	);
 	expect(wasmtimePackageJson.name).toBe("@as-harness/wasmtime");
 	expect(wasmtimePackageJson.optionalDependencies).toHaveProperty(
 		"@as-harness/wasmtime-win32-x64-msvc",
+	);
+	expect(wasmtimePackageJson.publishConfig.access).toBe("public");
+	expect(wasmtimePackageJson.repository.url).toBe(
+		"git+https://github.com/jtenner/as-harness.git",
 	);
 });
 
@@ -150,11 +192,15 @@ test("stageNativeBinaryPackage writes platform package metadata around a provide
 	const stagedPackageJson = JSON.parse(
 		await readFile(join(stagedPackage.directory, "package.json"), "utf8"),
 	) as {
+		bugs: { url: string };
 		cpu: string[];
+		homepage: string;
 		libc?: string[];
 		main: string;
 		name: string;
 		os: string[];
+		publishConfig: { access: string };
+		repository: { type: string; url: string };
 	};
 
 	expect(stagedPackage.name).toBe(`@as-harness/wazero-${target.packageSuffix}`);
@@ -164,6 +210,16 @@ test("stageNativeBinaryPackage writes platform package metadata around a provide
 	expect(stagedPackageJson.main).toBe("./wazero.node");
 	expect(stagedPackageJson.os).toEqual([target.os]);
 	expect(stagedPackageJson.cpu).toEqual([target.cpu]);
+	expect(stagedPackageJson.publishConfig.access).toBe("public");
+	expect(stagedPackageJson.repository.url).toBe(
+		"git+https://github.com/jtenner/as-harness.git",
+	);
+	expect(stagedPackageJson.homepage).toBe(
+		"https://github.com/jtenner/as-harness",
+	);
+	expect(stagedPackageJson.bugs.url).toBe(
+		"https://github.com/jtenner/as-harness/issues",
+	);
 	if (target.libc) {
 		expect(stagedPackageJson.libc).toEqual([target.libc]);
 	}

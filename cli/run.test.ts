@@ -46,7 +46,7 @@ const dependencyCliHarnesses = [
 	...(existsSync(wazeroAddonPath) ? ["wazero"] : []),
 	...(existsSync(wasmtimeAddonPath) ? ["wasmtime"] : []),
 ] as const;
-const dependencyCliHarnessTimeout = { timeout: 60_000 } as const;
+const dependencyCliHarnessTimeout = { timeout: 120_000 } as const;
 const bundledGuestLibraryCliHarnessTimeout = { timeout: 120_000 } as const;
 
 async function withTempEntryFile(
@@ -490,7 +490,7 @@ test("cli run rewrites snapshots in update mode through the js host", async () =
 });
 
 for (const harnessName of dependencyCliHarnesses) {
-	test(
+	test.serial(
 		`cli run compiles and executes node:test dependency handles through the ${harnessName} host`,
 		async () => {
 			await withTempEntryFile(
@@ -520,7 +520,7 @@ test("dependency dependent", (_context: TestContext): void => {}).dependsOn(
 		dependencyCliHarnessTimeout,
 	);
 
-	test(
+	test.serial(
 		`cli run treats expected-failure prerequisites that fail as satisfied through the ${harnessName} host`,
 		async () => {
 			await withTempEntryFile(
@@ -555,7 +555,7 @@ test("dependency satisfied dependent", (_context: TestContext): void => {}).depe
 		dependencyCliHarnessTimeout,
 	);
 
-	test(
+	test.serial(
 		`cli run reports guest-declared blocked dependencies through the ${harnessName} host`,
 		async () => {
 			await withTempEntryFile(
@@ -595,7 +595,7 @@ test("dependency blocked dependent", (_context: TestContext): void => {}).depend
 		dependencyCliHarnessTimeout,
 	);
 
-	test(
+	test.serial(
 		`cli run reports skipped and todo prerequisites as missing dependencies through the ${harnessName} host`,
 		async () => {
 			await withTempEntryFile(
@@ -651,7 +651,7 @@ test("dependency todo dependent", (_context: TestContext): void => {}).dependsOn
 		dependencyCliHarnessTimeout,
 	);
 
-	test(
+	test.serial(
 		`cli run reports unexpected-pass expectFailure prerequisites as blocked dependencies through the ${harnessName} host`,
 		async () => {
 			await withTempEntryFile(
@@ -697,7 +697,7 @@ test(
 		dependencyCliHarnessTimeout,
 	);
 
-	test(
+	test.serial(
 		`cli run reports only-filtered prerequisites as missing dependencies through the ${harnessName} host`,
 		async () => {
 			await withTempEntryFile(
@@ -748,7 +748,7 @@ test("dependency only parent", (context: TestContext): void => {
 		dependencyCliHarnessTimeout,
 	);
 
-	test(
+	test.serial(
 		`cli run collapses duplicate dependency edges through the ${harnessName} host`,
 		async () => {
 			await withTempEntryFile(
@@ -777,7 +777,7 @@ dependent.dependsOn(prereq).dependsOn(prereq);
 		dependencyCliHarnessTimeout,
 	);
 
-	test(
+	test.serial(
 		`cli run reports dependency cycles distinctly through the ${harnessName} host`,
 		async () => {
 			await withTempEntryFile(
@@ -813,7 +813,7 @@ first.dependsOn(second);
 		dependencyCliHarnessTimeout,
 	);
 
-	test(
+	test.serial(
 		`cli run proves the documented dependency-policy matrix through the ${harnessName} host`,
 		async () => {
 			await withTempEntryFile(

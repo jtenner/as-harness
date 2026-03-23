@@ -149,7 +149,9 @@ lane includes `@as-harness/shared`, `@as-harness/js`,
 optional per-platform `wazero-*` and `wasmtime-*` native packages. On
 the release matrix, `linux-x64` currently builds all packages while the other
 platform jobs build the full common package surface plus their host-native
-package slice.
+package slice. Release publication is intended to use npm trusted publishing
+from the `release.yml` GitHub Actions workflow rather than a shared
+`NPM_TOKEN` secret.
 
 ## Versioning Policy
 

@@ -8,6 +8,9 @@ import cliPackageJson from "../cli/package.json";
 const REPO_DIR = join(import.meta.dir, "..");
 const DEFAULT_OUTPUT_DIR = join(REPO_DIR, "dist", "npm");
 const PACKAGE_VERSION = cliPackageJson.version;
+const REPOSITORY_URL = "git+https://github.com/jtenner/as-harness.git";
+const HOMEPAGE_URL = "https://github.com/jtenner/as-harness";
+const BUGS_URL = "https://github.com/jtenner/as-harness/issues";
 const LEGAL_FILES = [
 	"LICENSE",
 	"THIRD_PARTY_NOTICES.md",
@@ -303,6 +306,14 @@ async function stageSharedPackage(outputDir: string): Promise<StagedPackage> {
 				name: "@as-harness/shared",
 				version: PACKAGE_VERSION,
 				license: "MIT",
+				repository: {
+					type: "git",
+					url: REPOSITORY_URL,
+				},
+				homepage: HOMEPAGE_URL,
+				bugs: {
+					url: BUGS_URL,
+				},
 				files: [
 					"README.md",
 					"LICENSE",
@@ -322,6 +333,9 @@ async function stageSharedPackage(outputDir: string): Promise<StagedPackage> {
 					"./snapshots": "./snapshots.cjs",
 					"./start": "./start.cjs",
 					"./package.json": "./package.json",
+				},
+				publishConfig: {
+					access: "public",
 				},
 			},
 			null,
@@ -364,6 +378,14 @@ async function stageJsPackage(outputDir: string): Promise<StagedPackage> {
 				name: "@as-harness/js",
 				version: PACKAGE_VERSION,
 				license: "MIT",
+				repository: {
+					type: "git",
+					url: REPOSITORY_URL,
+				},
+				homepage: HOMEPAGE_URL,
+				bugs: {
+					url: BUGS_URL,
+				},
 				main: "./index.cjs",
 				types: "./index.d.ts",
 				files: [
@@ -383,6 +405,9 @@ async function stageJsPackage(outputDir: string): Promise<StagedPackage> {
 				},
 				dependencies: {
 					"@as-harness/shared": PACKAGE_VERSION,
+				},
+				publishConfig: {
+					access: "public",
 				},
 			},
 			null,
@@ -411,6 +436,14 @@ async function stageCliPackage(outputDir: string): Promise<StagedPackage> {
 				name: "@as-harness/cli",
 				version: PACKAGE_VERSION,
 				license: "MIT",
+				repository: {
+					type: "git",
+					url: REPOSITORY_URL,
+				},
+				homepage: HOMEPAGE_URL,
+				bugs: {
+					url: BUGS_URL,
+				},
 				type: "module",
 				bin: {
 					"as-harness": "./bin/as-harness.mjs",
@@ -431,6 +464,9 @@ async function stageCliPackage(outputDir: string): Promise<StagedPackage> {
 				optionalDependencies: {
 					"@as-harness/wazero": PACKAGE_VERSION,
 					"@as-harness/wasmtime": PACKAGE_VERSION,
+				},
+				publishConfig: {
+					access: "public",
 				},
 			},
 			null,
@@ -476,6 +512,14 @@ async function stageNativeMetaPackage(
 				name: packageName,
 				version: PACKAGE_VERSION,
 				license: "MIT",
+				repository: {
+					type: "git",
+					url: REPOSITORY_URL,
+				},
+				homepage: HOMEPAGE_URL,
+				bugs: {
+					url: BUGS_URL,
+				},
 				main: "./index.cjs",
 				types: "./index.d.ts",
 				files: [
@@ -501,6 +545,9 @@ async function stageNativeMetaPackage(
 						(binaryPackage) => [binaryPackage, PACKAGE_VERSION],
 					),
 				),
+				publishConfig: {
+					access: "public",
+				},
 			},
 			null,
 			2,
@@ -538,6 +585,14 @@ export async function stageNativeBinaryPackage(
 				name: packageName,
 				version: PACKAGE_VERSION,
 				license: "MIT",
+				repository: {
+					type: "git",
+					url: REPOSITORY_URL,
+				},
+				homepage: HOMEPAGE_URL,
+				bugs: {
+					url: BUGS_URL,
+				},
 				main: `./${binaryFilename}`,
 				files: [
 					"README.md",
@@ -549,6 +604,9 @@ export async function stageNativeBinaryPackage(
 				os: [target.os],
 				cpu: [target.cpu],
 				...(target.libc ? { libc: [target.libc] } : {}),
+				publishConfig: {
+					access: "public",
+				},
 			},
 			null,
 			2,

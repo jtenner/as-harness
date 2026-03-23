@@ -15,6 +15,8 @@ Operational flow for shipping `as-harness` through GitHub:
   package set after cross-platform host verification and clean install smoke,
   then creates or updates a notes-only GitHub release page from the annotated
   tag contents
+- npm publication is intended to run through npm trusted publishing from
+  GitHub Actions OIDC rather than a long-lived `NPM_TOKEN` secret
 - while the project is still `0.x`, treat a `minor` bump as the normal vehicle
   for breaking public API or behavior changes; reserve `patch` for
   non-breaking fixes within the current minor line
@@ -93,6 +95,9 @@ bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-hos
 - staged npm pack validation and clean temp-project npm install smoke now run on
   the release host matrix before the workflow publishes npm packages in
   dependency order
+- each published npm package must have a trusted publisher entry matching the
+  `release.yml` workflow filename on npmjs.com before the OIDC publish step
+  will authenticate
 - notes-only GitHub release creation from the annotated tag contents after npm
   publication succeeds
 
@@ -110,8 +115,9 @@ Pre-`v1` release semantics:
 
 ## Failure triage
 
-- npm publish failure: inspect the staged package reports and the registry
-  authentication setup first
+- npm publish failure: inspect the staged package reports, the trusted publisher
+  settings for the target package, and the workflow `id-token: write`
+  permission first
 - GitHub release page failure: confirm the pushed tag is annotated and carries
   the intended summary text
 - source-host smoke failure on Windows: confirm the generated Node-targeted CLI
