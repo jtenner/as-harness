@@ -2,6 +2,7 @@
 
 ## 2026-03-22
 
+- **ava: add macro lowering and title generation** Add the AVA macro factory plus explicit `use(...)` / `useNamed(...)` declaration helpers and modifier variants, normalize generated titles the same way the real runner collapses whitespace, extend the AVA internal proof to execute lowered macro callbacks, and clear the completed `ava-003` backlog slice while documenting the deliberate AssemblyScript overload divergence. GitHub: *@jtenner*
 - **ava: add the first synchronous execution-context slice** Replace the temporary shared callback alias with an adapter-local AVA `ExecutionContext`, ship direct `t.*` assertion helpers plus `t.title`, `t.log(...)`, and a string-keyed `t.context` bag, extend the AVA internal and cross-host smoke proof to execute that surface, and clear the completed `ava-002` backlog slice. GitHub: *@jtenner*
 - **ava: start the flat declaration adapter slice** Add the first guest-side AVA workstream with a flat `test(...)` declaration chain, skip / todo / failing / serial modifiers, hook namespaces, placeholder `test.meta`, internal declaration proof, and a source-host smoke fixture that proves the new surface across the shared host matrix without overclaiming async AVA semantics yet. GitHub: *@jtenner*
 - **docs: plan the AVA adapter slices** Add the dedicated AVA interface research note, point the assembly roadmap and AVA TODO at that note, and expand the live backlog with concrete `ava-001` through `ava-004` implementation slices plus the order in which the adapter work should land. GitHub: *@jtenner*

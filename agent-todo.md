@@ -18,8 +18,6 @@
 
 ### Adapter: `ava`
 
-- `ava-003`: add `test.macro(...)` title generation and argument lowering
-  without inventing a fake broader TypeScript parity layer.
 - `ava-004`: wire the honest sync slice into bundled CLI proof and cross-host
   smoke only after the declaration and context surfaces stop changing.
 - implementation plan: land the declaration chain first, then the sync

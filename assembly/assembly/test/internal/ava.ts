@@ -145,5 +145,67 @@ function testAvaExecutionContext(): void {
 	resetCurrentNode();
 }
 
+function testAvaMacroDeclarationsAndExecution(): void {
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const observed = new Array<string>();
+	setCurrentNode(localRoot);
+
+	const titledMacro = test.macro<string>(
+		(context: ExecutionContext, ...values: string[]): void => {
+			observed.push("macro|" + context.title + "|" + values.join(","));
+			context.is<string>(values.join(","), "alpha,beta");
+		},
+		(providedTitle: string, ...values: string[]): string => {
+			return "  " + providedTitle + "   " + values.join("   ") + "  ";
+		},
+	);
+
+	const generatedMacro = test.macro<string>(
+		(context: ExecutionContext, ...values: string[]): void => {
+			observed.push("generated|" + context.title + "|" + values.join(","));
+		},
+		(_providedTitle: string, ...values: string[]): string => {
+			return "   generated   " + values.join("   ");
+		},
+	);
+
+	const failingMacro = test.macro<string>(
+		(context: ExecutionContext, ...values: string[]): void => {
+			context.is<string>(values.join(","), "unexpected");
+		},
+		(providedTitle: string, ...values: string[]): string => {
+			return providedTitle + " " + values.join(" ");
+		},
+	);
+
+	test.useNamed("macro title", titledMacro, "alpha", "beta");
+	test.only.useNamed("macro only", titledMacro, "focus");
+	test.skip.useNamed("macro skip", titledMacro, "skip");
+	test.failing.useNamed("macro failing", failingMacro, "fail");
+	test.serial.use(generatedMacro, "serial", "macro");
+
+	const children = localRoot.getChildren();
+	assert(children.length == 5);
+	assert(unchecked(children[0]).name == "macro title alpha beta");
+	assert(unchecked(children[1]).name == "macro only focus");
+	assert(unchecked(children[1]).only);
+	assert(unchecked(children[2]).name == "macro skip skip");
+	assert(unchecked(children[2]).declarationMode == DeclarationMode.Skip);
+	assert(unchecked(children[3]).name == "macro failing fail");
+	assert(unchecked(children[3]).expectFailure);
+	assert(unchecked(children[4]).name == "generated serial macro");
+	assert(unchecked(children[4]).sequenceMode == SequenceMode.Sequential);
+
+	assert(executeNode(unchecked(children[0])));
+	assert(executeNode(unchecked(children[4])));
+	assert.deepStrictEqual(observed, [
+		"macro|macro title alpha beta|alpha,beta",
+		"generated|generated serial macro|serial,macro",
+	]);
+
+	resetCurrentNode();
+}
+
 testAvaDeclarationRegistration();
 testAvaExecutionContext();
+testAvaMacroDeclarationsAndExecution();

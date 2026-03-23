@@ -218,6 +218,18 @@ export class ExecutionContext {
 
 export type TestFn = (context: ExecutionContext) => void;
 export type HookFn = (context: ExecutionContext) => void;
+export type MacroFn<T> = (context: ExecutionContext, ...args: T[]) => void;
+export type TitleFn<T> = (providedTitle: string, ...args: T[]) => string;
+
+export class Macro<T> {
+	readonly exec: MacroFn<T>;
+	readonly title: TitleFn<T> | null;
+
+	constructor(exec: MacroFn<T>, title: TitleFn<T> | null = null) {
+		this.exec = exec;
+		this.title = title;
+	}
+}
 
 export class Meta {
 	get file(): string {

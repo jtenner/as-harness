@@ -285,6 +285,16 @@ Needed behavior:
 - whitespace normalization of generated titles to AVA's current trimmed,
   collapsed-space behavior
 
+AssemblyScript-facing note:
+
+- guest code cannot honestly mirror AVA's overloaded
+  `test(macro, ...args)` and `test(title, macro, ...args)` declarations
+- the adapter should therefore expose the macro factory as `test.macro(...)`
+  but lower declarations through explicit helpers such as `test.use(...)` and
+  `test.useNamed(...)` plus the equivalent modifier variants
+- that divergence is acceptable because it preserves the real macro semantics
+  without inventing unsupported guest-language overloading
+
 ### `test.meta`
 
 Status: partial first-slice candidate.
@@ -486,7 +496,8 @@ Explicit non-goals for that slice:
 
 1. add a dedicated `ava` interface note and keep the TODO file pointed at it
 2. implement the flat declaration chain and chain validation
-3. ship `test.macro(...)` and title generation
+3. ship `test.macro(...)` plus an explicit declaration helper layer and title
+   generation
 4. map `.failing` onto the existing expected-failure metadata
 5. add one guest traversal / execution fixture proving flat declarations and
    hooks through `js`, `wazero`, and `wasmtime`

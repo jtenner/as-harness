@@ -1,7 +1,16 @@
 import { DeclarationMode, HookKind, SequenceMode } from "../internal/imports";
-import { declareHook, declareModifiedTest, declareTest } from "./parse";
 import { TestContext as InternalTestContext } from "../internal/context";
-import { HookFn, sharedExecutionContext, sharedMeta, TestFn } from "./types";
+import { declareHook, declareModifiedTest, declareTest } from "./parse";
+import {
+	ExecutionContext,
+	HookFn,
+	Macro,
+	MacroFn,
+	sharedExecutionContext,
+	sharedMeta,
+	TestFn,
+	TitleFn,
+} from "./types";
 
 export * from "./types";
 
@@ -24,6 +33,55 @@ function castHookCallback(
 const internalExecutionContext = changetype<InternalTestContext>(
 	sharedExecutionContext,
 );
+
+function isMacroWhitespace(code: i32): bool {
+	return (
+		code == 0x20 ||
+		code == 0x09 ||
+		code == 0x0a ||
+		code == 0x0d ||
+		code == 0x0b ||
+		code == 0x0c
+	);
+}
+
+function normalizeMacroTitleWhitespace(value: string): string {
+	let normalized = "";
+	let pendingSpace = false;
+
+	for (let index = 0, length = value.length; index < length; index++) {
+		const code = value.charCodeAt(index);
+		if (isMacroWhitespace(code)) {
+			if (normalized.length > 0) {
+				pendingSpace = true;
+			}
+			continue;
+		}
+
+		if (pendingSpace) {
+			normalized += " ";
+			pendingSpace = false;
+		}
+
+		normalized += value.charAt(index);
+	}
+
+	return normalized;
+}
+
+function resolveMacroTitle<T>(
+	macro: Macro<T>,
+	providedTitle: string = "",
+	...args: T[]
+): string {
+	if (macro.title === null) {
+		return normalizeMacroTitleWhitespace(providedTitle);
+	}
+
+	return normalizeMacroTitleWhitespace(
+		changetype<TitleFn<T>>(macro.title)(providedTitle, ...args),
+	);
+}
 
 function declareAvaTest(
 	name: string = "",
@@ -54,25 +112,31 @@ function declareAvaTest(
 	);
 }
 
-function declareSequentialTest(
-	name: string = "",
-	callback: TestFn | null = null,
+function declareAvaHook(kind: HookKind, callback: HookFn | null = null): void {
+	declareHook(kind, castHookCallback(callback), internalExecutionContext);
+}
+
+function declareMacroTest<T>(
+	macro: Macro<T>,
+	providedTitle: string = "",
 	mode: DeclarationMode = DeclarationMode.Normal,
 	only: bool = false,
 	expectFailure: bool = false,
+	sequenceMode: SequenceMode = SequenceMode.Inherit,
+	...args: T[]
 ): void {
+	const callback = (context: ExecutionContext): void => {
+		changetype<MacroFn<T>>(macro.exec)(context, ...args);
+	};
+
 	declareAvaTest(
-		name,
-		callback,
+		resolveMacroTitle(macro, providedTitle, ...args),
+		changetype<TestFn>(callback),
 		mode,
 		only,
 		expectFailure,
-		SequenceMode.Sequential,
+		sequenceMode,
 	);
-}
-
-function declareAvaHook(kind: HookKind, callback: HookFn | null = null): void {
-	declareHook(kind, castHookCallback(callback), internalExecutionContext);
 }
 
 function skipHook(_callback: HookFn | null = null): void {}
@@ -82,6 +146,41 @@ export function test(name: string = "", callback: TestFn | null = null): void {
 }
 
 export namespace test {
+	export function macro<T>(
+		exec: MacroFn<T>,
+		title: TitleFn<T> | null = null,
+	): Macro<T> {
+		return new Macro<T>(exec, title);
+	}
+
+	export function use<T>(macro: Macro<T>, ...args: T[]): void {
+		declareMacroTest(
+			macro,
+			"",
+			DeclarationMode.Normal,
+			false,
+			false,
+			SequenceMode.Inherit,
+			...args,
+		);
+	}
+
+	export function useNamed<T>(
+		name: string,
+		macro: Macro<T>,
+		...args: T[]
+	): void {
+		declareMacroTest(
+			macro,
+			name,
+			DeclarationMode.Normal,
+			false,
+			false,
+			SequenceMode.Inherit,
+			...args,
+		);
+	}
+
 	export function only(
 		name: string = "",
 		callback: TestFn | null = null,
@@ -89,11 +188,71 @@ export namespace test {
 		declareAvaTest(name, callback, DeclarationMode.Normal, true);
 	}
 
+	export namespace only {
+		export function use<T>(macro: Macro<T>, ...args: T[]): void {
+			declareMacroTest(
+				macro,
+				"",
+				DeclarationMode.Normal,
+				true,
+				false,
+				SequenceMode.Inherit,
+				...args,
+			);
+		}
+
+		export function useNamed<T>(
+			name: string,
+			macro: Macro<T>,
+			...args: T[]
+		): void {
+			declareMacroTest(
+				macro,
+				name,
+				DeclarationMode.Normal,
+				true,
+				false,
+				SequenceMode.Inherit,
+				...args,
+			);
+		}
+	}
+
 	export function skip(
 		name: string = "",
 		callback: TestFn | null = null,
 	): void {
 		declareAvaTest(name, callback, DeclarationMode.Skip);
+	}
+
+	export namespace skip {
+		export function use<T>(macro: Macro<T>, ...args: T[]): void {
+			declareMacroTest(
+				macro,
+				"",
+				DeclarationMode.Skip,
+				false,
+				false,
+				SequenceMode.Inherit,
+				...args,
+			);
+		}
+
+		export function useNamed<T>(
+			name: string,
+			macro: Macro<T>,
+			...args: T[]
+		): void {
+			declareMacroTest(
+				macro,
+				name,
+				DeclarationMode.Skip,
+				false,
+				false,
+				SequenceMode.Inherit,
+				...args,
+			);
+		}
 	}
 
 	export function todo(name: string = ""): void {
@@ -108,6 +267,34 @@ export namespace test {
 	}
 
 	export namespace failing {
+		export function use<T>(macro: Macro<T>, ...args: T[]): void {
+			declareMacroTest(
+				macro,
+				"",
+				DeclarationMode.Normal,
+				false,
+				true,
+				SequenceMode.Inherit,
+				...args,
+			);
+		}
+
+		export function useNamed<T>(
+			name: string,
+			macro: Macro<T>,
+			...args: T[]
+		): void {
+			declareMacroTest(
+				macro,
+				name,
+				DeclarationMode.Normal,
+				false,
+				true,
+				SequenceMode.Inherit,
+				...args,
+			);
+		}
+
 		export function only(
 			name: string = "",
 			callback: TestFn | null = null,
@@ -115,11 +302,71 @@ export namespace test {
 			declareAvaTest(name, callback, DeclarationMode.Normal, true, true);
 		}
 
+		export namespace only {
+			export function use<T>(macro: Macro<T>, ...args: T[]): void {
+				declareMacroTest(
+					macro,
+					"",
+					DeclarationMode.Normal,
+					true,
+					true,
+					SequenceMode.Inherit,
+					...args,
+				);
+			}
+
+			export function useNamed<T>(
+				name: string,
+				macro: Macro<T>,
+				...args: T[]
+			): void {
+				declareMacroTest(
+					macro,
+					name,
+					DeclarationMode.Normal,
+					true,
+					true,
+					SequenceMode.Inherit,
+					...args,
+				);
+			}
+		}
+
 		export function skip(
 			name: string = "",
 			callback: TestFn | null = null,
 		): void {
 			declareAvaTest(name, callback, DeclarationMode.Skip, false, true);
+		}
+
+		export namespace skip {
+			export function use<T>(macro: Macro<T>, ...args: T[]): void {
+				declareMacroTest(
+					macro,
+					"",
+					DeclarationMode.Skip,
+					false,
+					true,
+					SequenceMode.Inherit,
+					...args,
+				);
+			}
+
+			export function useNamed<T>(
+				name: string,
+				macro: Macro<T>,
+				...args: T[]
+			): void {
+				declareMacroTest(
+					macro,
+					name,
+					DeclarationMode.Skip,
+					false,
+					true,
+					SequenceMode.Inherit,
+					...args,
+				);
+			}
 		}
 	}
 
@@ -187,66 +434,273 @@ export namespace test {
 		name: string = "",
 		callback: TestFn | null = null,
 	): void {
-		declareSequentialTest(name, callback);
+		declareAvaTest(
+			name,
+			callback,
+			DeclarationMode.Normal,
+			false,
+			false,
+			SequenceMode.Sequential,
+		);
 	}
 
 	export namespace serial {
+		export function use<T>(macro: Macro<T>, ...args: T[]): void {
+			declareMacroTest(
+				macro,
+				"",
+				DeclarationMode.Normal,
+				false,
+				false,
+				SequenceMode.Sequential,
+				...args,
+			);
+		}
+
+		export function useNamed<T>(
+			name: string,
+			macro: Macro<T>,
+			...args: T[]
+		): void {
+			declareMacroTest(
+				macro,
+				name,
+				DeclarationMode.Normal,
+				false,
+				false,
+				SequenceMode.Sequential,
+				...args,
+			);
+		}
+
 		export function only(
 			name: string = "",
 			callback: TestFn | null = null,
 		): void {
-			declareSequentialTest(name, callback, DeclarationMode.Normal, true);
+			declareAvaTest(
+				name,
+				callback,
+				DeclarationMode.Normal,
+				true,
+				false,
+				SequenceMode.Sequential,
+			);
+		}
+
+		export namespace only {
+			export function use<T>(macro: Macro<T>, ...args: T[]): void {
+				declareMacroTest(
+					macro,
+					"",
+					DeclarationMode.Normal,
+					true,
+					false,
+					SequenceMode.Sequential,
+					...args,
+				);
+			}
+
+			export function useNamed<T>(
+				name: string,
+				macro: Macro<T>,
+				...args: T[]
+			): void {
+				declareMacroTest(
+					macro,
+					name,
+					DeclarationMode.Normal,
+					true,
+					false,
+					SequenceMode.Sequential,
+					...args,
+				);
+			}
 		}
 
 		export function skip(
 			name: string = "",
 			callback: TestFn | null = null,
 		): void {
-			declareSequentialTest(name, callback, DeclarationMode.Skip);
+			declareAvaTest(
+				name,
+				callback,
+				DeclarationMode.Skip,
+				false,
+				false,
+				SequenceMode.Sequential,
+			);
+		}
+
+		export namespace skip {
+			export function use<T>(macro: Macro<T>, ...args: T[]): void {
+				declareMacroTest(
+					macro,
+					"",
+					DeclarationMode.Skip,
+					false,
+					false,
+					SequenceMode.Sequential,
+					...args,
+				);
+			}
+
+			export function useNamed<T>(
+				name: string,
+				macro: Macro<T>,
+				...args: T[]
+			): void {
+				declareMacroTest(
+					macro,
+					name,
+					DeclarationMode.Skip,
+					false,
+					false,
+					SequenceMode.Sequential,
+					...args,
+				);
+			}
 		}
 
 		export function todo(name: string = ""): void {
-			declareSequentialTest(name, null, DeclarationMode.Todo);
+			declareAvaTest(
+				name,
+				null,
+				DeclarationMode.Todo,
+				false,
+				false,
+				SequenceMode.Sequential,
+			);
 		}
 
 		export function failing(
 			name: string = "",
 			callback: TestFn | null = null,
 		): void {
-			declareSequentialTest(
+			declareAvaTest(
 				name,
 				callback,
 				DeclarationMode.Normal,
 				false,
 				true,
+				SequenceMode.Sequential,
 			);
 		}
 
 		export namespace failing {
+			export function use<T>(macro: Macro<T>, ...args: T[]): void {
+				declareMacroTest(
+					macro,
+					"",
+					DeclarationMode.Normal,
+					false,
+					true,
+					SequenceMode.Sequential,
+					...args,
+				);
+			}
+
+			export function useNamed<T>(
+				name: string,
+				macro: Macro<T>,
+				...args: T[]
+			): void {
+				declareMacroTest(
+					macro,
+					name,
+					DeclarationMode.Normal,
+					false,
+					true,
+					SequenceMode.Sequential,
+					...args,
+				);
+			}
+
 			export function only(
 				name: string = "",
 				callback: TestFn | null = null,
 			): void {
-				declareSequentialTest(
+				declareAvaTest(
 					name,
 					callback,
 					DeclarationMode.Normal,
 					true,
 					true,
+					SequenceMode.Sequential,
 				);
+			}
+
+			export namespace only {
+				export function use<T>(macro: Macro<T>, ...args: T[]): void {
+					declareMacroTest(
+						macro,
+						"",
+						DeclarationMode.Normal,
+						true,
+						true,
+						SequenceMode.Sequential,
+						...args,
+					);
+				}
+
+				export function useNamed<T>(
+					name: string,
+					macro: Macro<T>,
+					...args: T[]
+				): void {
+					declareMacroTest(
+						macro,
+						name,
+						DeclarationMode.Normal,
+						true,
+						true,
+						SequenceMode.Sequential,
+						...args,
+					);
+				}
 			}
 
 			export function skip(
 				name: string = "",
 				callback: TestFn | null = null,
 			): void {
-				declareSequentialTest(
+				declareAvaTest(
 					name,
 					callback,
 					DeclarationMode.Skip,
 					false,
 					true,
+					SequenceMode.Sequential,
 				);
+			}
+
+			export namespace skip {
+				export function use<T>(macro: Macro<T>, ...args: T[]): void {
+					declareMacroTest(
+						macro,
+						"",
+						DeclarationMode.Skip,
+						false,
+						true,
+						SequenceMode.Sequential,
+						...args,
+					);
+				}
+
+				export function useNamed<T>(
+					name: string,
+					macro: Macro<T>,
+					...args: T[]
+				): void {
+					declareMacroTest(
+						macro,
+						name,
+						DeclarationMode.Skip,
+						false,
+						true,
+						SequenceMode.Sequential,
+						...args,
+					);
+				}
 			}
 		}
 

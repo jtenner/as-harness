@@ -1,6 +1,6 @@
 # `ava` Adapter TODO
 
-Status: declaration and synchronous context slices in progress.
+Status: declaration, synchronous context, and macro slices implemented.
 Current surface is documented in [docs/017-2026-03-22-ava-adapter-interface.md](../../../docs/017-2026-03-22-ava-adapter-interface.md).
 
 Implemented so far:
@@ -12,12 +12,14 @@ Implemented so far:
 - add an adapter-local synchronous `ExecutionContext` with `title`, `log(...)`,
   a string-keyed shared `t.context` bag, and the first direct `t.*` assertion
   subset that maps onto the shared assertion bridge
+- add an AssemblyScript-friendly macro layer with `test.macro(...)`,
+  `test.use(...)` / `test.useNamed(...)`, modifier variants, argument lowering,
+  and whitespace-normalized title generation
 - add internal declaration plus execution-context proof and one cross-host smoke
   fixture that executes the AVA slice through the shared hosts
 
 Still deferred for this slice:
 
-- `test.macro(...)`
 - bundled CLI library wiring and CLI-run proof
 
 Constraint: Promise / observable execution, `t.try(...)`, timeout control,
