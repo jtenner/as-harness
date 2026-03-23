@@ -2,6 +2,7 @@
 
 ## 2026-03-23
 
+- **docs: plan the dual binary and npm release slices** Expand `agent-todo.md` with the staged release-contract, package-shaping, native binary packaging, CLI compatibility, verification, workflow, and documentation slices required to ship GitHub binary artifacts and npm packages together under Node and Bun. GitHub: *@jtenner*
 - **release: prepare v0.5.0 metadata** Bump `cli/package.json` from `0.4.0` to `0.5.0` for the requested minor release so release artifacts, tags, and generated release notes align on the same semver target. GitHub: *@jtenner*
 - **docs: refresh README runtime and verification details** Update the root, CLI, assembly, host, and scripts README files to remove stale contract wording (`close()` is required on the JS host), document the shipped structured `debug` event path for rewritten bare `abort(...)` / `trace(...)` calls, clarify source-host and packaged verification behavior (`source-host-smoke.ts`, `packaged-command-runner.ts`, and `--asset-dir` archive emission), and add missing links to the current `uvu` assertion and debug payload contract notes. GitHub: *@jtenner*
 - **docs: close the debug payload rollout** Refresh the debug payload contract note and the core ABI, guest-runtime, and host-runner docs so they describe the shipped compile-wrapper source rewrite instead of the rejected default `--use` plan, record the AssemblyScript constraints that forced that direction, and clear the final unreleased backlog item now that the rollout is complete. GitHub: *@jtenner*
