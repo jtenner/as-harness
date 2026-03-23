@@ -13,6 +13,7 @@ import {
 	SuiteNodeCallback,
 	TestNodeCallback,
 } from "./node";
+import { SuiteContext, TestContext } from "./context";
 import { HookCallback } from "./hooks";
 
 const DEFAULT_NAME = "<anonymous>";
@@ -96,6 +97,7 @@ export function declareTestNode(
 	name: string = "",
 	callback: TestNodeCallback | null = null,
 	options: NodeDeclarationOptions | null = null,
+	context: TestContext | null = null,
 ): Node {
 	const child = currentNode.createChild(
 		NodeKind.Test,
@@ -107,6 +109,9 @@ export function declareTestNode(
 
 	if (callback !== null) {
 		child.setTestCallback(callback);
+		if (context !== null) {
+			child.setTestCallbackContext(context);
+		}
 	}
 
 	return child;
@@ -116,6 +121,7 @@ export function declareSuiteNode(
 	name: string = "",
 	callback: SuiteNodeCallback | null = null,
 	options: NodeDeclarationOptions | null = null,
+	context: SuiteContext | null = null,
 ): Node {
 	const child = currentNode.createChild(
 		NodeKind.Describe,
@@ -127,6 +133,9 @@ export function declareSuiteNode(
 
 	if (callback !== null) {
 		child.setSuiteCallback(callback);
+		if (context !== null) {
+			child.setSuiteCallbackContext(context);
+		}
 	}
 
 	return child;
@@ -136,10 +145,11 @@ export function registerHook(
 	kind: HookKind,
 	callback: HookCallback | null = null,
 	timeout: i32 = -1,
+	context: TestContext | null = null,
 ): void {
 	if (callback === null) {
 		return;
 	}
 
-	currentNode.registerHook(kind, callback, timeout);
+	currentNode.registerHook(kind, callback, timeout, context);
 }

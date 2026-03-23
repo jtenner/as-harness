@@ -104,7 +104,9 @@ export class Node {
 	private replayShapeDrifted: bool = false;
 	private replayChildrenValue: Array<Node> = new Array<Node>();
 	private testCallbackValue: TestNodeCallback | null = null;
+	private testCallbackContextValue: TestContext | null = null;
 	private suiteCallbackValue: SuiteNodeCallback | null = null;
+	private suiteCallbackContextValue: SuiteContext | null = null;
 	private beforeAllHooks: Array<HookRegistration> =
 		new Array<HookRegistration>();
 	private beforeEachHooks: Array<HookRegistration> =
@@ -290,20 +292,39 @@ export class Node {
 	setTestCallback(callback: TestNodeCallback): void {
 		this.testCallbackValue = callback;
 		this.suiteCallbackValue = null;
+		this.suiteCallbackContextValue = null;
 		if (this.slotSourceValue !== null) {
 			const slotSource = changetype<Node>(this.slotSourceValue);
 			slotSource.testCallbackValue = callback;
 			slotSource.suiteCallbackValue = null;
+			slotSource.suiteCallbackContextValue = null;
+		}
+	}
+
+	setTestCallbackContext(context: TestContext): void {
+		this.testCallbackContextValue = context;
+		if (this.slotSourceValue !== null) {
+			changetype<Node>(this.slotSourceValue).testCallbackContextValue = context;
 		}
 	}
 
 	setSuiteCallback(callback: SuiteNodeCallback): void {
 		this.suiteCallbackValue = callback;
 		this.testCallbackValue = null;
+		this.testCallbackContextValue = null;
 		if (this.slotSourceValue !== null) {
 			const slotSource = changetype<Node>(this.slotSourceValue);
 			slotSource.suiteCallbackValue = callback;
 			slotSource.testCallbackValue = null;
+			slotSource.testCallbackContextValue = null;
+		}
+	}
+
+	setSuiteCallbackContext(context: SuiteContext): void {
+		this.suiteCallbackContextValue = context;
+		if (this.slotSourceValue !== null) {
+			changetype<Node>(this.slotSourceValue).suiteCallbackContextValue =
+				context;
 		}
 	}
 
@@ -380,9 +401,17 @@ export class Node {
 		const previousRunOnly = getActiveRunOnly();
 		currentNode = this;
 		if (this.suiteCallbackValue !== null) {
-			this.suiteCallbackValue(sharedSuiteContext);
+			this.suiteCallbackValue(
+				this.suiteCallbackContextValue !== null
+					? changetype<SuiteContext>(this.suiteCallbackContextValue)
+					: sharedSuiteContext,
+			);
 		} else if (this.testCallbackValue !== null) {
-			this.testCallbackValue(sharedTestContext);
+			this.testCallbackValue(
+				this.testCallbackContextValue !== null
+					? changetype<TestContext>(this.testCallbackContextValue)
+					: sharedTestContext,
+			);
 		} else {
 			this.callback();
 		}
@@ -428,8 +457,9 @@ export class Node {
 		kind: HookKind,
 		callback: HookCallback,
 		timeout: i32 = -1,
+		context: TestContext | null = null,
 	): void {
-		const registration = new HookRegistration(kind, callback, timeout);
+		const registration = new HookRegistration(kind, callback, timeout, context);
 		const beforeAllHooks = this.replayStateActive
 			? this.replayBeforeAllHooks
 			: this.beforeAllHooks;
@@ -567,7 +597,10 @@ export class Node {
 		replayChild.ordinalValue = slotSource.ordinal;
 		replayChild.slotSourceValue = slotSource;
 		replayChild.testCallbackValue = slotSource.testCallbackValue;
+		replayChild.testCallbackContextValue = slotSource.testCallbackContextValue;
 		replayChild.suiteCallbackValue = slotSource.suiteCallbackValue;
+		replayChild.suiteCallbackContextValue =
+			slotSource.suiteCallbackContextValue;
 		return replayChild;
 	}
 

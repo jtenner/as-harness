@@ -14,15 +14,16 @@ Shipped:
   `.continueOnFailure(...)`, `.before(...)`, `.after(...)`, `.beforeEach(...)`,
   `.afterEach(...)`, and `exec(...)`
 - `uvu/assert`: `ok`, `is`, `equal`, `match`, `type`, `instance`, `throws`,
-  `not`, `is.not`, `not.equal`, `not.match`, `not.type`, `not.instance`,
-  `not.throws`, and `unreachable`
+  `snapshot`, `fixture`, `not`, `is.not`, `not.equal`, `not.match`,
+  `not.type`, `not.instance`, `not.throws`, and `unreachable`
+- `uvu` callbacks now receive adapter-local `TestContext` crumbs with
+  `__suite__` and `__test__` while keeping the shared assertion and diagnostic
+  surface
 
 Deferred this cycle:
 
 - strict upstream callable-suite source compatibility
-- upstream crumb/context callback parity
 - async hooks/tests
-- artifact-backed `uvu/assert` `snapshot(...)` and `fixture(...)`
 - upstream `Assertion` object parity
 
 Constraint: keep logic in shared runtime, no runtime-policy duplication in adapter.

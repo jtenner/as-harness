@@ -5,6 +5,7 @@ import {
 	NodeKind,
 	RunnerModeHint,
 } from "../../internal/imports";
+import { executeNode } from "../../internal/executor";
 import { Node, resetCurrentNode, setCurrentNode } from "../../internal/node";
 import { exec, suite, test, TestContext, UvuSuite } from "../../uvu";
 
@@ -113,5 +114,53 @@ function testUvuSuiteTyping(): void {
 	resetCurrentNode();
 }
 
+function testUvuCallbackCrumbs(): void {
+	const localRoot = new Node(NodeKind.Root, "local root");
+	const observed = new Array<string>();
+	setCurrentNode(localRoot);
+
+	test.before.each((context: TestContext): void => {
+		observed.push(
+			"root beforeEach|" + context.__suite__ + "|" + context.__test__,
+		);
+	});
+
+	const localSuite = suite("crumb suite");
+	localSuite.before((context: TestContext): void => {
+		observed.push("suite before|" + context.__suite__ + "|" + context.__test__);
+	});
+	localSuite.beforeEach((context: TestContext): void => {
+		observed.push(
+			"suite beforeEach|" + context.__suite__ + "|" + context.__test__,
+		);
+	});
+	localSuite.afterEach((context: TestContext): void => {
+		observed.push(
+			"suite afterEach|" + context.__suite__ + "|" + context.__test__,
+		);
+	});
+	localSuite.after((context: TestContext): void => {
+		observed.push("suite after|" + context.__suite__ + "|" + context.__test__);
+	});
+	localSuite.test("crumb child", (context: TestContext): void => {
+		observed.push("test|" + context.__suite__ + "|" + context.__test__);
+	});
+
+	const suiteNode = unchecked(localRoot.getChildren()[0]);
+	const childNode = unchecked(suiteNode.getChildren()[0]);
+	assert(executeNode(childNode));
+	assert.deepStrictEqual(observed, [
+		"suite before|crumb suite|crumb child",
+		"root beforeEach|crumb suite|crumb child",
+		"suite beforeEach|crumb suite|crumb child",
+		"test|crumb suite|crumb child",
+		"suite afterEach|crumb suite|crumb child",
+		"suite after|crumb suite|crumb child",
+	]);
+
+	resetCurrentNode();
+}
+
 testUvuDeclarationRegistration();
 testUvuSuiteTyping();
+testUvuCallbackCrumbs();

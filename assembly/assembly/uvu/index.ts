@@ -11,9 +11,26 @@ import {
 	declareModifiedTest,
 	declareTest,
 } from "./parse";
-import { HookFn, TestFn } from "./types";
+import { HookFn, sharedTestContext, TestFn } from "./types";
+import { TestContext as InternalTestContext } from "../internal/context";
 
 export * from "./types";
+
+function castTestCallback(
+	callback: TestFn | null = null,
+): ((context: InternalTestContext) => void) | null {
+	return callback === null
+		? null
+		: changetype<(context: InternalTestContext) => void>(callback);
+}
+
+function castHookCallback(
+	callback: HookFn | null = null,
+): ((context: InternalTestContext) => void) | null {
+	return callback === null
+		? null
+		: changetype<(context: InternalTestContext) => void>(callback);
+}
 
 function declareTestOnNode(
 	node: Node,
@@ -22,7 +39,7 @@ function declareTestOnNode(
 ): void {
 	const previousNode = currentNode;
 	setCurrentNode(node);
-	declareTest(name, callback);
+	declareTest(name, castTestCallback(callback), sharedTestContext);
 	setCurrentNode(previousNode);
 }
 
@@ -35,7 +52,15 @@ function declareModifiedTestOnNode(
 ): void {
 	const previousNode = currentNode;
 	setCurrentNode(node);
-	declareModifiedTest(name, callback, mode, only);
+	declareModifiedTest(
+		name,
+		castTestCallback(callback),
+		mode,
+		only,
+		false,
+		0,
+		sharedTestContext,
+	);
 	setCurrentNode(previousNode);
 }
 
@@ -46,7 +71,7 @@ function declareHookOnNode(
 ): void {
 	const previousNode = currentNode;
 	setCurrentNode(node);
-	declareHook(kind, callback);
+	declareHook(kind, castHookCallback(callback), sharedTestContext);
 	setCurrentNode(previousNode);
 }
 
@@ -145,7 +170,7 @@ export function suite<T = usize>(
 }
 
 export function test(name: string = "", callback: TestFn | null = null): void {
-	declareTest(name, callback);
+	declareTest(name, castTestCallback(callback), sharedTestContext);
 }
 
 export namespace test {
@@ -153,14 +178,30 @@ export namespace test {
 		name: string = "",
 		callback: TestFn | null = null,
 	): void {
-		declareModifiedTest(name, callback, DeclarationMode.Normal, true);
+		declareModifiedTest(
+			name,
+			castTestCallback(callback),
+			DeclarationMode.Normal,
+			true,
+			false,
+			0,
+			sharedTestContext,
+		);
 	}
 
 	export function skip(
 		name: string = "",
 		callback: TestFn | null = null,
 	): void {
-		declareModifiedTest(name, callback, DeclarationMode.Skip);
+		declareModifiedTest(
+			name,
+			castTestCallback(callback),
+			DeclarationMode.Skip,
+			false,
+			false,
+			0,
+			sharedTestContext,
+		);
 	}
 
 	export function inBand(shouldRunInBand: bool = true): void {
@@ -182,22 +223,38 @@ export namespace test {
 	}
 
 	export function before(callback: HookFn | null = null): void {
-		declareHook(HookKind.BeforeAll, callback);
+		declareHook(
+			HookKind.BeforeAll,
+			castHookCallback(callback),
+			sharedTestContext,
+		);
 	}
 
 	export namespace before {
 		export function each(callback: HookFn | null = null): void {
-			declareHook(HookKind.BeforeEach, callback);
+			declareHook(
+				HookKind.BeforeEach,
+				castHookCallback(callback),
+				sharedTestContext,
+			);
 		}
 	}
 
 	export function after(callback: HookFn | null = null): void {
-		declareHook(HookKind.AfterAll, callback);
+		declareHook(
+			HookKind.AfterAll,
+			castHookCallback(callback),
+			sharedTestContext,
+		);
 	}
 
 	export namespace after {
 		export function each(callback: HookFn | null = null): void {
-			declareHook(HookKind.AfterEach, callback);
+			declareHook(
+				HookKind.AfterEach,
+				castHookCallback(callback),
+				sharedTestContext,
+			);
 		}
 	}
 

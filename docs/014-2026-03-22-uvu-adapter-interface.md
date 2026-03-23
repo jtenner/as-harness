@@ -120,8 +120,8 @@ Behavior:
 - `.run()` is a compatibility no-op
 - `.context` stores the supplied suite-local payload for user code that wants
   to keep explicit state near the builder
-- callbacks still receive shared `TestContext`, not upstream crumb/context
-  objects
+- callbacks receive adapter-local `TestContext` crumbs with `__suite__` and
+  `__test__` while keeping the shared assertion and diagnostic surface
 
 ### `exec(...)`
 
@@ -213,7 +213,7 @@ Recommendation:
 
 - document this as an intentional divergence, not as hidden emulation
 
-### 2. Callback Context Is `TestContext`, Not Upstream Crumbs
+### 2. Callback Context Keeps Shared Assertions And Adds Upstream Crumbs
 
 Upstream `uvu` callbacks receive a context object that may include:
 
@@ -222,12 +222,15 @@ Upstream `uvu` callbacks receive a context object that may include:
 
 Shipped `as-harness` callbacks receive:
 
-- shared `TestContext`
+- adapter-local `TestContext`
+- `__suite__`
+- `__test__`
 
 Reason:
 
-- it reuses the already-shipped diagnostics and assertion bridge
-- it avoids introducing a one-off callback-shape contract in only one adapter
+- it keeps the already-shipped diagnostics and assertion bridge
+- it restores the practical upstream crumb shape without changing host-owned
+  scheduling
 
 ### 3. `.before.each` / `.after.each` Are Exact Only On Top-Level `test`
 
@@ -486,14 +489,7 @@ Reason:
   lowering and richer assertion support rather than on a transform-backed
   callable-suite emulation layer
 
-### 2. Crumb/Context Callback Parity
-
-Matching upstream `__suite__` / `__test__` crumbs would require either:
-
-- a new adapter-local callback context type
-- or a broader shared callback-model decision across adapters
-
-### 3. Async Runner Semantics
+### 2. Async Runner Semantics
 
 The repo still does not support:
 
@@ -501,7 +497,7 @@ The repo still does not support:
 - Promise tests
 - guest-owned execution finalization
 
-### 4. Remaining `uvu/assert` Object Helpers Need Contracts The Repo Does Not Ship
+### 3. Remaining `uvu/assert` Object Helpers Need Contracts The Repo Does Not Ship
 
 The remaining deferred helpers now sit in the upstream-specific object-model
 family:
@@ -532,11 +528,9 @@ semantics:
 
 ## Suggested Future Order
 
-1. revisit crumb/context parity only if the callback-model divergence becomes a
-   practical blocker
-2. revisit `Assertion` only after the repo adopts an adapter-local error object
+1. revisit `Assertion` only after the repo adopts an adapter-local error object
    contract
-3. keep async behavior deferred until the project-wide runtime contract changes
+2. keep async behavior deferred until the project-wide runtime contract changes
 
 ## Sources
 

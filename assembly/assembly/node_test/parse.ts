@@ -4,6 +4,7 @@ import {
 	declareTestNode,
 	registerHook,
 } from "../internal/api";
+import { SuiteContext, TestContext } from "../internal/context";
 import { Node } from "../internal/node";
 import { DeclarationMode, HookKind, SequenceMode } from "../internal/imports";
 import { HookFn, SuiteFn, TestFn } from "./types";
@@ -25,8 +26,9 @@ function createDeclarationOptions(
 export function declareTest(
 	name: string = "",
 	callback: TestFn | null = null,
+	context: TestContext | null = null,
 ): Node {
-	return declareTestNode(name, callback);
+	return declareTestNode(name, callback, null, context);
 }
 
 export function declareModifiedTest(
@@ -36,19 +38,22 @@ export function declareModifiedTest(
 	only: bool = false,
 	expectFailure: bool = false,
 	sequenceMode: SequenceMode = SequenceMode.Inherit,
+	context: TestContext | null = null,
 ): Node {
 	return declareTestNode(
 		name,
 		callback,
 		createDeclarationOptions(mode, only, expectFailure, sequenceMode),
+		context,
 	);
 }
 
 export function declareSuite(
 	name: string = "",
 	callback: SuiteFn | null = null,
+	context: SuiteContext | null = null,
 ): Node {
-	return declareSuiteNode(name, callback);
+	return declareSuiteNode(name, callback, null, context);
 }
 
 export function declareModifiedSuite(
@@ -58,17 +63,20 @@ export function declareModifiedSuite(
 	only: bool = false,
 	expectFailure: bool = false,
 	sequenceMode: SequenceMode = SequenceMode.Inherit,
+	context: SuiteContext | null = null,
 ): Node {
 	return declareSuiteNode(
 		name,
 		callback,
 		createDeclarationOptions(mode, only, expectFailure, sequenceMode),
+		context,
 	);
 }
 
 export function declareHook(
 	kind: HookKind,
 	callback: HookFn | null = null,
+	context: TestContext | null = null,
 ): void {
-	registerHook(kind, callback);
+	registerHook(kind, callback, -1, context);
 }

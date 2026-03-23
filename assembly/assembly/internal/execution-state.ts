@@ -8,6 +8,8 @@ let assertionScopeActive: bool = false;
 let plannedAssertionCount: i32 = -1;
 let observedAssertionCount: i32 = 0;
 let activeNodeName = "";
+let activeExecutionTargetTestName = "";
+let activeExecutionTargetSuiteName = "";
 let activeAttempt: i32 = 0;
 let activeNodePassed: bool = false;
 let activeRunOnly: bool = false;
@@ -33,6 +35,8 @@ function resetAssertionScopeState(): void {
 	plannedAssertionCount = -1;
 	observedAssertionCount = 0;
 	activeNodeName = "";
+	activeExecutionTargetTestName = "";
+	activeExecutionTargetSuiteName = "";
 	activeAttempt = 0;
 	activeNodePassed = false;
 	activeRunOnly = false;
@@ -119,6 +123,22 @@ export function markActiveNodeCallbackPassed(): void {
 	}
 
 	activeNodePassed = true;
+}
+
+export function setActiveExecutionTargetCrumbs(
+	testName: string,
+	suiteName: string,
+): void {
+	activeExecutionTargetTestName = testName;
+	activeExecutionTargetSuiteName = suiteName;
+}
+
+export function getActiveExecutionTargetName(): string {
+	return activeExecutionTargetTestName;
+}
+
+export function getActiveExecutionTargetSuiteName(): string {
+	return activeExecutionTargetSuiteName;
 }
 
 export function getPlannedAssertionCount(): i32 {

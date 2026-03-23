@@ -5,6 +5,7 @@ import {
 	clearActiveNodeIndex,
 	endAssertionScope,
 	getActiveRunOnly,
+	setActiveExecutionTargetCrumbs,
 	markActiveNodeCallbackPassed,
 	setActiveHookPhase,
 	setActiveNodeIndex,
@@ -23,10 +24,10 @@ import {
 	nodePass,
 	nodeStart,
 } from "./events";
-import { sharedTestContext } from "./context";
+import { sharedTestContext, TestContext } from "./context";
 import { getActiveFailureKind, setActiveFailureKind } from "./failure-state";
 import { HookRegistration } from "./hooks";
-import { DeclarationMode, FailureKind, HookKind } from "./imports";
+import { DeclarationMode, FailureKind, HookKind, NodeKind } from "./imports";
 import { Node, currentNode, setCurrentNode } from "./node";
 import { didCallbackTrap } from "./trampoline";
 
@@ -39,7 +40,11 @@ function invokeStagedHookRegistration(): void {
 	}
 
 	const registration = changetype<HookRegistration>(stagedHookRegistration);
-	registration.callback(sharedTestContext);
+	registration.callback(
+		registration.context !== null
+			? changetype<TestContext>(registration.context)
+			: sharedTestContext,
+	);
 }
 
 function invokeStagedNodeCallback(): void {
@@ -61,6 +66,20 @@ function collectNodeChain(node: Node): Array<Node> {
 	}
 
 	return chain;
+}
+
+function resolveExecutionTargetSuiteName(node: Node): string {
+	let cursor = node.parent;
+
+	while (cursor !== null) {
+		if (cursor.kind == NodeKind.Describe) {
+			return cursor.name;
+		}
+
+		cursor = cursor.parent;
+	}
+
+	return "";
 }
 
 function resolveFailureKind(): FailureKind {
@@ -149,6 +168,10 @@ export function executeNode(node: Node): bool {
 
 	nodeStart(nodeIndex, node.nodeId);
 	beginAssertionScope(node.name, node.plan);
+	setActiveExecutionTargetCrumbs(
+		node.name,
+		resolveExecutionTargetSuiteName(node),
+	);
 	if (!executeHookKind(chain, HookKind.BeforeAll)) {
 		abandonAssertionScope();
 		return false;

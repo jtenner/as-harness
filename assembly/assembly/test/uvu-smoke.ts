@@ -17,10 +17,30 @@ function trapViaUnreachable(): void {
 test.before((_context: TestContext): void => {});
 
 test.before.each((_context: TestContext): void => {
+	_context.assert.strictEqual<string>(
+		_context.__suite__,
+		"uvu adapter",
+		"root beforeEach suite crumb mismatch",
+	);
+	_context.assert.strictEqual<string>(
+		_context.__test__,
+		"focused child",
+		"root beforeEach test crumb mismatch",
+	);
 	rootBeforeEachCount++;
 });
 
 test.after.each((_context: TestContext): void => {
+	_context.assert.strictEqual<string>(
+		_context.__suite__,
+		"uvu adapter",
+		"root afterEach suite crumb mismatch",
+	);
+	_context.assert.strictEqual<string>(
+		_context.__test__,
+		"focused child",
+		"root afterEach test crumb mismatch",
+	);
 	rootAfterEachCount++;
 });
 
@@ -38,18 +58,58 @@ adapterSuite.bail();
 adapterSuite.continueOnFailure();
 
 adapterSuite.before((_context: TestContext): void => {
+	_context.assert.strictEqual<string>(
+		_context.__suite__,
+		"uvu adapter",
+		"suite before crumb mismatch",
+	);
+	_context.assert.strictEqual<string>(
+		_context.__test__,
+		"focused child",
+		"suite before test crumb mismatch",
+	);
 	suiteBeforeCount++;
 });
 
 adapterSuite.beforeEach((_context: TestContext): void => {
+	_context.assert.strictEqual<string>(
+		_context.__suite__,
+		"uvu adapter",
+		"suite beforeEach crumb mismatch",
+	);
+	_context.assert.strictEqual<string>(
+		_context.__test__,
+		"focused child",
+		"suite beforeEach test crumb mismatch",
+	);
 	suiteBeforeEachCount++;
 });
 
 adapterSuite.afterEach((_context: TestContext): void => {
+	_context.assert.strictEqual<string>(
+		_context.__suite__,
+		"uvu adapter",
+		"suite afterEach crumb mismatch",
+	);
+	_context.assert.strictEqual<string>(
+		_context.__test__,
+		"focused child",
+		"suite afterEach test crumb mismatch",
+	);
 	suiteAfterEachCount++;
 });
 
 adapterSuite.after((_context: TestContext): void => {
+	_context.assert.strictEqual<string>(
+		_context.__suite__,
+		"uvu adapter",
+		"suite after crumb mismatch",
+	);
+	_context.assert.strictEqual<string>(
+		_context.__test__,
+		"focused child",
+		"suite after test crumb mismatch",
+	);
 	suiteAfterCount = suiteBeforeEachCount;
 });
 
@@ -58,6 +118,16 @@ adapterSuite.skip("skipped child", (_context: TestContext): void => {
 });
 
 adapterSuite.only("focused child", (context: TestContext): void => {
+	context.assert.strictEqual<string>(
+		context.__suite__,
+		"uvu adapter",
+		"focused child suite crumb mismatch",
+	);
+	context.assert.strictEqual<string>(
+		context.__test__,
+		"focused child",
+		"focused child test crumb mismatch",
+	);
 	context.assert.strictEqual<bool>(
 		rootBeforeEachCount > 0,
 		true,
