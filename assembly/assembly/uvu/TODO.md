@@ -23,7 +23,13 @@ Shipped:
 Deferred this cycle:
 
 - strict upstream callable-suite source compatibility
-- async hooks/tests
+- async hooks/tests until AssemblyScript adds meaningful async support
 - upstream `Assertion` object parity
+
+Permanent divergence for now:
+
+- returned callable `suite()` source compatibility stays frozen behind the
+  shipped builder-object contract unless the repo adopts a transform-backed
+  rewrite policy later
 
 Constraint: keep logic in shared runtime, no runtime-policy duplication in adapter.

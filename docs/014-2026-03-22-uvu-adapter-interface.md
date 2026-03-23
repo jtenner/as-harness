@@ -6,9 +6,11 @@ diverges from upstream `uvu`, and which remaining compatibility gaps are still
 worth tracking across `assembly/`, `cli/`, and `harness/`. The current
 recommendation is now explicit: keep the shipped sync `uvu` builder contract as
 the permanent source shape, add host-readable orchestration hints on top of
-that builder surface in this cycle, and defer any attempt at strict upstream
+that builder surface in this cycle, defer any attempt at strict upstream
 call-signature compatibility until the project is willing to add a transform or
-some broader source-rewrite policy.
+some broader source-rewrite policy, and keep async behavior out of scope until
+AssemblyScript itself grows meaningful async support that the shared runtime can
+honestly target.
 
 ## Research Basis
 
@@ -33,11 +35,14 @@ Checked on 2026-03-22 against:
   surfaces
 - ship `exec(true)` as a root-level `bail` hint declaration and `exec(false)`
   as an explicit revert to inherited failure policy
-- keep the shared `TestContext` callback model instead of promising upstream
-  crumb/context parity
+- keep the adapter-local `TestContext` callback model that adds upstream
+  `__suite__` / `__test__` crumbs while preserving the shared assertion and
+  diagnostic bridge
 - reopen the low-risk shared `uvu/assert` helper families that fit the current
   runtime honestly: shared partial-match semantics for `match(...)` and
   runtime-type-id checks for `instance(...)`
+- keep async tests, hooks, and guest-owned runner finalization deferred until
+  AssemblyScript can support an honest shared async runtime contract
 - do not claim full upstream source compatibility because AssemblyScript cannot
   model a callable object with attached methods the way upstream `suite()`
   expects
@@ -82,7 +87,8 @@ Behavior:
 - top-level hook registration maps directly into the shared root hook tree
 - top-level hint helpers lower to shared root-level host-owned planning hints
 - `test.run()` is a compatibility no-op
-- callbacks receive shared `TestContext`
+- callbacks receive adapter-local `TestContext` crumbs with `__suite__` and
+  `__test__` while keeping the shared assertion and diagnostic surface
 
 ### `suite(...)`
 
@@ -263,6 +269,11 @@ Current policy:
   execution
 
 ### 5. Async Is Still Unsupported
+
+Decision:
+
+- defer async behavior until AssemblyScript itself gains meaningful async
+  support that the shared runtime can target honestly
 
 Deferred:
 
@@ -474,7 +485,7 @@ Deferred:
 - negated forms that depend on artifact helpers
 - `Assertion`
 
-## Primary Remaining Blockers
+## Remaining Compatibility Decisions
 
 ### 1. Callable Suite Objects
 
@@ -490,6 +501,11 @@ Reason:
   callable-suite emulation layer
 
 ### 2. Async Runner Semantics
+
+Decision:
+
+- keep async behavior deferred until AssemblyScript itself can support a shared
+  async runtime contract
 
 The repo still does not support:
 
@@ -524,13 +540,17 @@ semantics:
    `continueOnFailure(...)` helpers on top-level `test` and `UvuSuite`
 3. ship `exec(bail?)` as root-level `bail` hint lowering only
 4. keep `.run()` as a compatibility no-op
-5. explicitly defer only upstream object-model helpers
+5. defer async behavior until AssemblyScript itself can support an honest
+   shared async contract
+6. explicitly defer only upstream object-model helpers that still need a new
+   adapter-local error object contract
 
 ## Suggested Future Order
 
 1. revisit `Assertion` only after the repo adopts an adapter-local error object
    contract
-2. keep async behavior deferred until the project-wide runtime contract changes
+2. revisit async only after AssemblyScript and the shared runtime contract can
+   support it honestly
 
 ## Sources
 
