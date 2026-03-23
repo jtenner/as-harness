@@ -31,6 +31,11 @@ it with
 - unsupported hint values still surface through discovery metadata, but the
   current host only treats them as informational `ignored-hint` planner issues
   instead of binding execution policy
+- the shipped harness-backed CLI compile path now uses a conservative source
+  rewrite for bare `abort(...)` and `trace(...)` calls so those sites import
+  bundled internal debug helpers without mutating the compiler-owned AST
+- explicit user `abort=...` and `trace=...` aliases stay authoritative over
+  that wrapper-owned default path
 - adding scheduler-step entrypoints later would require an ABI update, host
   parity proof, and a backlog update across the docs
 
@@ -42,6 +47,8 @@ it with
 - `executor`: [assembly/assembly/internal/executor.ts](../assembly/assembly/internal/executor.ts)
 - `hooks`: [assembly/assembly/internal/hooks.ts](../assembly/assembly/internal/hooks.ts)
 - `assert_bridge`: [assembly/assembly/internal/assert-bridge.ts](../assembly/assembly/internal/assert-bridge.ts)
+- `artifact_frame`: [assembly/assembly/internal/artifact-frame.ts](../assembly/assembly/internal/artifact-frame.ts)
+- `debug`: [assembly/assembly/internal/debug.ts](../assembly/assembly/internal/debug.ts)
 - `events`: [assembly/assembly/internal/events.ts](../assembly/assembly/internal/events.ts)
 - `abi`: [assembly/assembly/internal/imports.ts](../assembly/assembly/internal/imports.ts), [assembly/assembly/exports.ts](../assembly/assembly/exports.ts), and [assembly/assembly/internal/trampoline.ts](../assembly/assembly/internal/trampoline.ts)
 - `state`: [assembly/assembly/internal/execution-state.ts](../assembly/assembly/internal/execution-state.ts), [assembly/assembly/internal/failure-state.ts](../assembly/assembly/internal/failure-state.ts), and [assembly/assembly/internal/context.ts](../assembly/assembly/internal/context.ts)
@@ -259,6 +266,65 @@ Forbidden decisions:
 - no lifecycle ordering
 - no host reporting text beyond the emitted low-level fail message fact
 
+## `artifact_frame`
+
+Purpose:
+
+- own the active harness-visible crumb stack and source markers used by
+  snapshots, diagnostics, and structured debug payloads
+
+Inputs:
+
+- declaration-time source markers injected by the compile path
+- executor-driven frame push and pop around suite, hook, and test callbacks
+
+Outputs:
+
+- live top-frame reads for existing diagnostics
+- cloned frame snapshots for structured debug payload emission
+
+Owned state:
+
+- the active artifact-frame stack
+- current frame source markers and `NodeIndex` copies
+
+Forbidden decisions:
+
+- no wire encoding
+- no host-owned reporting policy
+- no claim that artifact frames are a full general-purpose guest stack trace
+
+## `debug`
+
+Purpose:
+
+- provide the bundled internal `harnessAbort(...)` and `harnessTrace(...)`
+  helpers used by the wrapper-owned source rewrite path
+
+Inputs:
+
+- rewritten guest calls to bare `abort(...)` and `trace(...)`
+- direct compiler-provided abort file, line, and column metadata when present
+- current artifact-frame snapshots and raw host abort import access
+
+Outputs:
+
+- structured `Debug` event emissions through `events`
+- delegation to the raw host abort import for trap preservation
+
+Owned state:
+
+- no durable state of its own
+- the runtime policy for translating rewritten abort/trace calls into the
+  structured debug contract
+
+Forbidden decisions:
+
+- no host-side stack formatting policy
+- no claim of complete function-by-function guest stack reconstruction
+- no compiler-owned AST mutation; the helper only runs after the wrapper has
+  already rewritten source text
+
 ## `events`
 
 Purpose:
@@ -268,7 +334,8 @@ Purpose:
 Inputs:
 
 - typed event data such as `NodeIndex`, hook kind, failure kind, message text,
-  coverage point metadata, constraint metadata, and scheduling-hint metadata
+  coverage point metadata, debug crumb snapshots, debug locations, constraint
+  metadata, and scheduling-hint metadata
 
 Outputs:
 
@@ -281,6 +348,7 @@ Owned state:
 - the authoritative guest-side payload layout and encoding helpers
 - the authoritative byte layout for `sequenceMode`, `dependencyNodeIds`,
   `preferredRunnerMode`, and `preferredFailurePolicy` on `NodeFound`
+- the authoritative byte layout for structured `Debug` events
 
 Forbidden decisions:
 
@@ -297,6 +365,7 @@ Purpose:
 Inputs:
 
 - imported host callbacks: `write_event(...)` and `invoke_staged()`
+- raw AssemblyScript environmental imports such as `abort(...)` and `trace(...)`
 - staged node-index memory written by the host
 - staged trampoline callbacks from guest execution helpers
 
@@ -317,6 +386,8 @@ Forbidden decisions:
 - no host scheduling or reporting policy
 - no extra scheduler-step exports in the current ABI
 - no per-host specialization in the guest ABI surface
+- no source-rewrite policy; that stays in the CLI wrapper, outside the guest
+  runtime ABI
 
 ## `state`
 
@@ -359,6 +430,9 @@ Forbidden decisions:
 - only `registry` owns durable node structure
 - only `state` owns attempt-local assertion and failure facts
 - only `executor` owns lifecycle execution ordering
+- only the CLI compile wrapper may rewrite source text for the shipped debug
+  override path; guest runtime modules must not attempt compiler-owned AST
+  mutation
 - the host remains the durable source of truth for branch scheduling, result
   aggregation, and user-facing reporting
 - guest-declared hints may flow through discovery metadata, but only the host

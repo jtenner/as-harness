@@ -40,6 +40,7 @@ Each `on*` method registers exactly one active callback slot for its event kind:
 - `onCallbackFail(...)`
 - `onDiagnostic(...)`
 - `onLog(...)`
+- `onDebug(...)`
 
 Registration contract:
 
@@ -49,6 +50,10 @@ Registration contract:
 - the host does not fan a single event kind out to multiple listeners
 - event objects must be decoded into plain JavaScript data matching
   [harness/shared/harness-types.d.ts](../harness/shared/harness-types.d.ts)
+
+`onDebug(...)` is the structured detail channel for wrapper-rewritten
+`abort(...)` and `trace(...)` calls. `onLog(...)` remains the legacy flat trace
+channel for direct raw `env.trace(...)` behavior.
 
 ## Direct Calls
 
@@ -191,6 +196,8 @@ Failure handling:
   the whole branch discovery fail
 - a discovery failure at a non-test branch node makes that branch discovery
   fail
+- structured `debug` events are auxiliary execution detail; they do not change
+  the pass/fail semantics on their own
 - any failed execution makes that branch `ok: false`
 - any failed branch makes the top-level result `ok: false`
 
@@ -224,7 +231,8 @@ The current parity proof for this contract is:
 
 - shared smoke coverage in
   [harness/shared/smoke-suite.cjs](../harness/shared/smoke-suite.cjs)
-  including the required `result.metadata` snapshot mirror proof
+  including the required `result.metadata` snapshot mirror proof and the
+  required `onDebug(...)` host surface
 - shared planner-focused smoke coverage in
   [harness/shared/start-planner-smoke.cjs](../harness/shared/start-planner-smoke.cjs)
   and [harness/shared/start.test.cjs](../harness/shared/start.test.cjs),
@@ -241,8 +249,9 @@ The current parity proof for this contract is:
   `js`, `wazero`, and source-built `wasmtime` hosts, plus the documented
   `skip`, `todo`, `only`-filtered, expected-failure, duplicate-edge,
   blocked-propagation, dependency-cycle matrix with explicit blocked
-  cycle-member diagnostics, and bundled `uvu` hint-lowering proof through
-  real compile-and-run paths
+  cycle-member diagnostics, bundled `uvu` hint-lowering proof through real
+  compile-and-run paths, and structured abort/debug reporter output through the
+  shipped wrapper path
 - compile-path export-surface coverage in
   [cli/as/compile.test.ts](../cli/as/compile.test.ts), proving the generated
   guest wrapper stays on the flat host-owned execution surface and does not

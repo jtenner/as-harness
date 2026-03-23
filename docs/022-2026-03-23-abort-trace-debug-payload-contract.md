@@ -1,13 +1,14 @@
 # Abort And Trace Debug Payload Contract
 
-This note answers how `as-harness` should override AssemblyScript `abort(...)`
+This note answers how `as-harness` now overrides AssemblyScript `abort(...)`
 and `trace(...)` for richer debugging, what the guest and host can honestly
-report today, and which exact slices should land across `assembly/`, `cli/`,
-and `harness/`. The recommendation in this note is to ship default bundled
-`--use abort=harnessAbort` and `--use trace=harnessTrace` overrides for
-harness-backed builds, emit a dedicated structured `Debug` event carrying guest
-artifact-frame crumbs and source locations, and treat host engine stack traces
-as best-effort enrichment instead of pretending that the guest can recover a
+report today, and why the shipped implementation uses a compile-wrapper source
+rewrite instead of a default `--use` alias or compiler-owned AST mutation. The
+recommendation, and now the shipped behavior, is to rewrite bare `abort(...)`
+and `trace(...)` calls in harness-backed CLI builds onto bundled debug helpers,
+emit a structured `Debug` event carrying artifact-frame crumbs and direct
+source-location metadata where available, and treat host engine stacks as
+best-effort enrichment instead of pretending that the guest can recover a
 portable function-by-function stack trace after a Wasm trap.
 
 ## Research Basis
@@ -21,7 +22,7 @@ Checked on 2026-03-23 against:
 - local `assemblyscript@0.28.10` CLI help and standard-library declarations
 - official AssemblyScript stdlib docs at `https://www.assemblyscript.org/stdlib/globals.html`
 
-The relevant upstream AssemblyScript facts are:
+The relevant upstream AssemblyScript facts and repo findings are:
 
 - `trace(...)` is a built-in environmental function with the current signature
   `trace(msg: string, n?: i32, a0?: f64, a1?: f64, a2?: f64, a3?: f64, a4?: f64): void`
@@ -29,14 +30,26 @@ The relevant upstream AssemblyScript facts are:
   `abort(msg?: string | null, fileName?: string | null, lineNumber?: i32, columnNumber?: i32): never`
 - `asc --use` aliases one global under another name and can also introduce
   integer constants
+- in the current `as-harness` compile flow, `asc --use` alias lookup does not
+  resolve against entry-file exports or the attempted bundled helper exports;
+  the observed failure was `AS111: Element 'harnessAbort' not found.` and the
+  same for `harnessTrace`
+- standalone parser inspection can read one source file for syntax-driven
+  analysis, but calling the parser's full validation/finish path on partially
+  loaded sources throws `Error: backlog is not empty`, so the wrapper must not
+  pretend it has a whole-program validation context at rewrite time
+- AssemblyScript initialization was unstable when this feature tried to splice
+  parsed nodes into the compiler-owned tree; the shipped path must not insert
+  parsed nodes or mutate compiler-owned AST nodes
 - `--debug` enables debug information in the emitted binary, but AssemblyScript
   still does not expose a portable guest-owned stack object that adapters or
   hosts can reconstruct into exact source stacks after a trap
 
 Those facts matter because they define both the opportunity and the limit:
 
-- `as-harness` can override the default global `abort` and `trace` bindings
-  with bundled helpers
+- `as-harness` can still override the effective `abort` and `trace` behavior
+  for wrapper-driven builds, but not through the originally planned default
+  `--use` alias path
 - the guest can always emit structured metadata before trapping
 - the guest cannot honestly promise a complete source-accurate call stack for
   every function in every host, because that information does not survive the
@@ -54,8 +67,8 @@ and cannot preserve?
 Ship three layers together:
 
 1. a new guest-to-host `Debug` event that carries structured debug payloads
-2. bundled `harnessAbort(...)` and `harnessTrace(...)` helpers selected through
-   default `--use` aliases for harness-backed builds
+2. bundled `harnessAbort(...)` and `harnessTrace(...)` helpers imported by a
+   compile-wrapper source rewrite for harness-backed builds
 3. host-side decoding and reporting that exposes guest-authored crumb stacks on
    every debug event and includes engine stack text only where the current host
    can capture it reliably
@@ -83,30 +96,38 @@ The contract should explicitly not claim:
 
 ## Current Repo Behavior
 
-Today the repo behaves like this:
+The shipped repo now behaves like this:
 
-- the guest imports `env.abort(...)` and `env.trace(...)` directly
-- the compiler wrapper forwards user `--use` values, but does not install a
-  default `abort=` or `trace=` override
-- the guest event ABI includes a `Log` event for plain `trace(...)` output but
-  no structured debug event for aborts or breadcrumb stacks
-- the guest runtime already tracks an active artifact-frame stack, but only
-  exposes the top frame to hosts and only uses it today for snapshots and test
-  diagnostics
-- the JS host turns `env.abort(...)` into a plain `Error("abort: ...")`
-- the JS, wazero, and wasmtime hosts all turn `env.trace(...)` into the flat
-  current `log` payload shape
-- the reporter prints `trace: message (values...)` but has no structured abort
-  or crumb formatting
+- the guest ABI still imports the raw AssemblyScript `env.abort(...)` and
+  `env.trace(...)` hooks
+- for harness-backed CLI builds that use bundled guest libraries, the compiler
+  wrapper rewrites bare `abort(...)` and `trace(...)` identifier calls in
+  non-library source files before `asc` parses them
+- that rewrite injects a direct import from
+  `~/.as-harness/internal/debug` and remaps those bare calls onto
+  `harnessAbort(...)` and `harnessTrace(...)`
+- abort calls with fewer than four arguments receive synthesized file, line,
+  and column arguments derived from the source text offset of the callsite
+- explicit user `--use abort=...` or `--use trace=...` options remain
+  authoritative; when those are present, the wrapper disables its default
+  rewrite path
+- the guest event ABI now includes `EventKind.Debug = 11`
+- the guest runtime snapshots the active artifact-frame stack into structured
+  breadcrumb records before emitting each debug event
+- `harnessAbort(...)` emits a structured debug event and then delegates to the
+  raw host abort import
+- `harnessTrace(...)` emits a structured debug event and does not forward to
+  the raw trace import, preventing duplicate flat `log` output on wrapper-owned
+  builds
+- the `js`, `wazero`, and `wasmtime` hosts decode `Debug` events and expose
+  them through `onDebug(...)`
+- the CLI reporter renders structured `abort:` and `trace:` details with crumb
+  lines, location data, and any available host-enriched engine stack lines
 
-That means the repo already has the right building blocks:
-
-- a flat event sink
-- a stable artifact-frame model
-- harness-owned compile-time control through the CLI wrapper
-
-What it does not have yet is a dedicated debugging contract connecting those
-pieces.
+Direct `asc` usage, or wrapper usage with explicit user aliases, still keeps
+the older raw AssemblyScript import behavior. That is intentional. The richer
+debug payload path is a CLI-wrapper feature, not a new global AssemblyScript
+requirement.
 
 ## Constraints And Truths
 
@@ -161,16 +182,33 @@ guest-authored ABI guarantee.
 
 ### 4. The compiler-wrapper override must stay user-overridable
 
-The repo already forwards user `--use` values. The new default override must:
+The shipped wrapper override now works like this:
 
-- apply only when the bundled harness library path is active
-- append defaults only when the user has not already supplied `abort=...`
-  or `trace=...`
-- remain a wrapper default, not a hardcoded requirement on all direct `asc`
-  compilation paths
+- it applies only when the bundled harness library path is active
+- it disables itself when the user already supplied explicit `abort=...` or
+  `trace=...` aliases
+- it is a wrapper-owned source rewrite, not a hardcoded requirement on all
+  direct `asc` compilation paths
 
 That keeps the feature pragmatic without hijacking advanced users' existing
 custom overrides.
+
+### 5. The source rewrite must stay syntax-driven and conservative
+
+The shipped wrapper path parses each source file in isolation only to discover
+text ranges that should be rewritten. It does not insert parsed nodes into the
+compiler-owned program tree, and it does not attempt whole-program symbol
+resolution.
+
+That means:
+
+- only bare identifier calls named `abort` and `trace` are rewritten
+- property access such as `foo.abort(...)` is left alone
+- the current implementation is intentionally conservative around shadowed
+  local names because this wrapper hook does not own compiler symbol
+  resolution
+- any future semantic rewrite path would need a compiler-owned hook rather than
+  more aggressive parser-side guessing
 
 ## Recommended Wire Contract
 
@@ -273,20 +311,30 @@ Reasoning:
 
 ## Guest Runtime Responsibilities
 
-### Bundled override helpers
+### Bundled internal debug helpers
 
-Add bundled globals:
+The shipped wrapper imports:
 
 - `harnessAbort(...)`
 - `harnessTrace(...)`
 
-These should be exported from a top-level file under `assembly/assembly/lib/`
-so the bundled `--lib` root makes them visible as globals to `asc --use`.
+from `~/.as-harness/internal/debug`.
 
-Recommended names:
+This is intentionally not a global `--use` surface. The current compile flow
+could not rely on `--use` resolving those helper names, even when they were
+exported from attempted entry or bundled-library locations.
 
-- `--use abort=harnessAbort`
-- `--use trace=harnessTrace`
+The wrapper injects this prelude instead:
+
+```ts
+import {
+  harnessAbort as __asHarnessAbort,
+  harnessTrace as __asHarnessTrace,
+} from "~/.as-harness/internal/debug";
+```
+
+and then rewrites bare `abort(...)` / `trace(...)` identifiers to those local
+import bindings.
 
 ### `harnessAbort(...)`
 
@@ -419,78 +467,52 @@ honestly for this repo: the shipped contract preserves harness-owned execution
 crumbs from the active artifact-frame stack, not a compiler-instrumented trace
 of every function call in the program.
 
-## Implementation Plan
+## Implementation History
 
-Land the work in this order so each commit stays coherent and testable.
+The work landed in five coherent slices:
 
 ### `debug-001`: contract and backlog
 
-- write this note
-- add explicit backlog slices to `agent-todo.md`
-- add a changelog entry for the planning slice
+- wrote this note in its initial planning form
+- staged explicit backlog slices and changelog coverage
 
 ### `debug-002`: guest debug payload runtime
 
-- add `EventKind.Debug = 11`
-- add internal crumb-snapshot helpers to the artifact-frame runtime
-- add `serializeDebug(...)` plus focused internal proof for payload layout
-- add a top-level bundled library export for `harnessAbort` and `harnessTrace`
-- do not enable the default compile-wrapper aliases yet
-
-Success condition:
-
-- internal guest tests prove the payload layout and crumb capture without
-  changing current host behavior
+- added `EventKind.Debug = 11`
+- added artifact-frame crumb snapshot support
+- added structured debug payload serialization
+- added `harnessAbort(...)` and `harnessTrace(...)` in the internal runtime
 
 ### `debug-003`: host-facing debug surface
 
-- add `HarnessDebugCrumb`, `HarnessDebugEvent`, and `onDebug(...)`
-- extend `harness/js`, `harness/wazero`, and `harness/wasmtime` to decode
-  `EventKind.Debug`
-- extend `harness/shared/start.cjs` cloning and event registration for nested
-  debug payloads
-- extend the reporter to collect and format debug details
+- added `HarnessDebugCrumb`, `HarnessDebugEvent`, and `onDebug(...)`
+- extended `js`, `wazero`, and `wasmtime` to decode `EventKind.Debug`
+- extended shared `start()` cloning and reporter rendering for nested debug
+  payloads
 
-Success condition:
+### `debug-004`: wrapper-owned source rewrite
 
-- hosts and reporter understand the new event kind, even if nothing emits it by
-  default yet
+- dropped the unstable parsed-node mutation attempt
+- confirmed that the planned default `--use` alias path was not reliable in the
+  current compile flow
+- added a conservative compile-wrapper source rewrite for harness-backed builds
+- kept explicit user `--use abort=...` and `trace=...` aliases authoritative
+- added compile-level proof for the enablement rules and CLI proof for emitted
+  structured abort output
 
-### `debug-004`: default bundled `--use` override path
+### `debug-005`: proof and docs cleanup
 
-- add `withBundledDebugUseOverrides(...)` to the compiler wrapper
-- append `abort=harnessAbort` and `trace=harnessTrace` only when the user did
-  not already supply overrides
-- add compile-level proof for the new defaults
-- add a dedicated smoke fixture compiled with explicit `--use` flags so the
-  host matrix exercises the structured path directly
-
-Success condition:
-
-- harness-backed CLI builds start using the new structured debug path by
-  default
-- direct `asc` builds without the override still keep the old flat `log` path
-
-### `debug-005`: end-to-end proof and docs cleanup
-
-- extend CLI integration tests to assert structured trace and abort output
-- extend shared host smoke coverage for debug events and crumb stacks
-- refresh the ABI, guest-runtime, and host-runner docs with the shipped
-  contract
-- update relevant README files
-- remove the backlog slice
-
-Success condition:
-
-- all shipped docs describe the same debug contract
-- the full validation matrix passes
+- refreshed the ABI, guest-runtime, and host-runner docs to describe the
+  shipped source-rewrite path
+- removed the remaining backlog slice
+- reran the full validation matrix
 
 ## Affected Repo Areas
 
 - `assembly/assembly/internal/imports.ts`
 - `assembly/assembly/internal/artifact-frame.ts`
 - `assembly/assembly/internal/events.ts`
-- `assembly/assembly/lib/`
+- `assembly/assembly/internal/debug.ts`
 - `assembly/assembly/test/internal/events.ts`
 - `assembly/assembly/test/`
 - `cli/as/compile.ts`
