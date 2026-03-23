@@ -18,10 +18,6 @@
 
 ### Adapter: `ava`
 
-- `ava-001`: add the flat declaration chain `test(...)`, `test.serial(...)`,
-  `test.only(...)`, `test.skip(...)`, `test.todo(...)`, `test.failing(...)`,
-  and the hook families with enough source-host proof to keep the declaration
-  surface honest.
 - `ava-002`: add the first synchronous `ExecutionContext` slice and shared
   assertion subset, starting with title/log plumbing plus the sync assertion
   helpers that already map cleanly onto the shared assertion bridge.

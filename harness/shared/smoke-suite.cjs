@@ -621,6 +621,11 @@ function compileSmokeFixtures(options) {
 			"assembly/test/artifact-frame-smoke.ts",
 			path.join(options.cacheDir, "artifact-frame-smoke.wasm"),
 		),
+		compiledAvaWasm: compileFixture(
+			assemblyDir,
+			"assembly/test/ava-smoke.ts",
+			path.join(options.cacheDir, "ava-smoke.wasm"),
+		),
 		compiledUvuAssertWasm: compileFixture(
 			assemblyDir,
 			"assembly/test/uvu-assert-smoke.ts",
@@ -723,6 +728,7 @@ function registerHarnessSmokeSuite(options) {
 		addon,
 		assert,
 		compiledArtifactFrameWasm,
+		compiledAvaWasm,
 		compiledExportsWasm,
 		compiledJasmineWasm,
 		compiledMochaWasm,
@@ -1316,6 +1322,35 @@ function registerHarnessSmokeSuite(options) {
 				["top-level pass", 1, 1],
 				["implicit pending", 1, 3],
 				["runs hooks and assertions", 1, 1],
+			],
+		);
+
+		closeHarness(harness);
+	});
+
+	test("discover(nodeIndex) preserves ava flat declaration shape with skip, todo, failing, and serial metadata", () => {
+		const harness = createHarness(compiledAvaWasm);
+		const found = [];
+
+		harness.onNodeFound((event) => {
+			found.push(event);
+		});
+
+		assert.equal(harness.discover([]), true);
+		assert.deepEqual(
+			found.map((node) => [
+				node.name,
+				node.kind,
+				node.declarationMode,
+				node.sequenceMode,
+				node.expectFailure,
+			]),
+			[
+				["skipped test", 1, 2, 0, false],
+				["todo test", 1, 3, 0, false],
+				["expected failure", 1, 1, 0, true],
+				["serial pass", 1, 1, 1, false],
+				["runs hooks and assertions", 1, 1, 0, false],
 			],
 		);
 
@@ -2161,6 +2196,44 @@ function registerHarnessSmokeSuite(options) {
 		assert.deepEqual(
 			branch.executions.map((execution) => execution.node.name),
 			["top-level pass", "runs hooks and assertions", "nested context child"],
+		);
+
+		closeHarness(harness);
+	});
+
+	test("start() preserves ava flat declarations through shared graph execution", async () => {
+		const harness = createHarness(compiledAvaWasm);
+
+		const result = await harness.start();
+
+		assert.equal(result.discoveryOk, true);
+		assert.equal(result.planningOk, true);
+		assert.equal(result.ok, true);
+		assert.equal(result.discoveredTestCount, 5);
+		assert.equal(result.topLevelNodes.length, 5);
+		assert(result.workerCount >= 1);
+		assert.deepEqual(result.planIssues, []);
+		assert.deepEqual(result.blocked, []);
+		assert.deepEqual(
+			result.topLevelNodes.map((node) => [
+				node.name,
+				node.declarationMode,
+				node.sequenceMode,
+				node.expectFailure,
+			]),
+			[
+				["skipped test", 2, 0, false],
+				["todo test", 3, 0, false],
+				["expected failure", 1, 0, true],
+				["serial pass", 1, 1, false],
+				["runs hooks and assertions", 1, 0, false],
+			],
+		);
+		assert.deepEqual(
+			result.branches.flatMap((branch) =>
+				branch.executions.map((execution) => execution.node.name),
+			),
+			["expected failure", "serial pass", "runs hooks and assertions"],
 		);
 
 		closeHarness(harness);

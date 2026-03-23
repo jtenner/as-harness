@@ -10,6 +10,7 @@ Host owns scheduling, aggregation, and reporting.
 - `assembly/assembly/internal/`: runtime primitives (events, nodes, traversal, executor, hooks, assertions, imports/exports).
 - `assembly/assembly/exports.ts`: Wasm exports expected by hosts.
 - `assembly/assembly/as_harness/`: native scheduler-aware guest surface.
+- `assembly/assembly/ava/`: flat AVA-shaped declaration workstream under active development.
 - `assembly/assembly/node_test/`: native `node:test` surface.
 - `assembly/assembly/jasmine/`: thin sync Jasmine-shaped surface.
 - `assembly/assembly/jest/`: thin sync Jest-shaped surface.
