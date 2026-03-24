@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { SUPPORTED_NATIVE_TARGETS } from "./stage-npm-packages";
 
 const REPO_DIR = join(import.meta.dir, "..");
@@ -128,6 +128,7 @@ async function loadPackageArtifacts(artifactDir: string) {
 
 	const packages = new Map<string, PackageArtifact>();
 	for (const manifestPath of manifestPaths) {
+		const manifestDirectory = dirname(manifestPath);
 		const manifest = JSON.parse(
 			await readFile(manifestPath, "utf8"),
 		) as PackageArtifactManifest;
@@ -139,7 +140,10 @@ async function loadPackageArtifacts(artifactDir: string) {
 				);
 			}
 
-			packages.set(packageArtifact.name, packageArtifact);
+			packages.set(packageArtifact.name, {
+				...packageArtifact,
+				tarballPath: join(manifestDirectory, packageArtifact.filename),
+			});
 		}
 	}
 
