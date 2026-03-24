@@ -453,6 +453,49 @@ test("passing test", (_context: TestContext): void => {});
 			);
 		},
 	);
+
+	await withTempEntryFile(
+		`
+import { test, TestContext } from "node:test";
+
+test("passing test", (context: TestContext): void => {
+  context.assert.strictEqual<i32>(CUSTOM_RUNTIME_FLAG, 7);
+});
+`,
+		async (entryFile, cwd) => {
+			const harnessDirectory = join(cwd, "tools");
+			const harnessPath = join(harnessDirectory, "custom-compile-runtime.mjs");
+			await mkdir(harnessDirectory, { recursive: true });
+			await writeFile(
+				harnessPath,
+				[
+					'import { createRequire } from "node:module";',
+					"const require = createRequire(import.meta.url);",
+					`const { createHarness } = require(${JSON.stringify(jsHarnessModulePath)});`,
+					"export default {",
+					'  name: "custom-compile-js",',
+					"  mutateCompilerArguments(compilerArguments) {",
+					'    compilerArguments.push("--use", "CUSTOM_RUNTIME_FLAG=7");',
+					"  },",
+					"  createHarness,",
+					"};",
+					"",
+				].join("\n"),
+				"utf8",
+			);
+
+			const result = await runCliWithArguments(
+				["run", "--harness", "./tools/custom-compile-runtime.mjs", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 1 passed, 0 failed, 1 discovered with custom-compile-js.",
+			);
+		},
+	);
 });
 
 test("cli run executes uvu fixture and snapshot helpers through the js host", async () => {

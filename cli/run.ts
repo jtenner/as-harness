@@ -17,7 +17,7 @@ import {
 	type RunReporter,
 } from "./reporter";
 import { jsRuntime } from "./runtime/js";
-import { assertSupportedRuntime, resolveRuntime } from "./runtime/resolve";
+import { classifyHarnessSpecifier, resolveRuntime } from "./runtime/resolve";
 import type { Runtime } from "./runtime/types";
 
 export enum RunExitCode {
@@ -214,12 +214,14 @@ export async function runEntryFiles(
 	let wasmBytes: Uint8Array;
 	const temporaryEntrypoint = await createRunEntrypoint(entryFiles, cwd);
 	let compileRuntime = jsRuntime;
+	let runtime: Runtime | null = null;
 
 	if (typeof runtimeSelection !== "string") {
 		compileRuntime = runtimeSelection;
-	} else {
+		runtime = runtimeSelection;
+	} else if (classifyHarnessSpecifier(runtimeSelection).kind !== "builtin") {
 		try {
-			assertSupportedRuntime(runtimeSelection, cwd);
+			runtime = await resolveRuntime(runtimeSelection, cwd);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			logger.error(`Harness resolution failed: ${message}`);
@@ -229,6 +231,14 @@ export async function runEntryFiles(
 				exitCode: RunExitCode.HostFailure,
 			};
 		}
+
+		compileRuntime = {
+			...runtime,
+			mutateCompilerArguments(compilerArguments) {
+				jsRuntime.mutateCompilerArguments(compilerArguments);
+				runtime.mutateCompilerArguments(compilerArguments);
+			},
+		};
 	}
 
 	try {
@@ -260,20 +270,20 @@ export async function runEntryFiles(
 		await temporaryEntrypoint.cleanup();
 	}
 
-	let runtime: Runtime;
-
-	try {
-		runtime =
-			typeof runtimeSelection === "string"
-				? await resolveRuntime(runtimeSelection, cwd)
-				: runtimeSelection;
-	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
-		logger.error(`Harness resolution failed: ${message}`);
-		return {
-			discoveredTestCount: 0,
-			exitCode: RunExitCode.HostFailure,
-		};
+	if (runtime === null) {
+		try {
+			runtime =
+				typeof runtimeSelection === "string"
+					? await resolveRuntime(runtimeSelection, cwd)
+					: runtimeSelection;
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			logger.error(`Harness resolution failed: ${message}`);
+			return {
+				discoveredTestCount: 0,
+				exitCode: RunExitCode.HostFailure,
+			};
+		}
 	}
 
 	let result: HarnessStartResult;

@@ -16,8 +16,6 @@
 
 ### Custom Harness Loading
 
-- CH-004 Split compile defaults from built-in-only runtime validation
-  [docs/027-2026-03-24-custom-harness-loading-plan.md:140](./docs/027-2026-03-24-custom-harness-loading-plan.md)
 - CH-005 Tighten diagnostics and reporter naming for external harnesses
   [docs/027-2026-03-24-custom-harness-loading-plan.md:144](./docs/027-2026-03-24-custom-harness-loading-plan.md)
 - CH-006 Add fixture-backed proof for built-in, path, and package harness
