@@ -309,6 +309,14 @@ function resolveNpmCommand() {
 
 	const nodeExecutable = resolveNodeExecutable();
 	const nodeInstallDir = resolve(dirname(nodeExecutable), "..");
+	const nodeOnPath = findExecutableOnPath(
+		process.platform === "win32" ? ["node.exe", "node.cmd", "node"] : ["node"],
+	);
+	const nodeCommandForChildProcess = nodeOnPath
+		? process.platform === "win32"
+			? "node.exe"
+			: "node"
+		: nodeExecutable;
 	const npmCliCandidates = [
 		resolve(nodeInstallDir, "lib", "node_modules", "npm", "bin", "npm-cli.js"),
 		resolve(nodeInstallDir, "node_modules", "npm", "bin", "npm-cli.js"),
@@ -316,7 +324,7 @@ function resolveNpmCommand() {
 
 	for (const candidate of npmCliCandidates) {
 		if (existsSync(candidate)) {
-			return [nodeExecutable, candidate];
+			return [nodeCommandForChildProcess, candidate];
 		}
 	}
 
