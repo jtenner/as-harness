@@ -20,6 +20,7 @@ const DEFAULT_REPORT_DIR = join(REPO_DIR, "dist", "npm-install-smoke-reports");
 const COMMAND_TIMEOUT_ENV_VAR = "AS_HARNESS_TIMEOUT_MS";
 const INHERIT_STDIO_ENV_VAR = "AS_HARNESS_INHERIT_STDIO";
 const DEFAULT_COMMAND_TIMEOUT_MS = 60_000;
+const NODE_EXECUTABLE_SENTINEL = "__AS_HARNESS_NODE_EXECUTABLE__";
 const CLI_ENTRYPOINT = join(
 	"node_modules",
 	"@as-harness",
@@ -80,6 +81,11 @@ async function main() {
 		throw new Error("command runner requires a command");
 	}
 
+	const resolvedCommand =
+		command[0] === "${NODE_EXECUTABLE_SENTINEL}"
+			? [process.execPath, ...command.slice(1)]
+			: command;
+
 	const tempDirectory = mkdtempSync(join(tmpdir(), "as-harness-command-"));
 	const stdoutPath = join(tempDirectory, "stdout.txt");
 	const stderrPath = join(tempDirectory, "stderr.txt");
@@ -95,7 +101,7 @@ async function main() {
 			stdoutFd = openSync(stdoutPath, "w");
 			stderrFd = openSync(stderrPath, "w");
 		}
-		child = spawn(command[0], command.slice(1), {
+		child = spawn(resolvedCommand[0], resolvedCommand.slice(1), {
 			cwd,
 			stdio: inheritStdio
 				? ["ignore", 2, 2]
@@ -309,14 +315,6 @@ function resolveNpmCommand() {
 
 	const nodeExecutable = resolveNodeExecutable();
 	const nodeInstallDir = resolve(dirname(nodeExecutable), "..");
-	const nodeOnPath = findExecutableOnPath(
-		process.platform === "win32" ? ["node.exe", "node.cmd", "node"] : ["node"],
-	);
-	const nodeCommandForChildProcess = nodeOnPath
-		? process.platform === "win32"
-			? "node.exe"
-			: "node"
-		: nodeExecutable;
 	const npmCliCandidates = [
 		resolve(nodeInstallDir, "lib", "node_modules", "npm", "bin", "npm-cli.js"),
 		resolve(nodeInstallDir, "node_modules", "npm", "bin", "npm-cli.js"),
@@ -324,7 +322,7 @@ function resolveNpmCommand() {
 
 	for (const candidate of npmCliCandidates) {
 		if (existsSync(candidate)) {
-			return [nodeCommandForChildProcess, candidate];
+			return [NODE_EXECUTABLE_SENTINEL, candidate];
 		}
 	}
 
