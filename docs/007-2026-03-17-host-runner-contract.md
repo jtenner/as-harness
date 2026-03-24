@@ -13,6 +13,43 @@ Use it with [003-2026-03-17-harness-abi.md](./003-2026-03-17-harness-abi.md):
 The canonical TypeScript surface is
 [harness/shared/harness-types.d.ts](../harness/shared/harness-types.d.ts).
 
+## CLI Runtime Module Surface
+
+When `@as-harness/cli` loads an external `--harness` selector, it normalizes
+that module onto the `Runtime` interface in
+[cli/runtime/types.ts](../cli/runtime/types.ts):
+
+- `name: string`
+- `mutateCompilerArguments(args): void`
+- `createHarness(bytes, options?): Harness`
+
+Accepted external module shapes, in priority order:
+
+- `default` export object with `createHarness(...)`
+- named `runtime` export object with `createHarness(...)`
+- module namespace exposing `createHarness(...)` directly
+
+Required field:
+
+- `createHarness(bytes, options?)`
+
+Optional fields:
+
+- `name`: used by CLI pass/fail summaries; if omitted, the CLI derives one from
+  the package name or file basename
+- `mutateCompilerArguments(args)`: advanced hook for compile-time flags layered
+  on top of the shipped default JS wrapper contract
+
+Selector and environment rules:
+
+- built-in aliases `js`, `wazero`, and `wasmtime` stay reserved before package
+  resolution
+- filesystem paths and package specifiers resolve from the invoking project's
+  cwd or dependency graph
+- direct custom `.ts` runtime modules are Bun-only; the Node-targeted
+  source-host bundle supports external `.js`, `.cjs`, and `.mjs` runtime
+  modules and rejects `.ts` selectors with an explicit compatibility error
+
 ## `createHarness(bytes)`
 
 `createHarness(bytes)` must accept:

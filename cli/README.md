@@ -13,15 +13,13 @@ Public installable distribution is npm-only. The published CLI expects
 - `--coverage-include`, `--coverage-exclude`, and repeated `--coverage-point-type` refine instrumentation.
 - `--update-snapshots` is the explicit rewrite path for host-owned snapshot artifacts.
 - compile-wrapper rewriting of bare `abort(...)` / `trace(...)` emits structured host `debug` events without requiring explicit user `--use` wiring.
-- `--harness js|wazero|wasmtime` selects the runtime.
+- `--harness` accepts built-in aliases plus project-local path and package-based custom runtimes.
 - root `bun test` and release smoke flows now reuse package-local host commands (`npm test` per host).
 - source-host verification builds a Node-targeted CLI bundle with Bun and runs
   that bundle under the Node baseline from [`.mise.toml`](../.mise.toml).
 
 ## Not yet
 
-- external harness plugin loading
-- stable external runtime selection API
 - full historical release proof across every hosted runner
 
 ## Runtime Model
@@ -85,6 +83,55 @@ Node-targeted CLI bundle with Bun, executes that bundle under Node `25.8.1`,
 and uses `AS_HARNESS_SOURCE_CLI_REPO_DIR` so the bundled CLI still resolves the
 repo-local `wazero` and `wasmtime` host packages during CI smoke.
 
+## Custom Harnesses
+
+`--harness` now accepts three selector classes:
+
+- built-in aliases: `js`, `wazero`, `wasmtime`
+- filesystem paths resolved from the invocation cwd
+- package specifiers resolved from the consuming project's dependency graph
+
+Built-in aliases win before package resolution, so external packages cannot
+shadow `js`, `wazero`, or `wasmtime`.
+
+Accepted custom module shapes, in priority order:
+
+- `default` export object with `createHarness(...)`
+- named `runtime` export object with `createHarness(...)`
+- module namespace exposing `createHarness(...)` directly
+
+Required field:
+
+- `createHarness(bytes, options?)`
+
+Optional fields:
+
+- `name`: override the CLI display name used in pass/fail summaries
+- `mutateCompilerArguments(args)`: append compile-time flags on top of the
+  shipped default JS wrapper contract
+
+Example:
+
+```ts
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const { createHarness } = require("@as-harness/js");
+
+export default {
+	name: "custom-js",
+	createHarness,
+};
+```
+
+Compatibility rule:
+
+- custom `.ts` harness modules are supported only when the CLI itself is
+  running on Bun
+- the Node-targeted source-host bundle supports custom `.js`, `.cjs`, and
+  `.mjs` runtime modules and rejects `.ts` selectors with an explicit Bun-only
+  diagnostic
+
 ## Commands
 
 ```bash
@@ -98,6 +145,8 @@ bun install
 bun run dev -- help
 bun run dev -- run ./example.test.ts
 bun run dev -- run --harness js --coverage ./example.test.ts
+bun run dev -- run --harness ./tools/custom-harness.mjs ./example.test.ts
+bun run dev -- run --harness @scope/custom-harness ./example.test.ts
 bun run dev -- run --update-snapshots ./example.test.ts
 ```
 
@@ -115,7 +164,8 @@ cd harness/wasmtime && npm test
 - compile failures: inspect AS diagnostics.
 - `AssemblyScript is required...`: install `assemblyscript` alongside
   `@as-harness/cli` in the consuming project.
-- harness selection failures: confirm `--harness` and installed host packages.
+- harness selection failures: confirm `--harness`, installed host packages, and
+  that direct custom `.ts` selectors are running on Bun.
 - source-host native failures on Windows: verify the generated Node-targeted
   source bundle path before narrowing the issue to the native host addon.
 

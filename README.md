@@ -16,6 +16,7 @@ Implemented:
 - Stable start-reporting pipeline with branch, execution, planning, and blocked-outcome details.
 - Structured `debug` reporting for rewritten bare `abort(...)` / `trace(...)` calls, including source crumbs and location details when hosts provide them.
 - `js`, `wazero`, `wasmtime` source-host runtime support.
+- Custom `--harness` selection through built-in aliases, project-local runtime modules, and consuming-project package specifiers.
 - Coverage output in `text`, `json`, `yaml`, `csv`, `lcov`, `cobertura`.
 - Explicit snapshot rewrite mode via `as-harness run --update-snapshots`.
 
@@ -31,6 +32,8 @@ Limits:
 bun run ./cli/index.ts list
 bun run ./cli/index.ts run ./example.test.ts
 bun run ./cli/index.ts run --harness wazero ./example.test.ts
+bun run ./cli/index.ts run --harness ./tools/custom-harness.mjs ./example.test.ts
+bun run ./cli/index.ts run --harness @scope/custom-harness ./example.test.ts
 bun run ./cli/index.ts run --harness js --coverage ./example.test.ts
 bun run ./cli/index.ts run --update-snapshots ./example.test.ts
 ```
@@ -41,6 +44,25 @@ Public npm install:
 npm install -D assemblyscript @as-harness/cli
 npx as-harness run ./example.test.ts
 ```
+
+Custom harness selection now accepts:
+
+- built-in aliases: `js`, `wazero`, `wasmtime`
+- project-relative or absolute runtime-module paths
+- package specifiers resolved from the invoking project
+
+Built-in aliases stay reserved ahead of package resolution, so a consumer
+package named `js` still selects the built-in JS harness. External harness
+modules can expose either a `default` runtime object, a named `runtime` export,
+or a module namespace with `createHarness(...)` directly. The required field is
+`createHarness(bytes, options?)`; optional `name` controls CLI reporting and
+optional `mutateCompilerArguments(args)` adds compile-time flags on top of the
+default JS wrapper contract.
+
+Direct custom `.ts` harness files are Bun-only. The Bun CLI path supports them,
+but the Node-targeted source-host bundle expects custom `.js`, `.cjs`, or
+`.mjs` runtime modules and fails fast with an explicit Bun-only diagnostic for
+`.ts` selectors.
 
 For contributor validation, the repo now uses two distinct execution proofs:
 
@@ -136,6 +158,11 @@ Helpful checks:
 bun run host:matrix
 bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-host-reports
 ```
+
+See also:
+
+- [cli/README.md](./cli/README.md) for the CLI-specific selector and contract details
+- [docs/007-2026-03-17-host-runner-contract.md](./docs/007-2026-03-17-host-runner-contract.md) for the shared host object contract and the CLI runtime module surface
 
 ## Release Packaging
 

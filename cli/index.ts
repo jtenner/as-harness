@@ -71,7 +71,7 @@ Options:
   --coverage-exclude g   Exclude coverage for files matching this glob
   --coverage-point-type  Coverage point type: function | block | expression
   --update-snapshots     Rewrite missing, mismatched, and stale snapshots
-  --harness name         Select the execution harness (\`js\` by default)
+  --harness name         Select the execution harness (\`js\` by default; built-in alias, path, or package)
   -i, --ignore glob      Glob matcher that excludes an entry point`);
 }
 
@@ -96,8 +96,13 @@ Run Options:
   --coverage-exclude glob    Exclude coverage for files matching this glob
   --coverage-point-type kind Select coverage points: function | block | expression
   --update-snapshots         Rewrite missing, mismatched, and stale snapshots
-  --harness name             Select the execution harness (\`js\` | \`wazero\` | \`wasmtime\`)
+  --harness name             Select the execution harness (\`js\` | \`wazero\` | \`wasmtime\` | \`./tools/harness.mjs\` | \`@scope/harness\`)
   -i, --ignore glob          Glob matcher that excludes an entry point
+
+Custom Harnesses:
+  Built-in aliases stay reserved: \`js\`, \`wazero\`, \`wasmtime\`
+  Relative paths and package specifiers resolve from the invocation cwd
+  Direct \`.ts\` custom harness modules require Bun
 
 Compiler Options:
   --config path              Apply an asconfig file
