@@ -46,21 +46,28 @@ test("parseCommand captures run harness selection and compiler options", () => {
 	expect(parsed.compilerOptions.path).toEqual(["vendor"]);
 });
 
-test("parseCommand preserves custom harness selectors verbatim", () => {
+test("parseCommand preserves built-in, path, and package harness selectors verbatim", () => {
+	const builtinParsed = parseCommand([
+		"run",
+		"--harness",
+		"js",
+		"tests/example.test.ts",
+	]);
 	const relativeParsed = parseCommand([
 		"run",
 		"--harness",
-		"./tools/custom-harness.ts",
+		"./tools/fixture-path-runtime.mjs",
 		"tests/example.test.ts",
 	]);
 	const packageParsed = parseCommand([
 		"run",
-		"--harness=@scope/custom-harness",
+		"--harness=as-harness-custom-package-fixture-js",
 		"tests/example.test.ts",
 	]);
 
-	expect(relativeParsed.harness).toBe("./tools/custom-harness.ts");
-	expect(packageParsed.harness).toBe("@scope/custom-harness");
+	expect(builtinParsed.harness).toBe("js");
+	expect(relativeParsed.harness).toBe("./tools/fixture-path-runtime.mjs");
+	expect(packageParsed.harness).toBe("as-harness-custom-package-fixture-js");
 });
 
 test("parseCommand rejects unsupported coverage point types", () => {

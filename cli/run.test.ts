@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { expect, test } from "bun:test";
 import { compileEntrypoints } from "./as/compile";
 import type {
@@ -24,6 +24,20 @@ const jsHarnessModulePath = join(
 	"harness",
 	"js",
 	"index.cjs",
+);
+const customHarnessFixturesDirectory = join(
+	import.meta.dir,
+	"test",
+	"fixtures",
+	"custom-harnesses",
+);
+const customHarnessPathFixturePath = join(
+	customHarnessFixturesDirectory,
+	"custom-path-runtime.mjs",
+);
+const customHarnessPackageFixtureDirectory = join(
+	customHarnessFixturesDirectory,
+	"custom-package-runtime",
 );
 const wazeroAddonPath = join(
 	import.meta.dir,
@@ -96,6 +110,47 @@ async function runCliWithArguments(
 
 async function runCli(entryFile: string, cwd: string): Promise<CliRunResult> {
 	return runCliWithArguments(["run", entryFile], cwd);
+}
+
+function renderCustomHarnessFixture(sourceText: string) {
+	return sourceText.replaceAll(
+		"__JS_HARNESS_MODULE_PATH__",
+		JSON.stringify(jsHarnessModulePath),
+	);
+}
+
+async function materializeCustomHarnessFixture(
+	sourceFixturePath: string,
+	destinationPath: string,
+) {
+	await mkdir(dirname(destinationPath), { recursive: true });
+	const sourceText = await readFile(sourceFixturePath, "utf8");
+	await writeFile(
+		destinationPath,
+		renderCustomHarnessFixture(sourceText),
+		"utf8",
+	);
+}
+
+async function installCustomHarnessPackageFixture(cwd: string) {
+	const packageDirectory = join(
+		cwd,
+		"node_modules",
+		"as-harness-custom-package-fixture-js",
+	);
+	await mkdir(packageDirectory, { recursive: true });
+	await writeFile(
+		join(packageDirectory, "package.json"),
+		await readFile(
+			join(customHarnessPackageFixtureDirectory, "package.json"),
+			"utf8",
+		),
+		"utf8",
+	);
+	await materializeCustomHarnessFixture(
+		join(customHarnessPackageFixtureDirectory, "index.cjs"),
+		join(packageDirectory, "index.cjs"),
+	);
 }
 
 function createPassingStartResult(): HarnessStartResult {
@@ -633,6 +688,63 @@ test("cli run executes uvu fixture and snapshot helpers through the js host", as
 		},
 	);
 });
+
+test(
+	"cli run selects built-in, path, and package harnesses from repo fixtures",
+	async () => {
+		await withTempEntryFile(
+			`
+import { test, TestContext } from "node:test";
+
+test("fixture-backed harness selection", (_context: TestContext): void => {});
+`,
+			async (entryFile, cwd) => {
+				await materializeCustomHarnessFixture(
+					customHarnessPathFixturePath,
+					join(cwd, "tools", "fixture-path-runtime.mjs"),
+				);
+				await installCustomHarnessPackageFixture(cwd);
+
+				const builtinResult = await runCliWithArguments(
+					["run", "--harness", "js", entryFile],
+					cwd,
+				);
+				const pathResult = await runCliWithArguments(
+					["run", "--harness", "./tools/fixture-path-runtime.mjs", entryFile],
+					cwd,
+				);
+				const packageResult = await runCliWithArguments(
+					[
+						"run",
+						"--harness",
+						"as-harness-custom-package-fixture-js",
+						entryFile,
+					],
+					cwd,
+				);
+
+				expect(builtinResult.exitCode).toBe(0);
+				expect(builtinResult.stderr).toBe("");
+				expect(builtinResult.stdout).toContain(
+					"PASS 1 passed, 0 failed, 1 discovered with js.",
+				);
+
+				expect(pathResult.exitCode).toBe(0);
+				expect(pathResult.stderr).toBe("");
+				expect(pathResult.stdout).toContain(
+					"PASS 1 passed, 0 failed, 1 discovered with fixture-path-js.",
+				);
+
+				expect(packageResult.exitCode).toBe(0);
+				expect(packageResult.stderr).toBe("");
+				expect(packageResult.stdout).toContain(
+					"PASS 1 passed, 0 failed, 1 discovered with fixture-package-js.",
+				);
+			},
+		);
+	},
+	{ timeout: 10_000 },
+);
 
 test("cli run reports mismatched and stale snapshots through the js host", async () => {
 	await withTempEntryFile(

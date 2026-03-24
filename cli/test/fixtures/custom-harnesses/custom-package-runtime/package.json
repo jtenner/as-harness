@@ -1,0 +1,4 @@
+{
+	"name": "as-harness-custom-package-fixture-js",
+	"main": "./index.cjs"
+}
