@@ -1,11 +1,12 @@
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { expect, test } from "bun:test";
 import {
 	assertSupportedRuntime,
 	classifyHarnessSpecifier,
 	resolveHarnessSpecifier,
+	resolveRuntime,
 } from "./resolve";
 
 test("classifyHarnessSpecifier keeps built-in aliases ahead of package names", () => {
@@ -176,7 +177,7 @@ test("resolveHarnessSpecifier reports missing custom harness paths and packages 
 	}
 });
 
-test("assertSupportedRuntime reports resolved but still-unimplemented custom selector classes", () => {
+test("assertSupportedRuntime accepts resolved custom selector classes", () => {
 	const projectDirectory = mkdtempSync(
 		join(tmpdir(), "as-harness-custom-runtime-assert-"),
 	);
@@ -210,13 +211,147 @@ test("assertSupportedRuntime reports resolved but still-unimplemented custom sel
 
 		expect(() =>
 			assertSupportedRuntime("./tools/custom-harness.js", projectDirectory),
-		).toThrow(
-			`Custom harness path selectors are not implemented yet: ./tools/custom-harness.js -> ${resolve(projectDirectory, "tools", "custom-harness.js")}`,
-		);
+		).not.toThrow();
 		expect(() =>
 			assertSupportedRuntime("custom-harness", projectDirectory),
-		).toThrow(
-			`Custom harness package selectors are not implemented yet: custom-harness -> ${join(packageDirectory, "index.cjs")}`,
+		).not.toThrow();
+	} finally {
+		rmSync(projectDirectory, { force: true, recursive: true });
+	}
+});
+
+test("resolveRuntime normalizes a default-export runtime object", async () => {
+	const projectDirectory = mkdtempSync(
+		join(tmpdir(), "as-harness-custom-runtime-default-"),
+	);
+
+	try {
+		mkdirSync(join(projectDirectory, "tools"), { recursive: true });
+		writeFileSync(
+			join(projectDirectory, "tools", "custom-runtime.mjs"),
+			[
+				"export default {",
+				'  name: "custom-default-runtime",',
+				"  createHarness() {",
+				"    return {",
+				"      start: async () => ({ metadata: { ok: true, discoveryOk: true, planningOk: true, discoveredTestCount: 0, topLevelNodes: [], workerCount: 1, planIssues: [], blocked: [], coverage: null }, ok: true, discoveryOk: true, planningOk: true, discoveredTestCount: 0, topLevelNodes: [], workerCount: 1, branches: [], planIssues: [], blocked: [], coverage: null }),",
+				"      close() {},",
+				"    };",
+				"  },",
+				"};",
+			].join("\n"),
+			"utf8",
+		);
+
+		const runtime = await resolveRuntime(
+			"./tools/custom-runtime.mjs",
+			projectDirectory,
+		);
+
+		expect(runtime.name).toBe("custom-default-runtime");
+		expect(typeof runtime.createHarness).toBe("function");
+		expect(typeof runtime.mutateCompilerArguments).toBe("function");
+	} finally {
+		rmSync(projectDirectory, { force: true, recursive: true });
+	}
+});
+
+test("resolveRuntime normalizes a named runtime export object", async () => {
+	const projectDirectory = mkdtempSync(
+		join(tmpdir(), "as-harness-custom-runtime-named-"),
+	);
+
+	try {
+		const packageDirectory = join(
+			projectDirectory,
+			"node_modules",
+			"custom-runtime",
+		);
+		mkdirSync(packageDirectory, { recursive: true });
+		writeFileSync(
+			join(packageDirectory, "package.json"),
+			JSON.stringify({
+				name: "custom-runtime",
+				main: "./index.cjs",
+			}),
+			"utf8",
+		);
+		writeFileSync(
+			join(packageDirectory, "index.cjs"),
+			[
+				"exports.runtime = {",
+				'  name: "custom-package-runtime",',
+				"  createHarness() {",
+				"    return {",
+				"      start: async () => ({ metadata: { ok: true, discoveryOk: true, planningOk: true, discoveredTestCount: 0, topLevelNodes: [], workerCount: 1, planIssues: [], blocked: [], coverage: null }, ok: true, discoveryOk: true, planningOk: true, discoveredTestCount: 0, topLevelNodes: [], workerCount: 1, branches: [], planIssues: [], blocked: [], coverage: null }),",
+				"      close() {},",
+				"    };",
+				"  },",
+				"};",
+			].join("\n"),
+			"utf8",
+		);
+
+		const runtime = await resolveRuntime("custom-runtime", projectDirectory);
+
+		expect(runtime.name).toBe("custom-package-runtime");
+		expect(typeof runtime.createHarness).toBe("function");
+		expect(typeof runtime.mutateCompilerArguments).toBe("function");
+	} finally {
+		rmSync(projectDirectory, { force: true, recursive: true });
+	}
+});
+
+test("resolveRuntime normalizes a direct createHarness namespace export and derives the runtime name", async () => {
+	const projectDirectory = mkdtempSync(
+		join(tmpdir(), "as-harness-custom-runtime-direct-"),
+	);
+
+	try {
+		mkdirSync(join(projectDirectory, "tools"), { recursive: true });
+		writeFileSync(
+			join(projectDirectory, "tools", "derived-runtime.mjs"),
+			[
+				"export function createHarness() {",
+				"  return {",
+				"    start: async () => ({ metadata: { ok: true, discoveryOk: true, planningOk: true, discoveredTestCount: 0, topLevelNodes: [], workerCount: 1, planIssues: [], blocked: [], coverage: null }, ok: true, discoveryOk: true, planningOk: true, discoveredTestCount: 0, topLevelNodes: [], workerCount: 1, branches: [], planIssues: [], blocked: [], coverage: null }),",
+				"    close() {},",
+				"  };",
+				"}",
+			].join("\n"),
+			"utf8",
+		);
+
+		const runtime = await resolveRuntime(
+			"./tools/derived-runtime.mjs",
+			projectDirectory,
+		);
+
+		expect(runtime.name).toBe("derived-runtime");
+		expect(typeof runtime.createHarness).toBe("function");
+		expect(typeof runtime.mutateCompilerArguments).toBe("function");
+	} finally {
+		rmSync(projectDirectory, { force: true, recursive: true });
+	}
+});
+
+test("resolveRuntime rejects custom modules without a createHarness export", async () => {
+	const projectDirectory = mkdtempSync(
+		join(tmpdir(), "as-harness-custom-runtime-invalid-"),
+	);
+
+	try {
+		mkdirSync(join(projectDirectory, "tools"), { recursive: true });
+		writeFileSync(
+			join(projectDirectory, "tools", "invalid-runtime.mjs"),
+			"export const notAHarness = true;\n",
+			"utf8",
+		);
+
+		await expect(
+			resolveRuntime("./tools/invalid-runtime.mjs", projectDirectory),
+		).rejects.toThrow(
+			"Custom harness module could not be loaded: ./tools/invalid-runtime.mjs. Custom harness module did not expose a valid createHarness(...) export: ./tools/invalid-runtime.mjs",
 		);
 	} finally {
 		rmSync(projectDirectory, { force: true, recursive: true });

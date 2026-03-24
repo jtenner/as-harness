@@ -18,6 +18,13 @@ import {
 import type { Runtime } from "./runtime/types";
 
 const cliEntrypointPath = join(import.meta.dir, "index.ts");
+const jsHarnessModulePath = join(
+	import.meta.dir,
+	"..",
+	"harness",
+	"js",
+	"index.cjs",
+);
 const wazeroAddonPath = join(
 	import.meta.dir,
 	"..",
@@ -378,19 +385,71 @@ test("passing test", (_context: TestContext): void => {});
 `,
 		async (entryFile, cwd) => {
 			const harnessDirectory = join(cwd, "tools");
-			const harnessPath = join(harnessDirectory, "custom-harness.js");
+			const harnessPath = join(harnessDirectory, "custom-harness.mjs");
 			await mkdir(harnessDirectory, { recursive: true });
-			await writeFile(harnessPath, "module.exports = {};\n", "utf8");
+			await writeFile(
+				harnessPath,
+				[
+					'import { createRequire } from "node:module";',
+					"const require = createRequire(import.meta.url);",
+					`const { createHarness } = require(${JSON.stringify(jsHarnessModulePath)});`,
+					'export default { name: "custom-path-js", createHarness };',
+					"",
+				].join("\n"),
+				"utf8",
+			);
 
 			const result = await runCliWithArguments(
-				["run", "--harness", "./tools/custom-harness.js", entryFile],
+				["run", "--harness", "./tools/custom-harness.mjs", entryFile],
 				cwd,
 			);
 
-			expect(result.exitCode).toBe(3);
-			expect(result.stdout).toBe("");
-			expect(result.stderr).toContain(
-				`Harness resolution failed: Custom harness path selectors are not implemented yet: ./tools/custom-harness.js -> ${harnessPath}`,
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 1 passed, 0 failed, 1 discovered with custom-path-js.",
+			);
+		},
+	);
+
+	await withTempEntryFile(
+		`
+import { test, TestContext } from "node:test";
+
+test("passing test", (_context: TestContext): void => {});
+`,
+		async (entryFile, cwd) => {
+			const packageDirectory = join(cwd, "node_modules", "custom-package-js");
+			await mkdir(packageDirectory, { recursive: true });
+			await writeFile(
+				join(packageDirectory, "package.json"),
+				JSON.stringify({
+					name: "custom-package-js",
+					main: "./index.cjs",
+				}),
+				"utf8",
+			);
+			await writeFile(
+				join(packageDirectory, "index.cjs"),
+				[
+					'const { createRequire } = require("node:module");',
+					"const requireFromHere = createRequire(__filename);",
+					`const { createHarness } = requireFromHere(${JSON.stringify(jsHarnessModulePath)});`,
+					'exports.runtime = { name: "custom-package-js", createHarness };',
+					"",
+				].join("\n"),
+				"utf8",
+			);
+
+			const result = await runCliWithArguments(
+				["run", "--harness", "custom-package-js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe("");
+			expect(result.stdout).toContain(
+				"PASS 1 passed, 0 failed, 1 discovered with custom-package-js.",
 			);
 		},
 	);

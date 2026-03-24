@@ -16,8 +16,6 @@
 
 ### Custom Harness Loading
 
-- CH-003 Normalize custom modules onto the shipped runtime contract
-  [docs/027-2026-03-24-custom-harness-loading-plan.md:136](./docs/027-2026-03-24-custom-harness-loading-plan.md)
 - CH-004 Split compile defaults from built-in-only runtime validation
   [docs/027-2026-03-24-custom-harness-loading-plan.md:140](./docs/027-2026-03-24-custom-harness-loading-plan.md)
 - CH-005 Tighten diagnostics and reporter naming for external harnesses

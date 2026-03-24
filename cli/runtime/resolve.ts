@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
-import { isAbsolute, resolve, win32 } from "node:path";
+import { basename, extname, isAbsolute, resolve, win32 } from "node:path";
+import { pathToFileURL } from "node:url";
 import { jsRuntime } from "./js";
 import type { Runtime } from "./types";
 
@@ -34,6 +35,12 @@ export type ResolvedHarnessSpecifier =
 			value: string;
 			resolvedPath: string;
 	  };
+
+type CustomRuntimeModuleShape = {
+	name?: unknown;
+	mutateCompilerArguments?: unknown;
+	createHarness?: unknown;
+};
 
 function isBuiltinHarnessName(host: string): host is BuiltinHarnessName {
 	return (BUILTIN_HARNESSES as readonly string[]).includes(host);
@@ -136,20 +143,82 @@ export function assertSupportedRuntime(
 	host: string | undefined,
 	cwd: string = process.cwd(),
 ) {
-	const harnessSpecifier = resolveHarnessSpecifier(host, cwd);
-	if (harnessSpecifier.kind === "builtin") {
-		return;
+	resolveHarnessSpecifier(host, cwd);
+}
+
+function isCustomRuntimeModuleShape(
+	value: unknown,
+): value is Required<Pick<Runtime, "createHarness">> &
+	Partial<Pick<Runtime, "mutateCompilerArguments" | "name">> {
+	return (
+		value !== null &&
+		typeof value === "object" &&
+		typeof (value as CustomRuntimeModuleShape).createHarness === "function"
+	);
+}
+
+function deriveCustomRuntimeName(
+	harnessSpecifier: Exclude<ResolvedHarnessSpecifier, { kind: "builtin" }>,
+) {
+	if (harnessSpecifier.kind === "package") {
+		return harnessSpecifier.value;
 	}
 
-	if (harnessSpecifier.kind === "path") {
+	return basename(
+		harnessSpecifier.resolvedPath,
+		extname(harnessSpecifier.resolvedPath),
+	);
+}
+
+export function normalizeCustomRuntimeModule(
+	harnessSpecifier: Exclude<ResolvedHarnessSpecifier, { kind: "builtin" }>,
+	moduleNamespace: Record<string, unknown>,
+): Runtime {
+	const runtimeCandidate = isCustomRuntimeModuleShape(moduleNamespace.default)
+		? moduleNamespace.default
+		: isCustomRuntimeModuleShape(moduleNamespace.runtime)
+			? moduleNamespace.runtime
+			: isCustomRuntimeModuleShape(moduleNamespace)
+				? moduleNamespace
+				: null;
+
+	if (runtimeCandidate === null) {
 		throw new Error(
-			`Custom harness path selectors are not implemented yet: ${harnessSpecifier.value} -> ${harnessSpecifier.resolvedPath}`,
+			`Custom harness module did not expose a valid createHarness(...) export: ${harnessSpecifier.value}`,
 		);
 	}
 
-	throw new Error(
-		`Custom harness package selectors are not implemented yet: ${harnessSpecifier.value} -> ${harnessSpecifier.resolvedPath}`,
-	);
+	const name =
+		typeof runtimeCandidate.name === "string" &&
+		runtimeCandidate.name.length > 0
+			? runtimeCandidate.name
+			: deriveCustomRuntimeName(harnessSpecifier);
+	const mutateCompilerArguments =
+		typeof runtimeCandidate.mutateCompilerArguments === "function"
+			? runtimeCandidate.mutateCompilerArguments.bind(runtimeCandidate)
+			: () => {};
+
+	return {
+		name,
+		mutateCompilerArguments,
+		createHarness: runtimeCandidate.createHarness.bind(runtimeCandidate),
+	};
+}
+
+async function loadCustomRuntime(
+	harnessSpecifier: Exclude<ResolvedHarnessSpecifier, { kind: "builtin" }>,
+) {
+	try {
+		const moduleNamespace = (await import(
+			pathToFileURL(harnessSpecifier.resolvedPath).href
+		)) as Record<string, unknown>;
+		return normalizeCustomRuntimeModule(harnessSpecifier, moduleNamespace);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		throw new Error(
+			`Custom harness module could not be loaded: ${harnessSpecifier.value}. ${message}`,
+		);
+	}
 }
 
 export async function resolveRuntime(
@@ -158,6 +227,10 @@ export async function resolveRuntime(
 ): Promise<Runtime> {
 	const harnessSpecifier = resolveHarnessSpecifier(host, cwd);
 	assertSupportedRuntime(host, cwd);
+
+	if (harnessSpecifier.kind !== "builtin") {
+		return loadCustomRuntime(harnessSpecifier);
+	}
 
 	if (harnessSpecifier.value === "js") {
 		return jsRuntime;
