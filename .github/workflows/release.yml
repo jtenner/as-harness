@@ -120,6 +120,20 @@ jobs:
           path: ./dist/npm-release-artifacts
           pattern: npm-package-artifacts-*
 
+      - name: Verify npm trusted publishing prerequisites
+        run: |
+          node -v
+          npm -v
+          npm config get registry
+          echo "ACTIONS_ID_TOKEN_REQUEST_URL=${ACTIONS_ID_TOKEN_REQUEST_URL:+set}"
+          echo "ACTIONS_ID_TOKEN_REQUEST_TOKEN=${ACTIONS_ID_TOKEN_REQUEST_TOKEN:+set}"
+          node -e 'const [major, minor, patch] = process.versions.node.split(".").map(Number); if (major < 22 || (major === 22 && (minor < 14))) { throw new Error(`Trusted publishing requires Node >= 22.14.0; got ${process.versions.node}`); }'
+          node -e 'const { execFileSync } = require("node:child_process"); const npmVersion = execFileSync(process.platform === "win32" ? "npm.cmd" : "npm", ["-v"], { encoding: "utf8" }).trim(); const [major, minor, patch] = npmVersion.split(".").map(Number); if (major < 11 || (major === 11 && (minor < 5 || (minor === 5 && patch < 1)))) { throw new Error(`Trusted publishing requires npm >= 11.5.1; got ${npmVersion}`); }'
+          if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ] || [ -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
+            echo "Missing GitHub Actions OIDC request environment for npm trusted publishing."
+            exit 1
+          fi
+
       - name: Publish npm packages in dependency order
         run: bun run npm:publish-release -- --artifact-dir ./dist/npm-release-artifacts --tag latest
 
