@@ -434,6 +434,32 @@ function resolveRuntimeBinaryPackageName(
 	return null;
 }
 
+function resolveRuntimeBinaryPackageNames(
+	tarballs: Map<string, TarballInfo>,
+	runtimeName: "wazero" | "wasmtime",
+) {
+	return [...tarballs.keys()].filter(
+		(packageName) =>
+			packageName.startsWith(`@as-harness/${runtimeName}-`) &&
+			packageName !== `@as-harness/${runtimeName}`,
+	);
+}
+
+async function removeInstalledRuntimeBinaryPackages(
+	projectDirectory: string,
+	tarballs: Map<string, TarballInfo>,
+	runtimeName: "wazero" | "wasmtime",
+) {
+	await Promise.all(
+		resolveRuntimeBinaryPackageNames(tarballs, runtimeName).map((packageName) =>
+			rm(join(projectDirectory, "node_modules", ...packageName.split("/")), {
+				force: true,
+				recursive: true,
+			}),
+		),
+	);
+}
+
 async function runCliSmokeScenario(
 	name: string,
 	projectDirectory: string,
@@ -557,28 +583,57 @@ async function runMissingNativeScenario(
 	runtimeName: "wazero" | "wasmtime",
 ) {
 	const commands: CommandReport[] = [];
+	const entryFile = await writeCliSmokeFixture(projectDirectory);
+	const runtimeBinaryPackageName = resolveRuntimeBinaryPackageName(
+		tarballs,
+		runtimeName,
+	);
 	const installReport = await runCommand(
 		[
 			...resolveNpmCommand(),
 			"install",
 			...installTarballPaths(tarballs, [
 				"@as-harness/shared",
+				"@as-harness/js",
+				"@as-harness/cli",
 				`@as-harness/${runtimeName}`,
+				runtimeBinaryPackageName ?? "",
 			]),
+			...assemblyscriptPeerInstallPaths(),
 		],
 		projectDirectory,
 	);
 	commands.push(installReport);
 	assertSuccessfulCommand(installReport, `${name} install`);
 
-	const requireReport = await runCommand(
-		[...resolveNodeCommand(), "-e", `require("@as-harness/${runtimeName}")`],
+	await removeInstalledRuntimeBinaryPackages(
+		projectDirectory,
+		tarballs,
+		runtimeName,
+	);
+
+	const versionReport = await runCommand(
+		[...resolveNodeCommand(), CLI_ENTRYPOINT, "--version"],
 		projectDirectory,
 	);
-	commands.push(requireReport);
-	assertFailedCommand(requireReport, `${name} require`);
+	commands.push(versionReport);
+	assertSuccessfulCommand(versionReport, `${name} node --version`);
+
+	const runReport = await runCommand(
+		[
+			...resolveNodeCommand(),
+			CLI_ENTRYPOINT,
+			"run",
+			"--harness",
+			runtimeName,
+			entryFile,
+		],
+		projectDirectory,
+	);
+	commands.push(runReport);
+	assertFailedCommand(runReport, `${name} node run`);
 	assertContains(
-		[requireReport.stdout, requireReport.stderr].filter(Boolean).join("\n"),
+		[runReport.stdout, runReport.stderr].filter(Boolean).join("\n"),
 		`No native ${runtimeName} package is installed`,
 		`${name} output`,
 	);
@@ -621,9 +676,7 @@ async function main() {
 
 		for (const harness of ["js", "wazero", "wasmtime"] as const) {
 			const runners =
-				harness === "js" && selection === "all"
-					? (["node", "bun"] as const)
-					: (["node"] as const);
+				selection === "all" ? (["node", "bun"] as const) : (["node"] as const);
 			for (const runner of runners) {
 				const projectDirectory = await createTempProject(
 					`as-harness-npm-${harness}-${runner}-`,

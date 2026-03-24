@@ -74,6 +74,7 @@ For contributor validation, the repo now uses two distinct execution proofs:
 
 The repo also now stages npm package payloads locally and proves them with:
 
+- `bun run release:verify`
 - `bun run npm:stage`
 - `bun run npm:verify`
 - `bun run npm:install-smoke`
@@ -147,6 +148,7 @@ bun test
 cd harness/js && npm test
 cd harness/wazero && npm test
 cd harness/wasmtime && npm test
+bun run release:verify
 bun run npm:stage
 bun run npm:verify
 bun run npm:install-smoke
@@ -176,9 +178,13 @@ lane includes `@as-harness/shared`, `@as-harness/js`,
 optional per-platform `wazero-*` and `wasmtime-*` native packages. On
 the release matrix, `linux-x64` currently builds all packages while the other
 platform jobs build the full common package surface plus their host-native
-package slice. Release publication is intended to use npm trusted publishing
-from the `release.yml` GitHub Actions workflow rather than a shared
-`NPM_TOKEN` secret.
+package slice. `bun run release:verify` now machine-checks that the repo's
+release workflow, source-host matrix, trusted-publishing contract, and
+annotated-tag notes path stay aligned before publish. Release publication uses
+npm trusted publishing from the `release.yml` GitHub Actions workflow rather
+than a shared `NPM_TOKEN` secret, and the full `linux-x64` release slice now
+proves clean temp-project installs under both Node and Bun for `js`,
+`wazero`, and `wasmtime`.
 
 ## Versioning Policy
 

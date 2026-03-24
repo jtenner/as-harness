@@ -2,7 +2,7 @@
 
 import { readdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { SUPPORTED_NATIVE_TARGETS } from "./stage-npm-packages";
+import { expectedReleasePackageNames } from "./release-contract";
 
 const REPO_DIR = join(import.meta.dir, "..");
 const DEFAULT_ARTIFACT_DIR = join(REPO_DIR, "dist", "npm-release-artifacts");
@@ -188,18 +188,6 @@ async function loadPackageArtifacts(artifactDir: string) {
 	return packages;
 }
 
-function expectedPackageNames() {
-	return [
-		...COMMON_PACKAGE_ORDER,
-		...SUPPORTED_NATIVE_TARGETS.map(
-			(target) => `@as-harness/wazero-${target.packageSuffix}`,
-		),
-		...SUPPORTED_NATIVE_TARGETS.map(
-			(target) => `@as-harness/wasmtime-${target.packageSuffix}`,
-		),
-	];
-}
-
 function assertRequiredPackagesPresent(
 	packages: Map<string, PackageArtifact>,
 	allowMissingPackages: boolean,
@@ -208,7 +196,7 @@ function assertRequiredPackagesPresent(
 		return;
 	}
 
-	const missingPackageNames = expectedPackageNames().filter(
+	const missingPackageNames = expectedReleasePackageNames().filter(
 		(packageName) => !packages.has(packageName),
 	);
 	if (missingPackageNames.length === 0) {

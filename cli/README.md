@@ -22,7 +22,8 @@ Public installable distribution is npm-only. The published CLI expects
 
 ## Remaining Limits
 
-- full historical release proof across every hosted runner
+- async/Promise-based guest APIs remain unsupported
+- thin adapters stay intentionally narrow
 
 ## Runtime Model
 

@@ -13,6 +13,7 @@
 		"npm:install-smoke": "bun run ./scripts/verify-npm-install-smoke.ts",
 		"npm:stage": "bun run ./scripts/stage-npm-packages.ts",
 		"npm:verify": "bun run ./scripts/verify-npm-packages.ts",
+		"release:verify": "bun run ./scripts/verify-release-config.ts",
 		"test": "bun run ./scripts/test.ts",
 		"validate": "bun run ./scripts/validate.ts",
 		"verify:source-hosts": "bun run ./scripts/verify-source-hosts.ts"

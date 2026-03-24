@@ -20,3 +20,8 @@ console.log("Checking generated legal inventories...");
 await $`bun run ${rootDir}/scripts/check-legal.ts`;
 
 console.log("Generated legal inventory checks passed.");
+console.log("Checking release workflow and publishing contract...");
+
+await $`bun run ${rootDir}/scripts/verify-release-config.ts`;
+
+console.log("Release workflow and publishing contract checks passed.");

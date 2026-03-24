@@ -58,6 +58,7 @@ bun test
 cd harness/js && npm test
 cd harness/wazero && npm test
 cd harness/wasmtime && npm test
+bun run release:verify
 bun run npm:stage
 bun run npm:verify
 bun run npm:install-smoke
@@ -68,11 +69,14 @@ proof:
 - `verify:source-hosts` builds a Node-targeted CLI bundle and runs that bundle
   under the configured Node baseline so native source hosts are exercised
   without depending on Bun's direct Windows native-addon path
+- `release:verify` checks that the release workflow still matches the checked-in
+  source-host matrix, trusted-publishing package contract, and annotated-tag
+  notes path before a tag enters the publish lane
 - `npm:verify` inspects the staged npm package payloads with
   `npm pack --dry-run --json`
 - `npm:install-smoke` installs the staged tarballs into clean temp projects and
   proves the staged CLI and runtime packages under Node for all staged
-  runtimes, Bun for the JS harness, and the consumer-installed
+  runtimes, Bun for the full staged-runtime lane on `linux-x64`, and the consumer-installed
   `assemblyscript` peer contract
 - `npm:pack-release` creates publishable tarballs from the staged package set,
   and `npm:publish-release` publishes the collected cross-platform tarballs in
@@ -92,6 +96,8 @@ bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-hos
 - repo validation
 - root Bun tests
 - full source-host matrix through the Node-targeted source CLI bundle
+- checked release workflow/trusted-publishing/tag-notes contract before matrixed pack
+  and publish work begins
 - staged npm pack validation and clean temp-project npm install smoke now run on
   the release host matrix before the workflow publishes npm packages in
   dependency order
@@ -99,8 +105,9 @@ bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-hos
   registry so a partial first publish can resume instead of failing on immutable
   versions
 - each published npm package must have a trusted publisher entry matching the
-  `release.yml` workflow filename on npmjs.com before the OIDC publish step
-  will authenticate
+  package list emitted by `bun run release:verify` and the
+  `.github/workflows/release.yml` workflow path on npmjs.com before the OIDC
+  publish step will authenticate
 - notes-only GitHub release creation from the annotated tag contents after npm
   publication succeeds
 
@@ -119,10 +126,10 @@ Pre-`v1` release semantics:
 ## Failure triage
 
 - npm publish failure: inspect the staged package reports, the trusted publisher
-  settings for the target package, and the workflow `id-token: write`
-  permission first
+  settings for the target package, `bun run release:verify`, and the workflow
+  `id-token: write` permission first
 - GitHub release page failure: confirm the pushed tag is annotated and carries
-  the intended summary text
+  the intended summary text, then rerun `bun run release:verify -- --tag vX.Y.Z`
 - source-host smoke failure on Windows: confirm the generated Node-targeted CLI
   bundle path and `AS_HARNESS_SOURCE_CLI_REPO_DIR` wiring before blaming the
   native host package

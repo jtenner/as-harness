@@ -25,9 +25,14 @@
   peer dependency for the CLI package.
 - `verify-npm-packages.ts` — run `npm pack --dry-run --json` against the staged
   npm package set and emit package payload reports.
+- `release-contract.ts` — shared release workflow, package, and trusted-publisher
+  contract constants used by publish and verification scripts.
+- `verify-release-config.ts` — machine-check that the release workflow, source-host
+  matrix, trusted-publishing package list, and annotated-tag notes path stay aligned.
 - `verify-npm-install-smoke.ts` — install the staged package tarballs into clean
   temp projects, smoke the CLI under Node for all staged runtimes plus Bun for
-  the JS harness, prove the local `assemblyscript` peer path, and prove
+  the full staged-runtime lane on the release host, prove the local
+  `assemblyscript` peer path, and prove
   missing peer/native packages fail clearly.
 - `pack-npm-packages.ts` — stage and pack release npm tarballs, writing an
   artifact manifest for the publish step.
@@ -48,9 +53,11 @@
   Node-targeted CLI bundle for native-host smoke
 - staged npm package payload shape plus `npm pack --dry-run` publish proof for
   the current shared, JS, and native runtime package slices
+- checked release workflow and trusted-publishing contract alignment before a
+  tag enters the publish lane
 - clean temp-project install smoke for the staged npm package set plus explicit
-  missing-peer and missing-native-package failure proof; Bun install smoke stays
-  on the JS harness while native Bun coverage remains package-local
+  missing-peer and missing-native-package failure proof; the full release slice
+  now proves `js`, `wazero`, and `wasmtime` under both Node and Bun
 - cross-platform npm release tarball packing and ordered publication from the
   tag workflow
 
@@ -62,6 +69,7 @@ bun validate
 bun run legal:check
 bun run legal:sync:notices
 bun run legal:sync:wasmtime
+bun run release:verify
 bun run npm:pack-release
 bun run npm:publish-release -- --dry-run --allow-missing-packages
 bun run npm:stage

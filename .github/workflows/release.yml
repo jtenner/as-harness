@@ -16,11 +16,16 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Set up mise toolchain
         uses: jdx/mise-action@v4
         with:
           install_args: bun
+
+      - name: Verify release workflow contract
+        run: bun run release:verify -- --tag "${GITHUB_REF_NAME}"
 
       - name: Emit npm matrix
         id: npm-matrix
