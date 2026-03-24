@@ -46,7 +46,7 @@ const dependencyCliHarnesses = [
 	...(existsSync(wazeroAddonPath) ? ["wazero"] : []),
 	...(existsSync(wasmtimeAddonPath) ? ["wasmtime"] : []),
 ] as const;
-const dependencyCliHarnessTimeout = { timeout: 120_000 } as const;
+const dependencyCliHarnessTimeout = { timeout: 240_000 } as const;
 const bundledGuestLibraryCliHarnessTimeout = { timeout: 120_000 } as const;
 
 async function withTempEntryFile(

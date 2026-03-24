@@ -72,7 +72,7 @@ jobs:
         run: bun run npm:verify -- --output-dir "${NPM_OUTPUT_DIR}" --report-dir "${NPM_REPORT_DIR}"
 
       - name: Run staged npm install smoke
-        run: bun run npm:install-smoke -- --output-dir "${NPM_OUTPUT_DIR}" --report-dir "${NPM_INSTALL_SMOKE_REPORT_DIR}"
+        run: bun run npm:install-smoke -- --output-dir "${NPM_OUTPUT_DIR}" --report-dir "${NPM_INSTALL_SMOKE_REPORT_DIR}" --selection "${NPM_PACKAGE_SELECTION}"
 
       - name: Pack release npm tarballs
         run: bun run npm:pack-release -- --output-dir "${NPM_OUTPUT_DIR}" --artifact-dir "${NPM_ARTIFACT_DIR}" --selection "${NPM_PACKAGE_SELECTION}"

@@ -181,6 +181,7 @@ main().catch((error) => {
 type ParsedArguments = {
 	outputDir: string;
 	reportDir: string;
+	selection: "all" | "native";
 };
 
 type CommandReport = {
@@ -211,6 +212,7 @@ type CommandRunnerResult = Omit<CommandReport, "command" | "cwd"> & {
 function parseArguments(argv: string[]): ParsedArguments {
 	let outputDir = DEFAULT_OUTPUT_DIR;
 	let reportDir = DEFAULT_REPORT_DIR;
+	let selection: ParsedArguments["selection"] = "all";
 
 	for (let index = 0; index < argv.length; index += 1) {
 		const argument = argv[index];
@@ -227,10 +229,21 @@ function parseArguments(argv: string[]): ParsedArguments {
 			continue;
 		}
 
+		if (argument === "--selection") {
+			const value = argv[index + 1];
+			if (value === "all" || value === "native") {
+				selection = value;
+				index += 1;
+				continue;
+			}
+
+			throw new Error(`Unknown --selection value: ${value}`);
+		}
+
 		throw new Error(`Unknown argument: ${argument}`);
 	}
 
-	return { outputDir, reportDir };
+	return { outputDir, reportDir, selection };
 }
 
 function npmExecutable() {
@@ -297,15 +310,20 @@ async function runCommand(
 		});
 		child.on("close", (exitCode) => {
 			try {
-				if (exitCode !== 0) {
-					throw new Error(
-						stderr || `Node command runner exited with code ${exitCode ?? 1}.`,
-					);
-				}
-
 				const result = JSON.parse(stdout) as CommandRunnerResult;
 				if (result.errorMessage) {
 					throw new Error(result.errorMessage);
+				}
+				if (exitCode !== 0) {
+					throw new Error(
+						[
+							`Node command runner exited with code ${exitCode ?? 1}.`,
+							result.stdout ? `stdout:\n${result.stdout}` : "",
+							result.stderr ? `stderr:\n${result.stderr}` : "",
+						]
+							.filter(Boolean)
+							.join("\n\n"),
+					);
 				}
 
 				resolve({
@@ -642,7 +660,9 @@ function renderMarkdownSummary(scenarios: ScenarioReport[]) {
 }
 
 async function main() {
-	const { outputDir, reportDir } = parseArguments(process.argv.slice(2));
+	const { outputDir, reportDir, selection } = parseArguments(
+		process.argv.slice(2),
+	);
 	assertAssemblyscriptPeerFixturesAvailable();
 	const stagedPackages = await stageNpmPackages(outputDir);
 	const tarballs = new Map<string, TarballInfo>();
@@ -658,7 +678,9 @@ async function main() {
 
 		for (const harness of ["js", "wazero", "wasmtime"] as const) {
 			const runners =
-				harness === "js" ? (["node", "bun"] as const) : (["node"] as const);
+				harness === "js" && selection === "all"
+					? (["node", "bun"] as const)
+					: (["node"] as const);
 			for (const runner of runners) {
 				const projectDirectory = await createTempProject(
 					`as-harness-npm-${harness}-${runner}-`,
