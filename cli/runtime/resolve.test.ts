@@ -177,6 +177,72 @@ test("resolveHarnessSpecifier reports missing custom harness paths and packages 
 	}
 });
 
+test("resolveHarnessSpecifier rejects reserved protocol selectors before package resolution", () => {
+	const projectDirectory = mkdtempSync(
+		join(tmpdir(), "as-harness-custom-runtime-protocol-"),
+	);
+
+	try {
+		expect(() => resolveHarnessSpecifier("node:fs", projectDirectory)).toThrow(
+			"Custom harness selector uses a reserved protocol and must stay local: node:fs",
+		);
+		expect(() =>
+			resolveHarnessSpecifier("bun:sqlite", projectDirectory),
+		).toThrow(
+			"Custom harness selector uses a reserved protocol and must stay local: bun:sqlite",
+		);
+		expect(() =>
+			resolveHarnessSpecifier(
+				"https://example.com/harness.mjs",
+				projectDirectory,
+			),
+		).toThrow(
+			"Custom harness selector uses a reserved protocol and must stay local: https://example.com/harness.mjs",
+		);
+	} finally {
+		rmSync(projectDirectory, { force: true, recursive: true });
+	}
+});
+
+test("resolveHarnessSpecifier rejects directory targets for custom harness paths", () => {
+	const projectDirectory = mkdtempSync(
+		join(tmpdir(), "as-harness-custom-runtime-directory-"),
+	);
+
+	try {
+		mkdirSync(join(projectDirectory, "tools"), { recursive: true });
+
+		expect(() => resolveHarnessSpecifier("./tools", projectDirectory)).toThrow(
+			"Custom harness path resolved to a directory, expected a file: ./tools",
+		);
+	} finally {
+		rmSync(projectDirectory, { force: true, recursive: true });
+	}
+});
+
+test("resolveHarnessSpecifier rejects unsupported custom harness extensions", () => {
+	const projectDirectory = mkdtempSync(
+		join(tmpdir(), "as-harness-custom-runtime-extension-"),
+	);
+
+	try {
+		mkdirSync(join(projectDirectory, "tools"), { recursive: true });
+		writeFileSync(
+			join(projectDirectory, "tools", "custom-harness.txt"),
+			"not a harness",
+			"utf8",
+		);
+
+		expect(() =>
+			resolveHarnessSpecifier("./tools/custom-harness.txt", projectDirectory),
+		).toThrow(
+			"Custom harness path uses an unsupported extension: ./tools/custom-harness.txt (expected .js, .cjs, .mjs, .node, or .ts)",
+		);
+	} finally {
+		rmSync(projectDirectory, { force: true, recursive: true });
+	}
+});
+
 test("assertSupportedRuntime accepts resolved custom selector classes", () => {
 	const projectDirectory = mkdtempSync(
 		join(tmpdir(), "as-harness-custom-runtime-assert-"),

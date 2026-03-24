@@ -17,7 +17,11 @@ import {
 	type RunReporter,
 } from "./reporter";
 import { jsRuntime } from "./runtime/js";
-import { classifyHarnessSpecifier, resolveRuntime } from "./runtime/resolve";
+import {
+	classifyHarnessSpecifier,
+	HarnessResolutionError,
+	resolveRuntime,
+} from "./runtime/resolve";
 import type { Runtime } from "./runtime/types";
 
 export enum RunExitCode {
@@ -236,7 +240,15 @@ export async function runEntryFiles(
 			...runtime,
 			mutateCompilerArguments(compilerArguments) {
 				jsRuntime.mutateCompilerArguments(compilerArguments);
-				runtime.mutateCompilerArguments(compilerArguments);
+				try {
+					runtime.mutateCompilerArguments(compilerArguments);
+				} catch (error) {
+					const message =
+						error instanceof Error ? error.message : String(error);
+					throw new HarnessResolutionError(
+						`Custom harness mutateCompilerArguments(...) threw: ${runtime.name}. ${message}`,
+					);
+				}
 			},
 		};
 	}
@@ -261,6 +273,14 @@ export async function runEntryFiles(
 		wasmBytes = getWasmArtifactBytes(artifacts);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
+		if (error instanceof HarnessResolutionError) {
+			logger.error(`Harness resolution failed: ${message}`);
+			return {
+				discoveredTestCount: 0,
+				exitCode: RunExitCode.HostFailure,
+			};
+		}
+
 		logger.error(`Compilation failed: ${message}`);
 		return {
 			discoveredTestCount: 0,

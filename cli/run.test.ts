@@ -272,29 +272,31 @@ test("passing test", (_context: TestContext): void => {});
 	);
 });
 
-test("cli run executes passing and failing node:test entry files through the js host", async () => {
-	await withTempEntryFile(
-		`
+test(
+	"cli run executes passing and failing node:test entry files through the js host",
+	async () => {
+		await withTempEntryFile(
+			`
 import { test, TestContext } from "node:test";
 
 test("passing test", (_context: TestContext): void => {});
 `,
-		async (entryFile, cwd) => {
-			const result = await runCliWithArguments(
-				["run", "--harness", "js", entryFile],
-				cwd,
-			);
+			async (entryFile, cwd) => {
+				const result = await runCliWithArguments(
+					["run", "--harness", "js", entryFile],
+					cwd,
+				);
 
-			expect(result.exitCode).toBe(0);
-			expect(result.stderr).toBe("");
-			expect(result.stdout).toContain(
-				"PASS 1 passed, 0 failed, 1 discovered with js.",
-			);
-		},
-	);
+				expect(result.exitCode).toBe(0);
+				expect(result.stderr).toBe("");
+				expect(result.stdout).toContain(
+					"PASS 1 passed, 0 failed, 1 discovered with js.",
+				);
+			},
+		);
 
-	await withTempEntryFile(
-		`
+		await withTempEntryFile(
+			`
 import { test, TestContext } from "node:test";
 
 test("passing test", (context: TestContext): void => {
@@ -308,195 +310,290 @@ test("failing test", (context: TestContext): void => {
   context.assert.strictEqual<i32>(11, 12, "shape mismatch");
 });
 `,
-		async (entryFile, cwd) => {
-			const result = await runCli(entryFile, cwd);
+			async (entryFile, cwd) => {
+				const result = await runCli(entryFile, cwd);
 
-			expect(result.exitCode).toBe(1);
-			expect(result.stdout).toBe("");
-			expect(result.stderr).toContain(
-				"FAIL 1 passed, 1 failed, 2 discovered with js.",
-			);
-			expect(result.stderr).toContain("- failing test");
-			expect(result.stderr).toContain("  fail: shape mismatch");
-			expect(result.stderr).toContain("  diagnostic: failing diagnostic");
-			expect(result.stderr).toContain("  trace: failing trace (12, 13)");
-			expect(result.stderr).not.toContain("passing diagnostic");
-			expect(result.stderr).not.toContain("passing trace");
-		},
-	);
+				expect(result.exitCode).toBe(1);
+				expect(result.stdout).toBe("");
+				expect(result.stderr).toContain(
+					"FAIL 1 passed, 1 failed, 2 discovered with js.",
+				);
+				expect(result.stderr).toContain("- failing test");
+				expect(result.stderr).toContain("  fail: shape mismatch");
+				expect(result.stderr).toContain("  diagnostic: failing diagnostic");
+				expect(result.stderr).toContain("  trace: failing trace (12, 13)");
+				expect(result.stderr).not.toContain("passing diagnostic");
+				expect(result.stderr).not.toContain("passing trace");
+			},
+		);
 
-	await withTempEntryFile(
-		`
+		await withTempEntryFile(
+			`
 import { test } from "node:test";
 
 test("failing abort", (): void => {
   abort("abort payload");
 });
 `,
-		async (entryFile, cwd) => {
-			const result = await runCli(entryFile, cwd);
+			async (entryFile, cwd) => {
+				const result = await runCli(entryFile, cwd);
 
-			expect(result.exitCode).toBe(1);
-			expect(result.stdout).toBe("");
-			expect(result.stderr).toContain(
-				"FAIL 0 passed, 1 failed, 1 discovered with js.",
-			);
-			expect(result.stderr).toContain("- failing abort");
-			expect(result.stderr).toContain(
-				"  abort: abort payload at suite.test.ts:5:3",
-			);
-			expect(result.stderr).toContain(
-				"    crumb: failing abort kind=2 hook=0 nodeKind=1 at suite.test.ts:5:23 [0]",
-			);
-			expect(result.stderr).toContain("  fail: failed without a fail message");
-		},
-	);
+				expect(result.exitCode).toBe(1);
+				expect(result.stdout).toBe("");
+				expect(result.stderr).toContain(
+					"FAIL 0 passed, 1 failed, 1 discovered with js.",
+				);
+				expect(result.stderr).toContain("- failing abort");
+				expect(result.stderr).toContain(
+					"  abort: abort payload at suite.test.ts:5:3",
+				);
+				expect(result.stderr).toContain(
+					"    crumb: failing abort kind=2 hook=0 nodeKind=1 at suite.test.ts:5:23 [0]",
+				);
+				expect(result.stderr).toContain(
+					"  fail: failed without a fail message",
+				);
+			},
+		);
 
-	await withTempEntryFile(
-		`
+		await withTempEntryFile(
+			`
 import { test, TestContext } from "node:test";
 
 test("passing test", (_context: TestContext): void => {});
 `,
-		async (entryFile, cwd) => {
-			const result = await runCliWithArguments(
-				[
-					"run",
-					"--harness",
-					"@as-harness-test/definitely-missing-custom-harness",
-					entryFile,
-				],
-				cwd,
-			);
+			async (entryFile, cwd) => {
+				const result = await runCliWithArguments(
+					[
+						"run",
+						"--harness",
+						"@as-harness-test/definitely-missing-custom-harness",
+						entryFile,
+					],
+					cwd,
+				);
 
-			expect(result.exitCode).toBe(3);
-			expect(result.stdout).toBe("");
-			expect(result.stderr).toContain(
-				`Harness resolution failed: Custom harness package could not be resolved from ${cwd}: @as-harness-test/definitely-missing-custom-harness`,
-			);
-		},
-	);
+				expect(result.exitCode).toBe(3);
+				expect(result.stdout).toBe("");
+				expect(result.stderr).toContain(
+					`Harness resolution failed: Custom harness package could not be resolved from ${cwd}: @as-harness-test/definitely-missing-custom-harness`,
+				);
+			},
+		);
 
-	await withTempEntryFile(
-		`
+		await withTempEntryFile(
+			`
 import { test, TestContext } from "node:test";
 
 test("passing test", (_context: TestContext): void => {});
 `,
-		async (entryFile, cwd) => {
-			const harnessDirectory = join(cwd, "tools");
-			const harnessPath = join(harnessDirectory, "custom-harness.mjs");
-			await mkdir(harnessDirectory, { recursive: true });
-			await writeFile(
-				harnessPath,
-				[
-					'import { createRequire } from "node:module";',
-					"const require = createRequire(import.meta.url);",
-					`const { createHarness } = require(${JSON.stringify(jsHarnessModulePath)});`,
-					'export default { name: "custom-path-js", createHarness };',
-					"",
-				].join("\n"),
-				"utf8",
-			);
+			async (entryFile, cwd) => {
+				const harnessDirectory = join(cwd, "tools");
+				const harnessPath = join(harnessDirectory, "custom-harness.mjs");
+				await mkdir(harnessDirectory, { recursive: true });
+				await writeFile(
+					harnessPath,
+					[
+						'import { createRequire } from "node:module";',
+						"const require = createRequire(import.meta.url);",
+						`const { createHarness } = require(${JSON.stringify(jsHarnessModulePath)});`,
+						'export default { name: "custom-path-js", createHarness };',
+						"",
+					].join("\n"),
+					"utf8",
+				);
 
-			const result = await runCliWithArguments(
-				["run", "--harness", "./tools/custom-harness.mjs", entryFile],
-				cwd,
-			);
+				const result = await runCliWithArguments(
+					["run", "--harness", "./tools/custom-harness.mjs", entryFile],
+					cwd,
+				);
 
-			expect(result.exitCode).toBe(0);
-			expect(result.stderr).toBe("");
-			expect(result.stdout).toContain(
-				"PASS 1 passed, 0 failed, 1 discovered with custom-path-js.",
-			);
-		},
-	);
+				expect(result.exitCode).toBe(0);
+				expect(result.stderr).toBe("");
+				expect(result.stdout).toContain(
+					"PASS 1 passed, 0 failed, 1 discovered with custom-path-js.",
+				);
+			},
+		);
 
-	await withTempEntryFile(
-		`
+		await withTempEntryFile(
+			`
+import { test, TestContext } from "node:test";
+
+test("custom harness failure name", (context: TestContext): void => {
+  context.assert.strictEqual<i32>(11, 12, "custom harness mismatch");
+});
+`,
+			async (entryFile, cwd) => {
+				const harnessDirectory = join(cwd, "tools");
+				const harnessPath = join(harnessDirectory, "custom-fail-harness.mjs");
+				await mkdir(harnessDirectory, { recursive: true });
+				await writeFile(
+					harnessPath,
+					[
+						'import { createRequire } from "node:module";',
+						"const require = createRequire(import.meta.url);",
+						`const { createHarness } = require(${JSON.stringify(jsHarnessModulePath)});`,
+						'export default { name: "custom-fail-js", createHarness };',
+						"",
+					].join("\n"),
+					"utf8",
+				);
+
+				const result = await runCliWithArguments(
+					["run", "--harness", "./tools/custom-fail-harness.mjs", entryFile],
+					cwd,
+				);
+
+				expect(result.exitCode).toBe(1);
+				expect(result.stdout).toBe("");
+				expect(result.stderr).toContain(
+					"FAIL 0 passed, 1 failed, 1 discovered with custom-fail-js.",
+				);
+				expect(result.stderr).toContain("  fail: custom harness mismatch");
+			},
+		);
+
+		await withTempEntryFile(
+			`
 import { test, TestContext } from "node:test";
 
 test("passing test", (_context: TestContext): void => {});
 `,
-		async (entryFile, cwd) => {
-			const packageDirectory = join(cwd, "node_modules", "custom-package-js");
-			await mkdir(packageDirectory, { recursive: true });
-			await writeFile(
-				join(packageDirectory, "package.json"),
-				JSON.stringify({
-					name: "custom-package-js",
-					main: "./index.cjs",
-				}),
-				"utf8",
-			);
-			await writeFile(
-				join(packageDirectory, "index.cjs"),
-				[
-					'const { createRequire } = require("node:module");',
-					"const requireFromHere = createRequire(__filename);",
-					`const { createHarness } = requireFromHere(${JSON.stringify(jsHarnessModulePath)});`,
-					'exports.runtime = { name: "custom-package-js", createHarness };',
-					"",
-				].join("\n"),
-				"utf8",
-			);
+			async (entryFile, cwd) => {
+				const packageDirectory = join(cwd, "node_modules", "custom-package-js");
+				await mkdir(packageDirectory, { recursive: true });
+				await writeFile(
+					join(packageDirectory, "package.json"),
+					JSON.stringify({
+						name: "custom-package-js",
+						main: "./index.cjs",
+					}),
+					"utf8",
+				);
+				await writeFile(
+					join(packageDirectory, "index.cjs"),
+					[
+						'const { createRequire } = require("node:module");',
+						"const requireFromHere = createRequire(__filename);",
+						`const { createHarness } = requireFromHere(${JSON.stringify(jsHarnessModulePath)});`,
+						'exports.runtime = { name: "custom-package-js", createHarness };',
+						"",
+					].join("\n"),
+					"utf8",
+				);
 
-			const result = await runCliWithArguments(
-				["run", "--harness", "custom-package-js", entryFile],
-				cwd,
-			);
+				const result = await runCliWithArguments(
+					["run", "--harness", "custom-package-js", entryFile],
+					cwd,
+				);
 
-			expect(result.exitCode).toBe(0);
-			expect(result.stderr).toBe("");
-			expect(result.stdout).toContain(
-				"PASS 1 passed, 0 failed, 1 discovered with custom-package-js.",
-			);
-		},
-	);
+				expect(result.exitCode).toBe(0);
+				expect(result.stderr).toBe("");
+				expect(result.stdout).toContain(
+					"PASS 1 passed, 0 failed, 1 discovered with custom-package-js.",
+				);
+			},
+		);
 
-	await withTempEntryFile(
-		`
+		await withTempEntryFile(
+			`
+import { test, TestContext } from "node:test";
+
+test("passing test", (_context: TestContext): void => {});
+`,
+			async (entryFile, cwd) => {
+				const harnessDirectory = join(cwd, "tools");
+				const harnessPath = join(
+					harnessDirectory,
+					"throwing-compile-runtime.mjs",
+				);
+				await mkdir(harnessDirectory, { recursive: true });
+				await writeFile(
+					harnessPath,
+					[
+						'import { createRequire } from "node:module";',
+						"const require = createRequire(import.meta.url);",
+						`const { createHarness } = require(${JSON.stringify(jsHarnessModulePath)});`,
+						"export default {",
+						'  name: "throwing-compile-js",',
+						"  mutateCompilerArguments() {",
+						'    throw new Error("custom compile hook exploded");',
+						"  },",
+						"  createHarness,",
+						"};",
+						"",
+					].join("\n"),
+					"utf8",
+				);
+
+				const result = await runCliWithArguments(
+					[
+						"run",
+						"--harness",
+						"./tools/throwing-compile-runtime.mjs",
+						entryFile,
+					],
+					cwd,
+				);
+
+				expect(result.exitCode).toBe(3);
+				expect(result.stdout).toBe("");
+				expect(result.stderr).toContain(
+					"Harness resolution failed: Custom harness mutateCompilerArguments(...) threw: throwing-compile-js. custom compile hook exploded",
+				);
+				expect(result.stderr).not.toContain("Compilation failed:");
+			},
+		);
+
+		await withTempEntryFile(
+			`
 import { test, TestContext } from "node:test";
 
 test("passing test", (context: TestContext): void => {
   context.assert.strictEqual<i32>(CUSTOM_RUNTIME_FLAG, 7);
 });
 `,
-		async (entryFile, cwd) => {
-			const harnessDirectory = join(cwd, "tools");
-			const harnessPath = join(harnessDirectory, "custom-compile-runtime.mjs");
-			await mkdir(harnessDirectory, { recursive: true });
-			await writeFile(
-				harnessPath,
-				[
-					'import { createRequire } from "node:module";',
-					"const require = createRequire(import.meta.url);",
-					`const { createHarness } = require(${JSON.stringify(jsHarnessModulePath)});`,
-					"export default {",
-					'  name: "custom-compile-js",',
-					"  mutateCompilerArguments(compilerArguments) {",
-					'    compilerArguments.push("--use", "CUSTOM_RUNTIME_FLAG=7");',
-					"  },",
-					"  createHarness,",
-					"};",
-					"",
-				].join("\n"),
-				"utf8",
-			);
+			async (entryFile, cwd) => {
+				const harnessDirectory = join(cwd, "tools");
+				const harnessPath = join(
+					harnessDirectory,
+					"custom-compile-runtime.mjs",
+				);
+				await mkdir(harnessDirectory, { recursive: true });
+				await writeFile(
+					harnessPath,
+					[
+						'import { createRequire } from "node:module";',
+						"const require = createRequire(import.meta.url);",
+						`const { createHarness } = require(${JSON.stringify(jsHarnessModulePath)});`,
+						"export default {",
+						'  name: "custom-compile-js",',
+						"  mutateCompilerArguments(compilerArguments) {",
+						'    compilerArguments.push("--use", "CUSTOM_RUNTIME_FLAG=7");',
+						"  },",
+						"  createHarness,",
+						"};",
+						"",
+					].join("\n"),
+					"utf8",
+				);
 
-			const result = await runCliWithArguments(
-				["run", "--harness", "./tools/custom-compile-runtime.mjs", entryFile],
-				cwd,
-			);
+				const result = await runCliWithArguments(
+					["run", "--harness", "./tools/custom-compile-runtime.mjs", entryFile],
+					cwd,
+				);
 
-			expect(result.exitCode).toBe(0);
-			expect(result.stderr).toBe("");
-			expect(result.stdout).toContain(
-				"PASS 1 passed, 0 failed, 1 discovered with custom-compile-js.",
-			);
-		},
-	);
-});
+				expect(result.exitCode).toBe(0);
+				expect(result.stderr).toBe("");
+				expect(result.stdout).toContain(
+					"PASS 1 passed, 0 failed, 1 discovered with custom-compile-js.",
+				);
+			},
+		);
+	},
+	{ timeout: 15_000 },
+);
 
 test("cli run executes uvu fixture and snapshot helpers through the js host", async () => {
 	await withTempEntryFile(
