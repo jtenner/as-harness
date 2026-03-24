@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-03-24
+
+- **docs: plan custom harness loading for the CLI** Add a dedicated research note for `--harness` expansion so the CLI can accept built-in aliases plus relative paths, absolute paths, and consuming-project package specifiers for custom hosts; define the module contract, compile/runtime split, `.ts` Bun-only compatibility rule, diagnostics, and proof expectations; and add sliced `CH-001` through `CH-008` backlog items in `agent-todo.md` that point directly at the new planning doc for implementation follow-through. GitHub: *@jtenner*
+
 ## 2026-03-23
 
 - **release: skip already-published npm versions on publish reruns** Make `publish-npm-packages.ts` query the registry for each staged `name@version` before calling `npm publish` and skip immutable versions that are already present, so a partially successful `v0.5.1` release can resume on the next CI run instead of failing on the first package that already made it to npm. GitHub: *@jtenner*
