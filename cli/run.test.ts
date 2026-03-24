@@ -353,14 +353,44 @@ test("passing test", (_context: TestContext): void => {});
 `,
 		async (entryFile, cwd) => {
 			const result = await runCliWithArguments(
-				["run", "--harness", "nope", entryFile],
+				[
+					"run",
+					"--harness",
+					"@as-harness-test/definitely-missing-custom-harness",
+					entryFile,
+				],
 				cwd,
 			);
 
 			expect(result.exitCode).toBe(3);
 			expect(result.stdout).toBe("");
 			expect(result.stderr).toContain(
-				"Harness resolution failed: Custom harness package selectors are not implemented yet: nope",
+				`Harness resolution failed: Custom harness package could not be resolved from ${cwd}: @as-harness-test/definitely-missing-custom-harness`,
+			);
+		},
+	);
+
+	await withTempEntryFile(
+		`
+import { test, TestContext } from "node:test";
+
+test("passing test", (_context: TestContext): void => {});
+`,
+		async (entryFile, cwd) => {
+			const harnessDirectory = join(cwd, "tools");
+			const harnessPath = join(harnessDirectory, "custom-harness.js");
+			await mkdir(harnessDirectory, { recursive: true });
+			await writeFile(harnessPath, "module.exports = {};\n", "utf8");
+
+			const result = await runCliWithArguments(
+				["run", "--harness", "./tools/custom-harness.js", entryFile],
+				cwd,
+			);
+
+			expect(result.exitCode).toBe(3);
+			expect(result.stdout).toBe("");
+			expect(result.stderr).toContain(
+				`Harness resolution failed: Custom harness path selectors are not implemented yet: ./tools/custom-harness.js -> ${harnessPath}`,
 			);
 		},
 	);

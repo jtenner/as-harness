@@ -219,7 +219,7 @@ export async function runEntryFiles(
 		compileRuntime = runtimeSelection;
 	} else {
 		try {
-			assertSupportedRuntime(runtimeSelection);
+			assertSupportedRuntime(runtimeSelection, cwd);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			logger.error(`Harness resolution failed: ${message}`);
@@ -265,7 +265,7 @@ export async function runEntryFiles(
 	try {
 		runtime =
 			typeof runtimeSelection === "string"
-				? await resolveRuntime(runtimeSelection)
+				? await resolveRuntime(runtimeSelection, cwd)
 				: runtimeSelection;
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);

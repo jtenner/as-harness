@@ -16,8 +16,6 @@
 
 ### Custom Harness Loading
 
-- CH-002 Resolve relative, absolute, and package harness specifiers from the
-  invoking project [docs/027-2026-03-24-custom-harness-loading-plan.md:132](./docs/027-2026-03-24-custom-harness-loading-plan.md)
 - CH-003 Normalize custom modules onto the shipped runtime contract
   [docs/027-2026-03-24-custom-harness-loading-plan.md:136](./docs/027-2026-03-24-custom-harness-loading-plan.md)
 - CH-004 Split compile defaults from built-in-only runtime validation
