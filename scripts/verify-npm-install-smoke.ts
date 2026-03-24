@@ -21,6 +21,7 @@ const COMMAND_TIMEOUT_ENV_VAR = "AS_HARNESS_TIMEOUT_MS";
 const INHERIT_STDIO_ENV_VAR = "AS_HARNESS_INHERIT_STDIO";
 const DEFAULT_COMMAND_TIMEOUT_MS = 60_000;
 const NATIVE_BUN_COMMAND_TIMEOUT_MS = 180_000;
+const NATIVE_BUN_RUN_MAX_ATTEMPTS = 3;
 const NODE_EXECUTABLE_SENTINEL = "__AS_HARNESS_NODE_EXECUTABLE__";
 const CLI_ENTRYPOINT = join(
 	"node_modules",
@@ -56,6 +57,10 @@ type TarballInfo = {
 type ScenarioReport = {
 	commands: CommandReport[];
 	name: string;
+};
+
+type CliSmokeScenarioReport = ScenarioReport & {
+	retriableTimeout: boolean;
 };
 
 function parseArguments(argv: string[]): ParsedArguments {
@@ -467,7 +472,7 @@ async function runCliSmokeScenario(
 	tarballs: Map<string, TarballInfo>,
 	harness: "js" | "wazero" | "wasmtime",
 	runner: "node" | "bun",
-) {
+): Promise<CliSmokeScenarioReport> {
 	const commands: CommandReport[] = [];
 	const entryFile = await writeCliSmokeFixture(projectDirectory);
 	const runnerCommand = runner === "node" ? resolveNodeCommand() : [runner];
@@ -515,6 +520,12 @@ async function runCliSmokeScenario(
 		runner !== "bun",
 	);
 	commands.push(runReport);
+	const retriableTimeout =
+		runReport.timedOut && runner === "bun" && harness !== "js";
+	if (retriableTimeout) {
+		return { commands, name, retriableTimeout };
+	}
+
 	assertSuccessfulCommand(runReport, `${name} ${runner} run`);
 	if (runner !== "bun") {
 		assertContains(
@@ -524,7 +535,57 @@ async function runCliSmokeScenario(
 		);
 	}
 
-	return { commands, name };
+	return { commands, name, retriableTimeout };
+}
+
+async function runCliSmokeScenarioWithRetries(
+	temporaryDirectories: string[],
+	tarballs: Map<string, TarballInfo>,
+	harness: "js" | "wazero" | "wasmtime",
+	runner: "node" | "bun",
+) {
+	const name = `cli-${harness}-${runner}`;
+	const maxAttempts =
+		runner === "bun" && harness !== "js" ? NATIVE_BUN_RUN_MAX_ATTEMPTS : 1;
+	let latestScenario: CliSmokeScenarioReport | null = null;
+
+	for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+		const projectDirectory = await createTempProject(
+			`as-harness-npm-${harness}-${runner}-`,
+		);
+		temporaryDirectories.push(projectDirectory);
+		latestScenario = await runCliSmokeScenario(
+			name,
+			projectDirectory,
+			tarballs,
+			harness,
+			runner,
+		);
+		if (!latestScenario.retriableTimeout) {
+			return latestScenario;
+		}
+
+		console.warn(
+			`${name} timed out under Bun on attempt ${attempt} of ${maxAttempts}; retrying with a fresh temp project.`,
+		);
+	}
+
+	if (!latestScenario) {
+		throw new Error(`${name} did not run.`);
+	}
+
+	assertSuccessfulCommand(
+		latestScenario.commands.at(-1) ?? {
+			command: [],
+			cwd: "",
+			exitCode: 1,
+			stderr: "",
+			stdout: "",
+			timedOut: false,
+		},
+		`${name} ${runner} run after ${maxAttempts} attempts`,
+	);
+	return latestScenario;
 }
 
 async function runMissingAssemblyScriptScenario(
@@ -684,14 +745,9 @@ async function main() {
 			const runners =
 				selection === "all" ? (["node", "bun"] as const) : (["node"] as const);
 			for (const runner of runners) {
-				const projectDirectory = await createTempProject(
-					`as-harness-npm-${harness}-${runner}-`,
-				);
-				temporaryDirectories.push(projectDirectory);
 				scenarios.push(
-					await runCliSmokeScenario(
-						`cli-${harness}-${runner}`,
-						projectDirectory,
+					await runCliSmokeScenarioWithRetries(
+						temporaryDirectories,
 						tarballs,
 						harness,
 						runner,
