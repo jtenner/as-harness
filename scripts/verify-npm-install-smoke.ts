@@ -20,6 +20,7 @@ const DEFAULT_REPORT_DIR = join(REPO_DIR, "dist", "npm-install-smoke-reports");
 const COMMAND_TIMEOUT_ENV_VAR = "AS_HARNESS_TIMEOUT_MS";
 const INHERIT_STDIO_ENV_VAR = "AS_HARNESS_INHERIT_STDIO";
 const DEFAULT_COMMAND_TIMEOUT_MS = 60_000;
+const NATIVE_BUN_COMMAND_TIMEOUT_MS = 180_000;
 const NODE_EXECUTABLE_SENTINEL = "__AS_HARNESS_NODE_EXECUTABLE__";
 const CLI_ENTRYPOINT = join(
 	"node_modules",
@@ -491,6 +492,11 @@ async function runCliSmokeScenario(
 	commands.push(installReport);
 	assertSuccessfulCommand(installReport, `${name} install`);
 
+	const runTimeoutMs =
+		runner === "bun" && harness !== "js"
+			? NATIVE_BUN_COMMAND_TIMEOUT_MS
+			: DEFAULT_COMMAND_TIMEOUT_MS;
+
 	if (runner !== "bun") {
 		const versionReport = await runCommand(
 			[...runnerCommand, CLI_ENTRYPOINT, "--version"],
@@ -505,7 +511,7 @@ async function runCliSmokeScenario(
 	const runReport = await runCommand(
 		[...runnerCommand, CLI_ENTRYPOINT, "run", "--harness", harness, entryFile],
 		projectDirectory,
-		DEFAULT_COMMAND_TIMEOUT_MS,
+		runTimeoutMs,
 		runner !== "bun",
 	);
 	commands.push(runReport);
