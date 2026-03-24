@@ -1,6 +1,8 @@
 # @as-harness/cli
 
-The Bun CLI compiles AssemblyScript test files to Wasm, selects a harness, and executes tests.
+The CLI package compiles AssemblyScript test files to Wasm, selects a harness,
+and executes tests. The repo authors it in Bun/TypeScript, publishes it through
+npm, and also proves a Node-targeted source-host bundle path.
 
 Public installable distribution is npm-only. The published CLI expects
 `assemblyscript` to be installed by the consuming project as a peer dependency.
@@ -18,7 +20,7 @@ Public installable distribution is npm-only. The published CLI expects
 - source-host verification builds a Node-targeted CLI bundle with Bun and runs
   that bundle under the Node baseline from [`.mise.toml`](../.mise.toml).
 
-## Not yet
+## Remaining Limits
 
 - full historical release proof across every hosted runner
 

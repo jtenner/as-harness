@@ -13,7 +13,8 @@
 - `agent-todo.md` only tracks unreleased remaining work; remove shipped/retrospective items.
 - Organize `agent-todo.md` by upcoming version, then `Blockers`, `Risks`, then feature sections in implementation priority order.
 - Gitignore newly discovered build/cache directories when they are not meant to be tracked.
-- Update relevant `README.md` files whenever user-facing/project-facing information changes.
+- Update `AGENTS.md` whenever repo workflow or maintenance expectations change.
+- Update relevant repo `README.md` files whenever user-facing/project-facing information changes, and keep them aligned with the current shipped behavior instead of historical plans.
 
 ## Commit Process
 
