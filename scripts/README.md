@@ -34,7 +34,8 @@
 - `publish-npm-packages.ts` — publish the collected cross-platform npm tarballs
   in dependency order. In CI, npm trusted publishing is expected to provide the
   authentication through GitHub Actions OIDC rather than a long-lived npm
-  secret.
+  secret, and reruns skip exact `name@version` pairs that are already on the
+  registry.
 
 ## What These Scripts Prove
 

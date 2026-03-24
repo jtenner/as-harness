@@ -74,7 +74,7 @@ function npmExecutable() {
 	return process.platform === "win32" ? "npm.cmd" : "npm";
 }
 
-async function runCommand(command: string[], cwd: string) {
+async function runCommandResult(command: string[], cwd: string) {
 	const processHandle = Bun.spawn(command, {
 		cwd,
 		stdout: "pipe",
@@ -85,6 +85,12 @@ async function runCommand(command: string[], cwd: string) {
 		new Response(processHandle.stderr).text(),
 		processHandle.exited,
 	]);
+
+	return { exitCode, stderr, stdout };
+}
+
+async function runCommand(command: string[], cwd: string) {
+	const { exitCode, stderr, stdout } = await runCommandResult(command, cwd);
 
 	if (exitCode !== 0) {
 		throw new Error(
@@ -97,6 +103,38 @@ async function runCommand(command: string[], cwd: string) {
 				.join("\n\n"),
 		);
 	}
+}
+
+function isPackageVersionNotFound(output: string) {
+	return /\bE404\b|404 Not Found|No match found for version/i.test(output);
+}
+
+async function isPackageVersionPublished(packageArtifact: PackageArtifact) {
+	const packageSpec = `${packageArtifact.name}@${packageArtifact.version}`;
+	const result = await runCommandResult(
+		[npmExecutable(), "view", packageSpec, "version", "--json"],
+		REPO_DIR,
+	);
+
+	if (result.exitCode === 0) {
+		return true;
+	}
+
+	const combinedOutput = [result.stdout, result.stderr]
+		.filter(Boolean)
+		.join("\n");
+	if (isPackageVersionNotFound(combinedOutput)) {
+		return false;
+	}
+
+	throw new Error(
+		[
+			`Failed to resolve ${packageSpec} on the npm registry before publish.`,
+			combinedOutput,
+		]
+			.filter(Boolean)
+			.join("\n\n"),
+	);
 }
 
 async function findManifestPaths(directory: string): Promise<string[]> {
@@ -234,6 +272,13 @@ async function main() {
 	assertRequiredPackagesPresent(packages, allowMissingPackages);
 
 	for (const packageArtifact of sortedPackageArtifacts(packages)) {
+		if (await isPackageVersionPublished(packageArtifact)) {
+			console.log(
+				`Skipped ${packageArtifact.name}@${packageArtifact.version}; already published.`,
+			);
+			continue;
+		}
+
 		const publishCommand = [
 			npmExecutable(),
 			"publish",

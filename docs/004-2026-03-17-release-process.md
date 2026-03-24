@@ -95,6 +95,9 @@ bun run verify:source-hosts -- --target linux-x64 --report-dir ./dist/source-hos
 - staged npm pack validation and clean temp-project npm install smoke now run on
   the release host matrix before the workflow publishes npm packages in
   dependency order
+- release publish reruns skip any `name@version` already present on the npm
+  registry so a partial first publish can resume instead of failing on immutable
+  versions
 - each published npm package must have a trusted publisher entry matching the
   `release.yml` workflow filename on npmjs.com before the OIDC publish step
   will authenticate
