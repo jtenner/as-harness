@@ -341,6 +341,10 @@ function resolveNpmCommand() {
 	);
 }
 
+function resolveNodeCommand() {
+	return [NODE_EXECUTABLE_SENTINEL];
+}
+
 async function runCommand(
 	command: string[],
 	cwd: string,
@@ -575,6 +579,7 @@ async function runCliSmokeScenario(
 ) {
 	const commands: CommandReport[] = [];
 	const entryFile = await writeCliSmokeFixture(projectDirectory);
+	const runnerCommand = runner === "node" ? resolveNodeCommand() : [runner];
 	const runtimeBinaryPackageName =
 		harness === "js"
 			? null
@@ -598,7 +603,7 @@ async function runCliSmokeScenario(
 
 	if (runner !== "bun") {
 		const versionReport = await runCommand(
-			[runner, CLI_ENTRYPOINT, "--version"],
+			[...runnerCommand, CLI_ENTRYPOINT, "--version"],
 			projectDirectory,
 			DEFAULT_COMMAND_TIMEOUT_MS,
 			true,
@@ -608,7 +613,7 @@ async function runCliSmokeScenario(
 	}
 
 	const runReport = await runCommand(
-		[runner, CLI_ENTRYPOINT, "run", "--harness", harness, entryFile],
+		[...runnerCommand, CLI_ENTRYPOINT, "run", "--harness", harness, entryFile],
 		projectDirectory,
 		DEFAULT_COMMAND_TIMEOUT_MS,
 		runner !== "bun",
@@ -653,14 +658,21 @@ async function runMissingAssemblyScriptScenario(
 	await removeAssemblyscriptPeerPackages(projectDirectory);
 
 	const versionReport = await runCommand(
-		["node", CLI_ENTRYPOINT, "--version"],
+		[...resolveNodeCommand(), CLI_ENTRYPOINT, "--version"],
 		projectDirectory,
 	);
 	commands.push(versionReport);
 	assertSuccessfulCommand(versionReport, `${name} node --version`);
 
 	const runReport = await runCommand(
-		["node", CLI_ENTRYPOINT, "run", "--harness", "js", entryFile],
+		[
+			...resolveNodeCommand(),
+			CLI_ENTRYPOINT,
+			"run",
+			"--harness",
+			"js",
+			entryFile,
+		],
 		projectDirectory,
 	);
 	commands.push(runReport);
@@ -696,7 +708,7 @@ async function runMissingNativeScenario(
 	assertSuccessfulCommand(installReport, `${name} install`);
 
 	const requireReport = await runCommand(
-		["node", "-e", `require("@as-harness/${runtimeName}")`],
+		[...resolveNodeCommand(), "-e", `require("@as-harness/${runtimeName}")`],
 		projectDirectory,
 	);
 	commands.push(requireReport);
