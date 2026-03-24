@@ -11,7 +11,7 @@ import {
 } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { stageNpmPackages } from "./stage-npm-packages";
 
 const REPO_DIR = join(import.meta.dir, "..");
@@ -246,8 +246,28 @@ function parseArguments(argv: string[]): ParsedArguments {
 	return { outputDir, reportDir, selection };
 }
 
-function npmExecutable() {
-	return process.platform === "win32" ? "npm.cmd" : "npm";
+function findExecutableOnPath(candidates: readonly string[]) {
+	const pathValue = process.env.PATH;
+	if (!pathValue) {
+		return null;
+	}
+
+	for (const directory of pathValue.split(
+		process.platform === "win32" ? ";" : ":",
+	)) {
+		if (!directory) {
+			continue;
+		}
+
+		for (const candidate of candidates) {
+			const executablePath = join(directory, candidate);
+			if (existsSync(executablePath)) {
+				return executablePath;
+			}
+		}
+	}
+
+	return null;
 }
 
 function resolveNodeExecutable() {
@@ -261,7 +281,9 @@ function resolveNodeExecutable() {
 		return candidate;
 	}
 
-	const nodeFromPath = Bun.which("node");
+	const nodeFromPath = findExecutableOnPath(
+		process.platform === "win32" ? ["node.exe", "node.cmd", "node"] : ["node"],
+	);
 	if (nodeFromPath) {
 		return nodeFromPath;
 	}
@@ -270,6 +292,45 @@ function resolveNodeExecutable() {
 		[
 			"Unable to find a Node executable for npm install smoke.",
 			"Set AS_HARNESS_NODE_BINARY or ensure `node` is on PATH.",
+		].join(" "),
+	);
+}
+
+function resolveNpmCommand() {
+	const directCommandCandidates = [process.env.AS_HARNESS_NPM_BINARY].filter(
+		(candidate): candidate is string => Boolean(candidate),
+	);
+
+	for (const candidate of directCommandCandidates) {
+		if (existsSync(candidate)) {
+			return [candidate];
+		}
+	}
+
+	const nodeExecutable = resolveNodeExecutable();
+	const nodeInstallDir = resolve(dirname(nodeExecutable), "..");
+	const npmCliCandidates = [
+		resolve(nodeInstallDir, "lib", "node_modules", "npm", "bin", "npm-cli.js"),
+		resolve(nodeInstallDir, "node_modules", "npm", "bin", "npm-cli.js"),
+	];
+
+	for (const candidate of npmCliCandidates) {
+		if (existsSync(candidate)) {
+			return [nodeExecutable, candidate];
+		}
+	}
+
+	const bareCommandCandidates =
+		process.platform === "win32" ? ["npm.cmd", "npm"] : ["npm"];
+	const npmFromPath = findExecutableOnPath(bareCommandCandidates);
+	if (npmFromPath) {
+		return [npmFromPath];
+	}
+
+	throw new Error(
+		[
+			"Unable to find an npm executable for npm install smoke.",
+			"Set AS_HARNESS_NPM_BINARY, ensure `npm` is on PATH, or provide a Node install with npm bundled.",
 		].join(" "),
 	);
 }
@@ -380,7 +441,7 @@ function assertContains(text: string, expected: string, context: string) {
 
 async function packStagedPackage(directory: string): Promise<TarballInfo> {
 	const report = await runCommand(
-		[npmExecutable(), "pack", "--json"],
+		[...resolveNpmCommand(), "pack", "--json"],
 		directory,
 	);
 	assertSuccessfulCommand(report, `npm pack in ${directory}`);
@@ -523,7 +584,7 @@ async function runCliSmokeScenario(
 				)),
 	]).concat(assemblyscriptPeerInstallPaths());
 	const installReport = await runCommand(
-		[npmExecutable(), "install", ...installPackages],
+		[...resolveNpmCommand(), "install", ...installPackages],
 		projectDirectory,
 	);
 	commands.push(installReport);
@@ -568,7 +629,7 @@ async function runMissingAssemblyScriptScenario(
 	const entryFile = await writeCliSmokeFixture(projectDirectory);
 	const installReport = await runCommand(
 		[
-			npmExecutable(),
+			...resolveNpmCommand(),
 			"install",
 			...installTarballPaths(tarballs, [
 				"@as-harness/shared",
@@ -616,7 +677,7 @@ async function runMissingNativeScenario(
 	const commands: CommandReport[] = [];
 	const installReport = await runCommand(
 		[
-			npmExecutable(),
+			...resolveNpmCommand(),
 			"install",
 			...installTarballPaths(tarballs, [
 				"@as-harness/shared",
