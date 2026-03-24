@@ -86,6 +86,24 @@ function usesReservedHarnessProtocol(host: string) {
 	);
 }
 
+function isRunningOnBun() {
+	return (
+		typeof globalThis === "object" &&
+		"Bun" in globalThis &&
+		globalThis.Bun !== undefined
+	);
+}
+
+function assertSupportedCustomHarnessRuntime(
+	harnessSpecifier: Exclude<ResolvedHarnessSpecifier, { kind: "builtin" }>,
+) {
+	if (extname(harnessSpecifier.resolvedPath) === ".ts" && !isRunningOnBun()) {
+		throw new HarnessResolutionError(
+			`Custom TypeScript harness files require Bun: ${harnessSpecifier.value}`,
+		);
+	}
+}
+
 function validateResolvedCustomHarnessFile(
 	specifier: string,
 	resolvedPath: string,
@@ -209,16 +227,20 @@ export function resolveHarnessSpecifier(
 	}
 
 	if (harnessSpecifier.kind === "path") {
-		return {
+		const resolvedSpecifier = {
 			...harnessSpecifier,
 			resolvedPath: resolveHarnessPath(harnessSpecifier.value, cwd),
 		};
+		assertSupportedCustomHarnessRuntime(resolvedSpecifier);
+		return resolvedSpecifier;
 	}
 
-	return {
+	const resolvedSpecifier = {
 		...harnessSpecifier,
 		resolvedPath: resolveHarnessPackage(harnessSpecifier.value, cwd),
 	};
+	assertSupportedCustomHarnessRuntime(resolvedSpecifier);
+	return resolvedSpecifier;
 }
 
 export function assertSupportedRuntime(

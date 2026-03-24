@@ -16,7 +16,5 @@
 
 ### Custom Harness Loading
 
-- CH-007 Keep `.ts` custom harness loading explicitly Bun-only and prove the
-  Node-bundle fallback [docs/027-2026-03-24-custom-harness-loading-plan.md:152](./docs/027-2026-03-24-custom-harness-loading-plan.md)
 - CH-008 Refresh help text, README guidance, and custom-author documentation
   [docs/027-2026-03-24-custom-harness-loading-plan.md:156](./docs/027-2026-03-24-custom-harness-loading-plan.md)

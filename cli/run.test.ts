@@ -35,6 +35,10 @@ const customHarnessPathFixturePath = join(
 	customHarnessFixturesDirectory,
 	"custom-path-runtime.mjs",
 );
+const customHarnessTypeScriptFixturePath = join(
+	customHarnessFixturesDirectory,
+	"custom-ts-runtime.ts",
+);
 const customHarnessPackageFixtureDirectory = join(
 	customHarnessFixturesDirectory,
 	"custom-package-runtime",
@@ -739,6 +743,37 @@ test("fixture-backed harness selection", (_context: TestContext): void => {});
 				expect(packageResult.stderr).toBe("");
 				expect(packageResult.stdout).toContain(
 					"PASS 1 passed, 0 failed, 1 discovered with fixture-package-js.",
+				);
+			},
+		);
+	},
+	{ timeout: 10_000 },
+);
+
+test(
+	"cli run executes a custom TypeScript harness file through Bun",
+	async () => {
+		await withTempEntryFile(
+			`
+import { test, TestContext } from "node:test";
+
+test("fixture-backed TypeScript harness", (_context: TestContext): void => {});
+`,
+			async (entryFile, cwd) => {
+				await materializeCustomHarnessFixture(
+					customHarnessTypeScriptFixturePath,
+					join(cwd, "tools", "fixture-ts-runtime.ts"),
+				);
+
+				const result = await runCliWithArguments(
+					["run", "--harness", "./tools/fixture-ts-runtime.ts", entryFile],
+					cwd,
+				);
+
+				expect(result.exitCode).toBe(0);
+				expect(result.stderr).toBe("");
+				expect(result.stdout).toContain(
+					"PASS 1 passed, 0 failed, 1 discovered with fixture-ts-js.",
 				);
 			},
 		);
