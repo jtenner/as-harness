@@ -2,6 +2,7 @@
 
 ## 2026-03-24
 
+- **cli: classify custom harness selectors before loading lands** Replace the old one-branch `--harness` validation with an explicit selector classifier that keeps `js`, `wazero`, and `wasmtime` reserved ahead of package names, distinguishes relative and absolute filesystem selectors from package specifiers, preserves custom selector values through CLI parsing, and surfaces path-versus-package "not implemented yet" resolution errors so the first custom-harness slice is shipped and tracked cleanly in code and tests. GitHub: *@jtenner*
 - **docs: plan custom harness loading for the CLI** Add a dedicated research note for `--harness` expansion so the CLI can accept built-in aliases plus relative paths, absolute paths, and consuming-project package specifiers for custom hosts; define the module contract, compile/runtime split, `.ts` Bun-only compatibility rule, diagnostics, and proof expectations; and add sliced `CH-001` through `CH-008` backlog items in `agent-todo.md` that point directly at the new planning doc for implementation follow-through. GitHub: *@jtenner*
 
 ## 2026-03-23

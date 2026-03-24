@@ -16,8 +16,6 @@
 
 ### Custom Harness Loading
 
-- CH-001 Define the `--harness` selector grammar and backwards-compatible
-  precedence [docs/027-2026-03-24-custom-harness-loading-plan.md:128](./docs/027-2026-03-24-custom-harness-loading-plan.md)
 - CH-002 Resolve relative, absolute, and package harness specifiers from the
   invoking project [docs/027-2026-03-24-custom-harness-loading-plan.md:132](./docs/027-2026-03-24-custom-harness-loading-plan.md)
 - CH-003 Normalize custom modules onto the shipped runtime contract
